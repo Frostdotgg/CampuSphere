@@ -1,0 +1,18 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description"
+  content="<%= typeof description !== 'undefined' ? description : 'CampusSphere — CSPC Virtual Campus Map Tour' %>">
+<title>
+  <%= typeof title !=='undefined' ? title : 'CampuSphere' %>
+</title>
+<link rel="stylesheet" href="/css/styles.css?v=5">
+<script>
+  (function () {
+    var savedTheme = localStorage.getItem('theme') || localStorage.getItem('adminTheme');
+    if (savedTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
+    }
+  })();
+</script>
+<link rel="icon" type="image/png" href="/img/cspc-logo.png">

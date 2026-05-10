@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head') %>
+</head>
+
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <%- include('partials/navbar') %>
+
+        <!-- ===== HERO SECTION ===== -->
+        <section class="hero page-transition" id="hero">
+            <!-- Background decorative shapes -->
+            <div class="hero__bg-shape hero__bg-shape--1"></div>
+            <div class="hero__bg-shape hero__bg-shape--2"></div>
+
+            <div class="container hero__inner">
+                <!-- Left: Content -->
+                <div class="hero__content">
+                    <div class="hero__badge">
+                        <span class="hero__badge-dot"></span>
+                        Virtual Campus Tour
+                    </div>
+
+                    <img src="/img/cspc-logo.png" alt="CSPC Official Seal" class="hero__logo">
+
+                    <h1 class="hero__title">CAMPUSPHERE</h1>
+                    <p class="hero__subtitle">
+                        Camarines Sur<br>
+                        Polytechnic Colleges<br>
+                        Virtual Map Tour
+                    </p>
+
+                    <p class="hero__description">
+                        Navigate CSPC with ease using our web application. It allows you to easily find
+                        your desired destination inside the campus. A time saver, hustle free, and easy
+                        to use web app. Great features of this app is waiting you ahead!
+                    </p>
+
+                    <div class="hero__actions">
+                        <a href="<%= user ? '/dashboard' : '/auth' %>" class="btn btn--primary" id="startTourBtn">
+                            <span>Start Tour</span>
+                            <svg class="btn__icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Visual -->
+                <div class="hero__visual">
+                    <div class="hero__image-wrapper">
+                        <!-- Decorative rings -->
+                        <div class="hero__ring hero__ring--1"></div>
+                        <div class="hero__ring hero__ring--2"></div>
+
+                        <!-- Floating dots -->
+                        <div class="hero__dot hero__dot--1"></div>
+                        <div class="hero__dot hero__dot--2"></div>
+                        <div class="hero__dot hero__dot--3"></div>
+
+                        <!-- Campus Image in Circle -->
+                        <div class="hero__image-circle">
+                            <img src="/img/campus-hero.jpg" alt="CSPC Campus — Globe monument and main building">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FEATURES SECTION ===== -->
+        <section class="features" id="features">
+            <div class="container">
+                <div class="section__header reveal">
+                    <span class="section__label">Key Features</span>
+                    <h2 class="section__title">What CampusSphere Offers</h2>
+                    <p class="section__desc">
+                        Explore the campus like never before with our interactive tools designed
+                        to make navigation simple, fast, and enjoyable.
+                    </p>
+                </div>
+
+                <div class="features__grid reveal-stagger">
+                    <!-- Feature 1 -->
+                    <div class="feature-card">
+                        <div class="feature-card__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                                <line x1="8" y1="2" x2="8" y2="18" />
+                                <line x1="16" y1="6" x2="16" y2="22" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-card__title">Interactive Campus Map</h3>
+                        <p class="feature-card__desc">
+                            Navigate the entire CSPC campus with our clickable, search-enabled
+                            interactive map featuring building details and directions.
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="feature-card">
+                        <div class="feature-card__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-card__title">Role-Based Access</h3>
+                        <p class="feature-card__desc">
+                            Tailored experiences for Students, Instructors, Admins, and Guests
+                            — each with dedicated dashboards and permissions.
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="feature-card">
+                        <div class="feature-card__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                <line x1="8" y1="21" x2="16" y2="21" />
+                                <line x1="12" y1="17" x2="12" y2="21" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-card__title">Responsive Design</h3>
+                        <p class="feature-card__desc">
+                            Built as a Progressive Web App — works beautifully on desktops, tablets,
+                            and mobile phones for campus navigation on the go.
+                        </p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="feature-card">
+                        <div class="feature-card__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-card__title">Secure Authentication</h3>
+                        <p class="feature-card__desc">
+                            Google OAuth integration restricted to @cspc.edu.ph accounts ensures
+                            secure and verified access for official CSPC users.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== STATS BAR ===== -->
+        <section class="stats">
+            <div class="container">
+                <div class="stats__grid reveal-stagger">
+                    <div class="stat">
+                        <div class="stat__number" data-target="20">20+</div>
+                        <div class="stat__label">Campus Buildings</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__number" data-target="5">5</div>
+                        <div class="stat__label">User Roles</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__number" data-target="1983">1983</div>
+                        <div class="stat__label">Year Established</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__number" data-target="2">2</div>
+                        <div class="stat__label">SDG Aligned</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <%- include('partials/footer') %>
+
+            <!-- ===== SCRIPTS ===== -->
+            <script>
+                // ---- Navbar scroll effect ----
+                const navbar = document.getElementById('navbar');
+                window.addEventListener('scroll', () => {
+                    navbar.classList.toggle('scrolled', window.scrollY > 20);
+                });
+
+                // ---- Hamburger menu toggle ----
+                const hamburger = document.getElementById('hamburger');
+                const navLinks = document.getElementById('navLinks');
+
+                hamburger.addEventListener('click', () => {
+                    hamburger.classList.toggle('active');
+                    navLinks.classList.toggle('open');
+                });
+
+                // Close menu when a link is clicked
+                navLinks.querySelectorAll('.navbar__link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        hamburger.classList.remove('active');
+                        navLinks.classList.remove('open');
+                    });
+                });
+
+                // ---- Scroll Reveal Animations ----
+                const revealElements = document.querySelectorAll('.reveal, .reveal-stagger');
+                const revealObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            revealObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+                revealElements.forEach(el => revealObserver.observe(el));
+
+                // ---- Smooth Start Tour button ripple effect ----
+                const startBtn = document.getElementById('startTourBtn');
+                startBtn.addEventListener('mouseenter', (e) => {
+                    const rect = startBtn.getBoundingClientRect();
+                    startBtn.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+                    startBtn.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+                });
+            </script>
+
+            <%- include('partials/theme-toggle') %>
+</body>
+
+</html>

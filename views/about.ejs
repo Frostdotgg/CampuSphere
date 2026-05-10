@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+        content="Learn about CampusSphere, our mission, CSPC history, and the Team Dutchess creators.">
+
+    <title>CampusSphere | About Us</title>
+
+    <link rel="stylesheet" href="/css/styles.css?v=2">
+
+    <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+
+    <!-- Iconify -->
+
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+</head>
+
+
+
+<body>
+
+    <!-- Server-injected session data (available to all client-side scripts) -->
+    <script id="sessionData" type="application/json">
+  <%- JSON.stringify(user || null) %>
+</script>
+    <script>
+        window.__SESSION_USER = JSON.parse(document.getElementById('sessionData').textContent);
+    </script>
+
+    <!-- ===== NAVBAR ===== -->
+
+    <nav class="dash-nav" id="dashNav">
+
+        <div class="dash-nav__inner">
+
+            <a href="/home" class="dash-nav__brand">
+
+                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="dash-nav__logo">
+
+                <span class="dash-nav__title">CampusSphere</span>
+
+            </a>
+
+            <div class="dash-nav__tabs" id="dashTabs">
+
+                <a href="/home" class="dash-nav__tab" id="tabHome">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+
+                    </svg>
+
+                    <span>Home</span>
+
+                </a>
+
+                <a href="/dashboard" class="dash-nav__tab" id="tabDashboard">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+                        <rect x="3" y="3" width="7" height="7" />
+
+                        <rect x="14" y="3" width="7" height="7" />
+
+                        <rect x="14" y="14" width="7" height="7" />
+
+                        <rect x="3" y="14" width="7" height="7" />
+
+                    </svg>
+
+                    <span>Dashboard</span>
+
+                </a>
+
+                <a href="/buildings" class="dash-nav__tab" id="tabBuildings">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+
+                        <rect x="4" y="2" width="16" height="20" rx="2" />
+
+                        <path d="M9 22v-4h6v4" />
+
+                        <path d="M8 6h.01" />
+
+                        <path d="M16 6h.01" />
+
+                        <path d="M12 6h.01" />
+
+                        <path d="M12 10h.01" />
+
+                        <path d="M12 14h.01" />
+
+                        <path d="M16 10h.01" />
+
+                        <path d="M8 10h.01" />
+
+                    </svg>
+
+                    <span>Buildings</span>
+
+                </a>
+
+                <a href="/events" class="dash-nav__tab" id="tabEvents">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+
+                        <line x1="16" y1="2" x2="16" y2="6" />
+
+                        <line x1="8" y1="2" x2="8" y2="6" />
+
+                        <line x1="3" y1="10" x2="21" y2="10" />
+
+                    </svg>
+
+                    <span>Events</span>
+
+                </a>
+
+                <a href="/map" class="dash-nav__tab" id="tabMap">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+
+                        <line x1="8" y1="2" x2="8" y2="18" />
+
+                        <line x1="16" y1="6" x2="16" y2="22" />
+
+                    </svg>
+
+                    <span>Campus Map</span>
+
+                </a>
+
+                <a href="/about" class="dash-nav__tab dash-nav__tab--active" id="tabAbout">
+
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+
+                        <circle cx="12" cy="12" r="10" />
+
+                        <line x1="12" y1="16" x2="12" y2="12" />
+
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+
+                    </svg>
+
+                    <span>About Us</span>
+
+                </a>
+
+                <div class="dash-nav__tabs-divider mobile-only"></div>
+                <button class="dash-nav__tab mobile-only" id="mobileEditProfileBtn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Edit Profile</span>
+                </button>
+                <button class="dash-nav__tab dash-nav__tab--logout mobile-only" id="mobileLogoutBtn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span>Logout</span>
+                </button>
+
+            </div>
+
+            <!-- Right: Notification + User -->
+
+            <div class="dash-nav__right">
+
+                <button class="dash-nav__icon-btn" id="notifBtn" aria-label="Notifications">
+
+                    <iconify-icon icon="ep:bell" width="20"></iconify-icon>
+
+                    <span class="dash-nav__notif-dot"></span>
+
+                </button>
+
+                <div class="dash-nav__user" id="userMenu">
+
+                    <div class="dash-nav__avatar">
+
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+
+                            <circle cx="12" cy="7" r="4" />
+
+                        </svg>
+
+                    </div>
+
+                    <span class="dash-nav__username" id="navUsername">
+                        <%= user ? user.first_name : 'Guest' %>
+                    </span>
+
+                    <iconify-icon icon="ep:arrow-down" width="14" class="dash-nav__chevron"></iconify-icon>
+
+                </div>
+
+            </div>
+
+            <button class="dash-nav__hamburger" id="dashHamburger" aria-label="Toggle menu">
+
+                <span></span><span></span><span></span>
+
+            </button>
+
+        </div>
+
+    </nav>
+
+
+
+    <!-- ===== PAGE ===== -->
+
+    <div class="about-page page-transition">
+
+
+
+        <!-- Hero -->
+
+        <header class="about-hero">
+
+            <div class="about-hero__content">
+
+                <h1 class="about-hero__title">Pioneering Smart Campus Navigation</h1>
+
+                <p class="about-hero__sub">Empowering students, faculty, and visitors at Camarines Sur Polytechnic
+
+                    Colleges through innovative spatial technology and sustainable design.</p>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- Main Content -->
+
+        <main class="about-container">
+
+
+
+            <!-- CSPC History & Description -->
+
+            <section class="split-block">
+
+                <div class="split-content">
+
+                    <span class="section-tag">Our Institution</span>
+
+                    <h2 class="section-title">Camarines Sur Polytechnic Colleges</h2>
+
+                    <p>CSPC is a premier polytechnic institution in the Bicol Region, committed to providing quality
+
+                        education in engineering, technology, business, and health sciences. Founded on the principles
+
+                        of excellence and innovation, the college continuously strives to produce highly competent
+
+                        professionals.</p>
+
+                    <p>As the campus expands to accommodate growing academic programs and an increasing student body,
+
+                        the need for efficient campus management and navigation has become more vital than ever.
+
+                        CampusSphere acts as a digital twin to this dynamic physical environment.</p>
+
+                </div>
+
+                <div class="split-media">
+
+                    <img src="/img/campus-hero.jpg" alt="CSPC Campus Overview" loading="lazy">
+
+                </div>
+
+            </section>
+
+
+
+            <!-- Project Overview & Problem Statement -->
+
+            <section class="split-block reverse">
+
+                <div class="split-content">
+
+                    <span class="section-tag">The Challenge</span>
+
+                    <h2 class="section-title">Why CampusSphere?</h2>
+
+                    <p><strong>The Problem:</strong> Navigating a growing campus can be overwhelming for freshmen,
+
+                        transferees, and visitors. Finding specific halls, offices, or tracking down event locations
+
+                        often leads to wasted time and unnecessary confusion. Furthermore, campus administration lacks a
+
+                        centralized, digital view of facility utilization.</p>
+
+                    <p><strong>The Solution:</strong> CampusSphere is an interactive web-based campus map and directory.
+
+                        It provides real-time geographic insights, detailed building profiles, floor plans, and a
+
+                        centralized hub for campus events. By merging GIS data with an intuitive interface, we transform
+
+                        the physical campus into an easily accessible digital experience.</p>
+
+                </div>
+
+                <div class="split-media">
+
+                    <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="Students navigating campus"
+                        loading="lazy">
+
+                </div>
+
+            </section>
+
+
+
+            <!-- SDG Alignment -->
+
+            <section>
+
+                <div class="section-header">
+
+                    <span class="section-tag">Sustainable Impact</span>
+
+                    <h2 class="section-title">Aligning with Global Goals</h2>
+
+                    <p class="section-desc">CampusSphere isn't just a convenience tool; it's built to support the United
+
+                        Nations Sustainable Development Goals (SDGs) by fostering better education access and innovative
+
+                        infrastructure.</p>
+
+                </div>
+
+
+
+                <div class="sdg-grid">
+
+                    <!-- SDG 4 -->
+
+                    <div class="sdg-card sdg-4">
+
+                        <div class="sdg-icon">
+
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+
+                                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+
+                            </svg>
+
+                        </div>
+
+                        <h3 class="sdg-title">Quality Education (SDG 4)</h3>
+
+                        <p class="sdg-desc">By making campus facilities, libraries, and event schedules easily
+
+                            accessible, CampusSphere ensures that students can focus on learning rather than logistics.
+
+                            It creates an inclusive environment where all educational resources are geographically
+
+                            transparent to every student.</p>
+
+                    </div>
+
+                    <!-- SDG 9 -->
+
+                    <div class="sdg-card sdg-9">
+
+                        <div class="sdg-icon">
+
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+
+                            </svg>
+
+                        </div>
+
+                        <h3 class="sdg-title">Industry, Innovation & Infrastructure (SDG 9)</h3>
+
+                        <p class="sdg-desc">CampusSphere modernizes institutional infrastructure by taking physical
+
+                            campus maps into the digital age. It represents a technological innovation in facility
+
+                            management, promoting a sustainable and highly efficient campus environment through smart
+
+                            technology.</p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- Team Dutchess -->
+
+            <section>
+
+                <div class="section-header">
+
+                    <span class="section-tag">The Creators</span>
+
+                    <h2 class="section-title">Meet Team Dutchess</h2>
+
+                    <p class="section-desc">The dedicated minds behind the design, development, and mapping of
+
+                        CampusSphere.</p>
+
+                </div>
+
+
+
+                <div class="team-grid">
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/Baldoza.png" alt="Carl Andrie D. Baldoza">
+                        </div>
+                        <h3 class="member-name">Carl Andrie D. Baldoza</h3>
+                        <p class="member-role">Project Head</p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/Lagrimas.png" alt="Carl Ryan P. Lagrimas">
+                        </div>
+                        <h3 class="member-name">Carl Ryan P. Lagrimas</h3>
+                        <p class="member-role">Backend Developer</p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/Regondola.jpeg" alt="Ocean Derek L. Regondola">
+                        </div>
+                        <h3 class="member-name">Ocean Derek L. Regondola</h3>
+                        <p class="member-role">Frontend Developer</p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/Lasprillas.jpeg" alt="Aaron V. Lasprillas">
+                        </div>
+                        <h3 class="member-name">Aaron V. Lasprillas</h3>
+                        <p class="member-role">UI/UX Designer</p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/maat.jpg" alt="maat">
+                        </div>
+                        <h3 class="member-name">Maat</h3>
+                        <p class="member-role">Documenter</p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-img">
+                            <img src="/img/Dilamitas.jpg" alt="Dilamitas">
+                        </div>
+                        <h3 class="member-name">Dilamitas</h3>
+                        <p class="member-role">Documenter</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- Contact Info -->
+
+            <section class="contact-card">
+
+                <h2 class="contact-title">Have Questions or Suggestions?</h2>
+
+                <p class="contact-desc">Whether you found a bug on the map or have an idea to improve CampusSphere, we'd
+
+                    love to hear from you.</p>
+
+
+
+                <div class="contact-links">
+
+                    <a href="mailto:teamdutchess@cspc.edu.ph" class="contact-btn">
+
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+
+                            <polyline points="22,6 12,13 2,6" />
+
+                        </svg>
+
+                        Email Team Dutchess
+
+                    </a>
+
+                    <a href="#" class="contact-btn outline">
+
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                            <path
+                                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+
+                        </svg>
+
+                        View Repository
+
+                    </a>
+
+                </div>
+
+            </section>
+
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- Theme Toggle -->
+
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+            <circle cx="12" cy="12" r="5" />
+
+            <line x1="12" y1="1" x2="12" y2="3" />
+
+            <line x1="12" y1="21" x2="12" y2="23" />
+
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+
+            <line x1="1" y1="12" x2="3" y2="12" />
+
+            <line x1="21" y1="12" x2="23" y2="12" />
+
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+
+        </svg>
+
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+
+        </svg>
+
+    </button>
+
+
+
+    <script>
+
+        /* ===== NAVBAR ===== */
+
+        const dashNav = document.getElementById('dashNav');
+
+        window.addEventListener('scroll', () => {
+
+            dashNav.classList.toggle('scrolled', window.scrollY > 10);
+
+        });
+
+        const hamburger = document.getElementById('dashHamburger');
+
+        const tabs = document.getElementById('dashTabs');
+
+        hamburger.addEventListener('click', () => {
+
+            hamburger.classList.toggle('active');
+
+            tabs.classList.toggle('open');
+
+        });
+
+
+
+        /* ===== USERNAME — rendered server-side via EJS ===== */
+
+
+
+        /* ===== THEME ===== */
+
+        (function () {
+
+            const toggle = document.getElementById('themeToggle');
+
+            const iconSun = toggle.querySelector('.icon-sun');
+
+            const iconMoon = toggle.querySelector('.icon-moon');
+
+
+
+            function updateThemeUI(isDark) {
+
+                if (isDark) {
+
+                    document.documentElement.setAttribute('data-theme', 'dark');
+
+                    iconSun.style.display = 'none';
+
+                    iconMoon.style.display = 'block';
+
+                } else {
+
+                    document.documentElement.removeAttribute('data-theme');
+
+                    iconSun.style.display = 'block';
+
+                    iconMoon.style.display = 'none';
+
+                }
+
+            }
+
+
+
+            if (localStorage.getItem('campussphere-theme') === 'dark') {
+
+                updateThemeUI(true);
+
+            }
+
+
+
+            toggle.addEventListener('click', () => {
+
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+                updateThemeUI(!isDark);
+
+                localStorage.setItem('campussphere-theme', !isDark ? 'dark' : 'light');
+
+            });
+
+        })();
+
+    </script>
+
+    <!-- Edit Profile Script -->
+
+    <script src="/js/profile-script.js"></script>
+
+    <script src="/js/nav-role.js"></script>
+
+</body>
+
+
+
+</html>

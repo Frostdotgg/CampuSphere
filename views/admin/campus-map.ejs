@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <meta name="description" content="<%= description %>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin-styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/admin/main.js" defer></script>
+    <script src="/js/admin/admin-buildings.js" defer></script>
+    <style>
+        .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+        .modal-backdrop.modal--open{display:flex;}
+        .modal-box{background:var(--card);border:1px solid var(--border);border-radius:0.75rem;width:95%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+        .modal-header h3{font-size:1.1rem;font-weight:600;color:var(--foreground);margin:0;}
+        .modal-body{padding:1.5rem;}
+        .modal-footer{display:flex;justify-content:flex-end;gap:0.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border);}
+        .form-group{margin-bottom:1rem;}
+        .form-group label{display:block;font-size:0.875rem;font-weight:500;color:var(--foreground);margin-bottom:0.375rem;}
+        .form-group .ui-input,.form-group select,.form-group textarea{width:100%;box-sizing:border-box;}
+        .form-group select{height:2.5rem;padding:0 0.75rem;border-radius:0.5rem;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.875rem;}
+        .form-group textarea{min-height:80px;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.875rem;font-family:inherit;resize:vertical;}
+        .form-error{display:none;padding:0.625rem 0.875rem;border-radius:0.5rem;background:hsl(0 84% 60%/0.1);color:var(--destructive);font-size:0.8125rem;margin-bottom:1rem;border:1px solid hsl(0 84% 60%/0.2);}
+        .admin-toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:2000;padding:0.75rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;color:#fff;transform:translateY(120%);opacity:0;transition:all .3s ease;pointer-events:none;}
+        .admin-toast--success{background:hsl(142 71% 45%);}
+        .admin-toast--error{background:var(--destructive);}
+        .admin-toast--show{transform:translateY(0);opacity:1;pointer-events:auto;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .animate-spin{animation:spin 1s linear infinite;}
+        .modal-delete-warn{text-align:center;padding:1rem 0;}
+        .modal-delete-warn i{color:var(--destructive);margin-bottom:0.75rem;}
+        .modal-delete-warn p{color:var(--muted-foreground);font-size:0.875rem;line-height:1.5;}
+        .modal-delete-warn strong{color:var(--foreground);}
+    </style>
+</head>
+
+<body class="admin-surface font-sans antialiased">
+    <div class="admin-shell flex h-screen bg-background text-foreground overflow-hidden">
+
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="relative flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 w-64 shrink-0">
+            <div class="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border h-16">
+                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="sidebar-logo shrink-0">
+                <div id="sidebar-header-full" class="flex flex-col">
+                    <span class="sidebar-brand-title">Campu<span>Sphere</span></span>
+                    <span class="sidebar-brand-sub">Admin Portal</span>
+                </div>
+            </div>
+            <nav class="flex-1 px-2 py-4 overflow-y-auto" style="display:flex; flex-direction:column; gap:2px;">
+                <a href="/admin" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Dashboard</span></a>
+                <a href="/admin/users" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="users" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Users</span></a>
+                <a href="/admin/news" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="newspaper" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">News</span></a>
+                <a href="/admin/faqs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">FAQs</span></a>
+                <a href="/admin/logs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System Logs</span></a>
+                <a href="/admin/campus-map" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/settings" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Settings</span></a>
+            </nav>
+            <div class="border-t border-sidebar-border p-4">
+                <div class="flex items-center gap-3">
+                    <div class="ui-avatar h-9 w-9 shrink-0">
+                        <div class="ui-avatar-fallback text-xs font-semibold"><%= user ? (user.first_name || '')[0].toUpperCase() + (user.last_name || '')[0].toUpperCase() : 'AD' %></div>
+                    </div>
+                    <div id="sidebar-user-full" class="flex flex-col flex-1 min-w-0">
+                        <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
+                        <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
+                    </div>
+                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></a>
+                </div>
+            </div>
+            <button id="sidebar-toggle" class="ui-button ui-button-ghost ui-button-size-icon absolute -right-3 top-7 h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent" style="width:1.5rem;height:1.5rem;padding:0;">
+                <i id="sidebar-icon-left" data-lucide="chevron-left" class="h-3 w-3"></i>
+                <i id="sidebar-icon-right" data-lucide="chevron-right" class="h-3 w-3 hidden"></i>
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 flex-col overflow-hidden">
+            <header class="admin-page-header flex h-16 items-center justify-between border-b border-border bg-card px-6 shrink-0">
+                <div>
+                    <h1 class="text-xl font-semibold text-foreground">Campus Map Management</h1>
+                    <p class="text-sm text-muted-foreground">Manage building markers, locations, and map data</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
+                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
+                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                            style="padding:0;min-width:1.25rem;">3</span></button>
+                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
+                        style="min-width:20rem;right:1.5rem;">
+                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
+                        <div class="h-px bg-border my-1"></div>
+                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
+                                class="font-medium text-foreground">New user registration</span><span
+                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
+                                class="text-xs text-muted-foreground">2 min ago</span></div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
+                <div class="mx-auto max-w-7xl" style="display:flex;flex-direction:column;gap:1.5rem;">
+
+                    <!-- Stats -->
+                    <div class="grid gap-4 md:grid-cols-2" style="max-width:500px;">
+                        <div class="ui-card border-border"><div class="p-4"><div class="flex items-center gap-3">
+                            <div class="rounded-lg bg-primary/10 p-2.5"><i data-lucide="building-2" class="h-5 w-5 text-primary"></i></div>
+                            <div><p class="text-sm text-muted-foreground">Total Buildings</p><p id="stat-buildings" class="text-2xl font-bold text-foreground"><%= stats.totalBuildings %></p></div>
+                        </div></div></div>
+                        <div class="ui-card border-border"><div class="p-4"><div class="flex items-center gap-3">
+                            <div class="rounded-lg bg-chart-2/10 p-2.5"><i data-lucide="layers" class="h-5 w-5 text-chart-2"></i></div>
+                            <div><p class="text-sm text-muted-foreground">Categories</p><p id="stat-categories" class="text-2xl font-bold text-foreground"><%= stats.totalCategories %></p></div>
+                        </div></div></div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                        <div class="relative flex-1 max-w-xs">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
+                            <input id="building-search-input" type="text" placeholder="Search buildings..." class="ui-input pl-9" style="width:100%;">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative inline-block text-left">
+                                <button id="bld-cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:160px;" data-dropdown-target="bld-cat-filter-menu">
+                                    <span>All Categories</span><i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
+                                </button>
+                                <div id="bld-cat-filter-menu" class="dropdown-menu-content p-1" style="width:160px;">
+                                    <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All</div>
+                                    <div class="dropdown-menu-item" data-value="Academic">Academic</div>
+                                    <div class="dropdown-menu-item" data-value="Administrative">Administrative</div>
+                                    <div class="dropdown-menu-item" data-value="Student Services">Student Services</div>
+                                    <div class="dropdown-menu-item" data-value="Sports">Sports</div>
+                                    <div class="dropdown-menu-item" data-value="Facilities">Facilities</div>
+                                </div>
+                            </div>
+                            <button id="add-building-btn" class="ui-button ui-button-default ui-button-size-default">
+                                <i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Building
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Buildings Grid -->
+                    <div id="buildings-grid" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <!-- Rendered by admin-buildings.js -->
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ======== BUILDING MODAL (Create/Edit) ======== -->
+    <div id="building-modal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="building-modal-title"><i data-lucide="building-2" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Add New Building</h3>
+                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
+            <form id="building-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <div class="form-group">
+                        <label for="building-name">Building Name</label>
+                        <input type="text" name="building_name" id="building-name" class="ui-input" placeholder="e.g. Main Administration Building" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="building-category">Category</label>
+                        <select name="category" id="building-category" required>
+                            <option value="">Select...</option>
+                            <option value="Academic">Academic</option>
+                            <option value="Administrative">Administrative</option>
+                            <option value="Student Services">Student Services</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Facilities">Facilities</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="building-desc">Description</label>
+                        <textarea name="description" id="building-desc" placeholder="Short description of the building..."></textarea>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group">
+                            <label for="building-lat">Latitude</label>
+                            <input type="number" step="any" name="lat" id="building-lat" class="ui-input" placeholder="e.g. 13.6310" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="building-lng">Longitude</label>
+                            <input type="number" step="any" name="lng" id="building-lng" class="ui-input" placeholder="e.g. 123.1830" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="building-details">Additional Details</label>
+                        <textarea name="details" id="building-details" placeholder="Floors, facilities, departments..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                    <button id="building-submit-btn" type="submit" class="ui-button ui-button-default ui-button-size-default">
+                        <i data-lucide="plus" class="h-4 w-4 mr-2"></i>Add Building
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== DELETE CONFIRMATION MODAL ======== -->
+    <div id="delete-building-modal" class="modal-backdrop">
+        <div class="modal-box" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-delete-warn">
+                    <i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i>
+                    <p>Are you sure you want to delete <strong id="delete-building-name"></strong>?</p>
+                    <p style="margin-top:0.5rem;">This will remove the building marker from the campus map.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-building-delete-btn" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                <button id="confirm-building-delete-btn" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;">
+                    <i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="admin-toast" class="admin-toast"></div>
+
+    <!-- Inject data as JSON -->
+    <script id="buildings-data-json" type="application/json"><%- JSON.stringify(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, created_at: b.created_at, updated_at: b.updated_at }))) %></script>
+
+    <!-- Dark Mode Toggle -->
+    <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>

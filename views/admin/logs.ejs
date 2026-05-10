@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampuSphere Admin - System Logs</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin-styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/admin/main.js" defer></script>
+</head>
+
+<body class="admin-surface font-sans antialiased">
+    <div class="admin-shell flex h-screen bg-background text-foreground overflow-hidden">
+        <aside id="sidebar"
+            class="relative flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 w-64 shrink-0">
+            <div class="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border h-16">
+                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="sidebar-logo shrink-0">
+                <div id="sidebar-header-full" class="flex flex-col"><span
+                        class="sidebar-brand-title">Campu<span>Sphere</span></span><span class="sidebar-brand-sub">Admin
+                        Portal</span></div>
+            </div>
+            <nav class="flex-1 px-2 py-4 overflow-y-auto" style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">Dashboard</span></a>
+                <a href="/admin/users"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="users" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Users</span></a>
+                <a href="/admin/news"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="newspaper" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">News</span></a>
+                <a href="/admin/faqs"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">FAQs</span></a>
+                <a href="/admin/logs"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i
+                        data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System
+                        Logs</span></a>
+                <a href="/admin/campus-map"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/settings"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="settings" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">Settings</span></a>
+            </nav>
+            <div class="border-t border-sidebar-border p-4">
+                <div class="flex items-center gap-3">
+                    <div class="ui-avatar h-9 w-9 shrink-0">
+                        <div class="ui-avatar-fallback text-xs font-semibold"><%= user ? (user.first_name || '')[0].toUpperCase() + (user.last_name || '')[0].toUpperCase() : 'AD' %></div>
+                    </div>
+                    <div id="sidebar-user-full" class="flex flex-col flex-1 min-w-0">
+                        <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
+                        <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
+                    </div>
+                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i
+                            data-lucide="log-out" class="h-4 w-4"></i></a>
+                </div>
+            </div>
+            <button id="sidebar-toggle"
+                class="ui-button ui-button-ghost ui-button-size-icon absolute -right-3 top-7 h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent"
+                style="width:1.5rem;height:1.5rem;padding:0;"><i id="sidebar-icon-left" data-lucide="chevron-left"
+                    class="h-3 w-3"></i><i id="sidebar-icon-right" data-lucide="chevron-right"
+                    class="h-3 w-3 hidden"></i></button>
+        </aside>
+
+        <div class="flex flex-1 flex-col overflow-hidden">
+            <header class="admin-page-header flex h-16 items-center justify-between border-b border-border bg-card px-6 shrink-0">
+                <div>
+                    <h1 class="text-xl font-semibold text-foreground">System Logs</h1>
+                    <p class="text-sm text-muted-foreground">Monitor system activity and events</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden md:block"><i data-lucide="search"
+                            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
+                            type="search" placeholder="Search..."
+                            class="ui-input w-64 pl-9 bg-secondary/50 border-border"></div>
+                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
+                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
+                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                            style="padding:0;min-width:1.25rem;">3</span></button>
+                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
+                        style="min-width:20rem;right:1.5rem;">
+                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
+                        <div class="h-px bg-border my-1"></div>
+                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
+                                class="font-medium text-foreground">New user registration</span><span
+                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
+                                class="text-xs text-muted-foreground">2 min ago</span></div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
+                <div class="mx-auto max-w-7xl" style="display:flex;flex-direction:column;gap:1.5rem;">
+                    <div class="grid gap-4 md:grid-cols-4">
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="check-circle"
+                                            class="h-5 w-5 text-chart-1"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Success</p>
+                                        <p class="text-2xl font-bold text-foreground">1,247</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-chart-2/10 p-2.5"><i data-lucide="info"
+                                            class="h-5 w-5 text-chart-2"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Info</p>
+                                        <p class="text-2xl font-bold text-foreground">3,892</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-chart-4/10 p-2.5"><i data-lucide="alert-triangle"
+                                            class="h-5 w-5 text-chart-4"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Warnings</p>
+                                        <p class="text-2xl font-bold text-foreground">156</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-destructive/10 p-2.5"><i data-lucide="alert-circle"
+                                            class="h-5 w-5 text-destructive"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Errors</p>
+                                        <p class="text-2xl font-bold text-foreground">23</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div class="flex flex-1 items-center gap-3">
+                            <div class="relative flex-1 max-w-md w-full"><i data-lucide="search"
+                                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
+                                    type="text" placeholder="Search logs..." class="ui-input pl-9" style="width:100%;">
+                            </div>
+                            <button class="ui-button ui-button-outline ui-button-size-default dropdown-trigger"
+                                style="width:140px;" data-dropdown-target="log-type-menu"><span>All Types</span><i
+                                    data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i></button>
+                            <div id="log-type-menu" class="dropdown-menu-content p-1" style="width:140px;">
+                                <div class="dropdown-menu-item">All Types</div>
+                                <div class="dropdown-menu-item">Success</div>
+                                <div class="dropdown-menu-item">Info</div>
+                                <div class="dropdown-menu-item">Warning</div>
+                                <div class="dropdown-menu-item">Error</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="ui-button ui-button-outline ui-button-size-default"><i
+                                    data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Refresh</button>
+                            <button class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="download"
+                                    class="mr-2 h-4 w-4"></i>Export</button>
+                        </div>
+                    </div>
+
+                    <div class="ui-card border-border">
+                        <div class="p-6 pb-3" style="border-bottom:none;">
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Recent Logs (10)</h3>
+                        </div>
+                        <div class="p-0">
+                            <table class="ui-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">Type</th>
+                                        <th>Timestamp</th>
+                                        <th>Action</th>
+                                        <th>Message</th>
+                                        <th>User</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><i data-lucide="check-circle" class="h-5 w-5 text-chart-1"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 14:32:15</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">User
+                                                Login</span></td>
+                                        <td class="text-sm" style="max-width:300px;" class="truncate">User
+                                            authentication successful</td>
+                                        <td class="text-sm text-muted-foreground">admin@cspc.edu.ph</td>
+                                        <td class="text-sm text-muted-foreground font-mono">192.168.1.45</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="info" class="h-5 w-5 text-chart-2"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 14:28:00</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Registration</span>
+                                        </td>
+                                        <td class="text-sm">New student registration completed</td>
+                                        <td class="text-sm text-muted-foreground">system</td>
+                                        <td class="text-sm text-muted-foreground font-mono">192.168.1.102</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="alert-triangle" class="h-5 w-5 text-chart-4"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 13:45:22</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-4/10 text-chart-4 border-chart-4/20">Failed
+                                                Login</span></td>
+                                        <td class="text-sm">Failed login attempt - invalid password</td>
+                                        <td class="text-sm text-muted-foreground">unknown</td>
+                                        <td class="text-sm text-muted-foreground font-mono">203.45.67.89</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="check-circle" class="h-5 w-5 text-chart-1"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 12:00:00</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Backup</span>
+                                        </td>
+                                        <td class="text-sm">Database backup completed successfully</td>
+                                        <td class="text-sm text-muted-foreground">system</td>
+                                        <td class="text-sm text-muted-foreground font-mono">localhost</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="info" class="h-5 w-5 text-chart-2"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 10:15:33</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Content</span>
+                                        </td>
+                                        <td class="text-sm">News article published: Enrollment Period</td>
+                                        <td class="text-sm text-muted-foreground">admin@cspc.edu.ph</td>
+                                        <td class="text-sm text-muted-foreground font-mono">192.168.1.45</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="check-circle" class="h-5 w-5 text-chart-1"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 09:45:00</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Map
+                                                Update</span></td>
+                                        <td class="text-sm">Campus map building info updated</td>
+                                        <td class="text-sm text-muted-foreground">admin@cspc.edu.ph</td>
+                                        <td class="text-sm text-muted-foreground font-mono">192.168.1.45</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i data-lucide="info" class="h-5 w-5 text-chart-2"></i></td>
+                                        <td class="text-sm text-muted-foreground font-mono">2026-03-12 09:00:00</td>
+                                        <td><span
+                                                class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">System
+                                                Start</span></td>
+                                        <td class="text-sm">Application server started successfully</td>
+                                        <td class="text-sm text-muted-foreground">system</td>
+                                        <td class="text-sm text-muted-foreground font-mono">localhost</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+    </button>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>

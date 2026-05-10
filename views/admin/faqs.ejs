@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampuSphere Admin - FAQs</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin-styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/admin/main.js" defer></script>
+</head>
+
+<body class="admin-surface font-sans antialiased">
+    <div class="admin-shell flex h-screen bg-background text-foreground overflow-hidden">
+        <aside id="sidebar"
+            class="relative flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 w-64 shrink-0">
+            <div class="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border h-16">
+                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="sidebar-logo shrink-0">
+                <div id="sidebar-header-full" class="flex flex-col"><span
+                        class="sidebar-brand-title">Campu<span>Sphere</span></span><span class="sidebar-brand-sub">Admin
+                        Portal</span></div>
+            </div>
+            <nav class="flex-1 px-2 py-4 overflow-y-auto" style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">Dashboard</span></a>
+                <a href="/admin/users"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="users" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Users</span></a>
+                <a href="/admin/news"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="newspaper" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">News</span></a>
+                <a href="/admin/faqs"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i
+                        data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">FAQs</span></a>
+                <a href="/admin/logs"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System
+                        Logs</span></a>
+                <a href="/admin/campus-map"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/settings"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="settings" class="h-5 w-5 shrink-0"></i><span
+                        class="sidebar-text">Settings</span></a>
+            </nav>
+            <div class="border-t border-sidebar-border p-4">
+                <div class="flex items-center gap-3">
+                    <div class="ui-avatar h-9 w-9 shrink-0">
+                        <div class="ui-avatar-fallback text-xs font-semibold"><%= user ? (user.first_name || '')[0].toUpperCase() + (user.last_name || '')[0].toUpperCase() : 'AD' %></div>
+                    </div>
+                    <div id="sidebar-user-full" class="flex flex-col flex-1 min-w-0">
+                        <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
+                        <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
+                    </div>
+                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i
+                            data-lucide="log-out" class="h-4 w-4"></i></a>
+                </div>
+            </div>
+            <button id="sidebar-toggle"
+                class="ui-button ui-button-ghost ui-button-size-icon absolute -right-3 top-7 h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent"
+                style="width:1.5rem;height:1.5rem;padding:0;"><i id="sidebar-icon-left" data-lucide="chevron-left"
+                    class="h-3 w-3"></i><i id="sidebar-icon-right" data-lucide="chevron-right"
+                    class="h-3 w-3 hidden"></i></button>
+        </aside>
+
+        <div class="flex flex-1 flex-col overflow-hidden">
+            <header class="admin-page-header flex h-16 items-center justify-between border-b border-border bg-card px-6 shrink-0">
+                <div>
+                    <h1 class="text-xl font-semibold text-foreground">FAQ Management</h1>
+                    <p class="text-sm text-muted-foreground">Manage frequently asked questions</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden md:block"><i data-lucide="search"
+                            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
+                            type="search" placeholder="Search..."
+                            class="ui-input w-64 pl-9 bg-secondary/50 border-border"></div>
+                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
+                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
+                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                            style="padding:0;min-width:1.25rem;">3</span></button>
+                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
+                        style="min-width:20rem;right:1.5rem;">
+                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
+                        <div class="h-px bg-border my-1"></div>
+                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
+                                class="font-medium text-foreground">New user registration</span><span
+                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
+                                class="text-xs text-muted-foreground">2 min ago</span></div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
+                <div class="mx-auto max-w-4xl" style="display:flex;flex-direction:column;gap:1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div class="relative flex-1 max-w-md w-full"><i data-lucide="search"
+                                class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
+                                type="text" placeholder="Search FAQs..." class="ui-input pl-9" style="width:100%;">
+                        </div>
+                        <button class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus"
+                                class="mr-2 h-4 w-4"></i>Add FAQ</button>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-primary/10 p-2.5"><i data-lucide="help-circle"
+                                            class="h-5 w-5 text-primary"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Total FAQs</p>
+                                        <p class="text-2xl font-bold text-foreground">24</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="check-circle"
+                                            class="h-5 w-5 text-chart-1"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Published</p>
+                                        <p class="text-2xl font-bold text-foreground">21</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-muted p-2.5"><i data-lucide="file-edit"
+                                            class="h-5 w-5 text-muted-foreground"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Drafts</p>
+                                        <p class="text-2xl font-bold text-foreground">3</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card border-border">
+                        <div class="p-6 pb-3" style="border-bottom:none;">
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">All FAQs (6)</h3>
+                        </div>
+                        <div class="p-6 pt-0">
+                            <div class="w-full">
+                                <details class="border-b border-border py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>How do I
+                                                navigate the campus map?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Campus
+                                                    Map</span><i data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">Click on any building on the interactive map to view its
+                                            details. You can use the search function to find specific locations, or zoom
+                                            in/out using the controls.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">1,234 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <details class="border-b border-border py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>How do I access
+                                                my enrollment details?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Student
+                                                    Portal</span><i data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">Log in with your CSPC email account, then navigate to your
+                                            profile section. Your enrollment details will be displayed in the Student
+                                            Dashboard.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">892 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <details class="border-b border-border py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>What should I
+                                                do if I forgot my password?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-chart-4/10 text-chart-4 border-chart-4/20">Account</span><i
+                                                    data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">Click 'Forgot Password' on the login page. Enter your CSPC email
+                                            and follow the instructions in the reset email.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">2,341 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <details class="border-b border-border py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>How can
+                                                visitors access the campus map?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Campus
+                                                    Map</span><i data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">Visitors can access the campus map without logging in. Visit the
+                                            homepage and click 'Campus Map' to view the interactive map.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">567 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <details class="border-b border-border py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>Where can I
+                                                find campus announcements?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-muted text-muted-foreground border-border">General</span><i
+                                                    data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">All campus announcements are posted on the News Dashboard. You
+                                            can filter by category and search for specific topics.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">423 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <details class="py-4 group">
+                                    <summary
+                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
+                                        <div class="flex items-center justify-between w-full pr-4"><span>How do
+                                                instructors manage their profiles?</span>
+                                            <div class="flex items-center gap-2 ml-4"><span
+                                                    class="ui-badge ui-badge-outline bg-chart-3/10 text-chart-3 border-chart-3/20">Instructor
+                                                    Portal</span><span
+                                                    class="ui-badge ui-badge-secondary border-transparent">Draft</span><i
+                                                    data-lucide="chevron-down"
+                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
+                                        <p class="mb-4">Instructors can access their profile management through the
+                                            Instructor Dashboard to update info, view subjects, and manage
+                                            announcements.</p>
+                                        <div class="flex items-center justify-between"><span
+                                                class="text-xs text-muted-foreground">312 views</span>
+                                            <div class="flex items-center gap-2"><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
+                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+    </button>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>

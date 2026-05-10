@@ -1,0 +1,29 @@
+<nav class="navbar" id="navbar">
+    <div class="container navbar__inner">
+        <!-- Brand -->
+        <a href="/" class="navbar__brand">
+            <img src="/img/cspc-logo.png" alt="CSPC Logo" class="navbar__logo">
+            <span class="navbar__title">CampusSphere</span>
+        </a>
+
+        <!-- Navigation Links -->
+        <div class="navbar__links" id="navLinks">
+            <a href="/" class="navbar__link">Home</a>
+            <a href="/#features" class="navbar__link">Features</a>
+            <div class="navbar__actions">
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <a href="/dashboard" class="navbar__cta">Dashboard</a>
+                <% } else { %>
+                    <a href="/auth" class="navbar__cta">Login</a>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Mobile Toggle -->
+        <button class="navbar__hamburger" id="hamburger" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</nav>
