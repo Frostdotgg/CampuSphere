@@ -330,8 +330,19 @@ exports.registerPost = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    const validRoles = ['student-cspc', 'instructor', 'admin', 'guest'];
-    const userRole = validRoles.includes(role) ? role : 'guest';
+    const PUBLIC_ROLES = ['student-cspc', 'instructor', 'guest'];
+    const normalizedRole = String(role || '').trim();
+    if (!PUBLIC_ROLES.includes(normalizedRole)) {
+      console.warn(`[auth] Blocked public registration with role="${normalizedRole}" for email="${email}"`);
+      return res.render('auth', {
+        title: 'CampusSphere | Get Started',
+        description: 'Get started with CampusSphere.',
+        backgroundImage: '/img/campus-hero.jpg',
+        error: 'Invalid role selected. Please choose Student, Instructor, or Guest.',
+        success: null
+      });
+    }
+    const userRole = normalizedRole;
 
     const username = email.split('@')[0];
 
@@ -367,7 +378,7 @@ exports.registerPost = async (req, res) => {
       last_name
     };
 
-    return res.redirect(userRole === 'admin' ? '/admin' : '/dashboard');
+    return res.redirect('/dashboard');
   } catch (error) {
     console.error('Registration error:', error);
     return res.render('auth', {

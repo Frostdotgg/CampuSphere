@@ -202,8 +202,9 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="building-details">Additional Details</label>
-                        <textarea name="details" id="building-details" placeholder="Floors, facilities, departments..."></textarea>
+                        <label for="building-details">Additional Details (JSON)</label>
+                        <textarea name="details" id="building-details" placeholder='{"floors":[],"entrances":[]}  -  or leave blank'></textarea>
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Must be a valid JSON object, or leave blank.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -243,7 +244,7 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="buildings-data-json" type="application/json"><%- JSON.stringify(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, created_at: b.created_at, updated_at: b.updated_at }))) %></script>
+    <script id="buildings-data-json" type="application/json"><%- JSON.stringify(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, created_at: b.created_at, updated_at: b.updated_at }))).replace(/</g, '\\u003c') %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

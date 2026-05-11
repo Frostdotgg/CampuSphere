@@ -3013,22 +3013,43 @@
 
 
 
-        const buildings = CampuSphereData.buildings || [];
+        fetch('/api/buildings')
 
 
-        buildings.forEach(b => {
+          .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
 
 
-          if (b.lat && b.lng) {
+          .then(data => {
 
 
-            L.marker([b.lat, b.lng]).addTo(map).bindTooltip(b.name);
+            const buildings = (data && data.success && Array.isArray(data.buildings)) ? data.buildings : [];
 
 
-          }
+            buildings.forEach(b => {
 
 
-        });
+              if (b.lat && b.lng) {
+
+
+                L.marker([b.lat, b.lng]).addTo(map).bindTooltip(b.name);
+
+
+              }
+
+
+            });
+
+
+          })
+
+
+          .catch(err => {
+
+
+            console.warn('Dashboard map: failed to load buildings', err);
+
+
+          });
 
 
 

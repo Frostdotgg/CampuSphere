@@ -4,6 +4,7 @@
    ======================================== */
 
 const db = require('../config/db');
+const { normalizeBuildingRows } = require('../utils/buildingData');
 
 /**
  * GET /buildings — Buildings Explorer
@@ -11,24 +12,7 @@ const db = require('../config/db');
 exports.index = async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM buildings ORDER BY id ASC');
-    
-    const buildings = rows.map(b => {
-      let details = {};
-      try {
-        if (b.details) details = JSON.parse(b.details);
-      } catch (e) {
-        console.error('Error parsing building details', e);
-      }
-      return {
-        id: b.id,
-        name: b.name,
-        category: b.category,
-        desc: b.description,
-        lat: b.lat,
-        lng: b.lng,
-        ...details
-      };
-    });
+    const buildings = normalizeBuildingRows(rows);
 
     res.render('buildings', {
       title: 'CampuSphere | Buildings',
@@ -39,5 +23,19 @@ exports.index = async (req, res) => {
   } catch (err) {
     console.error('Error fetching buildings:', err);
     res.status(500).send('Server Error');
+  }
+};
+
+/**
+ * GET /api/buildings — Public JSON building list
+ */
+exports.apiList = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM buildings ORDER BY id ASC');
+    const buildings = normalizeBuildingRows(rows);
+    res.json({ success: true, buildings });
+  } catch (err) {
+    console.error('Error fetching buildings for API:', err);
+    res.status(500).json({ success: false, message: 'Unable to load buildings' });
   }
 };

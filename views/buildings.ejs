@@ -493,11 +493,13 @@
 
 
 
+    <script id="buildingsData" type="application/json"><%- JSON.stringify(buildings || []).replace(/</g, '\\u003c') %></script>
+
     <script>
 
         /* ===== BUILDINGS DATA ===== */
 
-        const BUILDINGS = JSON.parse('<%- JSON.stringify(buildings || []) %>');
+        const BUILDINGS = JSON.parse(document.getElementById('buildingsData').textContent);
 
 
 
@@ -659,25 +661,49 @@
 
             const sel = document.getElementById('floorSelector');
 
-            sel.innerHTML = b.floors.map((f, i) => `<button class="floor-btn ${i === 0 ? 'active' : ''}" data-fi="${i}">${f.label}</button>`).join('');
+            if (b.floors && b.floors.length > 0) {
 
-            sel.querySelectorAll('.floor-btn').forEach(btn => btn.addEventListener('click', () => {
+                sel.innerHTML = b.floors.map((f, i) => `<button class="floor-btn ${i === 0 ? 'active' : ''}" data-fi="${i}">${f.label}</button>`).join('');
 
-                sel.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+                sel.querySelectorAll('.floor-btn').forEach(btn => btn.addEventListener('click', () => {
 
-                btn.classList.add('active'); renderFloor(+btn.dataset.fi);
+                    sel.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
 
-            }));
+                    btn.classList.add('active'); renderFloor(+btn.dataset.fi);
 
-            renderFloor(0);
+                }));
+
+                renderFloor(0);
+
+            } else {
+
+                sel.innerHTML = '';
+
+                document.getElementById('floorPlanHeader').textContent = 'Floor Plan';
+
+                document.getElementById('floorPlanRooms').innerHTML = '<p style="color:var(--gray-500);font-size:.85rem;padding:.5rem 0">No floor plan available.</p>';
+
+            }
 
             // Entrances
 
-            document.getElementById('modalEntrances').innerHTML = b.entrances.map(e => `<li>${e}</li>`).join('');
+            const entrances = Array.isArray(b.entrances) ? b.entrances : [];
+
+            document.getElementById('modalEntrances').innerHTML = entrances.length
+
+                ? entrances.map(e => `<li>${e}</li>`).join('')
+
+                : '<li style="color:var(--gray-500)">No entrance data available.</li>';
 
             // Info
 
-            document.getElementById('modalInfo').innerHTML = b.info.map(i => `<li>${i}</li>`).join('');
+            const info = Array.isArray(b.info) ? b.info : [];
+
+            document.getElementById('modalInfo').innerHTML = info.length
+
+                ? info.map(i => `<li>${i}</li>`).join('')
+
+                : '<li style="color:var(--gray-500)">No additional info.</li>';
 
             document.getElementById('modalOverlay').classList.add('open');
 

@@ -274,7 +274,6 @@
                 <!-- Edit Profile Script -->
                 <script src="/js/profile-script.js"></script>
                 <script src="/js/nav-role.js"></script>
-                <script src="/js/data.js"></script>
                 <script>
                     // Initialize Home Page Map
                     document.addEventListener('DOMContentLoaded', () => {
@@ -284,16 +283,22 @@
                             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         }).addTo(map);
 
-                        // Add building markers from CampuSphereData
-                        if (typeof CampuSphereData !== 'undefined' && CampuSphereData.buildings) {
-                            CampuSphereData.buildings.forEach(b => {
-                                if (b.lat && b.lng) {
-                                    L.marker([b.lat, b.lng])
-                                        .addTo(map)
-                                        .bindPopup(`<strong>${b.name}</strong><br>${b.category}`);
-                                }
+                        // Add building markers from /api/buildings
+                        fetch('/api/buildings')
+                            .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                            .then(data => {
+                                const buildings = (data && data.success && Array.isArray(data.buildings)) ? data.buildings : [];
+                                buildings.forEach(b => {
+                                    if (b.lat && b.lng) {
+                                        L.marker([b.lat, b.lng])
+                                            .addTo(map)
+                                            .bindPopup(`<strong>${b.name}</strong><br>${b.category}`);
+                                    }
+                                });
+                            })
+                            .catch(err => {
+                                console.warn('Home map: failed to load buildings', err);
                             });
-                        }
                     });
                 </script>
 </body>

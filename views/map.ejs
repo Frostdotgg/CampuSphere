@@ -489,17 +489,11 @@
 
 
 
-    <!-- App Data -->
-
-    <script src="/js/data.js"></script>
-
-
+    <script id="buildingsData" type="application/json"><%- JSON.stringify(buildings || []).replace(/</g, '\\u003c') %></script>
 
     <script>
 
-        // Use buildings data from data.js
-
-        const mapBuildings = CampuSphereData.buildings || [];
+        const mapBuildings = JSON.parse(document.getElementById('buildingsData').textContent);
 
 
 
