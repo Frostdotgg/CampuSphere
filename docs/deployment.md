@@ -432,7 +432,7 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | Record | Files | Bytes | Aggregate SHA-256 |
 | --- | --- | --- | --- |
 | Accepted R7 closeout (historical; unchanged) | 154 | 6,166,956 | `c7c16ed7…38b9ec` |
-| Current R8 clean-snapshot candidate | 155 | 6,172,857 | `898e1f06…c444eccc` |
+| Current R8 clean-snapshot candidate | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
 
 Two changes separate the two records, and neither adds a new packaged path
 class:
@@ -448,16 +448,25 @@ class:
    the public building JSON API keeps its existing raw shape.
 2. **Byte delta within already-packaged files.** The admin-dashboard
    truthfulness correction edited `views/admin/index.ejs` and
-   `controllers/adminController.js`, both already inside the allowlist.
+   `controllers/adminController.js`, and the subsequent hygiene correction
+   removed twelve trailing-whitespace bytes from `views/buildings.ejs` — all
+   three already inside the allowlist.
 
 The boundary contract itself is unchanged: the allowlist, the seven header
 rules, the static-only `/offline.html` CSP, and Express's sole authority over
 the per-response nonce CSP for dynamic responses are all as accepted at R7
 closeout, and the focused probe still passes `71/71`.
 
-This inventory still describes the intentionally dirty development worktree.
-It is a candidate record, not accepted upload evidence, and it does not by
-itself constitute a clean immutable Git snapshot.
+This inventory describes the COMPLETE clean-snapshot candidate tree — the
+committed repository state, not a dirty working directory. The candidate's
+commit SHA is reported externally in the session report and handed to the
+reviewer there; it is deliberately not embedded in this file, because a commit
+cannot contain its own identifier.
+
+It nevertheless remains CANDIDATE EVIDENCE, not accepted upload evidence. It
+becomes accepted evidence only through an independent read-only `M12.P1-R8`
+review decision, and nothing here authorizes an upload, a Vercel link, or a
+deployment.
 
 The clean-snapshot candidate awaits an independent read-only `M12.P1-R8`
 review decision.

@@ -80,4 +80,3 @@ Use a 1 to 5 scale:
 - Store only aggregate results in final defense materials.
 - Remove names, email addresses, screenshots with personal data, and any system
   identifiers before sharing.
-

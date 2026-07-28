@@ -109,4 +109,3 @@ docker compose run --rm app node database/seed.js
 
 Inside the app container, `DB_HOST` must be the compose service name `mysql`,
 not `localhost`.
-
