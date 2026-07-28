@@ -1,0 +1,84 @@
+# =============================================================================
+# CampuSphere — LOCAL DEFENSE REHEARSAL compose (Milestone 8, Section 8.9)
+# =============================================================================
+# Pairs the app image with a MySQL fallback service so the MySQL-backed runtime
+# (and the MySQL FALLBACK session store) can be rehearsed on one machine. This is
+# NOT a production deployment and NOT the production session default — production/
+# demo prefers SESSION_STORE=supabase (see docs/deployment.md). This compose
+# deliberately uses SESSION_STORE=mysql for local fallback rehearsal over HTTP:
+#   * It serves plain HTTP on localhost, so the app runs with NODE_ENV defaulting
+#     to "development" — a production __Host- "Secure" session cookie is NOT sent
+#     by browsers over http://, which would break login. Real production runs
+#     NODE_ENV=production behind HTTPS with TRUST_PROXY + X-Forwarded-Proto=https
+#     (see docs/deployment.md).
+#   * Supabase is an EXTERNAL cloud service and is intentionally NOT replaced by
+#     an in-container database. To rehearse Supabase mode, set the *_DATA_SOURCE
+#     switches + SUPABASE_* below; the MySQL service simply backs the session
+#     store and the MySQL fallback path.
+#
+# Secrets come ONLY from your shell / an untracked .env via interpolation — no
+# real secret is hardcoded here. Required values use ${VAR:?message} so compose
+# refuses to start if they are missing.
+#
+# Seed is NOT auto-run on app startup. Run it explicitly ONCE after MySQL is up:
+#     docker compose run --rm app node database/seed.js
+# =============================================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      # No hardcoded secret: the root password is taken from your env/.env.
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:?set DB_PASS in your shell or .env for the compose rehearsal}
+      MYSQL_DATABASE: ${DB_NAME:-campusphere_db}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASS}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Local rehearsal over HTTP -> default to development so the session cookie
+      # is not "Secure" (would otherwise be dropped over http://localhost).
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3000"
+      # ---- MySQL (DB_HOST is the compose SERVICE NAME, never localhost) ----
+      DB_HOST: mysql
+      DB_USER: ${DB_USER:-root}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME:-campusphere_db}
+      # ---- Session: rehearse the FALLBACK persistent MySQL store over HTTP ----
+      # Deliberate for local rehearsal only; production/demo prefers
+      # SESSION_STORE=supabase (set SUPABASE_* below + apply migration 0011).
+      SESSION_STORE: mysql
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in your shell or .env}
+      # ---- Optional runtime switches (default to MySQL/Leaflet fallback) ----
+      AUTH_DATA_SOURCE: ${AUTH_DATA_SOURCE:-mysql}
+      CONTENT_DATA_SOURCE: ${CONTENT_DATA_SOURCE:-mysql}
+      BUILDING_DATA_SOURCE: ${BUILDING_DATA_SOURCE:-mysql}
+      ROUTE_DATA_SOURCE: ${ROUTE_DATA_SOURCE:-mysql}
+      VR_DATA_SOURCE: ${VR_DATA_SOURCE:-mysql}
+      MAP_RENDERER: ${MAP_RENDERER:-leaflet}
+      # ---- Optional Supabase (server-only; set to rehearse supabase mode) ----
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      # ---- Optional Google OAuth (omit to disable the OAuth path) ----
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/auth/callback}
+
+volumes:
+  mysql_data:

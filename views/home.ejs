@@ -3,13 +3,13 @@
 
 <head>
     <%- include('partials/head') %>
-        <!-- Leaflet CSS & JS -->
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-        <!-- Iconify -->
-        <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+        <!-- Leaflet 1.9.4 CSS & JS — both self-hosted (M12.P1-R6). leaflet.css
+             resolves its control/marker images from /vendor/leaflet/images/. -->
+        <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+        <script src="/vendor/leaflet/leaflet.js"></script>
+        <!-- Iconify Icon 1.0.7 component — self-hosted (M12.P1-R6). The component
+             still fetches icon DATA from the approved api.iconify.design origin. -->
+        <script src="/vendor/iconify-icon/iconify-icon.min.js"></script>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
                 <div class="dash-hero__overlay"></div>
             </div>
             <div class="dash-hero__content">
-                <h1 class="dash-hero__title">Welcome to CampusSphere</h1>
+                <h1 class="dash-hero__title">Welcome to CampuSphere</h1>
                 <p class="dash-hero__subtitle">Explore the campus easily using the interactive map.</p>
                 <div class="dash-hero__actions">
                     <a href="/map" class="btn btn--primary btn--hero">
@@ -236,26 +236,15 @@
         <%- include('partials/dash-footer') %>
 
             <!-- ===== SCRIPTS ===== -->
-            <script>
+            <script nonce="<%= cspNonce %>">
                 // ---- Dashboard Navbar scroll ----
                 const dashNav = document.getElementById('dashNav');
                 window.addEventListener('scroll', () => {
                     dashNav.classList.toggle('scrolled', window.scrollY > 10);
                 });
 
-                // ---- Mobile hamburger ----
-                const dashHamburger = document.getElementById('dashHamburger');
-                const dashTabs = document.getElementById('dashTabs');
-                dashHamburger.addEventListener('click', () => {
-                    dashHamburger.classList.toggle('active');
-                    dashTabs.classList.toggle('open');
-                });
-                dashTabs.querySelectorAll('.dash-nav__tab').forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        dashHamburger.classList.remove('active');
-                        dashTabs.classList.remove('open');
-                    });
-                });
+                // ---- Mobile hamburger: owned by the shared
+                // /js/authenticated-nav.js client (M12.P1-D2) ----
 
                 // ---- Search functionality ----
                 const searchInput = document.getElementById('searchInput');
@@ -274,31 +263,47 @@
                 <!-- Edit Profile Script -->
                 <script src="/js/profile-script.js"></script>
                 <script src="/js/nav-role.js"></script>
-                <script>
+                <script nonce="<%= cspNonce %>">
                     // Initialize Home Page Map
                     document.addEventListener('DOMContentLoaded', () => {
+                        // M12.P1-R6: fail truthfully if the self-hosted Leaflet
+                        // bundle is unavailable. Without this, L.map() threw a
+                        // ReferenceError and the container was left as a silent
+                        // blank panel that looked like an empty campus map.
+                        const mapHost = document.getElementById('homeLeafletMap');
+                        if (typeof L === 'undefined') {
+                            if (mapHost) {
+                                mapHost.textContent = 'Live map engine is unavailable.';
+                                mapHost.setAttribute('role', 'status');
+                            }
+                            return;
+                        }
+
                         const map = L.map('homeLeafletMap').setView([13.40591, 123.37362], 17);
 
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         }).addTo(map);
 
-                        // Add building markers from /api/buildings
-                        fetch('/api/buildings')
-                            .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
-                            .then(data => {
-                                const buildings = (data && data.success && Array.isArray(data.buildings)) ? data.buildings : [];
-                                buildings.forEach(b => {
-                                    if (b.lat && b.lng) {
-                                        L.marker([b.lat, b.lng])
-                                            .addTo(map)
-                                            .bindPopup(`<strong>${b.name}</strong><br>${b.category}`);
-                                    }
+                        // Add building markers from /api/buildings (login-only endpoint).
+                        // Anonymous visitors of /home see the base map without markers.
+                        if (window.__SESSION_USER) {
+                            fetch('/api/buildings')
+                                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                                .then(data => {
+                                    const buildings = (data && data.success && Array.isArray(data.buildings)) ? data.buildings : [];
+                                    buildings.forEach(b => {
+                                        if (b.lat && b.lng) {
+                                            L.marker([b.lat, b.lng])
+                                                .addTo(map)
+                                                .bindPopup(`<strong>${b.name}</strong><br>${b.category}`);
+                                        }
+                                    });
+                                })
+                                .catch(err => {
+                                    console.warn('Home map: failed to load buildings', err);
                                 });
-                            })
-                            .catch(err => {
-                                console.warn('Home map: failed to load buildings', err);
-                            });
+                        }
                     });
                 </script>
 </body>

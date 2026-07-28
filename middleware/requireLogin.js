@@ -1,9 +1,7 @@
 /**
- * Require an authenticated session. Used for routes that must not be anonymous.
+ * Compatibility re-export. `roleAuth.js` is the single source of truth for
+ * auth middleware — this file remains so legacy `require('../middleware/requireLogin')`
+ * imports keep working.
  */
-module.exports = function requireLogin(req, res, next) {
-  if (req.session && req.session.user) {
-    return next();
-  }
-  res.redirect('/auth');
-};
+const { requireLogin } = require('./roleAuth');
+module.exports = requireLogin;

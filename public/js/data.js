@@ -25,8 +25,6 @@ const CampuSphereData = {
     'instructor': [
       { id: 'overview', icon: 'home', label: 'Overview' },
       { id: 'profile', icon: 'user', label: 'Profile' },
-      { id: 'all-rooms', icon: 'door', label: 'All Rooms' },
-      { id: 'schedule', icon: 'calendar', label: 'Teaching Schedule' },
       { id: 'buildings', icon: 'door', label: 'Navigate Buildings' },
       { id: 'announcements', icon: 'megaphone', label: 'Instructor News' },
       { id: 'status', icon: 'check', label: 'Status' },
@@ -63,9 +61,7 @@ const CampuSphereData = {
     studentId: 'CSPC-2024-001234',
     email: 'aaron.lasprillas@cspc.edu.ph',
     course: 'BS Information Technology',
-    yearLevel: '3rd Year',
-    enrollmentStatus: 'Enrolled',
-    semester: '2nd Semester, A.Y. 2025-2026'
+    yearLevel: '3rd Year'
   },
 
   // ---- Instructor profile ----
@@ -75,22 +71,8 @@ const CampuSphereData = {
     email: 'maria.santos@cspc.edu.ph',
     department: 'College of Computer Studies',
     position: 'Associate Professor',
-    status: 'Active',
-    assignedRooms: [
-      { room: 'Room 301 - CCS Building', subject: 'Web Development', schedule: 'MWF 8:00-9:30 AM' },
-      { room: 'Room 205 - Academic Bldg', subject: 'Database Systems', schedule: 'TTH 10:00-11:30 AM' },
-      { room: 'CompLab 2 - CCS Building', subject: 'Mobile App Dev', schedule: 'MWF 1:00-2:30 PM' },
-    ]
+    status: 'Active'
   },
-
-  // ---- Class schedule ----
-  schedule: [
-    { time: '8:00 - 9:30 AM', subject: 'Web Development', room: 'Room 301', day: 'MWF', instructor: 'Dr. Santos' },
-    { time: '10:00 - 11:30 AM', subject: 'Database Systems', room: 'Room 205', day: 'TTH', instructor: 'Dr. Santos' },
-    { time: '1:00 - 2:30 PM', subject: 'Data Structures', room: 'Room 102', day: 'MWF', instructor: 'Prof. Reyes' },
-    { time: '3:00 - 4:30 PM', subject: 'Operating Systems', room: 'CompLab 1', day: 'TTH', instructor: 'Engr. Cruz' },
-    { time: '4:30 - 6:00 PM', subject: 'Elective 3', room: 'Room 301', day: 'MWF', instructor: 'Prof. Garcia' },
-  ],
 
   // ---- News ----
   news: [
@@ -144,22 +126,6 @@ const CampuSphereData = {
     contactEmail: 'admissions@cspc.edu.ph'
   },
 
-  // ---- All Campus Rooms (for Instructor) ----
-  allRooms: [
-    { building: 'CCS Building', room: 'Room 301', type: 'Lecture', capacity: 45 },
-    { building: 'CCS Building', room: 'Room 302', type: 'Lecture', capacity: 45 },
-    { building: 'CCS Building', room: 'CompLab 1', type: 'Computer Lab', capacity: 40 },
-    { building: 'CCS Building', room: 'CompLab 2', type: 'Computer Lab', capacity: 40 },
-    { building: 'Academic Building', room: 'Room 101', type: 'Lecture', capacity: 50 },
-    { building: 'Academic Building', room: 'Room 102', type: 'Lecture', capacity: 50 },
-    { building: 'Academic Building', room: 'Room 201', type: 'Lecture', capacity: 40 },
-    { building: 'Academic Building', room: 'Room 205', type: 'Lecture', capacity: 40 },
-    { building: 'Engineering Building', room: 'ENG-101', type: 'Lecture', capacity: 45 },
-    { building: 'Engineering Building', room: 'ENG-Lab', type: 'Engineering Lab', capacity: 30 },
-    { building: 'Main Building', room: 'Function Hall', type: 'Multi-purpose', capacity: 200 },
-    { building: 'Gymnasium', room: 'Main Court', type: 'Sports', capacity: 500 }
-  ],
-
   // ---- Guest Building Corridors ----
   guestBuildings: [
     { name: 'CCS Building', description: 'College of Computer Studies — houses lecture rooms and computer labs.', floors: 3 },
@@ -176,15 +142,6 @@ const CampuSphereData = {
     { title: 'National IT Skills Competition — Champion', year: '2025', detail: 'CSPC students won 1st place in the national collegiate IT skills competition.' },
     { title: 'ISO 9001:2015 Certified', year: '2024', detail: 'CSPC earned ISO certification for quality management systems.' },
     { title: 'Best State College in Bicol Region', year: '2024', detail: 'Recognized by CHED as the top-performing state college in the region.' }
-  ],
-
-  // ---- Instructor-Specific News ----
-  instructorNews: [
-    { id: 101, title: 'Faculty General Assembly — March 2026', date: 'March 20, 2026', category: 'Faculty', excerpt: 'All faculty members are required to attend the General Assembly at the Auditorium. Agenda includes semester review and new academic policies.' },
-    { id: 102, title: 'Room Assignment Update: CCS Building', date: 'March 14, 2026', category: 'Room Change', excerpt: 'Room 301 in the CCS Building will be under maintenance from March 18–22. Affected classes will be temporarily moved to Room 201.' },
-    { id: 103, title: 'Mid-Semester Faculty Evaluation', date: 'March 10, 2026', category: 'Evaluation', excerpt: 'Online faculty performance evaluation forms are now available. Please complete your self-assessment by March 25, 2026.' },
-    { id: 104, title: 'New Teaching Load Guidelines', date: 'March 7, 2026', category: 'Policy', excerpt: 'The VP for Academic Affairs has released updated teaching load computation guidelines effective next semester.' },
-    { id: 105, title: 'Faculty Development Workshop: AI in Education', date: 'March 3, 2026', category: 'Training', excerpt: 'A workshop on integrating AI tools for classroom instruction will be held at the SAC Conference Room on March 28.' }
   ],
 
   // ---- Instructor Buildings (for Navigate Buildings) ----

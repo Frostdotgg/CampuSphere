@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f2a44">
+  <title>CampuSphere — Offline</title>
+  <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <!-- CSP (8.5): styles externalized (static file cannot carry a per-request
+       nonce); precached by the service worker so the offline page stays styled. -->
+  <link rel="stylesheet" href="/css/offline.css">
+</head>
+
+<body>
+  <main class="card" role="main">
+    <div class="brand">
+      <img src="/img/cspc-logo.png" alt="" width="40" height="40">
+      <h1>CampuSphere is offline</h1>
+    </div>
+
+    <span class="status" role="status">No internet connection</span>
+
+    <p>You appear to be offline. CampuSphere needs an internet connection to load
+      the <strong>map</strong>, <strong>building directory</strong>,
+      <strong>events</strong>, and <strong>guided VR routes</strong> — and to keep
+      your information private on shared devices.</p>
+
+    <p>The following always need an internet connection:</p>
+    <ul>
+      <li>Signing in, registering, or signing out</li>
+      <li>The map, buildings, events, and VR route pages</li>
+      <li>Admin pages and content management</li>
+      <li>Live search, live updates, and saving any changes</li>
+    </ul>
+
+    <nav class="links" aria-label="Try again once you reconnect">
+      <a href="/">Home</a>
+      <a href="/map" class="secondary">Map</a>
+      <a href="/buildings" class="secondary">Buildings</a>
+      <a href="/vr" class="secondary">VR Tour</a>
+    </nav>
+
+    <p class="muted">Reconnect to the internet, then reopen the page you need.</p>
+  </main>
+</body>
+
+</html>

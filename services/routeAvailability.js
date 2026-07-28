@@ -1,0 +1,424 @@
+'use strict';
+
+/* ========================================
+   CampuSphere — Route Availability Service (BE.3)
+
+   ONE shared server-side answer to "can this building actually be used as a
+   navigation destination right now?", consumed by every public and admin
+   surface so they can never disagree.
+
+   WHY THIS EXISTS
+   ---------------
+   Admins can create a building before its route node exists (building CREATE
+   does not create a route node). Such a building is legitimate campus
+   information, but it is NOT a usable destination: /api/pathfind answers 404
+   ("no route node maps to building id N"). Before BE.3 the public map still
+   offered "Set as Destination" for it, so the user's only feedback was a failed
+   request. This service computes availability ONCE, server-side, and every
+   surface renders the same truth.
+
+   BACKEND INDEPENDENCE (the subtle part)
+   --------------------------------------
+   BUILDING_DATA_SOURCE and ROUTE_DATA_SOURCE are INDEPENDENT switches. The
+   building rows may come from one backend while the route graph comes from the
+   other, and their numeric ids are NOT interchangeable (e.g. the College of Arts
+   and Sciences is id 154 in MySQL and id 3 in Supabase). So:
+
+     * the route graph, the route-source building roster, and the campus_routes
+       VR decoration are ALL read from ROUTE_DATA_SOURCE;
+     * building rows are read from BUILDING_DATA_SOURCE by the caller;
+     * the two are joined by NORMALIZED CANONICAL NAME — never by numeric id.
+
+   `route_destination_id` is therefore the ROUTE-SOURCE building id (the id
+   /api/pathfind expects), which may legitimately differ from the building row's
+   own id.
+
+   AVAILABILITY CONTRACT
+   ---------------------
+   A building is available ONLY when all of the following hold:
+     1. it has a route-source destination node (matched by canonical name);
+     2. that node is reachable from `main-gate`;
+     3. the path has finite, ordered nodes;
+     4. it assembles complete, valid road geometry.
+
+   Reasons (fixed, sanitized — never a graph payload or a backend error):
+     null                     available
+     'not_mapped'             no route node maps to this building
+     'unreachable'            node exists but no path from main-gate
+     'invalid_geometry'       path found, but the drawing geometry is unusable
+     'route_data_unavailable' the route source itself failed (FAIL CLOSED)
+
+   On a route-source failure every building is marked unavailable with
+   'route_data_unavailable'. Failing OPEN here would re-offer a destination
+   action that cannot work.
+
+   Geometry note: a MISSING stored geometry on an edge is not a defect — RF.3/RF.5
+   deliberately fall back to that edge's two node endpoints, and the route still
+   draws. Only MALFORMED/endpoint-invalid geometry (invalidEdges) or an
+   un-assemblable path (incomplete) makes a building 'invalid_geometry'.
+
+   Boundary: server-only. Reads config/db (MySQL) and repositories/routeRepository
+   (Supabase). No req/res, no session, no rendering, no mutation. Never throws to
+   the caller; never logs a raw backend error.
+   ======================================== */
+
+const db = require('../config/db');
+const mapRuntime = require('../config/mapRuntime');
+const routeRepository = require('../repositories/routeRepository');
+const buildingRepository = require('../repositories/buildingRepository');
+const { findShortestPath } = require('../utils/pathfinding');
+const { assembleRouteGeometry } = require('../utils/routeGeometry');
+
+const START_NODE_KEY = 'main-gate';
+
+const REASON = Object.freeze({
+  NOT_MAPPED: 'not_mapped',
+  UNREACHABLE: 'unreachable',
+  INVALID_GEOMETRY: 'invalid_geometry',
+  AMBIGUOUS_NAME: 'ambiguous_name',
+  ROUTE_DATA_UNAVAILABLE: 'route_data_unavailable'
+});
+
+// Canonical join key. Case/punctuation-insensitive so "College of Computer
+// Studies (CCS)" matches across backends regardless of id.
+function canonicalKey(name) {
+  return String(name == null ? '' : name).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function toNumOrNull(v) {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+// The fixed shape every building carries after decoration.
+function unavailable(reason) {
+  return {
+    route_available: false,
+    route_destination_id: null,
+    route_unavailable_reason: reason,
+    vr_route_id: null
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   Load the route graph + route-source building roster + VR route decoration,
+   ALL from ROUTE_DATA_SOURCE. One read per request.
+--------------------------------------------------------------------------- */
+async function loadRouteSource() {
+  if (mapRuntime.isRouteSupabase()) {
+    const [nodes, edges, buildings, vrByBuildingId] = await Promise.all([
+      routeRepository.listAllNodes(),
+      routeRepository.listAllEdgesWithGeometry(),
+      routeRepository.listRouteSourceBuildings(),
+      routeRepository.listVrRouteIdByBuilding()
+    ]);
+    return { nodes, edges, buildings, vrByBuildingId };
+  }
+
+  const [[nodes], [edges], [buildings], [routes]] = await Promise.all([
+    db.query('SELECT id, node_key, label, node_type, building_id, lat, lng FROM route_nodes'),
+    db.query(
+      `SELECT from_node_id, to_node_id, distance_meters, walk_time_seconds,
+              path_label, is_accessible, path_geometry
+         FROM route_edges`
+    ),
+    db.query('SELECT id, name FROM buildings'),
+    db.query('SELECT id, destination_building_id FROM campus_routes ORDER BY id ASC')
+  ]);
+
+  // Lowest route id wins when several routes target the same building — the same
+  // rule routeRepository.listVrRouteIdByBuilding() applies on Supabase.
+  const vrByBuildingId = new Map();
+  for (const r of routes) {
+    const bid = toNumOrNull(r.destination_building_id);
+    if (bid == null) continue;
+    if (!vrByBuildingId.has(bid)) vrByBuildingId.set(bid, toNumOrNull(r.id));
+  }
+  return { nodes, edges, buildings, vrByBuildingId };
+}
+
+/* ---------------------------------------------------------------------------
+   The COMPLETE active building-source roster (id + name only).
+
+   Duplicate detection must consider the whole roster, not just the rows a caller
+   happens to pass in: decorateBuildings() is called with subsets (search hits, a
+   single admin row), and a collision between two rows is invisible from inside a
+   one-row subset. Read from BUILDING_DATA_SOURCE — deliberately narrow.
+--------------------------------------------------------------------------- */
+async function loadBuildingSourceRoster() {
+  if (mapRuntime.isBuildingSupabase()) {
+    const rows = await buildingRepository.listAll();
+    return (rows || []).map((b) => ({ id: toNumOrNull(b.id), name: b.name }));
+  }
+  const [rows] = await db.query('SELECT id, name FROM buildings');
+  return (rows || []).map((b) => ({ id: toNumOrNull(b.id), name: b.name }));
+}
+
+/* ---------------------------------------------------------------------------
+   PURE canonical-join verdict for ONE canonical name.
+
+   Given the building-source rows and route-source rows that share a canonical
+   name, decide whether the join is safe. Route-ready requires EXACTLY ONE row on
+   EACH side — anything else fails closed.
+
+     buildings | routes | verdict
+     ----------+--------+-------------------------------------------------------
+         1     |   1    -> ok, with the ROUTE-source building id
+                          (unless that id is null/non-numeric -> not_mapped)
+         1     |   0    -> not_mapped     (nothing to route to; NULL ids)
+         0     |  any   -> ambiguous_name (no building row owns this name)
+        >1     |  any   -> ambiguous_name (two buildings share a name)
+        any    |  >1    -> ambiguous_name (two route rows share a name)
+
+   A collision means two rows cannot be told apart by name, so neither may inherit
+   the other's route — otherwise "Set as Destination" could silently navigate to
+   the wrong building. Fail closed instead.
+
+   The ZERO-building case is a collision too, not a success: a route-source row
+   with no counterpart in the active building source has no building to attach to.
+   Accepting it (as an earlier `bs.length > 1` check did, because 0 is not > 1)
+   would hand out a route-source destination id for a name the building source
+   does not actually have — the exact cross-source confusion this join exists to
+   prevent.
+
+   Pure and exported so the cardinality contract can be tested directly with
+   fixtures, without writing rows to a database.
+--------------------------------------------------------------------------- */
+function canonicalJoinVerdict(buildingHits, routeHits) {
+  const bs = Array.isArray(buildingHits) ? buildingHits : [];
+  const rs = Array.isArray(routeHits) ? routeHits : [];
+
+  // EXACTLY ONE building-source row is required; more than one route row is a
+  // collision. (Zero route rows is handled below and is NOT ambiguous.)
+  if (bs.length !== 1 || rs.length > 1) {
+    return { ok: false, decoration: unavailable(REASON.AMBIGUOUS_NAME) };
+  }
+  // Exactly one building, no route counterpart: a real building that simply has
+  // no route yet.
+  if (rs.length === 0) {
+    return { ok: false, decoration: unavailable(REASON.NOT_MAPPED) };
+  }
+  const routeBuildingId = toNumOrNull(rs[0].id);
+  if (routeBuildingId == null) {
+    return { ok: false, decoration: unavailable(REASON.NOT_MAPPED) };
+  }
+  return { ok: true, routeBuildingId };
+}
+
+// canonical key -> count, over a whole roster.
+function groupByCanonical(rows) {
+  const m = new Map();
+  for (const r of (rows || [])) {
+    const k = canonicalKey(r.name);
+    if (k === '') continue;
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(r);
+  }
+  return m;
+}
+
+/* ---------------------------------------------------------------------------
+   Build the canonical-name -> availability index.
+
+   Joins the BUILDING source and the ROUTE source by canonical name, and refuses
+   to guess when that join is not 1:1. A name is route-ready ONLY when it resolves
+   to EXACTLY ONE building-source row AND EXACTLY ONE route-source row. Any
+   collision on either side yields `ambiguous_name` with NULL destination/VR ids —
+   otherwise two same-named buildings would silently inherit one another's route,
+   and "Set as Destination" could navigate to the wrong building.
+
+   Computed once per request; never throws.
+--------------------------------------------------------------------------- */
+async function buildAvailabilityIndex() {
+  let src;
+  let buildingRoster;
+  try {
+    // Both rosters are needed before any verdict: the collision check spans them.
+    [src, buildingRoster] = await Promise.all([loadRouteSource(), loadBuildingSourceRoster()]);
+  } catch (e) {
+    // FAIL CLOSED. The caller logs one fixed sanitized diagnostic; the raw
+    // backend error never leaves this module.
+    return { ok: false, byName: new Map() };
+  }
+
+  const nodes = (src.nodes || []).map((n) => ({
+    id: toNumOrNull(n.id),
+    key: n.node_key,
+    label: n.label,
+    node_type: n.node_type,
+    building_id: n.building_id != null ? toNumOrNull(n.building_id) : null,
+    lat: toNumOrNull(n.lat),
+    lng: toNumOrNull(n.lng)
+  }));
+
+  const idToKey = new Map(nodes.map((n) => [n.id, n.key]));
+
+  // Directed edges + per-edge stored drawing geometry, exactly as
+  // controllers/mapController.apiPathfind assembles them.
+  const edgeGeometryByKey = new Map();
+  const edges = (src.edges || []).map((e) => {
+    const from = idToKey.get(toNumOrNull(e.from_node_id));
+    const to = idToKey.get(toNumOrNull(e.to_node_id));
+    if (from && to) {
+      edgeGeometryByKey.set(from + '|' + to, e.path_geometry !== undefined ? e.path_geometry : null);
+    }
+    return {
+      from,
+      to,
+      distance_meters: Number(e.distance_meters) || 0,
+      walk_time_seconds: Number(e.walk_time_seconds) || 0,
+      path_label: e.path_label != null ? e.path_label : null,
+      is_accessible: Number(e.is_accessible)
+    };
+  });
+
+  const byName = new Map();
+
+  // Canonical groups on BOTH sides. The union is every name either side knows.
+  const buildingGroups = groupByCanonical(buildingRoster);
+  const routeGroups = groupByCanonical(src.buildings || []);
+  const allKeys = new Set([...buildingGroups.keys(), ...routeGroups.keys()]);
+
+  for (const key of allKeys) {
+    const join = canonicalJoinVerdict(buildingGroups.get(key) || [], routeGroups.get(key) || []);
+    if (!join.ok) {
+      byName.set(key, join.decoration);
+      continue;
+    }
+    const routeBuildingId = join.routeBuildingId;
+
+    // 1. destination node (prefer the building-type node over a service node)
+    const matches = nodes.filter((n) => n.building_id === routeBuildingId);
+    const dest = matches.find((n) => n.node_type === 'building') || matches[0] || null;
+    const vr = src.vrByBuildingId.get(routeBuildingId) || null;
+
+    if (!dest) {
+      byName.set(key, {
+        route_available: false,
+        route_destination_id: routeBuildingId,
+        route_unavailable_reason: REASON.NOT_MAPPED,
+        vr_route_id: vr
+      });
+      continue;
+    }
+
+    // 2 + 3. reachable from main-gate with finite ordered nodes
+    const result = findShortestPath({ nodes, edges, startKey: START_NODE_KEY, endKey: dest.key });
+    const reachable =
+      result.success &&
+      Array.isArray(result.nodes) && result.nodes.length >= 2 &&
+      Number.isFinite(Number(result.distance_meters)) &&
+      Number.isFinite(Number(result.walk_time_seconds));
+
+    if (!reachable) {
+      byName.set(key, {
+        route_available: false,
+        route_destination_id: routeBuildingId,
+        route_unavailable_reason: REASON.UNREACHABLE,
+        vr_route_id: vr
+      });
+      continue;
+    }
+
+    // 4. complete, valid drawing geometry
+    const assembled = assembleRouteGeometry({
+      nodes: result.nodes,
+      segments: result.segments,
+      edgeGeometryByKey
+    });
+    const geometryOk =
+      !assembled.incomplete &&
+      assembled.invalidEdges === 0 &&
+      Array.isArray(assembled.geometry) &&
+      assembled.geometry.length >= 2;
+
+    byName.set(key, geometryOk
+      ? {
+        route_available: true,
+        route_destination_id: routeBuildingId,
+        route_unavailable_reason: null,
+        vr_route_id: vr
+      }
+      : {
+        route_available: false,
+        route_destination_id: routeBuildingId,
+        route_unavailable_reason: REASON.INVALID_GEOMETRY,
+        vr_route_id: vr
+      });
+  }
+
+  return { ok: true, byName };
+}
+
+/* ---------------------------------------------------------------------------
+   Decorate building rows (from BUILDING_DATA_SOURCE) with the additive contract.
+
+   Additive ONLY: no existing field is removed or renamed. `vr_route_id` is now
+   sourced from ROUTE_DATA_SOURCE and matched by canonical name — previously it
+   was looked up by numeric id against whichever backend the BUILDING switch
+   selected, which silently produced wrong/absent VR links whenever the two
+   switches differed.
+
+   Mutates and returns the same array (callers already rely on that pattern).
+--------------------------------------------------------------------------- */
+async function decorateBuildings(buildings) {
+  const list = Array.isArray(buildings) ? buildings : [];
+  const index = await buildAvailabilityIndex();
+
+  if (!index.ok) {
+    for (const b of list) Object.assign(b, unavailable(REASON.ROUTE_DATA_UNAVAILABLE));
+    return { buildings: list, ok: false };
+  }
+
+  for (const b of list) {
+    const hit = index.byName.get(canonicalKey(b && b.name));
+    // A building with no counterpart in the route source is simply not mapped.
+    Object.assign(b, hit || unavailable(REASON.NOT_MAPPED));
+  }
+  return { buildings: list, ok: true };
+}
+
+// Single-row convenience for the admin create/update responses.
+async function decorateBuilding(building) {
+  if (!building) return { building, ok: true };
+  const out = await decorateBuildings([building]);
+  return { building: out.buildings[0], ok: out.ok };
+}
+
+/* ---------------------------------------------------------------------------
+   Admin friendly pre-check: would this canonical name collide with an EXISTING
+   building in the ACTIVE building source?
+
+   `excludeId` lets an update keep its own name (the edited row is not its own
+   duplicate). Returns true when a DIFFERENT row already owns the canonical name.
+
+   This is a UX guard that turns a would-be silent `ambiguous_name` into an
+   immediate sanitized 409. It is NOT the safety net: two concurrent admin writes
+   can still both pass it, so the fail-closed collision handling in
+   buildAvailabilityIndex() above remains authoritative. No schema constraint or
+   migration is added here.
+
+   Throws only if the building source is unreadable; the caller maps that to its
+   existing sanitized 500. Never logs or echoes a row, id, or name.
+--------------------------------------------------------------------------- */
+async function canonicalNameCollides(name, excludeId) {
+  const key = canonicalKey(name);
+  if (key === '') return false;
+  const roster = await loadBuildingSourceRoster();
+  const ex = toNumOrNull(excludeId);
+  return roster.some((r) => canonicalKey(r.name) === key && toNumOrNull(r.id) !== ex);
+}
+
+module.exports = {
+  REASON,
+  START_NODE_KEY,
+  canonicalKey,
+  canonicalJoinVerdict,
+  groupByCanonical,
+  loadBuildingSourceRoster,
+  canonicalNameCollides,
+  buildAvailabilityIndex,
+  decorateBuildings,
+  decorateBuilding
+};

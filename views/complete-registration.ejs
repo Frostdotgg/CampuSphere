@@ -28,6 +28,7 @@
             </div>
 
             <form method="POST" action="/auth/complete-registration">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="auth-form-group">
                     <label for="oauthFullName">Full Name</label>
                     <input class="auth-input" type="text" id="oauthFullName" name="fullName"

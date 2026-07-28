@@ -4,122 +4,417 @@
    ======================================== */
 
 const db = require('../config/db');
+const authDataSource = require('../config/authDataSource');
+const userRepository = require('../repositories/userRepository');
+const auditService = require('../services/auditService');
+const { clearSessionCookie } = require('../config/sessionConfig');
+
+const MAX_NAME_LENGTH = 100;
+const MAX_STUDENT_ID_LENGTH = 50;
+const MAX_COURSE_LENGTH = 100;
+const MAX_YEAR_LEVEL_LENGTH = 50;
+const MAX_EMPLOYEE_ID_LENGTH = 50;
+const MAX_DEPARTMENT_LENGTH = 100;
+const MAX_POSITION_LENGTH = 100;
+const MAX_ADDRESS_LENGTH = 255;
+const MAX_PHONE_LENGTH = 50;
+
+const IMMUTABLE_FIELDS = ['role', 'email', 'id', 'password'];
+
+function fail(res, status, message) {
+  return res.status(status).json({ success: false, message });
+}
+
+function trimString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+// R6: run the staged MySQL profile writes (users name + role profile) inside
+// ONE transaction so they commit or roll back together — no partial
+// multi-table write. Supabase mode does NOT use this; it issues a single
+// atomic RPC (app_update_user_profile) instead. The caller mutates session
+// state only after the writes succeed.
+async function runMysqlProfileTx(ops) {
+  if (!ops.length) return;
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const op of ops) {
+      await op(conn);
+    }
+    await conn.commit();
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
+// R6: the profile DID commit but the session could not be refreshed. Do not
+// misreport a rollback. Invalidate the now-stale session (so no authenticated
+// half-updated session lingers) and tell the user truthfully to sign in again.
+// No raw error, session ID, cookie, or profile payload is logged or returned.
+function invalidateSessionAfterCommit(req, res) {
+  const respond = () => {
+    clearSessionCookie(res);
+    return res.status(500).json({
+      success: false,
+      message: 'Profile was saved, but the session could not be refreshed. Please sign in again.'
+    });
+  };
+  if (req.session && typeof req.session.destroy === 'function') {
+    req.session.destroy(() => respond());
+  } else {
+    respond();
+  }
+}
 
 /**
  * POST /api/update-profile — Update user profile in DB + session
  */
 exports.updateProfile = async (req, res) => {
-  const user = req.session.user;
-  if (!user) {
-    return res.status(401).json({ error: 'Not logged in.' });
+  const sessionUser = req.session.user;
+  if (!sessionUser) {
+    return fail(res, 401, 'Not logged in.');
   }
 
-  const { role, name, email, studentId, course, yearLevel,
-    employeeId, department, position } = req.body;
+  // 1. Reject identity-tampering fields outright.
+  for (const field of IMMUTABLE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+      return fail(res, 400, `Field "${field}" cannot be changed through this endpoint.`);
+    }
+  }
+
+  // 2. Authoritative role comes from the session, never the request body.
+  const role = sessionUser.role;
+  const useSupabase = authDataSource.isSupabase();
+  const userId = sessionUser.id;
 
   try {
-    // 1. Only update name if it was provided in the request
-    if (name && name.trim()) {
-      const nameParts = name.trim().split(/\s+/);
+    // R6: validate first, then STAGE the DB writes (writeOps) and the session
+    // changes (pendingSession). Nothing is written and req.session.user is NOT
+    // mutated until validation passes; the session is only updated after the
+    // staged writes commit. So a validation 400 or a write failure leaves the
+    // previous DB and session state intact.
+    const pendingSession = {};
+    const writeOps = []; // MySQL: each is (conn) => query, run in one transaction
+    // R6 (Codex follow-up): Supabase performs the whole profile update in ONE
+    // atomic RPC (app_update_user_profile). Stage WHAT to change here, then
+    // issue a single call so users-name + role-profile commit/roll back together.
+    const sbPlan = { updateName: false, first_name: null, last_name: null, updateProfile: false, role: null, profile: {} };
+
+    // 3. Validate name if explicitly provided; stage its write + session change.
+    if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
+      const rawName = trimString(req.body.name);
+      if (!rawName) {
+        return fail(res, 400, 'Name cannot be blank.');
+      }
+      if (rawName.length > MAX_NAME_LENGTH) {
+        return fail(res, 400, `Name must be ${MAX_NAME_LENGTH} characters or fewer.`);
+      }
+
+      const nameParts = rawName.split(/\s+/);
       const first_name = nameParts[0] || '';
       const last_name = nameParts.slice(1).join(' ') || '';
 
-      // 2. Update users table (name only — email is identity, don't change)
-      await db.query(
-        'UPDATE users SET first_name = ?, last_name = ? WHERE id = ?',
-        [first_name, last_name, user.id]
+      writeOps.push((conn) =>
+        conn.query(
+          'UPDATE users SET first_name = ?, last_name = ? WHERE id = ?',
+          [first_name, last_name, userId]
+        )
       );
-
-      // 3. Update session
-      user.first_name = first_name;
-      user.last_name = last_name;
+      sbPlan.updateName = true;
+      sbPlan.first_name = first_name;
+      sbPlan.last_name = last_name;
+      pendingSession.first_name = first_name;
+      pendingSession.last_name = last_name;
     }
 
-    // 4. Role-specific profile updates
+    // 4. Role-specific profile updates — branch on the session role only.
     if (role === 'student-cspc') {
-      // Check if student profile exists
-      const [profiles] = await db.query('SELECT * FROM student_profiles WHERE user_id = ?', [user.id]);
-      if (profiles.length > 0) {
-        const existing = profiles[0];
+      const hasStudentId = Object.prototype.hasOwnProperty.call(req.body, 'studentId');
+      const hasCourse = Object.prototype.hasOwnProperty.call(req.body, 'course');
+      const hasYearLevel = Object.prototype.hasOwnProperty.call(req.body, 'yearLevel');
 
-        // Only overwrite fields that were explicitly sent in the request
-        const updatedStudentId = ('studentId' in req.body) ? studentId : existing.student_id_number;
-        const updatedCourse    = ('course' in req.body)    ? course    : existing.course;
-        const updatedYearLevel = ('yearLevel' in req.body) ? yearLevel : existing.year_level;
-        await db.query(
-          `UPDATE student_profiles
-           SET student_id_number = ?, course = ?, year_level = ?
-           WHERE user_id = ?`,
-          [updatedStudentId, updatedCourse, updatedYearLevel, user.id]
-        );
+      const studentId = hasStudentId ? trimString(req.body.studentId) : null;
+      const course = hasCourse ? trimString(req.body.course) : null;
+      const yearLevel = hasYearLevel ? trimString(req.body.yearLevel) : null;
 
-        // Update session only with the resolved values
-        user.student_id_number = updatedStudentId;
-        user.course = updatedCourse;
-        user.year_level = updatedYearLevel;
+      if (hasStudentId && studentId.length > MAX_STUDENT_ID_LENGTH) {
+        return fail(res, 400, `Student ID must be ${MAX_STUDENT_ID_LENGTH} characters or fewer.`);
+      }
+      if (hasCourse && course.length > MAX_COURSE_LENGTH) {
+        return fail(res, 400, `Course must be ${MAX_COURSE_LENGTH} characters or fewer.`);
+      }
+      if (hasYearLevel && !yearLevel) {
+        return fail(res, 400, 'Year level cannot be blank.');
+      }
+      if (hasYearLevel && yearLevel.length > MAX_YEAR_LEVEL_LENGTH) {
+        return fail(res, 400, `Year level must be ${MAX_YEAR_LEVEL_LENGTH} characters or fewer.`);
+      }
+
+      let existing;
+      if (useSupabase) {
+        existing = await userRepository.loadRoleProfile(userId, 'student-cspc');
       } else {
-        // Create profile if it doesn't exist
-        await db.query(
-          `INSERT INTO student_profiles (user_id, student_id_number, course, year_level, enrollment_status, semester)
-           VALUES (?, ?, ?, ?, 'Enrolled', '2nd Semester 2025-2026')`,
-          [user.id, studentId || '', course || '', yearLevel || '']
+        const [profiles] = await db.query(
+          'SELECT * FROM student_profiles WHERE user_id = ?',
+          [userId]
         );
+        existing = profiles.length > 0 ? profiles[0] : null;
+      }
 
-        // Update session with the new data
-        user.student_id_number = studentId || '';
-        user.course = course || '';
-        user.year_level = yearLevel || '';
+      if (existing) {
+        const updatedStudentId = hasStudentId ? studentId : existing.student_id_number;
+        const updatedCourse = hasCourse ? course : existing.course;
+        const updatedYearLevel = hasYearLevel ? yearLevel : existing.year_level;
+
+        if (hasStudentId && !updatedStudentId) {
+          return fail(res, 400, 'Student ID cannot be blank.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `UPDATE student_profiles
+               SET student_id_number = ?, course = ?, year_level = ?
+             WHERE user_id = ?`,
+            [updatedStudentId, updatedCourse, updatedYearLevel, userId]
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'student-cspc';
+        sbPlan.profile = {
+          student_id_number: hasStudentId ? studentId : null,
+          course: hasCourse ? course : null,
+          year_level: hasYearLevel ? yearLevel : null
+        };
+
+        pendingSession.student_id_number = updatedStudentId;
+        pendingSession.course = updatedCourse;
+        pendingSession.year_level = updatedYearLevel;
+      } else {
+        if (!studentId) {
+          return fail(res, 400, 'Student ID is required.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `INSERT INTO student_profiles
+               (user_id, student_id_number, course, year_level, enrollment_status, semester)
+             VALUES (?, ?, ?, ?, 'Enrolled', '2nd Semester 2025-2026')`,
+            [userId, studentId, course || '', yearLevel || '']
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'student-cspc';
+        sbPlan.profile = {
+          student_id_number: studentId,
+          course: course || '',
+          year_level: yearLevel || '',
+          enrollment_status: 'Enrolled',
+          semester: '2nd Semester 2025-2026'
+        };
+
+        pendingSession.student_id_number = studentId;
+        pendingSession.course = course || '';
+        pendingSession.year_level = yearLevel || '';
+      }
+    } else if (role === 'instructor') {
+      const hasEmployeeId = Object.prototype.hasOwnProperty.call(req.body, 'employeeId');
+      const hasDepartment = Object.prototype.hasOwnProperty.call(req.body, 'department');
+      const hasPosition = Object.prototype.hasOwnProperty.call(req.body, 'position');
+
+      const employeeId = hasEmployeeId ? trimString(req.body.employeeId) : null;
+      const department = hasDepartment ? trimString(req.body.department) : null;
+      const position = hasPosition ? trimString(req.body.position) : null;
+
+      if (hasEmployeeId && employeeId.length > MAX_EMPLOYEE_ID_LENGTH) {
+        return fail(res, 400, `Employee ID must be ${MAX_EMPLOYEE_ID_LENGTH} characters or fewer.`);
+      }
+      if (hasDepartment && department.length > MAX_DEPARTMENT_LENGTH) {
+        return fail(res, 400, `Department must be ${MAX_DEPARTMENT_LENGTH} characters or fewer.`);
+      }
+      if (hasPosition && position.length > MAX_POSITION_LENGTH) {
+        return fail(res, 400, `Position must be ${MAX_POSITION_LENGTH} characters or fewer.`);
+      }
+
+      let existing;
+      if (useSupabase) {
+        existing = await userRepository.loadRoleProfile(userId, 'instructor');
+      } else {
+        const [profiles] = await db.query(
+          'SELECT * FROM instructor_profiles WHERE user_id = ?',
+          [userId]
+        );
+        existing = profiles.length > 0 ? profiles[0] : null;
+      }
+
+      if (existing) {
+        const updatedEmployeeId = hasEmployeeId ? employeeId : existing.employee_id;
+        const updatedDepartment = hasDepartment ? department : existing.department;
+        const updatedPosition = hasPosition ? position : existing.position;
+
+        if (hasEmployeeId && !updatedEmployeeId) {
+          return fail(res, 400, 'Employee ID cannot be blank.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `UPDATE instructor_profiles
+               SET employee_id = ?, department = ?, position = ?
+             WHERE user_id = ?`,
+            [updatedEmployeeId, updatedDepartment, updatedPosition, userId]
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'instructor';
+        sbPlan.profile = {
+          employee_id: hasEmployeeId ? employeeId : null,
+          department: hasDepartment ? department : null,
+          position: hasPosition ? position : null
+        };
+
+        pendingSession.employee_id = updatedEmployeeId;
+        pendingSession.department = updatedDepartment;
+        pendingSession.position = updatedPosition;
+      } else {
+        if (!employeeId) {
+          return fail(res, 400, 'Employee ID is required.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `INSERT INTO instructor_profiles
+               (user_id, employee_id, department, position, status)
+             VALUES (?, ?, ?, ?, 'Active')`,
+            [userId, employeeId, department || '', position || '']
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'instructor';
+        sbPlan.profile = {
+          employee_id: employeeId,
+          department: department || '',
+          position: position || '',
+          status: 'Active'
+        };
+
+        pendingSession.employee_id = employeeId;
+        pendingSession.department = department || '';
+        pendingSession.position = position || '';
+      }
+    } else if (role === 'guest') {
+      const hasAddress = Object.prototype.hasOwnProperty.call(req.body, 'address');
+      const hasPhone = Object.prototype.hasOwnProperty.call(req.body, 'phone');
+
+      const address = hasAddress ? trimString(req.body.address) : null;
+      const phone = hasPhone ? trimString(req.body.phone) : null;
+
+      if (hasAddress && address.length > MAX_ADDRESS_LENGTH) {
+        return fail(res, 400, `Address must be ${MAX_ADDRESS_LENGTH} characters or fewer.`);
+      }
+      if (hasPhone && phone.length > MAX_PHONE_LENGTH) {
+        return fail(res, 400, `Phone must be ${MAX_PHONE_LENGTH} characters or fewer.`);
+      }
+
+      let existing;
+      if (useSupabase) {
+        existing = await userRepository.loadRoleProfile(userId, 'guest');
+      } else {
+        const [profiles] = await db.query(
+          'SELECT * FROM guest_profiles WHERE user_id = ?',
+          [userId]
+        );
+        existing = profiles.length > 0 ? profiles[0] : null;
+      }
+
+      if (existing) {
+        const updatedAddress = hasAddress ? address : existing.address;
+        const updatedPhone = hasPhone ? phone : existing.phone_number;
+
+        if (hasAddress && !updatedAddress) {
+          return fail(res, 400, 'Address cannot be blank.');
+        }
+        if (hasPhone && !updatedPhone) {
+          return fail(res, 400, 'Phone cannot be blank.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `UPDATE guest_profiles
+               SET address = ?, phone_number = ?
+             WHERE user_id = ?`,
+            [updatedAddress, updatedPhone, userId]
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'guest';
+        sbPlan.profile = {
+          address: hasAddress ? address : null,
+          phone_number: hasPhone ? phone : null
+        };
+
+        pendingSession.address = updatedAddress;
+        pendingSession.phone_number = updatedPhone;
+      } else if (hasAddress || hasPhone) {
+        if (!address || !phone) {
+          return fail(res, 400, 'Address and phone are both required to create a guest profile.');
+        }
+
+        writeOps.push((conn) =>
+          conn.query(
+            `INSERT INTO guest_profiles (user_id, address, phone_number)
+             VALUES (?, ?, ?)`,
+            [userId, address, phone]
+          )
+        );
+        sbPlan.updateProfile = true;
+        sbPlan.role = 'guest';
+        sbPlan.profile = {
+          address,
+          phone_number: phone
+        };
+
+        pendingSession.address = address;
+        pendingSession.phone_number = phone;
       }
     }
 
-    if (role === 'instructor') {
-      // Check if instructor profile exists
-      const [profiles] = await db.query('SELECT * FROM instructor_profiles WHERE user_id = ?', [user.id]);
-      if (profiles.length > 0) {
-        const existing = profiles[0];
-
-        // Only overwrite fields that were explicitly sent in the request
-        const updatedEmployeeId = ('employeeId' in req.body)  ? employeeId  : existing.employee_id;
-        const updatedDepartment = ('department' in req.body)   ? department  : existing.department;
-        const updatedPosition   = ('position' in req.body)     ? position    : existing.position;
-
-        await db.query(
-          `UPDATE instructor_profiles
-           SET employee_id = ?, department = ?, position = ?
-           WHERE user_id = ?`,
-          [updatedEmployeeId, updatedDepartment, updatedPosition, user.id]
-        );
-
-        // Update session with the resolved values
-        user.employee_id = updatedEmployeeId;
-        user.department = updatedDepartment;
-        user.position = updatedPosition;
-      } else {
-        // Create profile if it doesn't exist
-        await db.query(
-          `INSERT INTO instructor_profiles (user_id, employee_id, department, position, status)
-           VALUES (?, ?, ?, ?, 'Active')`,
-          [user.id, employeeId || '', department || '', position || '']
-        );
-
-        // Update session with the new data
-        user.employee_id = employeeId || '';
-        user.department = department || '';
-        user.position = position || '';
+    // 5. Execute the writes. MySQL: one transaction over the staged ops.
+    //    Supabase: a single atomic RPC (name + role profile commit together).
+    if (useSupabase) {
+      if (sbPlan.updateName || sbPlan.updateProfile) {
+        await userRepository.updateUserProfileAtomic(userId, sbPlan);
       }
+    } else {
+      await runMysqlProfileTx(writeOps);
     }
 
-    // Save session
+    // 6. Only NOW, after the DB write has committed, mutate the session.
+    Object.assign(sessionUser, pendingSession);
+
     req.session.save((err) => {
       if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({ error: 'Failed to update session.' });
+        // The profile is committed but the session could not be refreshed.
+        return invalidateSessionAfterCommit(req, res);
       }
+      // Only audit once the profile write AND the session save have both
+      // succeeded. Best-effort; never blocks or alters the JSON response.
+      auditService.record({
+        event_type: 'profile',
+        action: 'profile.update',
+        outcome: 'success',
+        actor_user_id: sessionUser.id,
+        actor_role: role,
+        target_type: 'user',
+        target_id: sessionUser.id,
+        message: 'Profile updated.'
+      }).catch(() => {});
       return res.json({ success: true });
     });
-
   } catch (error) {
-    console.error('Profile update error:', error);
-    return res.status(500).json({ error: 'Server error updating profile.' });
+    console.error('Profile update error: unexpected failure.');
+    return fail(res, 500, 'Server error updating profile.');
   }
 };

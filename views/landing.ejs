@@ -26,7 +26,7 @@
 
                     <img src="/img/cspc-logo.png" alt="CSPC Official Seal" class="hero__logo">
 
-                    <h1 class="hero__title">CAMPUSPHERE</h1>
+                    <h1 class="hero__title">CampuSphere</h1>
                     <p class="hero__subtitle">
                         Camarines Sur<br>
                         Polytechnic Colleges<br>
@@ -77,7 +77,7 @@
             <div class="container">
                 <div class="section__header reveal">
                     <span class="section__label">Key Features</span>
-                    <h2 class="section__title">What CampusSphere Offers</h2>
+                    <h2 class="section__title">What CampuSphere Offers</h2>
                     <p class="section__desc">
                         Explore the campus like never before with our interactive tools designed
                         to make navigation simple, fast, and enjoyable.
@@ -183,7 +183,7 @@
         <%- include('partials/footer') %>
 
             <!-- ===== SCRIPTS ===== -->
-            <script>
+            <script nonce="<%= cspNonce %>">
                 // ---- Navbar scroll effect ----
                 const navbar = document.getElementById('navbar');
                 window.addEventListener('scroll', () => {

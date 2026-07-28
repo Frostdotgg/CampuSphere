@@ -20,9 +20,9 @@
             <!-- ===== TABS ===== -->
             <div class="auth-tabs" role="tablist">
                 <button class="auth-tab active" id="tab-login" role="tab" aria-selected="true"
-                    aria-controls="panel-login" onclick="switchTab('login')">Sign In</button>
+                    aria-controls="panel-login" data-tab="login">Sign In</button>
                 <button class="auth-tab" id="tab-register" role="tab" aria-selected="false"
-                    aria-controls="panel-register" onclick="switchTab('register')">Register</button>
+                    aria-controls="panel-register" data-tab="register">Register</button>
             </div>
 
             <!-- ===== ERROR / SUCCESS MESSAGES ===== -->
@@ -45,6 +45,7 @@
                                 <p class="auth-section-sub">Sign in to continue your campus tour</p>
 
                                 <form id="loginForm" method="POST" action="/login">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                     <div class="auth-form-group">
                                         <label for="loginEmail">Email</label>
                                         <input class="auth-input" type="email" id="loginEmail" name="email"
@@ -85,7 +86,7 @@
 
                                 <div class="auth-footer">
                                     Don't have an account?
-                                    <span class="auth-link" onclick="switchTab('register')">Register here</span>
+                                    <span class="auth-link" data-tab="register">Register here</span>
                                 </div>
                             </div>
 
@@ -112,7 +113,7 @@
 
                                 <div class="auth-footer" style="margin-top:1rem;">
                                     Already have an account?
-                                    <span class="auth-link" onclick="switchTab('login')">Sign In</span>
+                                    <span class="auth-link" data-tab="login">Sign In</span>
                                 </div>
                             </div>
 
@@ -126,7 +127,7 @@
     <%- include('partials/theme-toggle') %>
 
         <!-- ===== SCRIPTS ===== -->
-        <script>
+        <script nonce="<%= cspNonce %>">
             /* ---- Tab Switching ---- */
             function switchTab(tab) {
                 ['login', 'register'].forEach(t => {
@@ -135,6 +136,11 @@
                     document.getElementById('panel-' + t).classList.toggle('active', t === tab);
                 });
             }
+
+            /* CSP (8.5): tab triggers use data-tab + listeners instead of inline onclick. */
+            document.querySelectorAll('[data-tab]').forEach(function (el) {
+                el.addEventListener('click', function () { switchTab(el.getAttribute('data-tab')); });
+            });
 
             /* ---- Loading State Helper ---- */
             function setLoading(btn) {
@@ -147,9 +153,8 @@
                 setLoading(document.getElementById('loginEmailBtn'));
             });
 
-            const _s = document.createElement('style');
-            _s.textContent = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-            document.head.appendChild(_s);
+            // CSP (8.5): the @keyframes spin rule now lives in styles.css; the
+            // former runtime document.createElement('style') injection was removed.
 
             if (window.location.hash === '#register') switchTab('register');
             <% if (typeof oauthErrorKey !== 'undefined' && oauthErrorKey) { %>

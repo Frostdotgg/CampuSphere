@@ -2,12 +2,11 @@
 <html lang="en">
 
 <head>
-    <script>
+    <script nonce="<%= cspNonce %>">
         (function () {
             var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
             if (savedTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
             }
         })();
     </script>
@@ -16,8 +15,40 @@
     <title>CampuSphere Admin - FAQs</title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/admin-styles.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <%# M12.P1-R6: Lucide is self-hosted at the exact reviewed 1.25.0 (see
+        public/vendor/manifest.json). The former unpkg "lucide@latest" reference
+        executed whatever build the CDN served at request time. %>
+    <script src="/vendor/lucide/lucide.min.js"></script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/admin/main.js" defer></script>
+    <script src="/js/admin/admin-faqs.js" defer></script>
+    <style nonce="<%= cspNonce %>">
+        /* Modal / toast styles (same classes as the other admin pages) */
+        .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+        .modal-backdrop.modal--open{display:flex;}
+        .modal-box{background:var(--card);border:1px solid var(--border);border-radius:0.75rem;width:95%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+        .modal-header h3{font-size:1.1rem;font-weight:600;color:var(--foreground);margin:0;}
+        .modal-body{padding:1.5rem;}
+        .modal-footer{display:flex;justify-content:flex-end;gap:0.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border);}
+        .form-group{margin-bottom:1rem;}
+        .form-group label{display:block;font-size:0.875rem;font-weight:500;color:var(--foreground);margin-bottom:0.375rem;}
+        .form-group .ui-input,.form-group select,.form-group textarea{width:100%;box-sizing:border-box;}
+        .form-group select{height:2.5rem;padding:0 0.75rem;border-radius:0.5rem;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.875rem;}
+        .form-group textarea.ui-input{height:auto;min-height:7rem;padding:0.625rem 0.75rem;resize:vertical;font-family:inherit;line-height:1.5;}
+        .form-error{display:none;padding:0.625rem 0.875rem;border-radius:0.5rem;background:hsl(0 84% 60% / 0.1);color:var(--destructive);font-size:0.8125rem;margin-bottom:1rem;border:1px solid hsl(0 84% 60% / 0.2);}
+        .form-hint{font-size:0.75rem;color:var(--muted-foreground);margin-top:0.25rem;}
+        .admin-toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:2000;padding:0.75rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;color:#fff;transform:translateY(120%);opacity:0;transition:all 0.3s ease;pointer-events:none;}
+        .admin-toast--success{background:hsl(142 71% 45%);}
+        .admin-toast--error{background:var(--destructive);}
+        .admin-toast--show{transform:translateY(0);opacity:1;pointer-events:auto;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .animate-spin{animation:spin 1s linear infinite;}
+        .modal-delete-warn{text-align:center;padding:1rem 0;}
+        .modal-delete-warn i{color:var(--destructive);margin-bottom:0.75rem;}
+        .modal-delete-warn p{color:var(--muted-foreground);font-size:0.875rem;line-height:1.5;}
+        .modal-delete-warn strong{color:var(--foreground);}
+    </style>
 </head>
 
 <body class="admin-surface font-sans antialiased">
@@ -52,6 +83,9 @@
                 <a href="/admin/campus-map"
                     class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
                         data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/vr"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="globe" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">VR Tour</span></a>
                 <a href="/admin/settings"
                     class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
                         data-lucide="settings" class="h-5 w-5 shrink-0"></i><span
@@ -66,8 +100,10 @@
                         <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
                         <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
                     </div>
-                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i
-                            data-lucide="log-out" class="h-4 w-4"></i></a>
+                    <form method="POST" action="/logout" class="logout-form" style="display:contents;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></button>
+                    </form>
                 </div>
             </div>
             <button id="sidebar-toggle"
@@ -83,38 +119,28 @@
                     <h1 class="text-xl font-semibold text-foreground">FAQ Management</h1>
                     <p class="text-sm text-muted-foreground">Manage frequently asked questions</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="relative hidden md:block"><i data-lucide="search"
-                            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
-                            type="search" placeholder="Search..."
-                            class="ui-input w-64 pl-9 bg-secondary/50 border-border"></div>
-                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
-                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
-                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                            style="padding:0;min-width:1.25rem;">3</span></button>
-                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
-                        style="min-width:20rem;right:1.5rem;">
-                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
-                        <div class="h-px bg-border my-1"></div>
-                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
-                                class="font-medium text-foreground">New user registration</span><span
-                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
-                                class="text-xs text-muted-foreground">2 min ago</span></div>
-                    </div>
-                </div>
             </header>
 
             <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
                 <div class="mx-auto max-w-4xl" style="display:flex;flex-direction:column;gap:1.5rem;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div class="relative flex-1 max-w-md w-full"><i data-lucide="search"
-                                class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
-                                type="text" placeholder="Search FAQs..." class="ui-input pl-9" style="width:100%;">
+
+                    <!-- Action bar: search + category filter + add -->
+                    <div class="faq-actions-bar">
+                        <div class="faq-actions-controls">
+                            <div class="relative flex-1 faq-search-wrap"><i data-lucide="search"
+                                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input
+                                    type="text" id="faq-search-input" placeholder="Search FAQs..."
+                                    aria-label="Search FAQs" class="ui-input pl-9" style="width:100%;">
+                            </div>
+                            <select id="faq-category-filter" class="faq-category-select" aria-label="Filter by category">
+                                <option value="">All Categories</option>
+                            </select>
                         </div>
-                        <button class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus"
-                                class="mr-2 h-4 w-4"></i>Add FAQ</button>
+                        <button id="add-faq-btn" class="ui-button ui-button-default ui-button-size-default"><i
+                                data-lucide="plus" class="mr-2 h-4 w-4"></i>Add FAQ</button>
                     </div>
 
+                    <!-- Truthful stats -->
                     <div class="grid gap-4 md:grid-cols-3">
                         <div class="ui-card border-border">
                             <div class="p-4">
@@ -123,7 +149,7 @@
                                             class="h-5 w-5 text-primary"></i></div>
                                     <div>
                                         <p class="text-sm text-muted-foreground">Total FAQs</p>
-                                        <p class="text-2xl font-bold text-foreground">24</p>
+                                        <p class="text-2xl font-bold text-foreground" id="faq-stat-total">–</p>
                                     </div>
                                 </div>
                             </div>
@@ -131,191 +157,126 @@
                         <div class="ui-card border-border">
                             <div class="p-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="check-circle"
+                                    <div class="rounded-lg bg-chart-2/10 p-2.5"><i data-lucide="tags"
+                                            class="h-5 w-5 text-chart-2"></i></div>
+                                    <div>
+                                        <p class="text-sm text-muted-foreground">Categories</p>
+                                        <p class="text-2xl font-bold text-foreground" id="faq-stat-categories">–</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card border-border">
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="list-filter"
                                             class="h-5 w-5 text-chart-1"></i></div>
                                     <div>
-                                        <p class="text-sm text-muted-foreground">Published</p>
-                                        <p class="text-2xl font-bold text-foreground">21</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="ui-card border-border">
-                            <div class="p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="rounded-lg bg-muted p-2.5"><i data-lucide="file-edit"
-                                            class="h-5 w-5 text-muted-foreground"></i></div>
-                                    <div>
-                                        <p class="text-sm text-muted-foreground">Drafts</p>
-                                        <p class="text-2xl font-bold text-foreground">3</p>
+                                        <p class="text-sm text-muted-foreground">Showing</p>
+                                        <p class="text-2xl font-bold text-foreground" id="faq-stat-showing">–</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- FAQ list -->
                     <div class="ui-card border-border">
                         <div class="p-6 pb-3" style="border-bottom:none;">
-                            <h3 class="text-lg font-semibold tracking-tight text-foreground">All FAQs (6)</h3>
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground" id="faq-list-label">All FAQs</h3>
                         </div>
                         <div class="p-6 pt-0">
-                            <div class="w-full">
-                                <details class="border-b border-border py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>How do I
-                                                navigate the campus map?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Campus
-                                                    Map</span><i data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">Click on any building on the interactive map to view its
-                                            details. You can use the search function to find specific locations, or zoom
-                                            in/out using the controls.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">1,234 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                                <details class="border-b border-border py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>How do I access
-                                                my enrollment details?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Student
-                                                    Portal</span><i data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">Log in with your CSPC email account, then navigate to your
-                                            profile section. Your enrollment details will be displayed in the Student
-                                            Dashboard.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">892 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                                <details class="border-b border-border py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>What should I
-                                                do if I forgot my password?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-chart-4/10 text-chart-4 border-chart-4/20">Account</span><i
-                                                    data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">Click 'Forgot Password' on the login page. Enter your CSPC email
-                                            and follow the instructions in the reset email.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">2,341 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                                <details class="border-b border-border py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>How can
-                                                visitors access the campus map?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-chart-2/10 text-chart-2 border-chart-2/20">Campus
-                                                    Map</span><i data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">Visitors can access the campus map without logging in. Visit the
-                                            homepage and click 'Campus Map' to view the interactive map.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">567 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                                <details class="border-b border-border py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>Where can I
-                                                find campus announcements?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-muted text-muted-foreground border-border">General</span><i
-                                                    data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">All campus announcements are posted on the News Dashboard. You
-                                            can filter by category and search for specific topics.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">423 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                                <details class="py-4 group">
-                                    <summary
-                                        class="flex flex-1 items-center justify-between text-sm font-medium hover:underline outline-none">
-                                        <div class="flex items-center justify-between w-full pr-4"><span>How do
-                                                instructors manage their profiles?</span>
-                                            <div class="flex items-center gap-2 ml-4"><span
-                                                    class="ui-badge ui-badge-outline bg-chart-3/10 text-chart-3 border-chart-3/20">Instructor
-                                                    Portal</span><span
-                                                    class="ui-badge ui-badge-secondary border-transparent">Draft</span><i
-                                                    data-lucide="chevron-down"
-                                                    class="h-4 w-4 shrink-0 text-muted-foreground accordion-icon"></i>
-                                            </div>
-                                        </div>
-                                    </summary>
-                                    <div class="pb-1 pt-4 text-sm text-muted-foreground">
-                                        <p class="mb-4">Instructors can access their profile management through the
-                                            Instructor Dashboard to update info, view subjects, and manage
-                                            announcements.</p>
-                                        <div class="flex items-center justify-between"><span
-                                                class="text-xs text-muted-foreground">312 views</span>
-                                            <div class="flex items-center gap-2"><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm">Edit</button><button
-                                                    class="ui-button ui-button-outline ui-button-size-sm text-destructive">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
+                            <div id="faq-loading" class="faq-state" role="status">
+                                <i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i>
+                                <p class="text-sm text-muted-foreground">Loading FAQs…</p>
                             </div>
+                            <div id="faq-error" class="faq-state" hidden>
+                                <i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i>
+                                <p class="text-sm text-muted-foreground">Could not load FAQs. Please try again.</p>
+                                <button id="faq-retry-btn" class="ui-button ui-button-outline ui-button-size-sm" type="button">
+                                    <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry
+                                </button>
+                            </div>
+                            <div id="faq-empty" class="faq-state" hidden>
+                                <i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i>
+                                <p class="text-sm text-muted-foreground">No FAQs in the database yet. Use “Add FAQ” to create the first one.</p>
+                            </div>
+                            <div id="faq-filtered-empty" class="faq-state" hidden>
+                                <i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i>
+                                <p class="text-sm text-muted-foreground">No FAQs match your search or filter.</p>
+                            </div>
+                            <div id="faq-list" class="w-full" hidden></div>
                         </div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
+
+    <!-- ======== CREATE / EDIT FAQ MODAL ======== -->
+    <div id="faq-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="faq-modal-title">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="faq-modal-title">Add FAQ</h3>
+                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
+            <form id="faq-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <div class="form-group">
+                        <label for="faq-field-question">Question</label>
+                        <input type="text" name="question" id="faq-field-question" class="ui-input" maxlength="255" required placeholder="How do I…?">
+                    </div>
+                    <div class="form-group">
+                        <label for="faq-field-answer">Answer</label>
+                        <textarea name="answer" id="faq-field-answer" class="ui-input" maxlength="5000" required rows="5" placeholder="Write the answer shown to users…"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="faq-field-category">Category <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label>
+                        <input type="text" name="category" id="faq-field-category" class="ui-input" maxlength="50" placeholder="e.g. Campus Map">
+                    </div>
+                    <div class="form-group">
+                        <label for="faq-field-order">Display order</label>
+                        <input type="number" name="display_order" id="faq-field-order" class="ui-input" min="0" max="2147483647" step="1" required placeholder="0">
+                        <p class="form-hint">Lower numbers appear first.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                    <button type="submit" id="faq-submit-btn" class="ui-button ui-button-default ui-button-size-default">
+                        <i data-lucide="plus" class="h-4 w-4 mr-2"></i><span id="faq-submit-label">Create FAQ</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== DELETE CONFIRMATION MODAL ======== -->
+    <div id="faq-delete-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="faq-delete-title">
+        <div class="modal-box" style="max-width:400px;">
+            <div class="modal-header">
+                <h3 id="faq-delete-title">Confirm Deletion</h3>
+                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-delete-warn">
+                    <i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i>
+                    <p>Are you sure you want to delete the FAQ <strong id="faq-delete-question"></strong>?</p>
+                    <p style="margin-top:0.5rem;">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="faq-cancel-delete-btn" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                <button id="faq-confirm-delete-btn" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;">
+                    <i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="admin-toast" class="admin-toast" role="status" aria-live="polite"></div>
+
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
         <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -334,7 +295,8 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
     </button>
-    <script>lucide.createIcons();</script>
+    <%# M12.P1-R6: guarded so a missing Lucide bundle cannot throw and abort the page. %>
+    <script nonce="<%= cspNonce %>">if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); }</script>
 </body>
 
 </html>

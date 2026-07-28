@@ -11,17 +11,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <meta name="description"
-        content="CampusSphere — Browse all CSPC campus buildings, view floor plans, and find rooms.">
+        content="CampuSphere — Browse all CSPC campus buildings, view floor plans, and find rooms.">
 
-    <title>CampusSphere | Campus Buildings</title>
+    <title>CampuSphere | Campus Buildings</title>
 
-    <link rel="stylesheet" href="/css/styles.css?v=2">
+    <link rel="stylesheet" href="/css/styles.css?v=5">
 
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+    <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f2a44">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CampuSphere">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+    <!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
+    <script src="/js/pwa.js" defer></script>
 
     <!-- Iconify -->
 
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <!-- iconify-icon script removed (Milestone 11.8 cleanup): this page uses no
+         <iconify-icon> elements (the navbar icons are inline SVGs), and the
+         component's shadow-root styles violate style-src-elem under the CSP. -->
 
 </head>
 
@@ -29,549 +41,425 @@
 
 <body>
 
-<!-- Server-injected session data (available to all client-side scripts) -->
-<script id="sessionData" type="application/json">
-  <%- JSON.stringify(user || null) %>
-</script>
-<script>
-  window.__SESSION_USER = JSON.parse(document.getElementById('sessionData').textContent);
-</script>
+    <!-- ===== NAVBAR (shared partial) ===== -->
+    <%- include('partials/dash-navbar', { activeTab: 'tabBuildings' }) %>
 
 
 
-    <!-- ===== NAVBAR (same as home.html) ===== -->
+        <!-- ===== PAGE ===== -->
 
-    <nav class="dash-nav" id="dashNav">
+        <div class="bldg-page">
 
-        <div class="dash-nav__inner">
 
-            <a href="/home" class="dash-nav__brand">
 
-                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="dash-nav__logo">
+            <!-- Hero -->
 
-                <span class="dash-nav__title">CampusSphere</span>
+            <div class="bldg-hero">
 
-            </a>
+                <img src="/img/campus-hero.jpg" alt="CSPC Campus">
 
-            <div class="dash-nav__tabs" id="dashTabs">
+                <div class="bldg-hero__overlay"></div>
 
-                <a href="/home" class="dash-nav__tab" id="tabHome">
+                <div class="bldg-hero__content">
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <h1 class="bldg-hero__title">Campus Buildings</h1>
 
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    <p class="bldg-hero__sub">Explore all facilities — click any building to view floors, rooms, and
 
-                    </svg>
+                        entrances.</p>
 
-                    <span>Home</span>
+                </div>
 
-                </a>
+            </div>
 
-                <a href="/dashboard" class="dash-nav__tab" id="tabDashboard">
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 
-                        <rect x="3" y="3" width="7" height="7" />
+            <!-- Main -->
 
-                        <rect x="14" y="3" width="7" height="7" />
+            <div class="bldg-main">
 
-                        <rect x="14" y="14" width="7" height="7" />
 
-                        <rect x="3" y="14" width="7" height="7" />
 
-                    </svg>
+                <!-- Search bar -->
 
-                    <span>Dashboard</span>
-
-                </a>
-
-                <a href="/buildings" class="dash-nav__tab dash-nav__tab--active" id="tabBuildings">
+                <div class="bldg-search-wrap">
 
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
+
+                        <circle cx="11" cy="11" r="8" />
+
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+
+                    </svg>
+
+                    <input class="bldg-search" id="bldgSearch" type="search"
+                        placeholder="Search buildings by name or description…" autocomplete="off">
+
+                    <button class="bldg-search-clear" id="bldgSearchClear" aria-label="Clear search">✖</button>
+
+                </div>
+
+
+
+                <!-- Filter bar -->
+
+                <div class="bldg-filters" id="filterBar">
+
+                    <button class="bldg-filter-btn active" data-filter="all">All Buildings</button>
+
+                    <button class="bldg-filter-btn" data-filter="Academic">
+
+                        <span
+                            style="width:8px;height:8px;border-radius:50%;background:var(--navy-500);display:inline-block;"></span>Academic
+
+                    </button>
+
+                    <button class="bldg-filter-btn" data-filter="Administrative">
+
+                        <span
+                            style="width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;"></span>Administrative
+
+                    </button>
+
+                    <button class="bldg-filter-btn" data-filter="Facilities">
+
+                        <span
+                            style="width:8px;height:8px;border-radius:50%;background:var(--green-accent);display:inline-block;"></span>Facilities
+
+                    </button>
+
+                    <span class="bldg-count" id="bldgCount"></span>
+
+                </div>
+
+
+
+                <!-- Grid -->
+
+                <div class="bldg-grid" id="bldgGrid"></div>
+
+
+
+                <!-- Empty state -->
+
+                <div class="bldg-empty" id="emptyState">
+
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
 
                         <rect x="4" y="2" width="16" height="20" rx="2" />
 
                         <path d="M9 22v-4h6v4" />
 
-                        <path d="M8 6h.01" />
-
-                        <path d="M16 6h.01" />
-
-                        <path d="M12 6h.01" />
-
-                        <path d="M12 10h.01" />
-
-                        <path d="M12 14h.01" />
-
-                        <path d="M16 10h.01" />
-
-                        <path d="M8 10h.01" />
-
                     </svg>
 
-                    <span>Buildings</span>
+                    <p>No buildings match this filter.</p>
 
-                </a>
-
-                <a href="/events" class="dash-nav__tab" id="tabEvents">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-
-                        <line x1="16" y1="2" x2="16" y2="6" />
-
-                        <line x1="8" y1="2" x2="8" y2="6" />
-
-                        <line x1="3" y1="10" x2="21" y2="10" />
-
-                    </svg>
-
-                    <span>Events</span>
-
-                </a>
-
-                <a href="/map" class="dash-nav__tab" id="tabMap">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-
-                        <line x1="8" y1="2" x2="8" y2="18" />
-
-                        <line x1="16" y1="6" x2="16" y2="22" />
-
-                    </svg>
-
-                    <span>Campus Map</span>
-
-                </a>
-
-                <a href="/about" class="dash-nav__tab" id="tabAbout">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <circle cx="12" cy="12" r="10" />
-
-                        <line x1="12" y1="16" x2="12" y2="12" />
-
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-
-                    </svg>
-
-                    <span>About Us</span>
-
-                </a>
-
-                <div class="dash-nav__tabs-divider mobile-only"></div>
-                <button class="dash-nav__tab mobile-only" id="mobileEditProfileBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Edit Profile</span>
-                </button>
-                <button class="dash-nav__tab dash-nav__tab--logout mobile-only" id="mobileLogoutBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    <span>Logout</span>
-                </button>
+                </div>
 
             </div>
 
-            <div class="dash-nav__right">
+        </div>
 
-                <button class="dash-nav__icon-btn" id="notifBtn" aria-label="Notifications">
 
-                    <iconify-icon icon="ep:bell" width="20"></iconify-icon>
 
-                    <span class="dash-nav__notif-dot"></span>
+        <!-- ===== BUILDING DETAIL MODAL ===== -->
 
-                </button>
+        <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
 
-                <div class="dash-nav__user" id="userMenu">
+            <div class="modal" id="modal">
 
-                    <div class="dash-nav__avatar">
+                <div class="modal__header">
 
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div>
 
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <div class="modal__title" id="modalTitle">Building Name</div>
 
-                            <circle cx="12" cy="7" r="4" />
-
-                        </svg>
+                        <span class="modal__tag" id="modalTag"></span>
 
                     </div>
 
-                    <span class="dash-nav__username" id="navUsername"><%= user ? user.first_name : 'Guest' %></span>
-
-                    <iconify-icon icon="ep:arrow-down" width="14" class="dash-nav__chevron"></iconify-icon>
+                    <button class="modal__close" id="modalClose" aria-label="Close">✖</button>
 
                 </div>
 
-            </div>
+                <div class="modal__body">
 
-            <button class="dash-nav__hamburger" id="dashHamburger" aria-label="Toggle menu">
 
-                <span></span><span></span><span></span>
 
-            </button>
+                    <!-- Floor plan panel -->
 
-        </div>
+                    <div class="floor-panel">
 
-    </nav>
+                        <div class="floor-panel__label">Floor Plan</div>
 
+                        <div class="floor-selector" id="floorSelector"></div>
 
+                        <div class="floor-plan-box">
 
-    <!-- ===== PAGE ===== -->
+                            <div class="floor-plan-header" id="floorPlanHeader">Ground Floor</div>
 
-    <div class="bldg-page">
+                            <div class="floor-plan-rooms" id="floorPlanRooms"></div>
 
+                        </div>
 
+                    </div>
 
-        <!-- Hero -->
 
-        <div class="bldg-hero">
 
-            <img src="/img/campus-hero.jpg" alt="CSPC Campus">
+                    <!-- Info grid -->
 
-            <div class="bldg-hero__overlay"></div>
+                    <div class="info-grid">
 
-            <div class="bldg-hero__content">
+                        <div class="info-section">
 
-                <h1 class="bldg-hero__title">Campus Buildings</h1>
+                            <div class="info-section__title">Entrances &amp; Exits</div>
 
-                <p class="bldg-hero__sub">Explore all facilities — click any building to view floors, rooms, and
+                            <ul class="info-list" id="modalEntrances"></ul>
 
-                    entrances.</p>
+                        </div>
 
-            </div>
+                        <div class="info-section">
 
-        </div>
+                            <div class="info-section__title">Key Information</div>
 
+                            <ul class="info-list" id="modalInfo"></ul>
 
+                        </div>
 
-        <!-- Main -->
+                    </div>
 
-        <div class="bldg-main">
-
-
-
-            <!-- Search bar -->
-
-            <div class="bldg-search-wrap">
-
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-
-                    <circle cx="11" cy="11" r="8" />
-
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-
-                </svg>
-
-                <input class="bldg-search" id="bldgSearch" type="search"
-                    placeholder="Search buildings by name or description…" autocomplete="off">
-
-                <button class="bldg-search-clear" id="bldgSearchClear" aria-label="Clear search">✖</button>
-
-            </div>
-
-
-
-            <!-- Filter bar -->
-
-            <div class="bldg-filters" id="filterBar">
-
-                <button class="bldg-filter-btn active" data-filter="all">All Buildings</button>
-
-                <button class="bldg-filter-btn" data-filter="Academic">
-
-                    <span
-                        style="width:8px;height:8px;border-radius:50%;background:var(--navy-500);display:inline-block;"></span>Academic
-
-                </button>
-
-                <button class="bldg-filter-btn" data-filter="Administrative">
-
-                    <span
-                        style="width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;"></span>Administrative
-
-                </button>
-
-                <button class="bldg-filter-btn" data-filter="Facilities">
-
-                    <span
-                        style="width:8px;height:8px;border-radius:50%;background:var(--green-accent);display:inline-block;"></span>Facilities
-
-                </button>
-
-                <span class="bldg-count" id="bldgCount"></span>
-
-            </div>
-
-
-
-            <!-- Grid -->
-
-            <div class="bldg-grid" id="bldgGrid"></div>
-
-
-
-            <!-- Empty state -->
-
-            <div class="bldg-empty" id="emptyState">
-
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-
-                    <path d="M9 22v-4h6v4" />
-
-                </svg>
-
-                <p>No buildings match this filter.</p>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-
-    <!-- ===== BUILDING DETAIL MODAL ===== -->
-
-    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-
-        <div class="modal" id="modal">
-
-            <div class="modal__header">
-
-                <div>
-
-                    <div class="modal__title" id="modalTitle">Building Name</div>
-
-                    <span class="modal__tag" id="modalTag"></span>
-
-                </div>
-
-                <button class="modal__close" id="modalClose" aria-label="Close">✖</button>
-
-            </div>
-
-            <div class="modal__body">
-
-
-
-                <!-- Floor plan panel -->
-
-                <div class="floor-panel">
-
-                    <div class="floor-panel__label">Floor Plan</div>
-
-                    <div class="floor-selector" id="floorSelector"></div>
-
-                    <div class="floor-plan-box">
-
-                        <div class="floor-plan-header" id="floorPlanHeader">Ground Floor</div>
-
-                        <div class="floor-plan-rooms" id="floorPlanRooms"></div>
-
+                    <!-- Room & facility schedules (Milestone 11, Section 11.6).
+                     Real admin-managed entries only; rendered with
+                     createElement/textContent — never unescaped HTML. -->
+                    <div class="info-section" id="schedulePanel" style="margin-top:1rem;">
+                        <div class="info-section__title">Room &amp; Facility Schedules <span
+                                style="font-weight:400;font-size:.72rem;color:var(--gray-500);text-transform:none;">(upcoming
+                                14 days)</span></div>
+                        <p id="scheduleLoading"
+                            style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;">Loading schedules…
+                        </p>
+                        <p id="scheduleEmpty" style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;"
+                            hidden>No schedules in this date window.</p>
+                        <p id="scheduleError" style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;"
+                            hidden>Unable to load schedules.</p>
+                        <ul class="info-list" id="scheduleList" hidden></ul>
                     </div>
 
                 </div>
 
+            </div>
+
+        </div>
 
 
-                <!-- Info grid -->
 
-                <div class="info-grid">
+        <!-- Theme Toggle -->
 
-                    <div class="info-section">
+        <!-- ===== ROUTE MODAL ===== -->
 
-                        <div class="info-section__title">Entrances &amp; Exits</div>
+        <div class="route-modal-overlay" id="routeModalOverlay" role="dialog" aria-modal="true">
 
-                        <ul class="info-list" id="modalEntrances"></ul>
+            <div class="route-modal">
+
+                <div class="route-modal__header">
+
+                    <div>
+
+                        <div class="route-modal__title" id="routeModalTitle">Routes to Building</div>
+
+                        <div class="route-modal__subtitle" id="routeModalSubtitle">Walking directions from Main Gate
+                        </div>
 
                     </div>
 
-                    <div class="info-section">
-
-                        <div class="info-section__title">Key Information</div>
-
-                        <ul class="info-list" id="modalInfo"></ul>
-
-                    </div>
+                    <button class="route-modal__close" id="routeModalClose" aria-label="Close">✖</button>
 
                 </div>
 
-
+                <div class="route-modal__body" id="routeModalBody"></div>
 
             </div>
 
         </div>
 
-    </div>
 
 
+        <!-- Theme Toggle -->
 
-    <!-- Theme Toggle -->
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
 
-    <!-- ===== ROUTE MODAL ===== -->
+            <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 
-    <div class="route-modal-overlay" id="routeModalOverlay" role="dialog" aria-modal="true">
+                <circle cx="12" cy="12" r="5" />
 
-        <div class="route-modal">
+                <line x1="12" y1="1" x2="12" y2="3" />
 
-            <div class="route-modal__header">
+                <line x1="12" y1="21" x2="12" y2="23" />
 
-                <div>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
 
-                    <div class="route-modal__title" id="routeModalTitle">Routes to Building</div>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
 
-                    <div class="route-modal__subtitle" id="routeModalSubtitle">Walking directions from Main Gate</div>
+                <line x1="1" y1="12" x2="3" y2="12" />
 
-                </div>
+                <line x1="21" y1="12" x2="23" y2="12" />
 
-                <button class="route-modal__close" id="routeModalClose" aria-label="Close">✖</button>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
 
-            </div>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
 
-            <div class="route-modal__body" id="routeModalBody"></div>
+            </svg>
 
-        </div>
+            <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 
-    </div>
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
 
+            </svg>
 
+        </button>
 
-    <!-- Theme Toggle -->
 
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
 
-        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <script id="buildingsData" type="application/json"
+            nonce="<%= cspNonce %>"><%- safeJson(buildings || []) %></script>
 
-            <circle cx="12" cy="12" r="5" />
+        <script nonce="<%= cspNonce %>">
 
-            <line x1="12" y1="1" x2="12" y2="3" />
+            /* ===== BUILDINGS DATA ===== */
 
-            <line x1="12" y1="21" x2="12" y2="23" />
+            const BUILDINGS = JSON.parse(document.getElementById('buildingsData').textContent);
 
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            /* ===== OUTPUT-ENCODING HELPERS (R1: Stored-XSS Removal) =====
+               Database-derived building/floor/room/entrance/route/landmark values
+               must never be interpreted as HTML. escapeHtml() encodes text and
+               quoted-attribute contexts; safeUrl() validates dynamic image URLs and
+               rejects javascript:, unsafe data:, and attribute-breakout input. */
+            function escapeHtml(value) {
+                if (value === null || value === undefined) return '';
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+            function safeUrl(value, opts) {
+                if (value === null || value === undefined) return '';
+                var s = String(value).trim();
+                if (s === '') return '';
+                var scheme = s.replace(/\s+/g, '').toLowerCase();
+                if (scheme.indexOf('javascript:') === 0 || scheme.indexOf('vbscript:') === 0) return '';
+                if (scheme.indexOf('data:') === 0) {
+                    if (opts && opts.allowDataImage &&
+                        /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+                    return '';
+                }
+                if (s.charAt(0) === '/' || s.charAt(0) === '#' || s.charAt(0) === '.') return s;
+                if (/^https?:\/\//i.test(s)) return s;
+                var colon = s.indexOf(':');
+                if (colon === -1) return s;
+                var slash = s.indexOf('/');
+                if (slash !== -1 && slash < colon) return s;
+                return '';
+            }
+            // Positive-integer coercion for ids used in URL path segments.
+            function safeIntId(value) {
+                var n = Number(value);
+                return (Number.isInteger(n) && n > 0) ? n : null;
+            }
 
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            /* BE.3: fixed, sanitized labels for the server's route-availability
+               verdict. The reason codes come from services/routeAvailability.js;
+               anything unrecognised falls back to a generic label, so a future code
+               can never render as raw text. */
+            function routeUnavailableLabel(b) {
+                switch (b && b.route_unavailable_reason) {
+                    case 'not_mapped': return 'Route not set up yet';
+                    case 'unreachable': return 'No walking route yet';
+                    case 'invalid_geometry': return 'Route unavailable';
+                    case 'ambiguous_name': return 'Duplicate building name — route unavailable';
+                    case 'route_data_unavailable': return 'Route status unavailable';
+                    default: return 'Route unavailable';
+                }
+            }
 
-            <line x1="1" y1="12" x2="3" y2="12" />
 
-            <line x1="21" y1="12" x2="23" y2="12" />
 
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            /* ===== TAG COLORS ===== */
 
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            const TAG_CLASS = { Academic: 'tag--academic', Administrative: 'tag--admin', Facilities: 'tag--facilities' };
 
-        </svg>
+            const TAG_STYLE = { Academic: 'background:rgba(30,77,140,.15);color:var(--navy-700)', Administrative: 'background:rgba(212,168,67,.2);color:#7a4f00', Facilities: 'background:rgba(22,163,74,.15);color:#15803d' };
 
-        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
 
-        </svg>
+            /* ===== RENDER GRID ===== */
 
-    </button>
+            let currentFilter = 'all';
 
+            let currentQuery = '';
 
 
-    <script id="buildingsData" type="application/json"><%- JSON.stringify(buildings || []).replace(/</g, '\\u003c') %></script>
 
-    <script>
+            function renderGrid(filter = currentFilter, query = currentQuery) {
 
-        /* ===== BUILDINGS DATA ===== */
+                currentFilter = filter;
 
-        const BUILDINGS = JSON.parse(document.getElementById('buildingsData').textContent);
+                currentQuery = query;
 
+                const grid = document.getElementById('bldgGrid');
 
+                const empty = document.getElementById('emptyState');
 
-        /* ===== TAG COLORS ===== */
+                const countEl = document.getElementById('bldgCount');
 
-        const TAG_CLASS = { Academic: 'tag--academic', Administrative: 'tag--admin', Facilities: 'tag--facilities' };
+                const q = query.toLowerCase().trim();
 
-        const TAG_STYLE = { Academic: 'background:rgba(30,77,140,.15);color:var(--navy-700)', Administrative: 'background:rgba(212,168,67,.2);color:#7a4f00', Facilities: 'background:rgba(22,163,74,.15);color:#15803d' };
+                let filtered = filter === 'all' ? BUILDINGS : BUILDINGS.filter(b => b.category === filter);
 
+                if (q) filtered = filtered.filter(b => b.name.toLowerCase().includes(q) || b.desc.toLowerCase().includes(q));
 
+                countEl.textContent = filtered.length + ' building' + (filtered.length !== 1 ? 's' : '');
 
-        /* ===== RENDER GRID ===== */
+                if (!filtered.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
 
-        let currentFilter = 'all';
+                empty.style.display = 'none';
 
-        let currentQuery = '';
+                const role = window.__SESSION_USER && window.__SESSION_USER.role ? window.__SESSION_USER.role : 'anonymous';
 
+                const isLimitedVisitor = role === 'guest' || role === 'anonymous';
 
+                grid.innerHTML = filtered.map(b => `
 
-        function renderGrid(filter = currentFilter, query = currentQuery) {
-
-            currentFilter = filter;
-
-            currentQuery = query;
-
-            const grid = document.getElementById('bldgGrid');
-
-            const empty = document.getElementById('emptyState');
-
-            const countEl = document.getElementById('bldgCount');
-
-            const q = query.toLowerCase().trim();
-
-            let filtered = filter === 'all' ? BUILDINGS : BUILDINGS.filter(b => b.category === filter);
-
-            if (q) filtered = filtered.filter(b => b.name.toLowerCase().includes(q) || b.desc.toLowerCase().includes(q));
-
-            countEl.textContent = filtered.length + ' building' + (filtered.length !== 1 ? 's' : '');
-
-            if (!filtered.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-
-            empty.style.display = 'none';
-
-            const role = localStorage.getItem('campusphere-role') || 'guest';
-
-            const isGuest = role === 'guest';
-
-            grid.innerHTML = filtered.map(b => `
-
-        <div class="bldg-card" data-id="${b.id}">
+        <div class="bldg-card${b.route_available === true ? '' : ' bldg-card--route-unavailable'}" data-id="${Number(b.id)}"${b.route_available === true ? '' : ' data-route-unavailable="true"'}>
 
             <div class="bldg-card__img">
 
-                <img src="${b.img}" alt="${b.name}" loading="lazy">
+                <img src="${escapeHtml(safeUrl(b.img))}" alt="${escapeHtml(b.name)}" loading="lazy">
 
-                <span class="bldg-card__tag ${TAG_CLASS[b.category]}">${b.category}</span>
+                <span class="bldg-card__tag ${TAG_CLASS[b.category] || ''}">${escapeHtml(b.category)}</span>
 
-                ${isGuest && !b.guestAccess ? '<span class="bldg-card__restricted-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Restricted</span>' : ''}
+                ${isLimitedVisitor && !b.guestAccess ? '<span class="bldg-card__restricted-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Restricted</span>' : ''}
+
+                ${b.route_available === true ? '' : `<span class="bldg-card__route-badge">${escapeHtml(routeUnavailableLabel(b))}</span>`}
 
             </div>
 
             <div class="bldg-card__body">
 
-                <div class="bldg-card__name">${b.name}</div>
+                <div class="bldg-card__name">${escapeHtml(b.name)}</div>
 
-                <p class="bldg-card__desc">${b.desc}</p>
+                <p class="bldg-card__desc">${escapeHtml(b.desc)}</p>
 
                 <div class="bldg-card__footer">
 
-                    <button class="bldg-card__btn bldg-card__btn--primary" onclick="openModal(${b.id});event.stopPropagation()">View Details</button>
+                    <button class="bldg-card__btn bldg-card__btn--primary" data-action="details">View Details</button>
 
-                    <button class="bldg-card__btn bldg-card__btn--routes" onclick="openRouteModal(${b.id});event.stopPropagation()">View Routes</button>
+                    <button class="bldg-card__btn bldg-card__btn--routes" data-action="routes">View Routes</button>
 
                 </div>
 
@@ -579,195 +467,308 @@
 
         </div>`).join('');
 
-            grid.querySelectorAll('.bldg-card').forEach(c => c.addEventListener('click', () => openModal(+c.dataset.id)));
-
-        }
-
-
-
-        /* ===== FILTER BUTTONS ===== */
-
-        document.getElementById('filterBar').querySelectorAll('.bldg-filter-btn').forEach(btn => {
-
-            btn.addEventListener('click', () => {
-
-                document.querySelectorAll('.bldg-filter-btn').forEach(b => b.classList.remove('active'));
-
-                btn.classList.add('active');
-
-                renderGrid(btn.dataset.filter, currentQuery);
-
-            });
-
-        });
-
-
-
-        /* ===== SEARCH ===== */
-
-        const searchInput = document.getElementById('bldgSearch');
-
-        const searchClear = document.getElementById('bldgSearchClear');
-
-
-
-        searchInput.addEventListener('input', () => {
-
-            const q = searchInput.value;
-
-            searchClear.classList.toggle('visible', q.length > 0);
-
-            renderGrid(currentFilter, q);
-
-        });
-
-
-
-        searchClear.addEventListener('click', () => {
-
-            searchInput.value = '';
-
-            searchClear.classList.remove('visible');
-
-            renderGrid(currentFilter, '');
-
-            searchInput.focus();
-
-        });
-
-
-
-        /* ===== MODAL ===== */
-
-        let activeBuilding = null, activeFloor = 0;
-
-
-
-        function openModal(id) {
-
-            const b = BUILDINGS.find(x => x.id === id);
-
-            if (!b) return;
-
-            activeBuilding = b; activeFloor = 0;
-
-            document.getElementById('modalTitle').textContent = b.name;
-
-            const tag = document.getElementById('modalTag');
-
-            tag.textContent = b.category; tag.style.cssText = TAG_STYLE[b.category] + ';padding:.2rem .65rem;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;';
-
-            // Floors
-
-            const sel = document.getElementById('floorSelector');
-
-            if (b.floors && b.floors.length > 0) {
-
-                sel.innerHTML = b.floors.map((f, i) => `<button class="floor-btn ${i === 0 ? 'active' : ''}" data-fi="${i}">${f.label}</button>`).join('');
-
-                sel.querySelectorAll('.floor-btn').forEach(btn => btn.addEventListener('click', () => {
-
-                    sel.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-
-                    btn.classList.add('active'); renderFloor(+btn.dataset.fi);
-
+                // Stored ids never enter inline handlers: the card listener reads the
+                // validated integer data-id and routes by data-action (R1).
+                grid.querySelectorAll('.bldg-card').forEach(c => c.addEventListener('click', (e) => {
+                    const id = Number(c.dataset.id);
+                    const actionBtn = e.target.closest('[data-action]');
+                    if (actionBtn && actionBtn.dataset.action === 'routes') { openRouteModal(id); }
+                    else { openModal(id); }
                 }));
-
-                renderFloor(0);
-
-            } else {
-
-                sel.innerHTML = '';
-
-                document.getElementById('floorPlanHeader').textContent = 'Floor Plan';
-
-                document.getElementById('floorPlanRooms').innerHTML = '<p style="color:var(--gray-500);font-size:.85rem;padding:.5rem 0">No floor plan available.</p>';
 
             }
 
-            // Entrances
 
-            const entrances = Array.isArray(b.entrances) ? b.entrances : [];
 
-            document.getElementById('modalEntrances').innerHTML = entrances.length
+            /* ===== FILTER BUTTONS ===== */
 
-                ? entrances.map(e => `<li>${e}</li>`).join('')
+            document.getElementById('filterBar').querySelectorAll('.bldg-filter-btn').forEach(btn => {
 
-                : '<li style="color:var(--gray-500)">No entrance data available.</li>';
+                btn.addEventListener('click', () => {
 
-            // Info
+                    document.querySelectorAll('.bldg-filter-btn').forEach(b => b.classList.remove('active'));
 
-            const info = Array.isArray(b.info) ? b.info : [];
+                    btn.classList.add('active');
 
-            document.getElementById('modalInfo').innerHTML = info.length
+                    renderGrid(btn.dataset.filter, currentQuery);
 
-                ? info.map(i => `<li>${i}</li>`).join('')
+                });
 
-                : '<li style="color:var(--gray-500)">No additional info.</li>';
-
-            document.getElementById('modalOverlay').classList.add('open');
-
-            document.body.style.overflow = 'hidden';
-
-        }
+            });
 
 
 
-        function renderFloor(fi) {
+            /* ===== SEARCH ===== */
 
-            const floor = activeBuilding.floors[fi];
+            const searchInput = document.getElementById('bldgSearch');
 
-            document.getElementById('floorPlanHeader').textContent = floor.label + ' — Room Layout';
-
-            document.getElementById('floorPlanRooms').innerHTML = floor.rooms.map(r =>
-
-                `<div class="room-block"><span class="room-block__num">${r.num}</span><span class="room-block__use">${r.use}</span></div>`).join('');
-
-        }
+            const searchClear = document.getElementById('bldgSearchClear');
 
 
 
-        function closeModal() {
+            searchInput.addEventListener('input', () => {
 
-            document.getElementById('modalOverlay').classList.remove('open');
+                const q = searchInput.value;
 
-            document.body.style.overflow = '';
+                searchClear.classList.toggle('visible', q.length > 0);
 
-        }
+                renderGrid(currentFilter, q);
 
-
-
-        document.getElementById('modalClose').addEventListener('click', closeModal);
-
-        document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeRouteModal(); } });
+            });
 
 
 
-        /* ===== ROUTE MODAL ===== */
+            searchClear.addEventListener('click', () => {
 
-        function openRouteModal(id) {
+                searchInput.value = '';
 
-            const b = BUILDINGS.find(x => x.id === id);
+                searchClear.classList.remove('visible');
 
-            if (!b) return;
+                renderGrid(currentFilter, '');
 
-            const role = localStorage.getItem('campusphere-role') || 'guest';
+                searchInput.focus();
 
-            const isGuest = role === 'guest';
+            });
 
-            const restricted = isGuest && !b.guestAccess;
 
-            document.getElementById('routeModalTitle').textContent = 'Routes to ' + b.name;
 
-            document.getElementById('routeModalSubtitle').textContent = 'Walking directions from Main Gate • ' + (b.walkTime || '~5 min');
+            /* ===== MODAL ===== */
 
-            let html = '';
+            let activeBuilding = null, activeFloor = 0;
 
-            if (restricted) {
 
-                html += `<div class="route-restricted-warning">
+
+            function openModal(id) {
+
+                const b = BUILDINGS.find(x => x.id === id);
+
+                if (!b) return;
+
+                activeBuilding = b; activeFloor = 0;
+
+                const participantDetails = b.participantDetails || {};
+                const floors = Array.isArray(participantDetails.floors) ? participantDetails.floors : [];
+
+                document.getElementById('modalTitle').textContent = b.name;
+
+                const tag = document.getElementById('modalTag');
+
+                tag.textContent = b.category; tag.style.cssText = TAG_STYLE[b.category] + ';padding:.2rem .65rem;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;';
+
+                // Floors
+
+                const sel = document.getElementById('floorSelector');
+
+                if (floors.length > 0) {
+
+                    sel.innerHTML = floors.map((f, i) => `<button class="floor-btn ${i === 0 ? 'active' : ''}" data-fi="${i}">${escapeHtml(f.label)}</button>`).join('');
+
+                    sel.querySelectorAll('.floor-btn').forEach(btn => btn.addEventListener('click', () => {
+
+                        sel.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+
+                        btn.classList.add('active'); renderFloor(+btn.dataset.fi);
+
+                    }));
+
+                    renderFloor(0);
+
+                } else {
+
+                    sel.innerHTML = '';
+
+                    document.getElementById('floorPlanHeader').textContent = 'Floor Plan';
+
+                    document.getElementById('floorPlanRooms').innerHTML = '<p style="color:var(--gray-500);font-size:.85rem;padding:.5rem 0">No floor plan available.</p>';
+
+                }
+
+                // Entrances
+
+                const entrances = Array.isArray(participantDetails.entrances) ? participantDetails.entrances : [];
+
+                document.getElementById('modalEntrances').innerHTML = entrances.length
+
+                    ? entrances.map(e => `<li>${escapeHtml(e)}</li>`).join('')
+
+                    : '<li style="color:var(--gray-500)">No entrance data available.</li>';
+
+                // Info
+
+                const info = Array.isArray(participantDetails.keyInformation) ? participantDetails.keyInformation : [];
+
+                document.getElementById('modalInfo').innerHTML = info.length
+
+                    ? info.map(i => `<li>${i.label ? `<strong>${escapeHtml(i.label)}:</strong> ` : ''}${escapeHtml(i.value)}</li>`).join('')
+
+                    : '<li style="color:var(--gray-500)">No additional info.</li>';
+
+                // Room/facility schedules (Milestone 11, Section 11.6)
+
+                loadBuildingSchedules(b.id);
+
+                document.getElementById('modalOverlay').classList.add('open');
+
+                document.body.style.overflow = 'hidden';
+
+            }
+
+
+
+            /* ===== SCHEDULES (Milestone 11, Section 11.6) =====
+    
+               Fetches the authenticated schedule window for the opened building.
+    
+               Every API-derived value is rendered via createElement/textContent;
+    
+               nothing from the response is placed into innerHTML. */
+
+            let scheduleReqSeq = 0;
+
+            function loadBuildingSchedules(buildingId) {
+
+                const seq = ++scheduleReqSeq;
+
+                const loading = document.getElementById('scheduleLoading');
+
+                const empty = document.getElementById('scheduleEmpty');
+
+                const error = document.getElementById('scheduleError');
+
+                const list = document.getElementById('scheduleList');
+
+                if (!loading || !empty || !error || !list) return;
+
+                loading.hidden = false; empty.hidden = true; error.hidden = true; list.hidden = true;
+
+                while (list.firstChild) list.removeChild(list.firstChild);
+
+                fetch('/api/buildings/' + encodeURIComponent(buildingId) + '/schedules', { headers: { Accept: 'application/json' } })
+
+                    .then(r => r.json().then(j => ({ ok: r.ok, j })).catch(() => ({ ok: false, j: null })))
+
+                    .then(({ ok, j }) => {
+
+                        if (seq !== scheduleReqSeq) return; // superseded by a newer modal open
+
+                        loading.hidden = true;
+
+                        if (!ok || !j || j.success !== true || !Array.isArray(j.schedules)) { error.hidden = false; return; }
+
+                        if (j.schedules.length === 0) { empty.hidden = false; return; }
+
+                        j.schedules.forEach(s => {
+
+                            const li = document.createElement('li');
+
+                            const when = document.createElement('div');
+
+                            when.style.cssText = 'font-weight:600;';
+
+                            when.textContent = (s.schedule_date || '') + ' · ' + (s.start_time || '') + '–' + (s.end_time || '');
+
+                            const what = document.createElement('div');
+
+                            what.textContent = s.title || '';
+
+                            const where = document.createElement('div');
+
+                            where.style.cssText = 'font-size:.8rem;color:var(--gray-500);';
+
+                            const parts = [s.location_type, s.location_label];
+
+                            if (s.floor_label) parts.push(s.floor_label);
+
+                            if (s.audience && s.audience !== 'all') parts.push('for ' + s.audience);
+
+                            where.textContent = parts.filter(Boolean).join(' · ');
+
+                            li.appendChild(when); li.appendChild(what); li.appendChild(where);
+
+                            if (s.description) {
+
+                                const d = document.createElement('div');
+
+                                d.style.cssText = 'font-size:.8rem;color:var(--gray-500);';
+
+                                d.textContent = s.description;
+
+                                li.appendChild(d);
+
+                            }
+
+                            list.appendChild(li);
+
+                        });
+
+                        list.hidden = false;
+
+                    })
+
+                    .catch(() => { if (seq !== scheduleReqSeq) return; loading.hidden = true; error.hidden = false; });
+
+            }
+
+
+
+            function renderFloor(fi) {
+
+                const details = activeBuilding && activeBuilding.participantDetails;
+                const floors = details && Array.isArray(details.floors) ? details.floors : [];
+                const floor = floors[fi];
+                if (!floor) return;
+
+                document.getElementById('floorPlanHeader').textContent = floor.label + ' — Room Layout';
+
+                document.getElementById('floorPlanRooms').innerHTML = floor.rooms.map(r =>
+
+                    `<div class="room-block"><span class="room-block__num">${escapeHtml(r.heading)}</span><span class="room-block__use">${escapeHtml(r.use)}</span></div>`).join('');
+
+            }
+
+
+
+            function closeModal() {
+
+                document.getElementById('modalOverlay').classList.remove('open');
+
+                document.body.style.overflow = '';
+
+            }
+
+
+
+            document.getElementById('modalClose').addEventListener('click', closeModal);
+
+            document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeRouteModal(); } });
+
+
+
+            /* ===== ROUTE MODAL ===== */
+
+            function openRouteModal(id) {
+
+                const b = BUILDINGS.find(x => x.id === id);
+
+                if (!b) return;
+
+                const role = window.__SESSION_USER && window.__SESSION_USER.role ? window.__SESSION_USER.role : 'anonymous';
+
+                const isLimitedVisitor = role === 'guest' || role === 'anonymous';
+
+                const restricted = isLimitedVisitor && !b.guestAccess;
+
+                document.getElementById('routeModalTitle').textContent = 'Routes to ' + b.name;
+
+                document.getElementById('routeModalSubtitle').textContent = 'Walking directions from Main Gate • ' + (b.walkTime || '~5 min');
+
+                let html = '';
+
+                if (restricted) {
+
+                    html += `<div class="route-restricted-warning">
 
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 
@@ -781,109 +782,141 @@
 
                 </div>`;
 
+                }
+
+                html += '<div class="route-info-label">Walking Directions</div>';
+
+                html += '<div class="route-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + escapeHtml(b.walkTime || '~5 min') + '</div>';
+
+                html += '<ol class="route-steps">';
+
+                (b.routes || []).forEach((step, i) => {
+
+                    html += `<li class="route-step"><span class="route-step__num">${i + 1}</span><span class="route-step__text">${escapeHtml(step)}</span></li>`;
+
+                });
+
+                html += '</ol>';
+
+                if (b.landmarks && b.landmarks.length) {
+
+                    html += '<div class="route-landmarks"><div class="route-info-label">Nearby Landmarks</div><ul class="route-landmark-list">';
+
+                    b.landmarks.forEach(l => { html += `<li>${escapeHtml(l)}</li>`; });
+
+                    html += '</ul></div>';
+
+                }
+
+                // BE.3: the guided-VR action depends on a real campus route. When the
+                // server says this building has no usable route, the modal stays open
+                // with all its campus information but the action is withdrawn and the
+                // sanitized reason is shown instead of an link that would only fail.
+                const vrId = safeIntId(b.vr_route_id);
+                const routeAvailable = (b.route_available === true);
+
+                if (!routeAvailable) {
+
+                    html += `<div class="route-modal__vr"><span class="route-info-label route-info-label--unavailable">${escapeHtml(routeUnavailableLabel(b))}</span></div>`;
+
+                } else if (vrId) {
+
+                    html += `<div class="route-modal__vr"><a class="btn btn--primary btn--sm" href="/vr/routes/${vrId}">Start VR Route</a><p class="route-vr-offline-hint" id="routeVrOfflineHint" hidden style="margin-top:.5rem;font-size:.8rem;line-height:1.35;color:var(--gray-500);"></p></div>`;
+
+                } else {
+
+                    html += '<div class="route-modal__vr"><span class="route-info-label">VR route not available yet.</span></div>';
+
+                }
+
+                document.getElementById('routeModalBody').innerHTML = html;
+
+                document.getElementById('routeModalOverlay').classList.add('open');
+
+                document.body.style.overflow = 'hidden';
+
+                if (vrId) { showVrOfflineHint(vrId); }
+
             }
 
-            html += '<div class="route-info-label">Walking Directions</div>';
+            /* When offline, the guided VR route needs an internet connection.
+               Authenticated page HTML is never cached (R2: Authenticated PWA Privacy),
+               so the route page is not available offline — show a clear, session-neutral
+               hint and read no user/session data. */
+            function showVrOfflineHint() {
+                if (navigator.onLine !== false) return; // online: the live link just works
+                var el = document.getElementById('routeVrOfflineHint');
+                if (!el) return;
+                el.textContent = 'This VR route needs an internet connection.';
+                el.hidden = false;
+            }
 
-            html += '<div class="route-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + (b.walkTime || '~5 min') + '</div>';
 
-            html += '<ol class="route-steps">';
 
-            (b.routes || []).forEach((step, i) => {
+            function closeRouteModal() {
 
-                html += `<li class="route-step"><span class="route-step__num">${i + 1}</span><span class="route-step__text">${step}</span></li>`;
+                document.getElementById('routeModalOverlay').classList.remove('open');
 
-            });
-
-            html += '</ol>';
-
-            if (b.landmarks && b.landmarks.length) {
-
-                html += '<div class="route-landmarks"><div class="route-info-label">Nearby Landmarks</div><ul class="route-landmark-list">';
-
-                b.landmarks.forEach(l => { html += `<li>${l}</li>`; });
-
-                html += '</ul></div>';
+                document.body.style.overflow = '';
 
             }
 
-            document.getElementById('routeModalBody').innerHTML = html;
 
-            document.getElementById('routeModalOverlay').classList.add('open');
 
-            document.body.style.overflow = 'hidden';
+            document.getElementById('routeModalClose').addEventListener('click', closeRouteModal);
 
-        }
+            document.getElementById('routeModalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeRouteModal(); });
 
 
 
-        function closeRouteModal() {
+            /* ===== NAVBAR ===== */
 
-            document.getElementById('routeModalOverlay').classList.remove('open');
+            const dashNav = document.getElementById('dashNav');
 
-            document.body.style.overflow = '';
+            window.addEventListener('scroll', () => dashNav.classList.toggle('scrolled', scrollY > 10));
 
-        }
-
-
-
-        document.getElementById('routeModalClose').addEventListener('click', closeRouteModal);
-
-        document.getElementById('routeModalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeRouteModal(); });
+            /* Mobile hamburger: owned by the shared /js/authenticated-nav.js
+               client (M12.P1-D2) */
 
 
 
-        /* ===== NAVBAR ===== */
-
-        const dashNav = document.getElementById('dashNav');
-
-        window.addEventListener('scroll', () => dashNav.classList.toggle('scrolled', scrollY > 10));
-
-        const hamburger = document.getElementById('dashHamburger');
-
-        const tabs = document.getElementById('dashTabs');
-
-        hamburger.addEventListener('click', () => { hamburger.classList.toggle('active'); tabs.classList.toggle('open'); });
+            /* ===== USERNAME — rendered server-side via EJS ===== */
 
 
 
-        /* ===== USERNAME — rendered server-side via EJS ===== */
+            /* ===== THEME ===== */
+
+            (function () {
+
+                const toggle = document.getElementById('themeToggle');
+
+                if (localStorage.getItem('campussphere-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+                toggle.addEventListener('click', () => {
+
+                    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+                    dark ? document.documentElement.removeAttribute('data-theme') : document.documentElement.setAttribute('data-theme', 'dark');
+
+                    localStorage.setItem('campussphere-theme', dark ? 'light' : 'dark');
+
+                });
+
+            })();
 
 
 
-        /* ===== THEME ===== */
+            /* ===== INIT ===== */
 
-        (function () {
+            renderGrid();
 
-            const toggle = document.getElementById('themeToggle');
+        </script>
 
-            if (localStorage.getItem('campussphere-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        <!-- Edit Profile Script -->
 
-            toggle.addEventListener('click', () => {
+        <script src="/js/profile-script.js"></script>
 
-                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-                dark ? document.documentElement.removeAttribute('data-theme') : document.documentElement.setAttribute('data-theme', 'dark');
-
-                localStorage.setItem('campussphere-theme', dark ? 'light' : 'dark');
-
-            });
-
-        })();
-
-
-
-        /* ===== INIT ===== */
-
-        renderGrid();
-
-    </script>
-
-    <!-- Edit Profile Script -->
-
-    <script src="/js/profile-script.js"></script>
-
-    <script src="/js/nav-role.js"></script>
+        <script src="/js/nav-role.js"></script>
 
 </body>
 

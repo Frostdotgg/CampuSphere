@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/quality-gates.js",
+    "qa": "node scripts/quality-gates.js && node scripts/db-perf-gate.js && node scripts/supabase-smoke.js && node scripts/verify-identity-constraints.js && npm audit --omit=dev",
+    "qa:contracts": "node scripts/quality-gates.js",
+    "qa:db": "node scripts/db-perf-gate.js",
+    "qa:smoke": "node scripts/supabase-smoke.js",
+    "qa:identity": "node scripts/verify-identity-constraints.js",
+    "qa:audit": "npm audit --omit=dev"
   },
   "keywords": [
     "cspc",
@@ -18,12 +24,18 @@
   "author": "Team Dutchess",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "@upstash/redis": "1.38.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
-    "ejs": "^3.1.10",
+    "ejs": "6.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "helmet": "^8.2.0",
     "mysql2": "^3.22.2"
   }
 }

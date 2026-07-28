@@ -1,0 +1,82 @@
+# =============================================================================
+# CampuSphere — Docker build context exclusions (Milestone 8, Section 8.9)
+# =============================================================================
+# Defense in depth: the Dockerfile already copies ONLY named app folders, but
+# this file ALSO keeps secrets, dependencies, and heavy/local artifacts out of
+# the build context entirely so they cannot be added by accident.
+
+# ---- Secrets / environment (NEVER ship these) ----
+.env
+.env.*
+!.env.example
+
+# ---- Dependencies / lockfile-derived (reinstalled in-image via npm ci) ----
+node_modules
+npm-debug.log*
+
+# ---- Git / VCS metadata ----
+.git
+.gitignore
+.gitattributes
+
+# ---- Logs, coverage, caches ----
+logs
+*.log
+coverage
+.nyc_output
+.cache
+.npm
+dist
+build
+
+# ---- Test/automation + browser caches ----
+.playwright-mcp
+playwright-report
+test-results
+.vscode
+.idea
+
+# ---- Docs / presentation / defense artifacts (not needed at runtime) ----
+docs
+*.md
+!README.md
+*.pdf
+*.docx
+*.pptx
+
+# ---- Screenshots / images that are not app assets ----
+# (public/img IS shipped via the Dockerfile COPY; these patterns target stray
+# top-level capture/export files, not the app's bundled assets.)
+/screenshots
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+
+# ---- Local scratch VR panoramas (owner-only; never ship) ----
+# Exclude ONLY the local "sample 360" scratch directory from the build context so
+# its untracked panoramas cannot be COPYed into the image (the Dockerfile does
+# `COPY public ./public`). The rest of public/img is still shipped: app images,
+# the /img/vr placeholders, and /img/icons are NOT excluded.
+public/img/sample 360/
+
+# ---- Local database dumps / backups ----
+# Exclude local SQL exports under database/ (e.g. database/campusphere_db.sql,
+# which contains real users/bcrypt hashes/OAuth subjects/profile data) while
+# keeping the schema. Narrow on purpose: a broad `*.sql` would also drop the
+# required Supabase migrations under database/supabase/.
+database/*.sql
+!database/schema.sql
+*.sql.gz
+*.dump
+*.bak
+*.sqlite
+*.sqlite3
+backups
+db-dumps
+
+# ---- Docker files themselves ----
+Dockerfile
+.dockerignore
+docker-compose.yml

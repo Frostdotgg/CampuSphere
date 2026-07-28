@@ -6,8 +6,30 @@
 const crypto = require('crypto');
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
+const authDataSource = require('../config/authDataSource');
+const userRepository = require('../repositories/userRepository');
+const auditService = require('../services/auditService');
+const { wantsJson } = require('../middleware/roleAuth');
+// Single token-issuance primitive (middleware/csrfProtection.js). Imported so a
+// regenerated authenticated session is persisted ALREADY carrying its CSRF
+// token. No import cycle: csrfProtection -> roleAuth -> auditService only.
+const { ensureCsrfToken } = require('../middleware/csrfProtection');
+const { clearSessionCookie } = require('../config/sessionConfig');
+// R7-style shared validators (utils/adminValidation.js). M2: local public
+// registration now applies the same server-side email format + password policy
+// the admin user CRUD already enforces, instead of only a non-empty presence check.
+const { validateEmail, validatePassword } = require('../utils/adminValidation');
 
 const SALT_ROUNDS = 10;
+
+// L4 (login user-enumeration): a FIXED, non-secret dummy bcrypt hash at the same
+// cost (10) as real password hashes. On the local-login path we ALWAYS run
+// bcrypt.compare — against the user's hash, or against THIS dummy when the email
+// is unknown or the row has no password — so an unknown email costs the same as a
+// wrong password and cannot be distinguished by response timing. It is a hash of
+// a random throwaway value that matches no account; compare() against it is always
+// false. It is generated offline (never at runtime) and never logged/exposed.
+const DUMMY_LOGIN_HASH = '$2b$10$9vR6SG1xh5Vxbyzv2l2M.OG.6CWDsjO4vh2xSP4EltTklHVDSAc7i';
 
 const OAUTH_QUERY_ERRORS = {
   unauthorized_domain: 'Your email domain is not authorized. Please use a CSPC or Gmail account.',
@@ -76,6 +98,72 @@ function saveSession(req) {
   });
 }
 
+// Regenerate the Express session to issue a fresh session ID before an
+// unauthenticated or pending-registration session becomes authenticated
+// (R3 session-fixation defense). regenerate() destroys the old session in the
+// store and starts an empty one, so a session ID fixed before login cannot be
+// reused to reach the authenticated session, and no arbitrary pre-auth data is
+// carried over. Any pre-auth state still required (e.g. pending OAuth
+// registration) must be captured into a local variable before this call.
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+}
+
+// Best-effort destroy of the current session. Never rejects; used only on the
+// failure path of establishAuthenticatedSession so a half-established
+// authenticated session is not left in the store.
+function destroySessionQuietly(req) {
+  return new Promise((resolve) => {
+    if (!req.session || typeof req.session.destroy !== 'function') return resolve();
+    req.session.destroy(() => resolve());
+  });
+}
+
+// Best-effort clear of the active session cookie using the configured name and
+// attributes (Milestone 8, Section 8.4 — dev: campusphere.sid; prod:
+// __Host-campusphere.sid). Never throws; privacy belt-and-suspenders alongside
+// destroying the session.
+function clearSessionCookieQuietly(res) {
+  clearSessionCookie(res);
+}
+
+// Establish an authenticated session atomically (R3 + follow-up hardening):
+//   1) regenerate to a fresh session ID (fixation defense);
+//   2) assign/hydrate req.session.user via assignSessionUser();
+//   3) mint the NEW session's CSRF token (regeneration discarded the anonymous
+//      pre-login one, which is never reused);
+//   4) persist the combined authenticated session with one explicit save
+//      before the caller redirects.
+// Step 3 must precede step 4: without it the token was minted lazily by
+// attachCsrfToken on the FIRST authenticated page render, which dirtied the
+// session and triggered an asynchronous store write. Under the Supabase session
+// store an immediately submitted form carrying that rendered token — the admin
+// HTML logout forms do exactly this — could then be validated against a stored
+// session that did not yet contain it, producing a spurious 403. Minting before
+// the save makes the persisted session and the rendered token atomic.
+// If ANY step after regeneration fails, drop req.session.user so Express's
+// end-of-response autosave cannot persist an authenticated regenerated session,
+// best-effort destroy that session and clear its cookie, then rethrow a
+// sanitized error into the caller's existing catch (which renders/redirects the
+// path's fixed generic failure). No session ID, cookie, or raw error is logged.
+async function establishAuthenticatedSession(req, res, assignSessionUser) {
+  await regenerateSession(req);
+  try {
+    await assignSessionUser();
+    // Mint the regenerated session's token BEFORE the explicit save. A failure
+    // here falls into the same sanitized establishment-failure path below.
+    ensureCsrfToken(req.session);
+    await saveSession(req);
+  } catch (err) {
+    try { if (req.session) delete req.session.user; } catch (e) {}
+    await destroySessionQuietly(req);
+    clearSessionCookieQuietly(res);
+    throw new Error('SESSION_ESTABLISH_FAILED');
+  }
+}
+
 async function hydrateSessionUser(req, userRow) {
   req.session.user = {
     id: userRow.id,
@@ -122,6 +210,38 @@ async function loadRoleProfileIntoSession(sessionUser) {
         phone_number: gp.phone_number
       });
     }
+  }
+}
+
+// Supabase-mode counterpart of loadRoleProfileIntoSession. Merges role-
+// specific profile fields into req.session.user using the read-only
+// repository. The merged field names mirror the MySQL path exactly so EJS
+// templates, dashboard partials, and middleware see the same session shape
+// in either mode. Admin sessions have no profile row; missing rows are a
+// no-op (mirrors the `profiles.length > 0` guard in the MySQL helper).
+async function loadRoleProfileIntoSessionFromSupabase(sessionUser) {
+  if (!sessionUser || !sessionUser.id) return;
+  const profile = await userRepository.loadRoleProfile(sessionUser.id, sessionUser.role);
+  if (!profile) return;
+  if (sessionUser.role === 'student-cspc') {
+    Object.assign(sessionUser, {
+      student_id_number: profile.student_id_number,
+      course: profile.course,
+      year_level: profile.year_level,
+      enrollment_status: profile.enrollment_status,
+      semester: profile.semester
+    });
+  } else if (sessionUser.role === 'instructor') {
+    Object.assign(sessionUser, {
+      employee_id: profile.employee_id,
+      department: profile.department,
+      position: profile.position
+    });
+  } else if (sessionUser.role === 'guest') {
+    Object.assign(sessionUser, {
+      address: profile.address,
+      phone_number: profile.phone_number
+    });
   }
 }
 
@@ -245,43 +365,13 @@ exports.auth = (req, res) => {
   const qErr = typeof req.query.error === 'string' ? req.query.error : '';
   const oauthMsg = OAUTH_QUERY_ERRORS[qErr] || null;
   res.render('auth', {
-    title: 'CampusSphere | Get Started',
+    title: 'CampuSphere | Get Started',
     description:
-      'Get started with CampusSphere — Sign in or create your account to explore the CSPC virtual map tour.',
+      'Get started with CampuSphere — Sign in or create your account to explore the CSPC virtual map tour.',
     backgroundImage: '/img/campus-hero.jpg',
     error: oauthMsg,
     success: null,
     oauthErrorKey: oauthMsg ? qErr : undefined
-  });
-};
-
-/**
- * GET /login — Standalone Login page
- */
-exports.login = (req, res) => {
-  if (req.session.user) {
-    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/dashboard');
-  }
-  res.render('login', {
-    title: 'CampusSphere | Sign In',
-    description: 'Sign in to CampusSphere.',
-    backgroundImage: '/img/campus-hero.jpg',
-    error: null
-  });
-};
-
-/**
- * GET /register — Standalone Register page
- */
-exports.register = (req, res) => {
-  if (req.session.user) {
-    return res.redirect('/dashboard');
-  }
-  res.render('register', {
-    title: 'CampusSphere | Register',
-    description: 'Register to CampusSphere - Choose your role to access the virtual map tour.',
-    backgroundImage: '/img/campus-hero.jpg',
-    error: null
   });
 };
 
@@ -302,22 +392,184 @@ exports.registerPost = async (req, res) => {
     position
   } = req.body;
 
-  if (!fullName || !fullName.trim() || !email || !email.trim() || !password) {
+  // Type-safe presence guard (M2). A JSON body may carry non-string values
+  // (e.g. email: { ... }), so NEVER call .trim() on a value not yet known to be
+  // a string — that would throw and surface as a 500 instead of a clean 400-ish
+  // rejection. fullName has no dedicated validator and is split into first/last
+  // below, so it must be a non-blank STRING here (a non-string fullName is
+  // treated as missing). email/password are intentionally allowed through when
+  // present-but-non-string so they reach validateEmail/validatePassword (which
+  // reject non-strings with a fixed message) rather than crashing.
+  const hasFullName = typeof fullName === 'string' && fullName.trim() !== '';
+  const hasEmail = email !== undefined && email !== null
+    && !(typeof email === 'string' && email.trim() === '');
+  const hasPassword = password !== undefined && password !== null
+    && !(typeof password === 'string' && password === '');
+  if (!hasFullName || !hasEmail || !hasPassword) {
     return res.render('auth', {
-      title: 'CampusSphere | Get Started',
-      description: 'Get started with CampusSphere.',
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
       backgroundImage: '/img/campus-hero.jpg',
       error: 'Please fill in your full name, email, and password.',
       success: null
     });
   }
 
+  // M2: server-side email format + password policy BEFORE any DB lookup, hash,
+  // or insert — matching the admin user CRUD (utils/adminValidation.js). The
+  // normalized (trimmed, length-capped, format-checked) email and the validated
+  // raw password are then used for every downstream branch (Supabase + MySQL):
+  // duplicate check, username derivation, inserted email, and session email.
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.ok) {
+    return res.render('auth', {
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
+      backgroundImage: '/img/campus-hero.jpg',
+      error: emailCheck.message,
+      success: null
+    });
+  }
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.ok) {
+    return res.render('auth', {
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
+      backgroundImage: '/img/campus-hero.jpg',
+      error: passwordCheck.message,
+      success: null
+    });
+  }
+  const normalizedEmail = emailCheck.value;
+  const validPassword = passwordCheck.value;
+
   try {
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    // ===== Supabase branch (AUTH_DATA_SOURCE=supabase) =====
+    if (authDataSource.isSupabase()) {
+      const sbExisting = await userRepository.findUserByEmail(normalizedEmail);
+      if (sbExisting) {
+        return res.render('auth', {
+          title: 'CampuSphere | Get Started',
+          description: 'Get started with CampuSphere.',
+          backgroundImage: '/img/campus-hero.jpg',
+          error: 'An account with this email already exists.',
+          success: null
+        });
+      }
+
+      // Section 8.6 — Production Registration Trust Policy: local public
+      // email/password registration may create GUEST accounts ONLY. Requested
+      // student-cspc / instructor / admin / unknown / blank / missing roles are
+      // REJECTED (never silently downgraded to guest). Trusted institutional
+      // roles come only from verified Google OAuth domain mapping, seed data, or
+      // admin-managed creation; admin self-registration is never possible.
+      const sbNormalizedRole = String(role || '').trim();
+      if (sbNormalizedRole !== 'guest') {
+        console.warn('[auth] Blocked non-guest public registration role.');
+        return res.render('auth', {
+          title: 'CampuSphere | Get Started',
+          description: 'Get started with CampuSphere.',
+          backgroundImage: '/img/campus-hero.jpg',
+          error: 'Public sign-up creates a guest account only. CSPC students and instructors must sign in with their CSPC Google account.',
+          success: null
+        });
+      }
+      const sbUserRole = 'guest';
+
+      const sbNameParts = (fullName || '').trim().split(/\s+/);
+      const sbFirstName = sbNameParts[0] || '';
+      const sbLastName = sbNameParts.slice(1).join(' ') || '';
+      const sbHashedPassword = await bcrypt.hash(validPassword, SALT_ROUNDS);
+      const sbUsername = normalizedEmail.split('@')[0];
+
+      // Build role-specific profile payload. Patterns mirror the MySQL path:
+      //   - student-cspc: profile only when studentId is provided.
+      //   - instructor:   profile always (empty defaults match MySQL insert).
+      //   - guest:        profile always (address/phone from body); SQL
+      //                   function in 0003 silently skips inserting the guest
+      //                   profile row when address/phone are blank, which
+      //                   keeps the redirect/session behavior identical.
+      let sbProfile = null;
+      let sbGuestAddress = '';
+      let sbGuestPhone = '';
+      if (sbUserRole === 'student-cspc') {
+        if (studentId) {
+          sbProfile = {
+            student_id_number: studentId,
+            course: course || '',
+            year_level: yearLevel || '1st Year',
+            semester: '2nd Semester 2025-2026'
+          };
+        }
+      } else if (sbUserRole === 'instructor') {
+        sbProfile = {
+          employee_id: employeeId || '',
+          department: department || '',
+          position: position || ''
+        };
+      } else if (sbUserRole === 'guest') {
+        sbGuestAddress = String(req.body.address || '').trim();
+        sbGuestPhone = String(req.body.phone || '').trim();
+        sbProfile = {
+          address: sbGuestAddress,
+          phone_number: sbGuestPhone
+        };
+      }
+
+      let sbUserId;
+      try {
+        sbUserId = await userRepository.createLocalUser({
+          username: sbUsername,
+          email: normalizedEmail,
+          passwordHash: sbHashedPassword,
+          role: sbUserRole,
+          first_name: sbFirstName,
+          last_name: sbLastName,
+          profile: sbProfile
+        });
+      } catch (err) {
+        // Defense in depth (Section 8.6): migration 0009 redefines
+        // app_create_local_user to accept role 'guest' ONLY. The JS guard above
+        // already filters non-guest roles; this maps any SQL-level reject back to
+        // the same controller-facing message without a stack trace.
+        if (err && err.code === 'INVALID_ROLE_FOR_PUBLIC_REGISTRATION') {
+          console.warn('[auth] Supabase rejected non-guest public registration role.');
+          return res.render('auth', {
+            title: 'CampuSphere | Get Started',
+            description: 'Get started with CampuSphere.',
+            backgroundImage: '/img/campus-hero.jpg',
+            error: 'Public sign-up creates a guest account only. CSPC students and instructors must sign in with their CSPC Google account.',
+            success: null
+          });
+        }
+        throw err;
+      }
+
+      // R3 (+ follow-up): regenerate, assign identity, and save atomically.
+      await establishAuthenticatedSession(req, res, () => {
+        req.session.user = {
+          id: sbUserId,
+          username: sbUsername,
+          email: normalizedEmail,
+          role: sbUserRole,
+          first_name: sbFirstName,
+          last_name: sbLastName
+        };
+
+        if (sbUserRole === 'guest') {
+          req.session.user.address = sbGuestAddress;
+          req.session.user.phone_number = sbGuestPhone;
+        }
+      });
+      return res.redirect('/dashboard');
+    }
+
+    // ===== MySQL branch (default) =====
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [normalizedEmail]);
     if (existing.length > 0) {
       return res.render('auth', {
-        title: 'CampusSphere | Get Started',
-        description: 'Get started with CampusSphere.',
+        title: 'CampuSphere | Get Started',
+        description: 'Get started with CampuSphere.',
         backgroundImage: '/img/campus-hero.jpg',
         error: 'An account with this email already exists.',
         success: null
@@ -328,62 +580,103 @@ exports.registerPost = async (req, res) => {
     const first_name = nameParts[0] || '';
     const last_name = nameParts.slice(1).join(' ') || '';
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(validPassword, SALT_ROUNDS);
 
-    const PUBLIC_ROLES = ['student-cspc', 'instructor', 'guest'];
+    // Section 8.6 — Production Registration Trust Policy: local public
+    // registration is GUEST-ONLY (mirrors the Supabase branch above). Requested
+    // student-cspc / instructor / admin / unknown / blank / missing roles are
+    // rejected, never silently downgraded to guest.
     const normalizedRole = String(role || '').trim();
-    if (!PUBLIC_ROLES.includes(normalizedRole)) {
-      console.warn(`[auth] Blocked public registration with role="${normalizedRole}" for email="${email}"`);
+    if (normalizedRole !== 'guest') {
+      console.warn('[auth] Blocked non-guest public registration role.');
       return res.render('auth', {
-        title: 'CampusSphere | Get Started',
-        description: 'Get started with CampusSphere.',
+        title: 'CampuSphere | Get Started',
+        description: 'Get started with CampuSphere.',
         backgroundImage: '/img/campus-hero.jpg',
-        error: 'Invalid role selected. Please choose Student, Instructor, or Guest.',
+        error: 'Public sign-up creates a guest account only. CSPC students and instructors must sign in with their CSPC Google account.',
         success: null
       });
     }
-    const userRole = normalizedRole;
+    const userRole = 'guest';
 
-    const username = email.split('@')[0];
+    const username = normalizedEmail.split('@')[0];
 
-    const [result] = await db.query(
-      'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, userRole, first_name, last_name]
-    );
-
-    const userId = result.insertId;
-
-    if (userRole === 'student-cspc' && studentId) {
-      await db.query(
-        `INSERT INTO student_profiles (user_id, student_id_number, course, year_level, enrollment_status, semester)
-         VALUES (?, ?, ?, ?, 'Enrolled', '2nd Semester 2025-2026')`,
-        [userId, studentId, course || '', yearLevel || '1st Year']
-      );
+    let guestAddress = '';
+    let guestPhone = '';
+    if (userRole === 'guest') {
+      guestAddress = String(req.body.address || '').trim();
+      guestPhone = String(req.body.phone || '').trim();
     }
 
-    if (userRole === 'instructor') {
-      await db.query(
-        `INSERT INTO instructor_profiles (user_id, employee_id, department, position, status)
-         VALUES (?, ?, ?, ?, 'Active')`,
-        [userId, employeeId || '', department || '', position || '']
+    // R6: create the users row and its role profile atomically in one
+    // transaction. A failure inserting the role profile rolls the users row
+    // back, so a half-registered (orphan) users row can never persist. Session
+    // assignment happens only after the transaction commits (below).
+    let userId;
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [result] = await conn.query(
+        'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
+        [username, normalizedEmail, hashedPassword, userRole, first_name, last_name]
       );
+      userId = result.insertId;
+
+      if (userRole === 'student-cspc' && studentId) {
+        await conn.query(
+          `INSERT INTO student_profiles (user_id, student_id_number, course, year_level, enrollment_status, semester)
+           VALUES (?, ?, ?, ?, 'Enrolled', '2nd Semester 2025-2026')`,
+          [userId, studentId, course || '', yearLevel || '1st Year']
+        );
+      }
+
+      if (userRole === 'instructor') {
+        await conn.query(
+          `INSERT INTO instructor_profiles (user_id, employee_id, department, position, status)
+           VALUES (?, ?, ?, ?, 'Active')`,
+          [userId, employeeId || '', department || '', position || '']
+        );
+      }
+
+      if (userRole === 'guest') {
+        await conn.query(
+          `INSERT INTO guest_profiles (user_id, address, phone_number)
+           VALUES (?, ?, ?)`,
+          [userId, guestAddress, guestPhone]
+        );
+      }
+
+      await conn.commit();
+    } catch (txErr) {
+      await conn.rollback();
+      throw txErr;
+    } finally {
+      conn.release();
     }
 
-    req.session.user = {
-      id: userId,
-      username,
-      email,
-      role: userRole,
-      first_name,
-      last_name
-    };
+    // R3 (+ follow-up): regenerate, assign identity, and save atomically.
+    await establishAuthenticatedSession(req, res, () => {
+      req.session.user = {
+        id: userId,
+        username,
+        email: normalizedEmail,
+        role: userRole,
+        first_name,
+        last_name
+      };
 
+      if (userRole === 'guest') {
+        req.session.user.address = guestAddress;
+        req.session.user.phone_number = guestPhone;
+      }
+    });
     return res.redirect('/dashboard');
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error: unexpected failure.');
     return res.render('auth', {
-      title: 'CampusSphere | Get Started',
-      description: 'Get started with CampusSphere.',
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
       backgroundImage: '/img/campus-hero.jpg',
       error: 'Something went wrong. Please try again.',
       success: null
@@ -397,10 +690,25 @@ exports.registerPost = async (req, res) => {
 exports.loginPost = async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !email.trim() || !password) {
+  // Type-safe presence guard. A JSON body may carry non-string values (e.g.
+  // email: { ... }); NEVER call .trim() (or later bcrypt.compare) on a value not
+  // known to be a string, which would throw and surface as a 500. Login stays
+  // generic — this is not registration, so no email/password policy is applied
+  // and no account-existence signal is revealed.
+  const hasEmail = typeof email === 'string' && email.trim() !== '';
+  const hasPassword = typeof password === 'string' && password !== '';
+  if (!hasEmail || !hasPassword) {
+    auditService.record({
+      event_type: 'authentication',
+      action: 'login.local',
+      outcome: 'failure',
+      // Never record a non-string raw body value.
+      attempted_email: typeof email === 'string' ? email : undefined,
+      message: 'Local login failed: missing credentials.'
+    }).catch(() => {});
     return res.render('auth', {
-      title: 'CampusSphere | Get Started',
-      description: 'Get started with CampusSphere.',
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
       backgroundImage: '/img/campus-hero.jpg',
       error: 'Please enter your email and password.',
       success: null
@@ -408,82 +716,177 @@ exports.loginPost = async (req, res) => {
   }
 
   try {
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
-      return res.render('auth', {
-        title: 'CampusSphere | Get Started',
-        description: 'Get started with CampusSphere.',
-        backgroundImage: '/img/campus-hero.jpg',
-        error: 'Invalid email or password.',
-        success: null
+    // ===== Supabase branch (AUTH_DATA_SOURCE=supabase) =====
+    if (authDataSource.isSupabase()) {
+      const sbUser = await userRepository.findUserByEmail(email);
+      // L4: ALWAYS run bcrypt.compare — against the user's hash, or a fixed dummy
+      // hash when the email is unknown / the row has no password — so the
+      // unknown-email and wrong-password paths take the same time. Reject if the
+      // user is missing, has no password, or the compare fails (uniform message).
+      const sbMatch = await bcrypt.compare(password, (sbUser && sbUser.password) || DUMMY_LOGIN_HASH);
+      if (!sbUser || !sbUser.password || !sbMatch) {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.local',
+          outcome: 'failure',
+          attempted_email: email,
+          message: 'Local login failed: invalid credentials.'
+        }).catch(() => {});
+        return res.render('auth', {
+          title: 'CampuSphere | Get Started',
+          description: 'Get started with CampuSphere.',
+          backgroundImage: '/img/campus-hero.jpg',
+          error: 'Invalid email or password.',
+          success: null
+        });
+      }
+
+      // R3 (+ follow-up): regenerate, assign identity + role profile, save atomically.
+      await establishAuthenticatedSession(req, res, async () => {
+        req.session.user = {
+          id: sbUser.id,
+          username: sbUser.username,
+          email: sbUser.email,
+          role: sbUser.role,
+          first_name: sbUser.first_name,
+          last_name: sbUser.last_name
+        };
+
+        // Mirror the MySQL path's role-profile field merge exactly.
+        const sbProfile = await userRepository.loadRoleProfile(sbUser.id, sbUser.role);
+        if (sbProfile) {
+          if (sbUser.role === 'student-cspc') {
+            Object.assign(req.session.user, {
+              student_id_number: sbProfile.student_id_number,
+              course: sbProfile.course,
+              year_level: sbProfile.year_level,
+              enrollment_status: sbProfile.enrollment_status,
+              semester: sbProfile.semester
+            });
+          } else if (sbUser.role === 'instructor') {
+            Object.assign(req.session.user, {
+              employee_id: sbProfile.employee_id,
+              department: sbProfile.department,
+              position: sbProfile.position
+            });
+          } else if (sbUser.role === 'guest') {
+            Object.assign(req.session.user, {
+              address: sbProfile.address,
+              phone_number: sbProfile.phone_number
+            });
+          }
+        }
       });
+
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.local',
+        outcome: 'success',
+        actor_user_id: sbUser.id,
+        actor_role: sbUser.role,
+        message: 'Local login succeeded.'
+      }).catch(() => {});
+
+      return res.redirect(sbUser.role === 'admin' ? '/admin' : '/dashboard');
     }
 
+    // ===== MySQL branch (default) =====
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
     const user = users[0];
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
+    // L4: ALWAYS run bcrypt.compare — against the user's hash, or a fixed dummy
+    // hash when the email is unknown / the row has no password — so the
+    // unknown-email and wrong-password paths take the same time. Reject if the
+    // user is missing, has no password, or the compare fails (uniform message).
+    const match = await bcrypt.compare(password, (user && user.password) || DUMMY_LOGIN_HASH);
+    if (!user || !user.password || !match) {
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.local',
+        outcome: 'failure',
+        attempted_email: email,
+        message: 'Local login failed: invalid credentials.'
+      }).catch(() => {});
       return res.render('auth', {
-        title: 'CampusSphere | Get Started',
-        description: 'Get started with CampusSphere.',
+        title: 'CampuSphere | Get Started',
+        description: 'Get started with CampuSphere.',
         backgroundImage: '/img/campus-hero.jpg',
         error: 'Invalid email or password.',
         success: null
       });
     }
 
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      first_name: user.first_name,
-      last_name: user.last_name
-    };
+    // R3 (+ follow-up): regenerate, assign identity + role profile, save atomically.
+    await establishAuthenticatedSession(req, res, async () => {
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        first_name: user.first_name,
+        last_name: user.last_name
+      };
 
-    if (user.role === 'student-cspc') {
-      const [profiles] = await db.query('SELECT * FROM student_profiles WHERE user_id = ?', [user.id]);
-      if (profiles.length > 0) {
-        const sp = profiles[0];
-        Object.assign(req.session.user, {
-          student_id_number: sp.student_id_number,
-          course: sp.course,
-          year_level: sp.year_level,
-          enrollment_status: sp.enrollment_status,
-          semester: sp.semester
-        });
+      if (user.role === 'student-cspc') {
+        const [profiles] = await db.query('SELECT * FROM student_profiles WHERE user_id = ?', [user.id]);
+        if (profiles.length > 0) {
+          const sp = profiles[0];
+          Object.assign(req.session.user, {
+            student_id_number: sp.student_id_number,
+            course: sp.course,
+            year_level: sp.year_level,
+            enrollment_status: sp.enrollment_status,
+            semester: sp.semester
+          });
+        }
       }
-    }
 
-    if (user.role === 'instructor') {
-      const [profiles] = await db.query('SELECT * FROM instructor_profiles WHERE user_id = ?', [user.id]);
-      if (profiles.length > 0) {
-        const ip = profiles[0];
-        Object.assign(req.session.user, {
-          employee_id: ip.employee_id,
-          department: ip.department,
-          position: ip.position
-        });
+      if (user.role === 'instructor') {
+        const [profiles] = await db.query('SELECT * FROM instructor_profiles WHERE user_id = ?', [user.id]);
+        if (profiles.length > 0) {
+          const ip = profiles[0];
+          Object.assign(req.session.user, {
+            employee_id: ip.employee_id,
+            department: ip.department,
+            position: ip.position
+          });
+        }
       }
-    }
 
-    if (user.role === 'guest') {
-      const [profiles] = await db.query('SELECT * FROM guest_profiles WHERE user_id = ?', [user.id]);
-      if (profiles.length > 0) {
-        const gp = profiles[0];
-        Object.assign(req.session.user, {
-          address: gp.address,
-          phone_number: gp.phone_number
-        });
+      if (user.role === 'guest') {
+        const [profiles] = await db.query('SELECT * FROM guest_profiles WHERE user_id = ?', [user.id]);
+        if (profiles.length > 0) {
+          const gp = profiles[0];
+          Object.assign(req.session.user, {
+            address: gp.address,
+            phone_number: gp.phone_number
+          });
+        }
       }
-    }
+    });
+
+    auditService.record({
+      event_type: 'authentication',
+      action: 'login.local',
+      outcome: 'success',
+      actor_user_id: user.id,
+      actor_role: user.role,
+      message: 'Local login succeeded.'
+    }).catch(() => {});
 
     return res.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error: unexpected failure.');
+    auditService.record({
+      event_type: 'authentication',
+      action: 'login.local',
+      outcome: 'failure',
+      attempted_email: email,
+      message: 'Local login failed: unexpected error.'
+    }).catch(() => {});
     return res.render('auth', {
-      title: 'CampusSphere | Get Started',
-      description: 'Get started with CampusSphere.',
+      title: 'CampuSphere | Get Started',
+      description: 'Get started with CampuSphere.',
       backgroundImage: '/img/campus-hero.jpg',
       error: 'Something went wrong. Please try again.',
       success: null
@@ -492,12 +895,71 @@ exports.loginPost = async (req, res) => {
 };
 
 /**
- * GET /logout — Destroy session and redirect
+ * GET /auth/csrf-token — return the CURRENT session's CSRF token (M12.P1-D1).
+ * Mounted behind an unconditional no-store pre-middleware and requireLogin
+ * (routes/auth.js). Always JSON. The token was minted for this authenticated
+ * session by attachCsrfToken; it is not rotated here and is never logged or
+ * stored anywhere else. If an authenticated session somehow has no nonempty
+ * token, fail closed with a fixed sanitized 500 instead of issuing one ad hoc.
+ */
+exports.csrfToken = (req, res) => {
+  const token = req.session && req.session.csrfToken;
+  if (typeof token !== 'string' || token.length === 0) {
+    return res.status(500).json({ success: false, message: 'Unable to issue a request token. Please try again.' });
+  }
+  return res.status(200).json({ success: true, csrfToken: token });
+};
+
+/**
+ * POST /logout — CSRF-verified session termination (M12.P1-D1: truthful).
+ * The session cookie is cleared and success is reported ONLY after the
+ * session store confirms destruction. If destroy reports an error the
+ * session (and its cookie) remain live and the caller receives a fixed
+ * sanitized 500 — never a redirect that pretends the session ended.
  */
 exports.logout = (req, res) => {
   req.session.destroy((err) => {
-    if (err) console.error('Logout error:', err);
-    res.redirect('/auth');
+    if (err) {
+      // Fixed sanitized log — no session id, cookie value, or raw store error.
+      console.error('Logout error: session destroy failed.');
+      if (wantsJson(req)) {
+        return res.status(500).json({ success: false, message: 'Unable to sign out. Please try again.' });
+      }
+      return res.status(500).render('error', {
+        title: '500 — Sign-out Failed',
+        statusCode: 500,
+        message: 'Unable to sign out. Please try again.',
+      });
+    }
+    // Destruction confirmed: emit the expiring Set-Cookie for the configured
+    // session cookie (name/attributes match the issued cookie).
+    clearSessionCookieQuietly(res);
+    // JSON callers (the shared async logout client) get the sanitized success
+    // contract; the client navigates only to its own allowlisted target.
+    if (wantsJson(req)) {
+      return res.status(200).json({ success: true, redirect: '/auth?logged_out=1' });
+    }
+    // Form/HTML callers keep the 302 with the marker so the shell-precached
+    // PWA script (public/js/pwa.js) performs best-effort cleanup of
+    // CampuSphere dynamic caches + offline catalog on the /auth load.
+    return res.redirect('/auth?logged_out=1');
+  });
+};
+
+/**
+ * GET /logout — Non-mutating guard (Milestone 8, Section 8.2).
+ * Logout is POST-only; a GET must never destroy the session. Returns a fixed
+ * 405 Method Not Allowed (Allow: POST) for both browser and JSON callers.
+ */
+exports.logoutGet = (req, res) => {
+  res.set('Allow', 'POST');
+  if (wantsJson(req)) {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed. Use POST to log out.' });
+  }
+  return res.status(405).render('error', {
+    title: '405 — Method Not Allowed',
+    statusCode: 405,
+    message: 'Please use the Logout button to sign out.',
   });
 };
 
@@ -531,7 +993,19 @@ exports.googleStart = (req, res) => {
  */
 exports.googleCallback = async (req, res) => {
   const { code, state } = req.query;
+  // Resolve login-vs-register intent before the state check clears it, so the
+  // Google failures below can be gated to login attempts only (registration
+  // flows are deliberately not audited).
+  const auditIntent = (req.session && req.session.oauthIntent === 'register') ? 'register' : 'login';
   if (!code || !state || state !== req.session.oauthState) {
+    if (auditIntent === 'login') {
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.google',
+        outcome: 'failure',
+        message: 'Google sign-in failed: invalid callback.'
+      }).catch(() => {});
+    }
     clearOAuthState(req);
     return res.redirect('/auth?error=oauth_failed');
   }
@@ -541,43 +1015,117 @@ exports.googleCallback = async (req, res) => {
 
   const config = getGoogleConfig();
   if (!config.clientId || !config.clientSecret) {
+    if (intent === 'login') {
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.google',
+        outcome: 'failure',
+        message: 'Google sign-in failed: provider not configured.'
+      }).catch(() => {});
+    }
     return res.redirect('/auth?error=oauth_failed');
   }
 
   try {
     const tokenJson = await exchangeGoogleCode(code, config);
     if (!tokenJson || !tokenJson.access_token) {
+      if (intent === 'login') {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.google',
+          outcome: 'failure',
+          message: 'Google sign-in failed: provider response invalid.'
+        }).catch(() => {});
+      }
       return res.redirect('/auth?error=oauth_failed');
     }
 
     const profile = await fetchGoogleUserinfo(tokenJson.access_token);
     if (!profile || !profile.email) {
+      if (intent === 'login') {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.google',
+          outcome: 'failure',
+          message: 'Google sign-in failed: provider response invalid.'
+        }).catch(() => {});
+      }
       return res.redirect('/auth?error=oauth_failed');
     }
 
     const verified = profile.email_verified === true || profile.email_verified === 'true';
     if (!verified) {
+      if (intent === 'login') {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.google',
+          outcome: 'failure',
+          attempted_email: profile.email,
+          message: 'Google sign-in failed: email not verified.'
+        }).catch(() => {});
+      }
       return res.redirect('/auth?error=oauth_failed');
     }
 
     const email = normalizeEmail(profile.email);
     const domainRole = getRoleFromEmail(email);
     if (!domainRole) {
+      if (intent === 'login') {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.google',
+          outcome: 'failure',
+          attempted_email: email,
+          message: 'Google sign-in failed: email domain not allowed.'
+        }).catch(() => {});
+      }
       return res.redirect('/auth?error=unauthorized_domain');
     }
 
+    // Backend selection: in supabase mode, OAuth lookup / duplicate check
+    // route through the userRepository. Session hydration uses the Supabase
+    // helper so the merged role fields come from the Supabase profile rows.
+    // MySQL mode keeps the existing module-local findUserByEmail and
+    // loadRoleProfileIntoSession helpers unchanged.
+    const useSupabase = authDataSource.isSupabase();
+
     if (intent === 'login') {
-      const user = await findUserByEmail(email);
+      const user = useSupabase
+        ? await userRepository.findUserByEmail(email)
+        : await findUserByEmail(email);
       if (!user) {
+        auditService.record({
+          event_type: 'authentication',
+          action: 'login.google',
+          outcome: 'failure',
+          attempted_email: email,
+          message: 'Google sign-in failed: no matching account.'
+        }).catch(() => {});
         return res.redirect('/auth?error=account_not_found');
       }
-      await hydrateSessionUser(req, user);
-      await loadRoleProfileIntoSession(req.session.user);
-      await saveSession(req);
+      // R3 (+ follow-up): regenerate, hydrate identity + role profile, save atomically.
+      await establishAuthenticatedSession(req, res, async () => {
+        await hydrateSessionUser(req, user);
+        if (useSupabase) {
+          await loadRoleProfileIntoSessionFromSupabase(req.session.user);
+        } else {
+          await loadRoleProfileIntoSession(req.session.user);
+        }
+      });
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.google',
+        outcome: 'success',
+        actor_user_id: user.id,
+        actor_role: user.role,
+        message: 'Google sign-in succeeded.'
+      }).catch(() => {});
       return res.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
     }
 
-    const existing = await findUserByEmail(email);
+    const existing = useSupabase
+      ? await userRepository.findUserByEmail(email)
+      : await findUserByEmail(email);
     if (existing) {
       return res.redirect('/auth?error=account_exists');
     }
@@ -595,7 +1143,15 @@ exports.googleCallback = async (req, res) => {
     await saveSession(req);
     return res.redirect('/auth/complete-registration');
   } catch (err) {
-    console.error('Google OAuth callback error:', err);
+    console.error('Google OAuth callback error: unexpected failure.');
+    if (intent === 'login') {
+      auditService.record({
+        event_type: 'authentication',
+        action: 'login.google',
+        outcome: 'failure',
+        message: 'Google sign-in failed: unexpected error.'
+      }).catch(() => {});
+    }
     return res.redirect('/auth?error=oauth_failed');
   }
 };
@@ -619,8 +1175,8 @@ exports.completeRegistration = (req, res) => {
   }
 
   res.render('complete-registration', {
-    title: 'CampusSphere | Complete registration',
-    description: 'Complete your CampusSphere account.',
+    title: 'CampuSphere | Complete registration',
+    description: 'Complete your CampuSphere account.',
     backgroundImage: '/img/campus-hero.jpg',
     pending,
     roleLabel: ROLE_LABELS[pending.role] || pending.role,
@@ -641,6 +1197,33 @@ exports.completeRegistrationPost = async (req, res) => {
   }
 
   try {
+    // ===== Supabase branch (AUTH_DATA_SOURCE=supabase) =====
+    if (authDataSource.isSupabase()) {
+      const sbStillThere = await userRepository.findUserByEmail(pending.email);
+      if (sbStillThere) {
+        delete req.session.pendingOAuthRegistration;
+        await saveSession(req);
+        return res.redirect('/auth?error=account_exists');
+      }
+
+      const sbUserId = await userRepository.createOAuthUserWithProfile(pending, req.body);
+      const sbUser = await userRepository.findUserById(sbUserId);
+      if (!sbUser) {
+        return res.redirect('/auth?error=oauth_failed');
+      }
+
+      // R3 (+ follow-up): the pending OAuth registration produced a real
+      // account; regenerate to a fresh session ID (discarding the old session
+      // and its pendingOAuthRegistration), hydrate identity + role profile, and
+      // save atomically.
+      await establishAuthenticatedSession(req, res, async () => {
+        await hydrateSessionUser(req, sbUser);
+        await loadRoleProfileIntoSessionFromSupabase(req.session.user);
+      });
+      return res.redirect('/dashboard');
+    }
+
+    // ===== MySQL branch (default, unchanged) =====
     const stillThere = await findUserByEmail(pending.email);
     if (stillThere) {
       delete req.session.pendingOAuthRegistration;
@@ -655,14 +1238,34 @@ exports.completeRegistrationPost = async (req, res) => {
       return res.redirect('/auth?error=oauth_failed');
     }
 
-    await hydrateSessionUser(req, user);
-    await loadRoleProfileIntoSession(req.session.user);
-    delete req.session.pendingOAuthRegistration;
-    await saveSession(req);
+    // R3 (+ follow-up): the pending OAuth registration produced a real account;
+    // regenerate to a fresh session ID (discarding the old session and its
+    // pendingOAuthRegistration), hydrate identity + role profile, and save
+    // atomically.
+    await establishAuthenticatedSession(req, res, async () => {
+      await hydrateSessionUser(req, user);
+      await loadRoleProfileIntoSession(req.session.user);
+    });
     return res.redirect('/dashboard');
   } catch (err) {
-    console.error('completeRegistrationPost:', err);
     const code = err && err.message;
+    // Expected validation rejections are user errors, not server faults:
+    // log only the safe code, never the full error object (avoids leaking
+    // OAuth subjects, profile values, or stack details into server logs).
+    const KNOWN_VALIDATION_CODES = new Set([
+      'MISSING_NAME',
+      'MISSING_STUDENT',
+      'MISSING_INSTRUCTOR',
+      'MISSING_GUEST',
+      'MISSING_OAUTH_SUBJECT',
+      'INVALID_ROLE',
+      'INVALID_ROLE_FOR_PUBLIC_REGISTRATION'
+    ]);
+    if (KNOWN_VALIDATION_CODES.has(code)) {
+      console.warn('completeRegistrationPost: validation rejected (' + code + ')');
+    } else {
+      console.error('completeRegistrationPost: unexpected failure.');
+    }
     let msg = 'Something went wrong. Please try again.';
     if (code === 'MISSING_NAME') msg = 'Please enter your full name.';
     if (code === 'MISSING_STUDENT') msg = 'Student ID is required.';
@@ -670,8 +1273,8 @@ exports.completeRegistrationPost = async (req, res) => {
     if (code === 'MISSING_GUEST') msg = 'Address and phone number are required.';
 
     return res.render('complete-registration', {
-      title: 'CampusSphere | Complete registration',
-      description: 'Complete your CampusSphere account.',
+      title: 'CampuSphere | Complete registration',
+      description: 'Complete your CampuSphere account.',
       backgroundImage: '/img/campus-hero.jpg',
       pending,
       roleLabel: ROLE_LABELS[pending.role] || pending.role,

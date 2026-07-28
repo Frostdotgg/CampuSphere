@@ -10,17 +10,18 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="description" content="CampusSphere — Browse upcoming academic, cultural, and sports events.">
+    <meta name="description" content="CampuSphere — Browse upcoming academic, cultural, and sports events.">
 
-    <title>CampusSphere | Events</title>
+    <title>CampuSphere | Events</title>
 
-    <link rel="stylesheet" href="/css/styles.css?v=2">
+    <link rel="stylesheet" href="/css/styles.css?v=5">
 
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
 
-    <!-- Iconify -->
+    <!-- Iconify Icon 1.0.7 component — self-hosted (M12.P1-R6). The component
+         still fetches icon DATA from the approved api.iconify.design origin. -->
 
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="/vendor/iconify-icon/iconify-icon.min.js"></script>
 
 </head>
 
@@ -28,95 +29,100 @@
 
 <body>
 
-<!-- Server-injected session data (available to all client-side scripts) -->
-<script id="sessionData" type="application/json">
-  <%- JSON.stringify(user || null) %>
-</script>
-<script>
-  window.__SESSION_USER = JSON.parse(document.getElementById('sessionData').textContent);
-</script>
+    <!-- ===== NAVBAR (shared partial) ===== -->
+    <%- include('partials/dash-navbar', { activeTab: 'tabEvents' }) %>
 
 
 
-    <!-- ===== NAVBAR ===== -->
+        <!-- ===== PAGE ===== -->
 
-    <nav class="dash-nav" id="dashNav">
+        <div class="events-page">
 
-        <div class="dash-nav__inner">
 
-            <a href="/home" class="dash-nav__brand">
 
-                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="dash-nav__logo">
+            <!-- Hero -->
 
-                <span class="dash-nav__title">CampusSphere</span>
+            <div class="events-hero">
 
-            </a>
+                <img src="/img/campus-hero.jpg" alt="Campus Event Background">
 
-            <div class="dash-nav__tabs" id="dashTabs">
+                <div class="events-hero__overlay"></div>
 
-                <a href="/home" class="dash-nav__tab" id="tabHome">
+                <div class="events-hero__content">
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <h1 class="events-hero__title">Upcoming Events</h1>
 
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    <p class="events-hero__sub">Discover academic seminars, cultural fests, and sports tournaments on
 
-                    </svg>
+                        campus.</p>
 
-                    <span>Home</span>
+                </div>
 
-                </a>
+            </div>
 
-                <a href="/dashboard" class="dash-nav__tab" id="tabDashboard">
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 
-                        <rect x="3" y="3" width="7" height="7" />
+            <!-- Main -->
 
-                        <rect x="14" y="3" width="7" height="7" />
+            <div class="events-main">
 
-                        <rect x="14" y="14" width="7" height="7" />
 
-                        <rect x="3" y="14" width="7" height="7" />
 
-                    </svg>
+                <!-- Toolbar (Filters & Count) -->
 
-                    <span>Dashboard</span>
+                <div class="events-toolbar">
 
-                </a>
+                    <div class="events-filters" id="filterBar">
 
-                <a href="/buildings" class="dash-nav__tab" id="tabBuildings">
+                        <button class="events-filter-btn active" data-filter="all">All Events</button>
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                        <button class="events-filter-btn" data-filter="Academic">
 
-                        <rect x="4" y="2" width="16" height="20" rx="2" />
+                            <span
+                                style="width:8px;height:8px;border-radius:50%;background:var(--navy-500);display:inline-block;"></span>
 
-                        <path d="M9 22v-4h6v4" />
+                            Academic
 
-                        <path d="M8 6h.01" />
+                        </button>
 
-                        <path d="M16 6h.01" />
+                        <button class="events-filter-btn" data-filter="Cultural">
 
-                        <path d="M12 6h.01" />
+                            <span
+                                style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>
 
-                        <path d="M12 10h.01" />
+                            Cultural
 
-                        <path d="M12 14h.01" />
+                        </button>
 
-                        <path d="M16 10h.01" />
+                        <button class="events-filter-btn" data-filter="Sports">
 
-                        <path d="M8 10h.01" />
+                            <span
+                                style="width:8px;height:8px;border-radius:50%;background:#f97316;display:inline-block;"></span>
 
-                    </svg>
+                            Sports
 
-                    <span>Buildings</span>
+                        </button>
 
-                </a>
+                    </div>
 
-                <a href="/events" class="dash-nav__tab dash-nav__tab--active" id="tabEvents">
+                    <span class="events-count" id="eventCount"></span>
 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                </div>
+
+
+
+                <!-- Events List -->
+
+                <div class="events-list" id="eventsList"></div>
+
+
+
+                <!-- Empty state -->
+
+                <div class="events-empty" id="emptyState">
+
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
 
                         <rect x="3" y="4" width="18" height="18" rx="2" />
 
@@ -128,130 +134,11 @@
 
                     </svg>
 
-                    <span>Events</span>
-
-                </a>
-
-                <a href="/map" class="dash-nav__tab" id="tabMap">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-
-                        <line x1="8" y1="2" x2="8" y2="18" />
-
-                        <line x1="16" y1="6" x2="16" y2="22" />
-
-                    </svg>
-
-                    <span>Campus Map</span>
-
-                </a>
-
-                <a href="/about" class="dash-nav__tab" id="tabAbout">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <circle cx="12" cy="12" r="10" />
-
-                        <line x1="12" y1="16" x2="12" y2="12" />
-
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-
-                    </svg>
-
-                    <span>About Us</span>
-
-                </a>
-
-                <div class="dash-nav__tabs-divider mobile-only"></div>
-                <button class="dash-nav__tab mobile-only" id="mobileEditProfileBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Edit Profile</span>
-                </button>
-                <button class="dash-nav__tab dash-nav__tab--logout mobile-only" id="mobileLogoutBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    <span>Logout</span>
-                </button>
-
-            </div>
-
-            <div class="dash-nav__right">
-
-                <button class="dash-nav__icon-btn" id="notifBtn" aria-label="Notifications">
-
-                    <iconify-icon icon="ep:bell" width="20"></iconify-icon>
-
-                    <span class="dash-nav__notif-dot"></span>
-
-                </button>
-
-                <div class="dash-nav__user" id="userMenu">
-
-                    <div class="dash-nav__avatar">
-
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-
-                            <circle cx="12" cy="7" r="4" />
-
-                        </svg>
-
-                    </div>
-
-                    <span class="dash-nav__username" id="navUsername"><%= user ? user.first_name : 'Guest' %></span>
-
-                    <iconify-icon icon="ep:arrow-down" width="14" class="dash-nav__chevron"></iconify-icon>
+                    <p>No upcoming events match this filter.</p>
 
                 </div>
 
-            </div>
 
-            <button class="dash-nav__hamburger" id="dashHamburger" aria-label="Toggle menu">
-
-                <span></span><span></span><span></span>
-
-            </button>
-
-        </div>
-
-    </nav>
-
-
-
-    <!-- ===== PAGE ===== -->
-
-    <div class="events-page">
-
-
-
-        <!-- Hero -->
-
-        <div class="events-hero">
-
-            <img src="/img/campus-hero.jpg" alt="Campus Event Background">
-
-            <div class="events-hero__overlay"></div>
-
-            <div class="events-hero__content">
-
-                <h1 class="events-hero__title">Upcoming Events</h1>
-
-                <p class="events-hero__sub">Discover academic seminars, cultural fests, and sports tournaments on
-
-                    campus.</p>
 
             </div>
 
@@ -259,198 +146,129 @@
 
 
 
-        <!-- Main -->
+        <!-- Theme Toggle -->
 
-        <div class="events-main">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
 
+            <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 
+                <circle cx="12" cy="12" r="5" />
 
-            <!-- Toolbar (Filters & Count) -->
+                <line x1="12" y1="1" x2="12" y2="3" />
 
-            <div class="events-toolbar">
+                <line x1="12" y1="21" x2="12" y2="23" />
 
-                <div class="events-filters" id="filterBar">
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
 
-                    <button class="events-filter-btn active" data-filter="all">All Events</button>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
 
-                    <button class="events-filter-btn" data-filter="Academic">
+                <line x1="1" y1="12" x2="3" y2="12" />
 
-                        <span
-                            style="width:8px;height:8px;border-radius:50%;background:var(--navy-500);display:inline-block;"></span>
+                <line x1="21" y1="12" x2="23" y2="12" />
 
-                        Academic
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
 
-                    </button>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
 
-                    <button class="events-filter-btn" data-filter="Cultural">
+            </svg>
 
-                        <span
-                            style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>
+            <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
 
-                        Cultural
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
 
-                    </button>
+            </svg>
 
-                    <button class="events-filter-btn" data-filter="Sports">
+        </button>
 
-                        <span
-                            style="width:8px;height:8px;border-radius:50%;background:#f97316;display:inline-block;"></span>
 
-                        Sports
 
-                    </button>
+        <script id="eventsData" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events || []) %></script>
+        <script nonce="<%= cspNonce %>">
 
-                </div>
+            /* ===== SAMPLE DATA ===== */
 
-                <span class="events-count" id="eventCount"></span>
+            /* ===== SAMPLE DATA ===== */
+            const EVENTS = JSON.parse(document.getElementById('eventsData').textContent);
 
-            </div>
-
-
-
-            <!-- Events List -->
-
-            <div class="events-list" id="eventsList"></div>
-
-
-
-            <!-- Empty state -->
-
-            <div class="events-empty" id="emptyState">
-
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-
-                    <line x1="16" y1="2" x2="16" y2="6" />
-
-                    <line x1="8" y1="2" x2="8" y2="6" />
-
-                    <line x1="3" y1="10" x2="21" y2="10" />
-
-                </svg>
-
-                <p>No upcoming events match this filter.</p>
-
-            </div>
-
-
-
-        </div>
-
-    </div>
-
-
-
-    <!-- Theme Toggle -->
-
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-
-        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-
-            <circle cx="12" cy="12" r="5" />
-
-            <line x1="12" y1="1" x2="12" y2="3" />
-
-            <line x1="12" y1="21" x2="12" y2="23" />
-
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-
-            <line x1="1" y1="12" x2="3" y2="12" />
-
-            <line x1="21" y1="12" x2="23" y2="12" />
-
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-
-        </svg>
-
-        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-
-        </svg>
-
-    </button>
-
-
-
-    <script>
-
-        /* ===== SAMPLE DATA ===== */
-
-        /* ===== SAMPLE DATA ===== */
-        const EVENTS = JSON.parse('<%- JSON.stringify(events || []) %>');
-
-        // Since dates come through as strings in JSON.stringify, we need to convert them to Date objects for the existing logic
-        EVENTS.forEach(e => {
-            if (e.dateObj) {
-                e.dateObj = new Date(e.dateObj);
-            }
-        });
-
-
-
-        /* ===== TAG COLORS ===== */
-
-        const TAG_CLASS = { Academic: 'tag--academic', Cultural: 'tag--cultural', Sports: 'tag--sports' };
-
-
-
-        /* ===== DATE UTILS ===== */
-
-        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-
-
-        /* ===== RENDER LIST ===== */
-
-        function renderEvents(filter = 'all') {
-
-            const list = document.getElementById('eventsList');
-
-            const empty = document.getElementById('emptyState');
-
-            const countEl = document.getElementById('eventCount');
-
-
-
-            const filtered = filter === 'all' ? EVENTS : EVENTS.filter(e => e.category === filter);
-
-            countEl.textContent = 'Showing ' + filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
-
-
-
-            if (!filtered.length) {
-
-                list.innerHTML = '';
-
-                empty.style.display = 'block';
-
-                return;
-
+            /* ===== OUTPUT-ENCODING HELPER (R1: Stored-XSS Removal) =====
+               Database-derived event fields (title, category, description, time,
+               location) must never be interpreted as HTML. */
+            function escapeHtml(value) {
+                if (value === null || value === undefined) return '';
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             }
 
-
-
-            empty.style.display = 'none';
-
-            list.innerHTML = filtered.map(e => {
-
-                const day = e.dateObj.getDate().toString().padStart(2, '0');
-
-                const month = MONTHS[e.dateObj.getMonth()];
-
-                const year = e.dateObj.getFullYear();
+            // Since dates come through as strings in JSON.stringify, we need to convert them to Date objects for the existing logic
+            EVENTS.forEach(e => {
+                if (e.dateObj) {
+                    e.dateObj = new Date(e.dateObj);
+                }
+            });
 
 
 
-                return `
+            /* ===== TAG COLORS ===== */
+
+            const TAG_CLASS = { Academic: 'tag--academic', Cultural: 'tag--cultural', Sports: 'tag--sports' };
+
+
+
+            /* ===== DATE UTILS ===== */
+
+            const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+
+
+            /* ===== RENDER LIST ===== */
+
+            function renderEvents(filter = 'all') {
+
+                const list = document.getElementById('eventsList');
+
+                const empty = document.getElementById('emptyState');
+
+                const countEl = document.getElementById('eventCount');
+
+
+
+                const filtered = filter === 'all' ? EVENTS : EVENTS.filter(e => e.category === filter);
+
+                countEl.textContent = 'Showing ' + filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
+
+
+
+                if (!filtered.length) {
+
+                    list.innerHTML = '';
+
+                    empty.style.display = 'block';
+
+                    return;
+
+                }
+
+
+
+                empty.style.display = 'none';
+
+                list.innerHTML = filtered.map(e => {
+
+                    const day = e.dateObj.getDate().toString().padStart(2, '0');
+
+                    const month = MONTHS[e.dateObj.getMonth()];
+
+                    const year = e.dateObj.getFullYear();
+
+
+
+                    return `
 
                 <div class="event-card">
 
@@ -468,13 +286,13 @@
 
                         <div class="event-header">
 
-                            <h3 class="event-title">${e.title}</h3>
+                            <h3 class="event-title">${escapeHtml(e.title)}</h3>
 
-                            <span class="event-tag ${TAG_CLASS[e.category]}">${e.category}</span>
+                            <span class="event-tag ${TAG_CLASS[e.category] || ''}">${escapeHtml(e.category)}</span>
 
                         </div>
 
-                        <p class="event-desc">${e.desc}</p>
+                        <p class="event-desc">${escapeHtml(e.desc)}</p>
 
                         <div class="event-meta">
 
@@ -486,7 +304,7 @@
 
                                 </svg>
 
-                                <span>${e.time}</span>
+                                <span>${escapeHtml(e.time)}</span>
 
                             </div>
 
@@ -498,7 +316,7 @@
 
                                 </svg>
 
-                                <span>${e.location}</span>
+                                <span>${escapeHtml(e.location)}</span>
 
                             </div>
 
@@ -508,127 +326,118 @@
 
                 </div>`;
 
-            }).join('');
+                }).join('');
 
-        }
+            }
 
 
 
-        /* ===== FILTER BUTTONS ===== */
+            /* ===== FILTER BUTTONS ===== */
 
-        document.querySelectorAll('.events-filter-btn').forEach(btn => {
+            document.querySelectorAll('.events-filter-btn').forEach(btn => {
 
-            btn.addEventListener('click', () => {
+                btn.addEventListener('click', () => {
 
-                document.querySelectorAll('.events-filter-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.events-filter-btn').forEach(b => b.classList.remove('active'));
 
-                btn.classList.add('active');
+                    btn.classList.add('active');
 
-                renderEvents(btn.dataset.filter);
+                    renderEvents(btn.dataset.filter);
+
+                });
 
             });
 
-        });
+
+
+            /* ===== NAVBAR ===== */
+
+            const dashNav = document.getElementById('dashNav');
+
+            window.addEventListener('scroll', () => {
+
+                dashNav.classList.toggle('scrolled', window.scrollY > 10);
+
+            });
+
+            /* Mobile hamburger: owned by the shared /js/authenticated-nav.js
+               client (M12.P1-D2) */
 
 
 
-        /* ===== NAVBAR ===== */
-
-        const dashNav = document.getElementById('dashNav');
-
-        window.addEventListener('scroll', () => {
-
-            dashNav.classList.toggle('scrolled', window.scrollY > 10);
-
-        });
-
-        const hamburger = document.getElementById('dashHamburger');
-
-        const tabs = document.getElementById('dashTabs');
-
-        hamburger.addEventListener('click', () => {
-
-            hamburger.classList.toggle('active');
-
-            tabs.classList.toggle('open');
-
-        });
+            /* ===== USERNAME — rendered server-side via EJS ===== */
 
 
 
-        /* ===== USERNAME — rendered server-side via EJS ===== */
+            /* ===== THEME ===== */
+
+            (function () {
+
+                const toggle = document.getElementById('themeToggle');
+
+                const iconSun = toggle.querySelector('.icon-sun');
+
+                const iconMoon = toggle.querySelector('.icon-moon');
 
 
 
-        /* ===== THEME ===== */
+                function updateThemeUI(isDark) {
 
-        (function () {
+                    if (isDark) {
 
-            const toggle = document.getElementById('themeToggle');
+                        document.documentElement.setAttribute('data-theme', 'dark');
 
-            const iconSun = toggle.querySelector('.icon-sun');
+                        iconSun.style.display = 'none';
 
-            const iconMoon = toggle.querySelector('.icon-moon');
+                        iconMoon.style.display = 'block';
 
+                    } else {
 
+                        document.documentElement.removeAttribute('data-theme');
 
-            function updateThemeUI(isDark) {
+                        iconSun.style.display = 'block';
 
-                if (isDark) {
+                        iconMoon.style.display = 'none';
 
-                    document.documentElement.setAttribute('data-theme', 'dark');
-
-                    iconSun.style.display = 'none';
-
-                    iconMoon.style.display = 'block';
-
-                } else {
-
-                    document.documentElement.removeAttribute('data-theme');
-
-                    iconSun.style.display = 'block';
-
-                    iconMoon.style.display = 'none';
+                    }
 
                 }
 
-            }
+
+
+                if (localStorage.getItem('campussphere-theme') === 'dark') {
+
+                    updateThemeUI(true);
+
+                }
 
 
 
-            if (localStorage.getItem('campussphere-theme') === 'dark') {
+                toggle.addEventListener('click', () => {
 
-                updateThemeUI(true);
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-            }
+                    updateThemeUI(!isDark);
 
+                    localStorage.setItem('campussphere-theme', !isDark ? 'dark' : 'light');
 
+                });
 
-            toggle.addEventListener('click', () => {
-
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-                updateThemeUI(!isDark);
-
-                localStorage.setItem('campussphere-theme', !isDark ? 'dark' : 'light');
-
-            });
-
-        })();
+            })();
 
 
 
-        /* ===== INIT ===== */
+            /* ===== INIT ===== */
 
-        renderEvents();
+            renderEvents();
 
-    </script>
+        </script>
 
-    <!-- Edit Profile Script -->
+        <!-- Edit Profile Script -->
 
-    <script src="/js/profile-script.js"></script>
+        <script src="/js/profile-script.js"></script>
 
-    <script src="/js/nav-role.js"></script>
+        <script src="/js/nav-role.js"></script>
 
 </body>
 

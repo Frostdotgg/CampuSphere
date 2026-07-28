@@ -3,13 +3,13 @@
 
 <head>
   <%- include('partials/head') %>
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <!-- Iconify -->
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <!-- Leaflet 1.9.4 CSS & JS — both self-hosted (M12.P1-R6). leaflet.css
+         resolves its control/marker images from /vendor/leaflet/images/. -->
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <script src="/vendor/leaflet/leaflet.js"></script>
+    <!-- Iconify Icon 1.0.7 component — self-hosted (M12.P1-R6). The component
+         still fetches icon DATA from the approved api.iconify.design origin. -->
+    <script src="/vendor/iconify-icon/iconify-icon.min.js"></script>
 </head>
 
 
@@ -102,10 +102,14 @@
             <div class="sidebar__user-info">
 
 
-              <div class="sidebar__user-name" id="sidebarName"><%= user ? (user.first_name + ' ' + user.last_name) : 'Guest User' %></div>
+              <div class="sidebar__user-name" id="sidebarName">
+                <%= user ? (user.first_name + ' ' + user.last_name) : 'Guest User' %>
+              </div>
 
 
-              <div class="sidebar__user-email" id="sidebarEmail"><%= user ? user.email : 'Not signed in' %></div>
+              <div class="sidebar__user-email" id="sidebarEmail">
+                <%= user ? user.email : 'Not signed in' %>
+              </div>
 
 
             </div>
@@ -135,19 +139,16 @@
         <div class="dash-panel__header">
 
 
-          <h1 class="dash-panel__greeting" id="panelGreeting">Welcome, <%= user ? (user.first_name + ' ' + user.last_name) : 'Guest' %>!</h1>
+          <h1 class="dash-panel__greeting" id="panelGreeting">Welcome, <%= user ? (user.first_name + ' ' +
+              user.last_name) : 'Guest' %>!</h1>
 
 
-          <% 
-            var roleLabels = {
-              'student-cspc': 'Student (CSPC) — CSPC Verified',
-              'instructor': 'Instructor — Faculty',
-              'admin': 'Administrator — Full Access',
-              'guest': 'Guest — View Only'
-            };
-            var roleLabel = user ? (roleLabels[user.role] || user.role) : 'Guest';
-          %>
-          <p class="dash-panel__role-label" id="panelRoleLabel"><%= roleLabel %></p>
+          <% var roleLabels={ 'student-cspc' : 'Student (CSPC) — CSPC Verified' , 'instructor' : 'Instructor — Faculty'
+            , 'admin' : 'Administrator — Full Access' , 'guest' : 'Guest — View Only' }; var roleLabel=user ?
+            (roleLabels[user.role] || user.role) : 'Guest' ; %>
+            <p class="dash-panel__role-label" id="panelRoleLabel">
+              <%= roleLabel %>
+            </p>
 
 
         </div>
@@ -276,7 +277,7 @@
     <!-- OVERVIEW: Student CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-cspc-overview">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-cspc-overview">
 
 
     <div class="stat-cards">
@@ -321,13 +322,22 @@
       <div class="panel-card">
 
 
-        <div class="panel-card__header"><h3 class="panel-card__title">Enrollment Status</h3><span class="status-badge status-badge--enrolled"><%%= studentProfile.enrollmentStatus %%></span></div>
+        <div class="panel-card__header"><h3 class="panel-card__title">Quick Links</h3></div>
 
 
         <div class="panel-card__body">
 
 
-          <p style="font-size:0.88rem;color:var(--gray-600);"><strong><%%= studentProfile.semester %%></strong></p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+
+
+            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" data-action="section" data-section="buildings">🏢 Navigate Buildings</button>
+
+
+            <a href="/map" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">🗺️ Campus Map</a>
+
+
+          </div>
 
 
         </div>
@@ -339,7 +349,7 @@
       <div class="panel-card">
 
 
-        <div class="panel-card__header"><h3 class="panel-card__title">Quick Links</h3></div>
+        <div class="panel-card__header"><h3 class="panel-card__title">Quick Actions</h3></div>
 
 
         <div class="panel-card__body">
@@ -348,10 +358,13 @@
           <div style="display:flex;flex-direction:column;gap:8px;">
 
 
-            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" onclick="switchSection('buildings')">🏢 Navigate Buildings</button>
+            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" data-action="section" data-section="news">📰 News &amp; Announcements</button>
 
 
-            <a href="/map" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">🗺️ Campus Map</a>
+            <a href="/events" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">📅 Upcoming Events</a>
+
+
+            <button class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;" data-action="section" data-section="profile">👤 Update Profile</button>
 
 
           </div>
@@ -373,6 +386,15 @@
 
 
       <div class="panel-card__body">
+
+
+        <%% if (news.length === 0) { %%>
+
+
+          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
+
+
+        <%% } %%>
 
 
         <%% for(var i=0; i<news.length && i<2; i++) { %%>
@@ -414,7 +436,7 @@
     <!-- PROFILE: Student CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-cspc-profile">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-cspc-profile">
 
 
     <div class="panel-card">
@@ -477,9 +499,6 @@
           <div class="profile-info__item"><span class="profile-info__label">Year Level</span><span class="profile-info__value"><%%= studentProfile.yearLevel %%></span></div>
 
 
-          <div class="profile-info__item"><span class="profile-info__label">Semester</span><span class="profile-info__value"><%%= studentProfile.semester %%></span></div>
-
-
         </div>
 
 
@@ -500,7 +519,7 @@
     <!-- NEWS (shared) -->
 
 
-    <script type="text/ejs-template" id="tmpl-shared-news">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-shared-news">
 
 
     <div class="panel-card">
@@ -510,6 +529,15 @@
 
 
       <div class="panel-card__body">
+
+
+        <%% if (news.length === 0) { %%>
+
+
+          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
+
+
+        <%% } %%>
 
 
         <%% for(var i=0; i<news.length; i++) { %%>
@@ -551,7 +579,7 @@
     <!-- MAP (shared) -->
 
 
-    <script type="text/ejs-template" id="tmpl-shared-map">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-shared-map">
 
 
     <div class="panel-card">
@@ -581,7 +609,7 @@
     <!-- NAVIGATE BUILDINGS: Student CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-buildings">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-buildings">
 
 
     <div class="panel-card" style="margin-bottom:var(--space-lg);">
@@ -605,7 +633,7 @@
     </div>
 
 
-    <div id="studentBuildingDetail" class="building-modal-overlay" onclick="closeStudentBuildingModal(event)"></div>
+    <div id="studentBuildingDetail" class="building-modal-overlay" data-action="close-student-overlay"></div>
 
 
   </script>
@@ -617,7 +645,7 @@
     <!-- OVERVIEW: Student Non-CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-non-cspc-overview">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-non-cspc-overview">
 
 
     <div class="stat-cards">
@@ -641,7 +669,7 @@
       <div class="panel-card__header"><h3 class="panel-card__title">Welcome, Future Cavalier!</h3></div>
 
 
-      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampusSphere! As a prospective student, you can explore important campus offices, learn about the admission process, and navigate the campus map. For full features, enroll and sign in with your <strong>@cspc.edu.ph</strong> email.</p></div>
+      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampuSphere! As a prospective student, you can explore important campus offices, learn about the admission process, and navigate the campus map. For full features, enroll and sign in with your <strong>@cspc.edu.ph</strong> email.</p></div>
 
 
     </div>
@@ -656,7 +684,7 @@
     <!-- OFFICES: Student Non-CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-non-cspc-offices">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-non-cspc-offices">
 
 
     <div class="panel-card">
@@ -707,7 +735,7 @@
     <!-- ADMISSION: Student Non-CSPC -->
 
 
-    <script type="text/ejs-template" id="tmpl-student-non-cspc-admission">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-student-non-cspc-admission">
 
 
     <div class="info-grid">
@@ -803,7 +831,7 @@
     <!-- OVERVIEW: Instructor -->
 
 
-    <script type="text/ejs-template" id="tmpl-instructor-overview">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-overview">
 
 
     <div class="stat-cards">
@@ -813,9 +841,6 @@
 
 
       <div class="stat-card"><div class="stat-card__icon stat-card__icon--green">🏢</div><div class="stat-card__label">Department</div><div class="stat-card__value stat-card__value--sm"><%%= instructorProfile.department %%></div></div>
-
-
-      <div class="stat-card"><div class="stat-card__icon stat-card__icon--gold">🚪</div><div class="stat-card__label">Assigned Rooms</div><div class="stat-card__value"><%%= instructorProfile.assignedRooms.length %%></div></div>
 
 
       <div class="stat-card"><div class="stat-card__icon stat-card__icon--red">✅</div><div class="stat-card__label">Status</div><div class="stat-card__value stat-card__value--sm"><%%= instructorProfile.status %%></div></div>
@@ -830,25 +855,22 @@
       <div class="panel-card">
 
 
-        <div class="panel-card__header"><h3 class="panel-card__title">Assigned Rooms & Schedule</h3></div>
+        <div class="panel-card__header"><h3 class="panel-card__title">Quick Links</h3></div>
 
 
         <div class="panel-card__body">
 
 
-          <table class="data-table"><thead><tr><th>Room</th><th>Subject</th><th>Schedule</th></tr></thead><tbody>
+          <div style="display:flex;flex-direction:column;gap:8px;">
 
 
-          <%% for(var i=0; i<instructorProfile.assignedRooms.length; i++) { %%>
+            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" data-action="section" data-section="buildings">🏢 Navigate Buildings</button>
 
 
-            <tr><td><%%= instructorProfile.assignedRooms[i].room %%></td><td><strong><%%= instructorProfile.assignedRooms[i].subject %%></strong></td><td><%%= instructorProfile.assignedRooms[i].schedule %%></td></tr>
+            <a href="/map" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">🗺️ Campus Map</a>
 
 
-          <%% } %%>
-
-
-          </tbody></table>
+          </div>
 
 
         </div>
@@ -860,7 +882,7 @@
       <div class="panel-card">
 
 
-        <div class="panel-card__header"><h3 class="panel-card__title">Quick Links</h3></div>
+        <div class="panel-card__header"><h3 class="panel-card__title">Quick Actions</h3></div>
 
 
         <div class="panel-card__body">
@@ -869,13 +891,13 @@
           <div style="display:flex;flex-direction:column;gap:8px;">
 
 
-            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" onclick="switchSection('buildings')">🏢 Navigate Buildings</button>
+            <button class="btn btn--primary btn--sm" style="justify-content:flex-start;" data-action="section" data-section="announcements">📰 Instructor News</button>
 
 
-            <button class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;" onclick="switchSection('all-rooms')">🚪 View All Rooms</button>
+            <a href="/events" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">📅 Upcoming Events</a>
 
 
-            <a href="/map" class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;">🗺️ Campus Map</a>
+            <button class="btn btn--outline btn--sm" style="justify-content:flex-start;text-transform:none;" data-action="section" data-section="profile">👤 Update Profile</button>
 
 
           </div>
@@ -893,28 +915,37 @@
     <div class="panel-card">
 
 
-      <div class="panel-card__header"><h3 class="panel-card__title">Latest Faculty News</h3></div>
+      <div class="panel-card__header"><h3 class="panel-card__title">Latest Announcements</h3></div>
 
 
       <div class="panel-card__body">
 
 
-        <%% for(var i=0; i<instructorNews.length && i<2; i++) { %%>
+        <%% if (news.length === 0) { %%>
+
+
+          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
+
+
+        <%% } %%>
+
+
+        <%% for(var i=0; i<news.length && i<2; i++) { %%>
 
 
           <div class="news-item">
 
 
-            <span class="news-item__category"><%%= instructorNews[i].category %%></span>
+            <span class="news-item__category"><%%= news[i].category %%></span>
 
 
-            <div class="news-item__title"><%%= instructorNews[i].title %%></div>
+            <div class="news-item__title"><%%= news[i].title %%></div>
 
 
-            <div class="news-item__date"><%%= instructorNews[i].date %%></div>
+            <div class="news-item__date"><%%= news[i].date %%></div>
 
 
-            <p class="news-item__excerpt"><%%= instructorNews[i].excerpt %%></p>
+            <p class="news-item__excerpt"><%%= news[i].excerpt %%></p>
 
 
           </div>
@@ -938,7 +969,7 @@
     <!-- PROFILE: Instructor -->
 
 
-    <script type="text/ejs-template" id="tmpl-instructor-profile">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-profile">
 
 
     <div class="panel-card">
@@ -1022,7 +1053,7 @@
     <!-- ANNOUNCEMENTS: Instructor -->
 
 
-    <script type="text/ejs-template" id="tmpl-instructor-announcements">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-announcements">
 
 
     <div class="panel-card" style="margin-bottom:var(--space-xl);">
@@ -1034,43 +1065,13 @@
       <div class="panel-card__body">
 
 
-        <%% for(var i=0; i<instructorNews.length; i++) { %%>
+        <%% if (news.length === 0) { %%>
 
 
-          <div class="news-item">
-
-
-            <span class="news-item__category"><%%= instructorNews[i].category %%></span>
-
-
-            <div class="news-item__title"><%%= instructorNews[i].title %%></div>
-
-
-            <div class="news-item__date"><%%= instructorNews[i].date %%></div>
-
-
-            <p class="news-item__excerpt"><%%= instructorNews[i].excerpt %%></p>
-
-
-          </div>
+          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
 
 
         <%% } %%>
-
-
-      </div>
-
-
-    </div>
-
-
-    <div class="panel-card">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">General Campus News</h3></div>
-
-
-      <div class="panel-card__body">
 
 
         <%% for(var i=0; i<news.length; i++) { %%>
@@ -1118,7 +1119,7 @@
     <!-- STATUS: Instructor -->
 
 
-    <script type="text/ejs-template" id="tmpl-instructor-status">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-status">
 
 
     <div class="panel-card">
@@ -1136,9 +1137,6 @@
           <div class="profile-info__item"><span class="profile-info__label">Current Status</span><span class="profile-info__value"><span class="status-badge status-badge--active"><%%= instructorProfile.status %%></span></span></div>
 
 
-          <div class="profile-info__item"><span class="profile-info__label">Teaching Load</span><span class="profile-info__value"><%%= instructorProfile.assignedRooms.length %%> subjects</span></div>
-
-
         </div>
 
 
@@ -1154,76 +1152,11 @@
 
 
 
-    <!-- SCHEDULE: Instructor -->
-
-
-    <script type="text/ejs-template" id="tmpl-instructor-schedule">
-
-
-    <div class="panel-card">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">Teaching Schedule</h3></div>
-
-
-      <div class="panel-card__body">
-
-
-        <table class="data-table"><thead><tr><th>Room</th><th>Subject</th><th>Schedule</th></tr></thead><tbody>
-
-
-        <%% for(var i=0; i<instructorProfile.assignedRooms.length; i++) { %%>
-
-
-          <tr><td><%%= instructorProfile.assignedRooms[i].room %%></td><td><strong><%%= instructorProfile.assignedRooms[i].subject %%></strong></td><td><%%= instructorProfile.assignedRooms[i].schedule %%></td></tr>
-
-
-        <%% } %%>
-
-
-        </tbody></table>
-
-
-      </div>
-
-
-    </div>
-
-
-  </script>
 
 
 
 
 
-    <!-- ALL ROOMS: Instructor (Enhanced with building-grouped accordion) -->
-
-
-    <script type="text/ejs-template" id="tmpl-instructor-all-rooms">
-
-
-    <div class="panel-card" style="margin-bottom:var(--space-lg);">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">All Campus Rooms by Building</h3></div>
-
-
-      <div class="panel-card__body">
-
-
-        <p style="font-size:.85rem;color:var(--gray-500);margin-bottom:var(--space-md);">Click a building to expand and view all rooms inside. <span style="color:var(--navy-600);font-weight:600;">★ Your assigned rooms</span> are highlighted.</p>
-
-
-        <div id="allRoomsAccordion"></div>
-
-
-      </div>
-
-
-    </div>
-
-
-  </script>
 
 
 
@@ -1232,7 +1165,7 @@
     <!-- NAVIGATE BUILDINGS: Instructor -->
 
 
-    <script type="text/ejs-template" id="tmpl-instructor-buildings">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-buildings">
 
 
     <div class="panel-card" style="margin-bottom:var(--space-lg);">
@@ -1256,7 +1189,7 @@
     </div>
 
 
-    <div id="instrBuildingDetail" class="building-modal-overlay" onclick="closeInstrBuildingModal(event)"></div>
+    <div id="instrBuildingDetail" class="building-modal-overlay" data-action="close-instr-overlay"></div>
 
 
   </script>
@@ -1268,7 +1201,7 @@
     <!-- OVERVIEW: Admin -->
 
 
-    <script type="text/ejs-template" id="tmpl-admin-overview">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-admin-overview">
 
 
     <div class="stat-cards">
@@ -1295,7 +1228,7 @@
       <div class="panel-card">
 
 
-        <div class="panel-card__header"><h3 class="panel-card__title">Recent Users</h3><a href="#" class="btn btn--primary btn--sm" onclick="document.getElementById('roleSelector').value='admin'; switchSection('users'); return false;">View All</a></div>
+        <div class="panel-card__header"><h3 class="panel-card__title">Recent Users</h3><a href="#" class="btn btn--primary btn--sm" data-action="view-all-users" href="#">View All</a></div>
 
 
         <div class="panel-card__body">
@@ -1364,13 +1297,13 @@
     <!-- USERS: Admin -->
 
 
-    <script type="text/ejs-template" id="tmpl-admin-users">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-admin-users">
 
 
     <div class="panel-card">
 
 
-      <div class="panel-card__header"><h3 class="panel-card__title">User Management</h3><button class="btn btn--primary btn--sm" onclick="alert('Add User (simulated)')">+ Add User</button></div>
+      <div class="panel-card__header"><h3 class="panel-card__title">User Management</h3><button class="btn btn--primary btn--sm" data-action="sim" data-sim="Add User (simulated)">+ Add User</button></div>
 
 
       <div class="panel-card__body">
@@ -1406,13 +1339,13 @@
     <!-- MAP DATA: Admin -->
 
 
-    <script type="text/ejs-template" id="tmpl-admin-map-data">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-admin-map-data">
 
 
     <div class="panel-card" style="margin-bottom:var(--space-xl);">
 
 
-      <div class="panel-card__header"><h3 class="panel-card__title">Map Data Management</h3><button class="btn btn--primary btn--sm" onclick="alert('Add Location (simulated)')">+ Add Location</button></div>
+      <div class="panel-card__header"><h3 class="panel-card__title">Map Data Management</h3><button class="btn btn--primary btn--sm" data-action="sim" data-sim="Add Location (simulated)">+ Add Location</button></div>
 
 
       <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;margin-bottom:var(--space-md);">Manage building data, coordinates, descriptions, and images displayed on the interactive campus map.</p>
@@ -1436,13 +1369,13 @@
     <!-- NEWS EDITOR: Admin -->
 
 
-    <script type="text/ejs-template" id="tmpl-admin-news-editor">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-admin-news-editor">
 
 
     <div class="panel-card">
 
 
-      <div class="panel-card__header"><h3 class="panel-card__title">News / FAQ Editor</h3><button class="btn btn--primary btn--sm" onclick="alert('Add Article (simulated)')">+ New Article</button></div>
+      <div class="panel-card__header"><h3 class="panel-card__title">News / FAQ Editor</h3><button class="btn btn--primary btn--sm" data-action="sim" data-sim="Add Article (simulated)">+ New Article</button></div>
 
 
       <div class="panel-card__body">
@@ -1478,7 +1411,7 @@
     <!-- LOGS: Admin -->
 
 
-    <script type="text/ejs-template" id="tmpl-admin-logs">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-admin-logs">
 
 
     <div class="panel-card">
@@ -1520,7 +1453,7 @@
     <!-- OVERVIEW: Guest -->
 
 
-    <script type="text/ejs-template" id="tmpl-guest-overview">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-overview">
 
 
     <div class="stat-cards">
@@ -1547,7 +1480,7 @@
       <div class="panel-card__header"><h3 class="panel-card__title">Welcome, <%= user ? user.first_name : 'Guest' %>!</h3></div>
 
 
-      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampusSphere! As a guest, you can explore building corridors, read news & events, view public achievements, and browse the 2D campus map. Sign in with a <strong>@cspc.edu.ph</strong> email for full student or faculty access.</p></div>
+      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampuSphere! As a guest, you can explore building corridors, read news & events, view public achievements, and browse the 2D campus map. Sign in with a <strong>@cspc.edu.ph</strong> email for full student or faculty access.</p></div>
 
 
     </div>
@@ -1562,7 +1495,7 @@
     <!-- CORRIDORS: Guest -->
 
 
-    <script type="text/ejs-template" id="tmpl-guest-corridors">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-corridors">
 
 
     <div class="panel-card">
@@ -1619,7 +1552,7 @@
     <!-- NEWS & EVENTS: Guest -->
 
 
-    <script type="text/ejs-template" id="tmpl-guest-news-events">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-news-events">
 
 
     <div class="panel-card">
@@ -1629,6 +1562,15 @@
 
 
       <div class="panel-card__body">
+
+
+        <%% if (news.length === 0) { %%>
+
+
+          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
+
+
+        <%% } %%>
 
 
         <%% for(var i=0; i<news.length; i++) { %%>
@@ -1670,7 +1612,7 @@
     <!-- ACHIEVEMENTS: Guest -->
 
 
-    <script type="text/ejs-template" id="tmpl-guest-achievements">
+    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-achievements">
 
 
     <div class="panel-card">
@@ -1727,19 +1669,60 @@
     <script src="/js/data.js"></script>
 
 
-    <script id="dbNewsData" type="application/json">
-      <%- JSON.stringify(typeof news !== 'undefined' ? news : []) %>
+    <script id="dbNewsData" type="application/json" nonce="<%= cspNonce %>">
+      <%- safeJson(typeof news !== 'undefined' ? news : []) %>
     </script>
-    <script id="dbStudentProfile" type="application/json">
-      <%- JSON.stringify(typeof studentProfile !== 'undefined' && studentProfile ? studentProfile : null) %>
+    <script id="dbStudentProfile" type="application/json" nonce="<%= cspNonce %>">
+      <%- safeJson(typeof studentProfile !== 'undefined' && studentProfile ? studentProfile : null) %>
     </script>
-    <script id="dbInstructorProfile" type="application/json">
-      <%- JSON.stringify(typeof instructorProfile !== 'undefined' && instructorProfile ? instructorProfile : null) %>
+    <script id="dbInstructorProfile" type="application/json" nonce="<%= cspNonce %>">
+      <%- safeJson(typeof instructorProfile !== 'undefined' && instructorProfile ? instructorProfile : null) %>
     </script>
-    <script>
+    <script nonce="<%= cspNonce %>">
+      // ======= SHARED OUTPUT-ENCODING HELPERS (R1: Stored-XSS Removal) =======
+      // Database- and session-derived values must never be interpreted as HTML.
+      // escapeHtml() is the single context-appropriate encoder for text AND
+      // quoted-attribute contexts; safeUrl() validates dynamic image/navigation
+      // URLs and rejects javascript:, unsafe data:, and attribute-breakout input.
+      function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function safeUrl(value, opts) {
+        if (value === null || value === undefined) return '';
+        var s = String(value).trim();
+        if (s === '') return '';
+        // Collapse control/space chars before scheme inspection so tricks like
+        // "java\tscript:" cannot smuggle a dangerous scheme past the check.
+        var scheme = s.replace(/\s+/g, '').toLowerCase();
+        if (scheme.indexOf('javascript:') === 0 || scheme.indexOf('vbscript:') === 0) return '';
+        if (scheme.indexOf('data:') === 0) {
+          if (opts && opts.allowDataImage &&
+            /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+          return '';
+        }
+        // Root-relative, hash, or explicitly-relative paths are safe.
+        if (s.charAt(0) === '/' || s.charAt(0) === '#' || s.charAt(0) === '.') return s;
+        // Absolute http(s) only.
+        if (/^https?:\/\//i.test(s)) return s;
+        // Bare relative path with no scheme (no ':' before the first '/').
+        var colon = s.indexOf(':');
+        if (colon === -1) return s;
+        var slash = s.indexOf('/');
+        if (slash !== -1 && slash < colon) return s;
+        return '';
+      }
+
       // Override data.js with database data
       const dbNews = JSON.parse(document.getElementById('dbNewsData').textContent);
-      if (dbNews && dbNews.length > 0) {
+      // Server-filtered announcements are authoritative; an empty result must
+      // NOT fall back to static mock news (Milestone 4, Phase 2 Section 5).
+      if (Array.isArray(dbNews)) {
         CampuSphereData.news = dbNews.map(n => ({
           id: n.id,
           title: n.title,
@@ -1749,136 +1732,183 @@
         }));
       }
 
+      // Sanitize any DB-derived profile image URL so a hostile stored value
+      // (javascript:, data:text/html, attribute-breakout) can never reach an
+      // <img src>. Valid http(s)/relative paths and image data URLs pass through.
+      function sanitizeProfileImage(profile) {
+        if (profile && profile.profileImage) {
+          profile.profileImage = safeUrl(profile.profileImage, { allowDataImage: true });
+        }
+        return profile;
+      }
+
       // Override student profile with server data
       const serverStudentProfile = JSON.parse(document.getElementById('dbStudentProfile').textContent);
       if (serverStudentProfile) {
-        CampuSphereData.studentProfile = serverStudentProfile;
+        CampuSphereData.studentProfile = sanitizeProfileImage(serverStudentProfile);
       }
 
       // Override instructor profile with server data
       const serverInstructorProfile = JSON.parse(document.getElementById('dbInstructorProfile').textContent);
       if (serverInstructorProfile) {
-        // Merge: keep assignedRooms from hardcoded data if server didn't provide any
-        CampuSphereData.instructorProfile = {
-          ...CampuSphereData.instructorProfile,
-          ...serverInstructorProfile,
-          assignedRooms: (serverInstructorProfile.assignedRooms && serverInstructorProfile.assignedRooms.length > 0)
-            ? serverInstructorProfile.assignedRooms
-            : CampuSphereData.instructorProfile.assignedRooms
-        };
+        CampuSphereData.instructorProfile = sanitizeProfileImage(serverInstructorProfile);
       }
 
       // ======= CLIENT-SIDE EJS TEMPLATE ENGINE =======
 
 
-      function ejsRender(templateStr, data) {
+      // CSP-safe template renderer (Milestone 8, Section 8.5). The dashboard
+      // role/section templates use a small, fixed subset: escaped output tags
+      // and if / else / for control-flow tags. They are tokenized, parsed into a
+      // small tree, and interpreted WITHOUT new Function / eval, so they run
+      // under the nonce-based CSP (which omits 'unsafe-eval'). Output is
+      // identical to the previous engine for the existing templates. Tag
+      // delimiters are built by string concatenation so no literal template tag
+      // appears in this server-rendered file.
+      var TPL_OPEN = '<' + '%';
+      var TPL_CLOSE = '%' + '>';
 
-
-        // Process <%% code %%>, <%%= output %%>, <%%- raw %%>
-
-
-        let fn = 'var __o = [];\n';
-
-
-        fn += 'with(data) {\n';
-
-
-        let cursor = 0;
-
-
-        const re = /<%%(-|=)?([\s\S]*?)%%>/g;
-
-
-        let match;
-
-
-
-
-
-        while ((match = re.exec(templateStr)) !== null) {
-
-
-          // Push text before the tag
-
-
-          const text = templateStr.slice(cursor, match.index);
-
-
-          if (text) fn += '__o.push(' + JSON.stringify(text) + ');\n';
-
-
+      function tplTokenize(tpl) {
+        var re = new RegExp(TPL_OPEN + '([-=])?([\\s\\S]*?)' + TPL_CLOSE, 'g');
+        var tokens = [];
+        var cursor = 0;
+        var m;
+        while ((m = re.exec(tpl)) !== null) {
+          if (m.index > cursor) tokens.push({ type: 'text', value: tpl.slice(cursor, m.index) });
           cursor = re.lastIndex;
+          if (m[1] === '=') tokens.push({ type: 'out', expr: m[2].trim(), escaped: true });
+          else if (m[1] === '-') tokens.push({ type: 'out', expr: m[2].trim(), escaped: false });
+          else tokens.push({ type: 'code', code: m[2].trim() });
+        }
+        if (cursor < tpl.length) tokens.push({ type: 'text', value: tpl.slice(cursor) });
+        return tokens;
+      }
 
-
-
-
-
-          if (match[1] === '=') {
-
-
-            // Escaped output
-
-
-            fn += '__o.push(String(' + match[2].trim() + '));\n';
-
-
-          } else if (match[1] === '-') {
-
-
-            // Raw output
-
-
-            fn += '__o.push(' + match[2].trim() + ');\n';
-
-
+      // Parse the token stream into nodes, resolving nested if/for blocks.
+      function tplParse(tokens, state) {
+        var nodes = [];
+        while (state.i < tokens.length) {
+          var tok = tokens[state.i];
+          if (tok.type !== 'code') { nodes.push(tok); state.i++; continue; }
+          var code = tok.code;
+          var ifm = code.match(/^if\s*\(([\s\S]+)\)\s*\{$/);
+          var form = code.match(/^for\s*\(\s*var\s+([A-Za-z_$][\w$]*)\s*=\s*0\s*;\s*([\s\S]+?)\s*;\s*[A-Za-z_$][\w$]*\s*\+\+\s*\)\s*\{$/);
+          if (ifm) {
+            state.i++;
+            var thenPart = tplParse(tokens, state);
+            var elseNodes = [];
+            if (thenPart.stopped === 'else') elseNodes = tplParse(tokens, state).nodes;
+            nodes.push({ type: 'if', cond: ifm[1].trim(), then: thenPart.nodes, els: elseNodes });
+          } else if (form) {
+            state.i++;
+            var body = tplParse(tokens, state);
+            nodes.push({ type: 'for', varName: form[1], cond: form[2].trim(), body: body.nodes });
+          } else if (/^\}\s*else\s*\{$/.test(code)) {
+            state.i++;
+            return { nodes: nodes, stopped: 'else' };
+          } else if (/^\}$/.test(code)) {
+            state.i++;
+            return { nodes: nodes, stopped: 'end' };
           } else {
-
-
-            // Code execution
-
-
-            fn += match[2] + '\n';
-
-
+            // Unsupported code token: ignore safely (never eval'd).
+            state.i++;
           }
-
-
         }
+        return { nodes: nodes, stopped: null };
+      }
 
+      function tplLookup(name, data, locals) {
+        if (locals && Object.prototype.hasOwnProperty.call(locals, name)) return locals[name];
+        if (data && Object.prototype.hasOwnProperty.call(data, name)) return data[name];
+        return undefined;
+      }
 
+      // Resolve a pure property/index path: a, a.b, a[i], a.b[i], a[i].b, ...
+      function tplResolvePath(expr, data, locals) {
+        expr = expr.trim();
+        var head = /^([A-Za-z_$][\w$]*)/.exec(expr);
+        if (!head) return undefined;
+        var cur = tplLookup(head[1], data, locals);
+        var rest = expr.slice(head[1].length);
+        var partRe = /^\.([A-Za-z_$][\w$]*)|^\[\s*([^\]]+?)\s*\]/;
+        while (rest.length) {
+          var pm = partRe.exec(rest);
+          if (!pm) break;
+          if (pm[1] !== undefined) {
+            cur = (cur == null) ? undefined : cur[pm[1]];
+          } else {
+            cur = (cur == null) ? undefined : cur[tplResolveValue(pm[2], data, locals)];
+          }
+          rest = rest.slice(pm[0].length);
+        }
+        return cur;
+      }
 
+      // Resolve a value: integer/boolean/null literal, else a property path.
+      function tplResolveValue(expr, data, locals) {
+        expr = String(expr).trim();
+        if (/^-?\d+$/.test(expr)) return parseInt(expr, 10);
+        if (expr === 'true') return true;
+        if (expr === 'false') return false;
+        if (expr === 'null') return null;
+        return tplResolvePath(expr, data, locals);
+      }
 
+      // Conditions: `path === literal` / `path !== literal`, else path truthiness.
+      function tplEvalCond(expr, data, locals) {
+        var eq = expr.split('===');
+        if (eq.length === 2) return tplResolveValue(eq[0], data, locals) === tplResolveValue(eq[1], data, locals);
+        var ne = expr.split('!==');
+        if (ne.length === 2) return tplResolveValue(ne[0], data, locals) !== tplResolveValue(ne[1], data, locals);
+        return !!tplResolveValue(expr, data, locals);
+      }
 
-        // Push remaining text
+      // For-loop bound: `i < bound` clauses joined by optional `&&`.
+      function tplEvalLoop(cond, data, locals) {
+        var parts = cond.split('&&');
+        for (var p = 0; p < parts.length; p++) {
+          var cm = parts[p].trim().match(/^([A-Za-z_$][\w$]*)\s*<\s*([\s\S]+)$/);
+          if (!cm) return false;
+          if (!(tplResolveValue(cm[1], data, locals) < tplResolveValue(cm[2], data, locals))) return false;
+        }
+        return true;
+      }
 
+      function tplRenderNodes(nodes, data, locals, out) {
+        for (var k = 0; k < nodes.length; k++) {
+          var n = nodes[k];
+          if (n.type === 'text') {
+            out.push(n.value);
+          } else if (n.type === 'out') {
+            var v = tplResolveValue(n.expr, data, locals);
+            out.push(n.escaped ? escapeHtml(v) : (v == null ? '' : String(v)));
+          } else if (n.type === 'if') {
+            tplRenderNodes(tplEvalCond(n.cond, data, locals) ? n.then : n.els, data, locals, out);
+          } else if (n.type === 'for') {
+            var loc = Object.assign({}, locals);
+            loc[n.varName] = 0;
+            var guard = 0;
+            while (tplEvalLoop(n.cond, data, loc)) {
+              tplRenderNodes(n.body, data, loc, out);
+              loc[n.varName] = loc[n.varName] + 1;
+              if (++guard > 100000) break; // defensive: never spin forever
+            }
+          }
+        }
+      }
 
-        fn += '__o.push(' + JSON.stringify(templateStr.slice(cursor)) + ');\n';
-
-
-        fn += '}\nreturn __o.join("");';
-
-
-
-
-
+      // Drop-in replacement for the former new Function-based engine.
+      function ejsRender(templateStr, data) {
         try {
-
-
-          return new Function('data', fn)(data);
-
-
+          var tokens = tplTokenize(templateStr);
+          var tree = tplParse(tokens, { i: 0 });
+          var out = [];
+          tplRenderNodes(tree.nodes, data, {}, out);
+          return out.join('');
         } catch (e) {
-
-
-          console.error('EJS Render Error:', e);
-
-
+          console.error('Template render error.');
           return '<p style="color:red;">Template render error</p>';
-
-
         }
-
-
       }
 
 
@@ -1936,8 +1966,6 @@
           'profile': 'tmpl-instructor-profile',
 
 
-          'all-rooms': 'tmpl-instructor-all-rooms',
-          'schedule': 'tmpl-instructor-schedule',
           'buildings': 'tmpl-instructor-buildings',
 
 
@@ -2115,13 +2143,13 @@
         sidebarNav.innerHTML = items.map(item =>
 
 
-          `<button class="sidebar__nav-item ${item.id === currentSection ? 'sidebar__nav-item--active' : ''}" data-section="${item.id}">
+          `<button class="sidebar__nav-item ${item.id === currentSection ? 'sidebar__nav-item--active' : ''}" data-section="${escapeHtml(item.id)}">
 
 
           <span class="sidebar__nav-icon">${icons[item.icon] || ''}</span>
 
 
-          ${item.label}
+          ${escapeHtml(item.label)}
 
 
         </button>`
@@ -2196,9 +2224,6 @@
         // Post-render hooks
 
 
-        if (role === 'instructor' && section === 'all-rooms') renderAllRoomsAccordion();
-
-
         if (role === 'instructor' && section === 'buildings') renderInstructorBuildings();
 
 
@@ -2223,142 +2248,7 @@
 
 
 
-      // ======= ALL ROOMS ACCORDION =======
-
-
-      function renderAllRoomsAccordion() {
-
-
-        const container = document.getElementById('allRoomsAccordion');
-
-
-        if (!container) return;
-
-
-        const buildings = CampuSphereData.instructorBuildings || [];
-
-
-        const assignedNames = (CampuSphereData.instructorProfile.assignedRooms || []).map(r => r.room.toLowerCase());
-
-
-
-
-
-        container.innerHTML = buildings.map((b, idx) => {
-
-
-          const totalRooms = b.floorData.reduce((sum, f) => sum + f.rooms.length, 0);
-
-
-          const catColors = { Academic: 'var(--navy-600)', Administrative: '#d4a843', Facilities: '#16a34a' };
-
-
-          const catColor = catColors[b.category] || 'var(--navy-600)';
-
-
-          return `
-
-
-        <div class="instr-accordion" data-idx="${idx}">
-
-
-          <button class="instr-accordion__toggle" onclick="toggleAccordion(this)">
-
-
-            <div class="instr-accordion__info">
-
-
-              <span class="instr-accordion__cat" style="background:${catColor};color:#fff;padding:2px 8px;border-radius:999px;font-size:.65rem;font-weight:700;text-transform:uppercase;">${b.category}</span>
-
-
-              <strong>${b.name}</strong>
-
-
-              <span style="font-size:.8rem;color:var(--gray-500);">${totalRooms} rooms · ${b.floors} floor${b.floors > 1 ? 's' : ''}</span>
-
-
-            </div>
-
-
-            <svg class="instr-accordion__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-
-
-          </button>
-
-
-          <div class="instr-accordion__body" style="display:none;">
-
-
-            ${b.floorData.map(floor => `
-
-
-              <div class="instr-accordion__floor-label">${floor.label}</div>
-
-
-              <table class="data-table" style="margin-bottom:var(--space-md);">
-
-
-                <thead><tr><th>Room</th><th>Type</th><th>Capacity</th><th></th></tr></thead>
-
-
-                <tbody>
-
-
-                  ${floor.rooms.map(r => {
-
-
-            const isAssigned = assignedNames.some(a => a.includes(r.num.toLowerCase()));
-
-
-            return `<tr style="${isAssigned ? 'background:rgba(30,77,140,0.08);' : ''}"><td><strong>${r.num}</strong></td><td>${r.use}</td><td>${r.capacity}</td><td>${isAssigned ? '<span style="color:var(--navy-600);font-weight:700;font-size:.75rem;">★ Assigned</span>' : ''}</td></tr>`;
-
-
-          }).join('')}
-
-
-                </tbody>
-
-
-              </table>
-
-
-            `).join('')}
-
-
-          </div>
-
-
-        </div>`;
-
-
-        }).join('');
-
-
-      }
-
-
-
-
-
-      function toggleAccordion(btn) {
-
-
-        const body = btn.nextElementSibling;
-
-
-        const chevron = btn.querySelector('.instr-accordion__chevron');
-
-
-        const isOpen = body.style.display !== 'none';
-
-
-        body.style.display = isOpen ? 'none' : 'block';
-
-
-        chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-
-
-      }
+      // ======= (All Rooms accordion removed — out of scope) =======
 
 
 
@@ -2391,22 +2281,22 @@
         grid.innerHTML = buildings.map(b => `
 
 
-        <div class="stat-card instr-bldg-card" style="cursor:pointer; display:flex; flex-direction:column; min-height:100%;" data-bid="${b.id}" onclick="showBuildingInside(${b.id})">
+        <div class="stat-card instr-bldg-card" style="cursor:pointer; display:flex; flex-direction:column; min-height:100%;" data-bid="${Number(b.id)}">
 
 
           <div class="stat-card__icon stat-card__icon--blue">${catIcons[b.category] || '🏢'}</div>
 
 
-          <div class="stat-card__label" style="margin-bottom:4px;font-weight:700;">${b.name}</div>
+          <div class="stat-card__label" style="margin-bottom:4px;font-weight:700;">${escapeHtml(b.name)}</div>
 
 
-          <p style="font-size:0.78rem;color:var(--gray-500);line-height:1.5;margin:0 0 12px; flex-grow:1;">${b.desc}</p>
+          <p style="font-size:0.78rem;color:var(--gray-500);line-height:1.5;margin:0 0 12px; flex-grow:1;">${escapeHtml(b.desc)}</p>
 
 
           <div style="display:flex;align-items:center;gap:8px;font-size:0.72rem; margin-bottom:8px;">
 
 
-            <span style="font-weight:600;color:var(--navy-600);">Floors: ${b.floors}</span>
+            <span style="font-weight:600;color:var(--navy-600);">Floors: ${escapeHtml(b.floors)}</span>
 
 
             <span style="color:var(--gray-400);">·</span>
@@ -2418,13 +2308,20 @@
           </div>
 
 
-          <button class="btn btn--primary btn--sm" style="margin-top:auto;width:100%;font-size:.75rem;" onclick="event.stopPropagation();showBuildingInside(${b.id})">View Inside</button>
+          <button class="btn btn--primary btn--sm" style="margin-top:auto;width:100%;font-size:.75rem;">View Inside</button>
 
 
         </div>
 
 
       `).join('');
+
+
+        // Stored values never flow into inline handlers: the click is wired here
+        // from the validated integer data-bid attribute (R1).
+        grid.querySelectorAll('.instr-bldg-card').forEach(card => {
+          card.addEventListener('click', () => showBuildingInside(Number(card.dataset.bid)));
+        });
 
 
       }
@@ -2453,9 +2350,6 @@
         if (!b) return;
 
 
-        const assignedNames = (CampuSphereData.instructorProfile.assignedRooms || []).map(r => r.room.toLowerCase());
-
-
 
         detail.classList.add('active');
 
@@ -2472,10 +2366,10 @@
           <div class="panel-card__header">
 
 
-            <h3 class="panel-card__title">${b.name} — Room Layout</h3>
+            <h3 class="panel-card__title">${escapeHtml(b.name)} — Room Layout</h3>
 
 
-            <button class="building-modal-close" onclick="closeInstrBuildingModal({target: {id: 'instrBuildingDetail'}})" aria-label="Close">✖</button>
+            <button class="building-modal-close" data-action="close-instr" aria-label="Close">✖</button>
 
 
           </div>
@@ -2487,7 +2381,7 @@
             <div class="building-floor-nav">
 
 
-              ${b.floorData.map((f, i) => `<button class="btn btn--sm ${i === 0 ? 'btn--primary' : 'btn--outline'}" onclick="showFloorInside(${id},${i},this)" style="font-size:.75rem;">${f.label}</button>`).join('')}
+              ${b.floorData.map((f, i) => `<button class="btn btn--sm ${i === 0 ? 'btn--primary' : 'btn--outline'}" data-bid="${Number(id)}" data-fi="${i}" style="font-size:.75rem;">${escapeHtml(f.label)}</button>`).join('')}
 
 
             </div>
@@ -2496,7 +2390,7 @@
             <div id="instrFloorContent">
 
 
-              ${renderFloorInside(b, 0, assignedNames)}
+              ${renderFloorInside(b, 0)}
 
 
             </div>
@@ -2510,6 +2404,17 @@
 
 
       `;
+
+        // Floor buttons carry validated integer data-* ids; no stored value is
+        // ever placed into an inline handler (R1).
+        const instrFloorNav = detail.querySelector('.building-floor-nav');
+        if (instrFloorNav) {
+          instrFloorNav.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-fi]');
+            if (!btn) return;
+            showFloorInside(Number(btn.dataset.bid), Number(btn.dataset.fi), btn);
+          });
+        }
 
       }
 
@@ -2526,10 +2431,7 @@
         if (!b) return;
 
 
-        const assignedNames = (CampuSphereData.instructorProfile.assignedRooms || []).map(r => r.room.toLowerCase());
-
-
-        document.getElementById('instrFloorContent').innerHTML = renderFloorInside(b, fi, assignedNames);
+        document.getElementById('instrFloorContent').innerHTML = renderFloorInside(b, fi);
 
 
         // Update active button
@@ -2547,7 +2449,7 @@
 
 
 
-      function renderFloorInside(b, fi, assignedNames) {
+      function renderFloorInside(b, fi) {
 
 
         const floor = b.floorData[fi];
@@ -2556,7 +2458,7 @@
         return `
 
 
-        <h4 class="building-floor-title">${floor.label}</h4>
+        <h4 class="building-floor-title">${escapeHtml(floor.label)}</h4>
 
 
         <div class="building-room-grid">
@@ -2565,19 +2467,16 @@
           ${floor.rooms.map(r => {
 
 
-          const isAssigned = assignedNames.some(a => a.includes(r.num.toLowerCase()));
+          return `<div class="room-card">
 
 
-          return `<div class="room-card ${isAssigned ? 'room-card--active' : ''}">
+              <div class="room-card__title">${escapeHtml(r.num)}</div>
 
 
-              <div class="room-card__title">${r.num} ${isAssigned ? '<span class="room-card__star">★</span>' : ''}</div>
+              <div class="room-card__use">${escapeHtml(r.use)}</div>
 
 
-              <div class="room-card__use">${r.use}</div>
-
-
-              <div class="room-card__cap">Capacity: ${r.capacity}</div>
+              <div class="room-card__cap">Capacity: ${escapeHtml(r.capacity)}</div>
 
 
             </div>`;
@@ -2622,22 +2521,22 @@
         grid.innerHTML = buildings.map(b => `
 
 
-        <div class="stat-card instr-bldg-card" style="cursor:pointer; display:flex; flex-direction:column; min-height:100%;" data-bid="${b.id}" onclick="showStudentBuildingInside(${b.id})">
+        <div class="stat-card instr-bldg-card" style="cursor:pointer; display:flex; flex-direction:column; min-height:100%;" data-bid="${Number(b.id)}">
 
 
           <div class="stat-card__icon stat-card__icon--blue">${catIcons[b.category] || '🏢'}</div>
 
 
-          <div class="stat-card__label" style="margin-bottom:4px;font-weight:700;">${b.name}</div>
+          <div class="stat-card__label" style="margin-bottom:4px;font-weight:700;">${escapeHtml(b.name)}</div>
 
 
-          <p style="font-size:0.78rem;color:var(--gray-500);line-height:1.5;margin:0 0 12px; flex-grow:1;">${b.desc}</p>
+          <p style="font-size:0.78rem;color:var(--gray-500);line-height:1.5;margin:0 0 12px; flex-grow:1;">${escapeHtml(b.desc)}</p>
 
 
           <div style="display:flex;align-items:center;gap:8px;font-size:0.72rem; margin-bottom:8px;">
 
 
-            <span style="font-weight:600;color:var(--navy-600);">Floors: ${b.floors}</span>
+            <span style="font-weight:600;color:var(--navy-600);">Floors: ${escapeHtml(b.floors)}</span>
 
 
             <span style="color:var(--gray-400);">·</span>
@@ -2649,13 +2548,20 @@
           </div>
 
 
-          <button class="btn btn--primary btn--sm" style="margin-top:auto;width:100%;font-size:.75rem;" onclick="event.stopPropagation();showStudentBuildingInside(${b.id})">View Inside</button>
+          <button class="btn btn--primary btn--sm" style="margin-top:auto;width:100%;font-size:.75rem;">View Inside</button>
 
 
         </div>
 
 
       `).join('');
+
+
+        // Click wired from the validated integer data-bid; no stored value in
+        // an inline handler (R1).
+        grid.querySelectorAll('.instr-bldg-card').forEach(card => {
+          card.addEventListener('click', () => showStudentBuildingInside(Number(card.dataset.bid)));
+        });
 
 
       }
@@ -2684,10 +2590,6 @@
         if (!b) return;
 
 
-        const scheduledNames = (CampuSphereData.schedule || []).map(r => r.room.toLowerCase());
-
-
-
         detail.classList.add('active');
 
 
@@ -2703,10 +2605,10 @@
           <div class="panel-card__header">
 
 
-            <h3 class="panel-card__title">${b.name} — Room Layout</h3>
+            <h3 class="panel-card__title">${escapeHtml(b.name)} — Room Layout</h3>
 
 
-            <button class="building-modal-close" onclick="closeStudentBuildingModal({target: {id: 'studentBuildingDetail'}})" aria-label="Close">✖</button>
+            <button class="building-modal-close" data-action="close-student" aria-label="Close">✖</button>
 
 
           </div>
@@ -2718,7 +2620,7 @@
             <div class="building-floor-nav">
 
 
-              ${b.floorData.map((f, i) => `<button class="btn btn--sm ${i === 0 ? 'btn--primary' : 'btn--outline'}" onclick="showStudentFloorInside(${id},${i},this)" style="font-size:.75rem;">${f.label}</button>`).join('')}
+              ${b.floorData.map((f, i) => `<button class="btn btn--sm ${i === 0 ? 'btn--primary' : 'btn--outline'}" data-bid="${Number(id)}" data-fi="${i}" style="font-size:.75rem;">${escapeHtml(f.label)}</button>`).join('')}
 
 
             </div>
@@ -2727,7 +2629,7 @@
             <div id="studentFloorContent">
 
 
-              ${renderStudentFloorInside(b, 0, scheduledNames)}
+              ${renderStudentFloorInside(b, 0)}
 
 
             </div>
@@ -2744,6 +2646,17 @@
 
       `;
 
+        // Floor buttons carry validated integer data-* ids; no stored value in
+        // an inline handler (R1).
+        const studentFloorNav = detail.querySelector('.building-floor-nav');
+        if (studentFloorNav) {
+          studentFloorNav.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-fi]');
+            if (!btn) return;
+            showStudentFloorInside(Number(btn.dataset.bid), Number(btn.dataset.fi), btn);
+          });
+        }
+
       }
 
 
@@ -2759,10 +2672,7 @@
         if (!b) return;
 
 
-        const scheduledNames = (CampuSphereData.schedule || []).map(r => r.room.toLowerCase());
-
-
-        document.getElementById('studentFloorContent').innerHTML = renderStudentFloorInside(b, fi, scheduledNames);
+        document.getElementById('studentFloorContent').innerHTML = renderStudentFloorInside(b, fi);
 
 
         // Update active button
@@ -2780,7 +2690,7 @@
 
 
 
-      function renderStudentFloorInside(b, fi, scheduledNames) {
+      function renderStudentFloorInside(b, fi) {
 
 
         const floor = b.floorData[fi];
@@ -2789,7 +2699,7 @@
         return `
 
 
-        <h4 class="building-floor-title">${floor.label}</h4>
+        <h4 class="building-floor-title">${escapeHtml(floor.label)}</h4>
 
 
         <div class="building-room-grid">
@@ -2798,19 +2708,16 @@
           ${floor.rooms.map(r => {
 
 
-          const isScheduled = scheduledNames.some(a => a.includes(r.num.toLowerCase()));
+          return `<div class="room-card">
 
 
-          return `<div class="room-card ${isScheduled ? 'room-card--active' : ''}">
+              <div class="room-card__title">${escapeHtml(r.num)}</div>
 
 
-              <div class="room-card__title">${r.num} ${isScheduled ? '<span class="room-card__star">★</span>' : ''}</div>
+              <div class="room-card__use">${escapeHtml(r.use)}</div>
 
 
-              <div class="room-card__use">${r.use}</div>
-
-
-              <div class="room-card__cap">Capacity: ${r.capacity}</div>
+              <div class="room-card__cap">Capacity: ${escapeHtml(r.capacity)}</div>
 
 
             </div>`;
@@ -2865,6 +2772,33 @@
 
 
       window.switchSection = switchSection;
+
+      // CSP (8.5): former inline onclick handlers (in the role templates + the
+      // JS-rendered building modals) now route through one delegated listener.
+      // Delegation on document handles dynamically-injected template content too.
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-action]');
+        if (!t) return;
+        var action = t.getAttribute('data-action');
+        if (action === 'section') {
+          switchSection(t.getAttribute('data-section'));
+        } else if (action === 'view-all-users') {
+          e.preventDefault();
+          var rs = document.getElementById('roleSelector');
+          if (rs) rs.value = 'admin';
+          switchSection('users');
+        } else if (action === 'close-student-overlay') {
+          closeStudentBuildingModal(e); // backdrop click; function checks e.target.id
+        } else if (action === 'close-instr-overlay') {
+          closeInstrBuildingModal(e);
+        } else if (action === 'close-student') {
+          closeStudentBuildingModal({ target: { id: 'studentBuildingDetail' } });
+        } else if (action === 'close-instr') {
+          closeInstrBuildingModal({ target: { id: 'instrBuildingDetail' } });
+        } else if (action === 'sim') {
+          alert(t.getAttribute('data-sim'));
+        }
+      });
 
 
       window.switchRole = switchRole;
@@ -2998,6 +2932,19 @@
       function initDashLeaflet(container) {
 
 
+        // M12.P1-R6: fail truthfully if the self-hosted Leaflet bundle is
+        // unavailable. Without this, L.map() threw a ReferenceError and the
+        // container was left as a silent blank panel that looked like an empty
+        // campus map.
+        if (typeof L === 'undefined') {
+          if (container) {
+            container.textContent = 'Live map engine is unavailable.';
+            container.setAttribute('role', 'status');
+          }
+          return;
+        }
+
+
         const map = L.map(container).setView([13.40591, 123.37362], 17);
 
 
@@ -3085,25 +3032,8 @@
 
 
 
-      // Mobile hamburger
-
-
-      const dashHamburger = document.getElementById('dashHamburger');
-
-
-      const dashTabs = document.getElementById('dashTabs');
-
-
-      dashHamburger.addEventListener('click', () => {
-
-
-        dashHamburger.classList.toggle('active');
-
-
-        dashTabs.classList.toggle('open');
-
-
-      });
+      // Mobile hamburger: owned by the shared /js/authenticated-nav.js
+      // client (M12.P1-D2)
 
 
 

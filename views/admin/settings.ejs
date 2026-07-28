@@ -2,12 +2,11 @@
 <html lang="en">
 
 <head>
-    <script>
+    <script nonce="<%= cspNonce %>">
         (function () {
             var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
             if (savedTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
             }
         })();
     </script>
@@ -16,8 +15,23 @@
     <title>CampuSphere Admin - Settings</title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/admin-styles.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <%# M12.P1-R6: Lucide is self-hosted at the exact reviewed 1.25.0 (see
+        public/vendor/manifest.json). The former unpkg "lucide@latest" reference
+        executed whatever build the CDN served at request time. %>
+    <script src="/vendor/lucide/lucide.min.js"></script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/admin/main.js" defer></script>
+    <script src="/js/admin/admin-settings.js" defer></script>
+    <style nonce="<%= cspNonce %>">
+        /* Shared toast + form-error patterns (same classes as the other admin pages) */
+        .admin-toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:2000;padding:0.75rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;color:#fff;transform:translateY(120%);opacity:0;transition:all 0.3s ease;pointer-events:none;}
+        .admin-toast--success{background:hsl(142 71% 45%);}
+        .admin-toast--error{background:var(--destructive);}
+        .admin-toast--show{transform:translateY(0);opacity:1;pointer-events:auto;}
+        .form-error{display:none;padding:0.625rem 0.875rem;border-radius:0.5rem;background:hsl(0 84% 60% / 0.1);color:var(--destructive);font-size:0.8125rem;border:1px solid hsl(0 84% 60% / 0.2);}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .animate-spin{animation:spin 1s linear infinite;}
+    </style>
 </head>
 
 <body class="admin-surface font-sans antialiased">
@@ -52,6 +66,9 @@
                 <a href="/admin/campus-map"
                     class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
                         data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/vr"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i
+                        data-lucide="globe" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">VR Tour</span></a>
                 <a href="/admin/settings"
                     class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i
                         data-lucide="settings" class="h-5 w-5 shrink-0"></i><span
@@ -66,8 +83,10 @@
                         <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
                         <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
                     </div>
-                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i
-                            data-lucide="log-out" class="h-4 w-4"></i></a>
+                    <form method="POST" action="/logout" class="logout-form" style="display:contents;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></button>
+                    </form>
                 </div>
             </div>
             <button id="sidebar-toggle"
@@ -81,168 +100,126 @@
             <header class="admin-page-header flex h-16 items-center justify-between border-b border-border bg-card px-6 shrink-0">
                 <div>
                     <h1 class="text-xl font-semibold text-foreground">Settings</h1>
-                    <p class="text-sm text-muted-foreground">Configure portal preferences and system options</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
-                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
-                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                            style="padding:0;min-width:1.25rem;">3</span></button>
-                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
-                        style="min-width:20rem;right:1.5rem;">
-                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
-                        <div class="h-px bg-border my-1"></div>
-                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
-                                class="font-medium text-foreground">New user registration</span><span
-                                class="text-xs text-muted-foreground">John Doe registered</span><span
-                                class="text-xs text-muted-foreground">2 min ago</span></div>
-                    </div>
+                    <p class="text-sm text-muted-foreground">Manage your institution's public information</p>
                 </div>
             </header>
 
             <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
-                <div class="mx-auto max-w-4xl" style="display:flex;flex-direction:column;gap:1.5rem;">
+                <div class="mx-auto max-w-3xl" style="display:flex;flex-direction:column;gap:1.5rem;">
 
-                    <!-- General Settings -->
-                    <div class="ui-card border-border">
-                        <div class="p-6 pb-3" style="border-bottom:none;">
-                            <div class="flex items-center gap-3"><i data-lucide="settings"
-                                    class="h-5 w-5 text-primary"></i>
-                                <div>
-                                    <h3 class="text-lg font-semibold tracking-tight text-foreground">General Settings
-                                    </h3>
-                                    <p class="text-sm text-muted-foreground">Basic portal configuration</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-6 pt-3" style="display:flex;flex-direction:column;gap:1.25rem;">
-                            <div style="display:flex;flex-direction:column;gap:0.375rem;">
-                                <label class="text-sm font-medium text-foreground">Portal Name</label>
-                                <input type="text" value="CampusSphere" class="ui-input" style="max-width:24rem;">
-                            </div>
-                            <div style="display:flex;flex-direction:column;gap:0.375rem;">
-                                <label class="text-sm font-medium text-foreground">Institution</label>
-                                <input type="text" value="Camarines Sur Polytechnic Colleges" class="ui-input"
-                                    style="max-width:24rem;">
-                            </div>
-                            <div style="display:flex;flex-direction:column;gap:0.375rem;">
-                                <label class="text-sm font-medium text-foreground">Contact Email</label>
-                                <input type="email" value="admin@cspc.edu.ph" class="ui-input" style="max-width:24rem;">
-                            </div>
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">Maintenance Mode</label>
-                                    <p class="text-xs text-muted-foreground">Temporarily disable public access</p>
-                                </div>
-                                <div class="ui-switch" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                        </div>
+                    <div id="settings-loading" class="settings-state" role="status">
+                        <i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i>
+                        <p class="text-sm text-muted-foreground">Loading settings…</p>
                     </div>
 
-                    <!-- Authentication -->
-                    <div class="ui-card border-border">
-                        <div class="p-6 pb-3" style="border-bottom:none;">
-                            <div class="flex items-center gap-3"><i data-lucide="shield"
-                                    class="h-5 w-5 text-primary"></i>
-                                <div>
-                                    <h3 class="text-lg font-semibold tracking-tight text-foreground">Authentication</h3>
-                                    <p class="text-sm text-muted-foreground">Login and security settings</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-6 pt-3" style="display:flex;flex-direction:column;gap:1.25rem;">
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">Google Sign-In</label>
-                                    <p class="text-xs text-muted-foreground">Allow Google authentication</p>
-                                </div>
-                                <div class="ui-switch active" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">Email Verification</label>
-                                    <p class="text-xs text-muted-foreground">Require email verification</p>
-                                </div>
-                                <div class="ui-switch active" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                            <div style="display:flex;flex-direction:column;gap:0.375rem;">
-                                <label class="text-sm font-medium text-foreground">Session Timeout (minutes)</label>
-                                <input type="number" value="30" class="ui-input" style="max-width:10rem;">
-                            </div>
-                        </div>
+                    <div id="settings-error" class="settings-state" hidden>
+                        <i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i>
+                        <p class="text-sm text-muted-foreground">Could not load settings. Please try again.</p>
+                        <button id="settings-retry-btn" type="button" class="ui-button ui-button-outline ui-button-size-sm">
+                            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry
+                        </button>
                     </div>
 
-                    <!-- Notifications -->
-                    <div class="ui-card border-border">
-                        <div class="p-6 pb-3" style="border-bottom:none;">
-                            <div class="flex items-center gap-3"><i data-lucide="bell" class="h-5 w-5 text-primary"></i>
-                                <div>
-                                    <h3 class="text-lg font-semibold tracking-tight text-foreground">Notifications</h3>
-                                    <p class="text-sm text-muted-foreground">Email and alert preferences</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-6 pt-3" style="display:flex;flex-direction:column;gap:1.25rem;">
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">New User Alerts</label>
-                                    <p class="text-xs text-muted-foreground">Email on new registrations</p>
-                                </div>
-                                <div class="ui-switch active" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">System Error Alerts</label>
-                                    <p class="text-xs text-muted-foreground">Email on system errors</p>
-                                </div>
-                                <div class="ui-switch active" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">Weekly Reports</label>
-                                    <p class="text-xs text-muted-foreground">Receive weekly analytics</p>
-                                </div>
-                                <div class="ui-switch" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <form id="settings-form" novalidate hidden autocomplete="off"
+                        style="display:flex;flex-direction:column;gap:1.5rem;">
+                        <div class="form-error" id="settings-form-error" role="alert"></div>
 
-                    <!-- Database -->
-                    <div class="ui-card border-border">
-                        <div class="p-6 pb-3" style="border-bottom:none;">
-                            <div class="flex items-center gap-3"><i data-lucide="database"
-                                    class="h-5 w-5 text-primary"></i>
-                                <div>
-                                    <h3 class="text-lg font-semibold tracking-tight text-foreground">Database</h3>
-                                    <p class="text-sm text-muted-foreground">Database connection and backup settings</p>
+                        <!-- Institution -->
+                        <div class="ui-card border-border">
+                            <div class="p-6 pb-3" style="border-bottom:none;">
+                                <div class="flex items-center gap-3"><i data-lucide="building-2" class="h-5 w-5 text-primary"></i>
+                                    <div>
+                                        <h3 class="text-lg font-semibold tracking-tight text-foreground">Institution</h3>
+                                        <p class="text-sm text-muted-foreground">Name, identity, and description</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6 pt-3 settings-card-body">
+                                <div class="settings-field">
+                                    <label for="set-school_name">School name</label>
+                                    <input id="set-school_name" name="school_name" type="text" class="ui-input" maxlength="150" autocomplete="organization" aria-describedby="err-school_name">
+                                    <p class="field-error" id="err-school_name" role="alert" hidden></p>
+                                </div>
+                                <div class="settings-row two">
+                                    <div class="settings-field">
+                                        <label for="set-school_acronym">Acronym</label>
+                                        <input id="set-school_acronym" name="school_acronym" type="text" class="ui-input" maxlength="20" aria-describedby="err-school_acronym">
+                                        <p class="field-error" id="err-school_acronym" role="alert" hidden></p>
+                                    </div>
+                                    <div class="settings-field">
+                                        <label for="set-school_founded">Founded year</label>
+                                        <input id="set-school_founded" name="school_founded" type="number" class="ui-input" min="1900" step="1" inputmode="numeric" aria-describedby="err-school_founded">
+                                        <p class="field-error" id="err-school_founded" role="alert" hidden></p>
+                                    </div>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="set-school_address">School address</label>
+                                    <input id="set-school_address" name="school_address" type="text" class="ui-input" maxlength="255" autocomplete="off" aria-describedby="err-school_address">
+                                    <p class="field-error" id="err-school_address" role="alert" hidden></p>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="set-school_description">Description</label>
+                                    <textarea id="set-school_description" name="school_description" class="ui-input" maxlength="2000" rows="4" aria-describedby="err-school_description"></textarea>
+                                    <p class="field-error" id="err-school_description" role="alert" hidden></p>
                                 </div>
                             </div>
                         </div>
-                        <div class="p-6 pt-3" style="display:flex;flex-direction:column;gap:1.25rem;">
-                            <div style="display:flex;flex-direction:column;gap:0.375rem;">
-                                <label class="text-sm font-medium text-foreground">Database URI</label>
-                                <input type="text" value="mongodb+srv://admin:****@cluster0.mongodb.net/campussphere"
-                                    class="ui-input" style="max-width:32rem;">
-                            </div>
-                            <div class="flex items-center justify-between" style="max-width:24rem;">
-                                <div><label class="text-sm font-medium text-foreground">Auto Backup</label>
-                                    <p class="text-xs text-muted-foreground">Daily automatic backups</p>
-                                </div>
-                                <div class="ui-switch active" onclick="this.classList.toggle('active')"></div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button class="ui-button ui-button-outline ui-button-size-default"><i
-                                        data-lucide="download" class="mr-2 h-4 w-4"></i>Backup Now</button>
-                                <button class="ui-button ui-button-outline ui-button-size-default"><i
-                                        data-lucide="upload" class="mr-2 h-4 w-4"></i>Restore</button>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Save -->
-                    <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-                        <button class="ui-button ui-button-outline ui-button-size-default">Cancel</button>
-                        <button class="ui-button ui-button-default ui-button-size-default"><i data-lucide="save"
-                                class="mr-2 h-4 w-4"></i>Save Changes</button>
-                    </div>
+                        <!-- Contact -->
+                        <div class="ui-card border-border">
+                            <div class="p-6 pb-3" style="border-bottom:none;">
+                                <div class="flex items-center gap-3"><i data-lucide="phone" class="h-5 w-5 text-primary"></i>
+                                    <div>
+                                        <h3 class="text-lg font-semibold tracking-tight text-foreground">Contact</h3>
+                                        <p class="text-sm text-muted-foreground">How visitors can reach the institution</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6 pt-3 settings-card-body">
+                                <div class="settings-field">
+                                    <label for="set-contact_address">Contact address</label>
+                                    <input id="set-contact_address" name="contact_address" type="text" class="ui-input" maxlength="255" autocomplete="off" aria-describedby="err-contact_address">
+                                    <p class="field-error" id="err-contact_address" role="alert" hidden></p>
+                                </div>
+                                <div class="settings-row two">
+                                    <div class="settings-field">
+                                        <label for="set-contact_phone">Phone</label>
+                                        <input id="set-contact_phone" name="contact_phone" type="text" class="ui-input" maxlength="50" autocomplete="tel" aria-describedby="err-contact_phone">
+                                        <p class="field-error" id="err-contact_phone" role="alert" hidden></p>
+                                    </div>
+                                    <div class="settings-field">
+                                        <label for="set-contact_email">Email</label>
+                                        <input id="set-contact_email" name="contact_email" type="email" class="ui-input" maxlength="254" autocomplete="email" aria-describedby="err-contact_email">
+                                        <p class="field-error" id="err-contact_email" role="alert" hidden></p>
+                                    </div>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="set-contact_website">Website</label>
+                                    <input id="set-contact_website" name="contact_website" type="url" class="ui-input" maxlength="2048" autocomplete="url" placeholder="https://example.edu.ph" aria-describedby="err-contact_website">
+                                    <p class="field-error" id="err-contact_website" role="alert" hidden></p>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="set-contact_hours">Office hours</label>
+                                    <input id="set-contact_hours" name="contact_hours" type="text" class="ui-input" maxlength="255" autocomplete="off" aria-describedby="err-contact_hours">
+                                    <p class="field-error" id="err-contact_hours" role="alert" hidden></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="button" id="settings-reset-btn" class="ui-button ui-button-outline ui-button-size-default">Reset</button>
+                            <button type="submit" id="settings-save-btn" class="ui-button ui-button-default ui-button-size-default">
+                                <i data-lucide="save" class="h-4 w-4 mr-2"></i><span id="settings-save-label">Save Changes</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </main>
         </div>
     </div>
+
+    <div id="admin-toast" class="admin-toast" role="status" aria-live="polite"></div>
+
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
         <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -261,7 +238,8 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
     </button>
-    <script>lucide.createIcons();</script>
+    <%# M12.P1-R6: guarded so a missing Lucide bundle cannot throw and abort the page. %>
+    <script nonce="<%= cspNonce %>">if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); }</script>
 </body>
 
 </html>

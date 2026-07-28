@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const requireLogin = require('../middleware/requireLogin');
+const { requireLogin } = require('../middleware/roleAuth');
 const dashboardController = require('../controllers/dashboardController');
 
 // GET /dashboard — Main dashboard (authenticated)

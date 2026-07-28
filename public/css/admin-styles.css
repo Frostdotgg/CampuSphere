@@ -1,3 +1,11 @@
+/* Dark-theme early-paint fallback (Milestone 8, Section 8.5) — replaces the
+   former inline document.write('<style>…') in the admin page heads. */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+    background-color: #111827 !important;
+    color: #e5e7eb !important;
+}
+
 .admin-surface {
     background: #eef3f8;
 }
@@ -63,7 +71,7 @@
 }
 
 .admin-page-header > div:first-child::before {
-    content: "CampusSphere Admin";
+    content: "CampuSphere Admin";
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
@@ -269,5 +277,1262 @@
 
     .admin-workspace {
         padding: 1rem !important;
+    }
+
+    /* 44px minimum touch targets for the sidebar controls on mobile.
+       The toggle carries an inline 1.5rem size, so !important is required. */
+    #sidebar-toggle {
+        width: 2.75rem !important;
+        height: 2.75rem !important;
+        right: -1.375rem;
+    }
+
+    #sidebar nav a {
+        min-height: 44px;
+        align-items: center;
+    }
+
+    #sidebar a.ui-button-size-icon[href="/logout"],
+    #sidebar .logout-form button.ui-button-size-icon {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+}
+
+/* ============================================
+   FAQ admin page (Milestone 7, Section 7.5)
+   Narrowly scoped faq-* rules only.
+   ============================================ */
+
+.faq-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.faq-actions-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.faq-search-wrap {
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: 28rem;
+}
+
+.faq-category-select {
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    max-width: 14rem;
+}
+
+/* Loading / error / empty / filtered-empty states */
+.faq-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+
+.faq-state[hidden] {
+    display: none;
+}
+
+/* Long question / answer / category content must wrap, never overflow */
+.faq-question-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
+    text-align: left;
+}
+
+.faq-answer-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-line;
+}
+
+.faq-category-badge {
+    max-width: 12rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: left;
+    line-height: 1.3;
+    height: auto;
+}
+
+.faq-summary-row {
+    min-width: 0;
+}
+
+.faq-item-summary {
+    min-height: 44px;
+    align-items: center;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    /* Let the question and category badge wrap onto separate lines instead
+       of fighting for the narrow summary row. */
+    .faq-summary-row {
+        flex-wrap: wrap;
+        row-gap: 0.375rem;
+    }
+
+    /* The badge container is content-sized (shrink-0 utility); give it a
+       real bound so the badge's max-width has something to resolve against. */
+    .faq-summary-row > .flex {
+        margin-left: 0;
+        flex-shrink: 1 !important;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .faq-category-badge {
+        max-width: 100%;
+    }
+
+    .faq-actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .faq-actions-controls {
+        flex-direction: column;
+        align-items: stretch;
+        flex-basis: auto;
+    }
+
+    .faq-search-wrap {
+        max-width: none;
+    }
+
+    .faq-category-select {
+        max-width: none;
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .faq-actions-bar .ui-button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .faq-action-btn {
+        min-height: 44px;
+        min-width: 44px;
+        flex: 1;
+    }
+
+    .faq-item-foot {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .faq-item-actions {
+        width: 100%;
+    }
+
+    /* Keep the create/edit and delete modals scrollable on short screens */
+    #faq-modal .modal-box,
+    #faq-delete-modal .modal-box {
+        max-height: 85vh;
+    }
+}
+
+/* ============================================
+   Settings admin page (Milestone 7, Section 7.6)
+   Narrowly scoped settings-* rules only.
+   ============================================ */
+
+.settings-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+
+.settings-state[hidden] {
+    display: none;
+}
+
+.settings-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+}
+
+.settings-field label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.settings-field .ui-input,
+.settings-field textarea.ui-input {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.settings-field textarea.ui-input {
+    height: auto;
+    min-height: 7rem;
+    padding: 0.625rem 0.75rem;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.settings-field input[aria-invalid="true"],
+.settings-field textarea[aria-invalid="true"] {
+    border-color: var(--destructive);
+}
+
+/* Visible focus state for keyboard users */
+.settings-field .ui-input:focus-visible,
+.settings-field textarea.ui-input:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.field-error {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--destructive);
+    overflow-wrap: anywhere;
+}
+
+.field-error[hidden] {
+    display: none;
+}
+
+.settings-row.two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .settings-row.two {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-actions {
+        flex-direction: column-reverse;
+    }
+
+    .settings-actions .ui-button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    #settings-retry-btn {
+        min-height: 44px;
+    }
+}
+
+/* ============================================
+   System Logs (Milestone 7, Section 7.7)
+   Read-only audit view: summary cards, filters, desktop table +
+   mobile card list, and pagination. Scoped under .logs-*.
+   ============================================ */
+
+/* Summary cards */
+.logs-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+/* Loading / error / empty / filtered-empty states */
+.logs-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.logs-state[hidden] {
+    display: none;
+}
+
+/* Filters */
+.logs-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.logs-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1 1 150px;
+    min-width: 150px;
+}
+
+.logs-filter-search {
+    flex: 2 1 220px;
+}
+
+.logs-filter-field label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+.logs-filter-field .ui-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.logs-filter-field .ui-input:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.logs-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    flex: 1 1 auto;
+}
+
+.logs-filter-error {
+    flex-basis: 100%;
+    margin: 0.25rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--destructive);
+}
+
+.logs-filter-error[hidden] {
+    display: none;
+}
+
+/* Results header (title + range) */
+.logs-results-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 1.5rem 0.75rem;
+}
+
+/* Badges */
+.logs-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+
+.logs-event {
+    color: var(--muted-foreground);
+    background: transparent;
+    border: 1px solid var(--border);
+}
+
+.logs-outcome-success {
+    color: hsl(142 71% 38%);
+    background: hsl(142 71% 45% / 0.12);
+    border: 1px solid hsl(142 71% 45% / 0.25);
+}
+
+.logs-outcome-failure {
+    color: var(--destructive);
+    background: hsl(0 84% 60% / 0.12);
+    border: 1px solid hsl(0 84% 60% / 0.25);
+}
+
+.logs-outcome-denied {
+    color: hsl(33 92% 42%);
+    background: hsl(38 92% 50% / 0.14);
+    border: 1px solid hsl(38 92% 50% / 0.28);
+}
+
+.logs-outcome-other {
+    color: var(--muted-foreground);
+    background: hsl(0 0% 50% / 0.12);
+    border: 1px solid var(--border);
+}
+
+/* Desktop table */
+.logs-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.logs-table {
+    width: 100%;
+}
+
+.logs-table th,
+.logs-table td {
+    text-align: left;
+    vertical-align: top;
+}
+
+.logs-cell-time span {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.logs-cell-action {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+}
+
+.logs-cell-stack {
+    display: flex;
+    flex-direction: column;
+}
+
+.logs-cell-primary {
+    font-size: 0.8125rem;
+    word-break: break-word;
+}
+
+.logs-cell-secondary {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    word-break: break-word;
+}
+
+.logs-cell-message {
+    max-width: 280px;
+    font-size: 0.8125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Mobile card list (hidden on desktop) */
+.logs-card-list {
+    display: none;
+}
+
+.logs-card {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.85rem;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.logs-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.logs-card-time {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+}
+
+.logs-card-row {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.logs-card-label {
+    flex: 0 0 5.5rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.logs-card-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+}
+
+/* Pagination */
+.logs-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.logs-pagination[hidden] {
+    display: none;
+}
+
+/* Tablet / mobile: switch the table for the card list and enlarge touch targets */
+@media (max-width: 768px) {
+    .logs-table-wrap {
+        display: none;
+    }
+
+    .logs-card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+    }
+
+    .logs-results-head {
+        padding: 1rem 1rem 0.5rem;
+    }
+
+    .logs-filter-field,
+    .logs-filter-search {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .logs-filter-field .ui-input {
+        min-height: 44px;
+    }
+
+    .logs-filter-actions {
+        flex-wrap: wrap;
+    }
+
+    .logs-filter-actions .ui-button {
+        flex: 1 1 auto;
+        min-height: 44px;
+    }
+
+    .logs-pagination {
+        padding: 1rem;
+    }
+
+    .logs-pagination .ui-button {
+        min-height: 44px;
+    }
+}
+
+/* ============================================
+   VR Scene & Hotspot Administration (Section 7.8)
+   ============================================ */
+
+.vr-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.vr-actions-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.vr-search-wrap {
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: 28rem;
+}
+
+.vr-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+
+.vr-state[hidden] {
+    display: none;
+}
+
+.vr-scene-card {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.875rem;
+    background: var(--card);
+}
+
+.vr-scene-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.vr-scene-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--foreground);
+}
+
+.vr-scene-titlewrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vr-scene-key {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    word-break: break-word;
+}
+
+.vr-scene-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--foreground);
+    word-break: break-word;
+}
+
+.vr-scene-actions,
+.vr-hotspot-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.vr-scene-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.625rem;
+}
+
+.vr-badge {
+    font-size: 0.7rem;
+}
+
+.vr-badge-muted {
+    background: var(--muted, hsl(210 40% 96%));
+    color: var(--muted-foreground);
+    border-color: var(--border);
+}
+
+.vr-badge-type {
+    background: hsl(221 83% 53% / 0.1);
+    color: hsl(221 83% 53%);
+    border-color: hsl(221 83% 53% / 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.vr-scene-desc {
+    flex-basis: 100%;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin: 0.375rem 0 0;
+    word-break: break-word;
+}
+
+.vr-scene-hotspots {
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+}
+
+.vr-hotspots-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+    flex-wrap: wrap;
+}
+
+.vr-hotspots-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.vr-hotspots-note {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    padding: 0.5rem 0;
+    margin: 0;
+}
+
+.vr-hotspots-error {
+    color: var(--destructive);
+}
+
+.vr-hotspot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--border);
+    flex-wrap: wrap;
+}
+
+.vr-hotspot-row:last-child {
+    border-bottom: none;
+}
+
+.vr-hotspot-info {
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+.vr-hotspot-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.vr-hotspot-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+    word-break: break-word;
+}
+
+.vr-hotspot-sub {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 0.2rem;
+    word-break: break-word;
+}
+
+@media (max-width: 640px) {
+    .vr-actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .vr-actions-controls {
+        flex-direction: column;
+        align-items: stretch;
+        flex-basis: auto;
+    }
+
+    .vr-search-wrap {
+        max-width: none;
+    }
+
+    .vr-actions-bar > .ui-button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .vr-scene-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .vr-scene-actions,
+    .vr-hotspot-actions {
+        justify-content: flex-end;
+    }
+
+    .vr-scene-actions .vr-action-btn,
+    .vr-hotspot-actions .vr-action-btn,
+    .vr-hotspots-head .ui-button {
+        min-height: 44px;
+        flex: 1 1 auto;
+    }
+
+    .vr-hotspot-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ============================================
+   Route / Graph Administration (Section 7.9)
+   ============================================ */
+
+#buildings-grid .dropdown-trigger.ui-button-size-icon {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 0 0 44px;
+}
+
+@media (max-width: 640px) {
+    #bld-cat-filter-btn,
+    #add-building-btn {
+        min-height: 44px;
+    }
+}
+
+.graph-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.graph-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.graph-tab--active {
+    color: var(--foreground);
+    border-bottom-color: var(--primary);
+}
+
+.graph-panel[hidden] {
+    display: none;
+}
+
+.graph-panel-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.graph-search-wrap {
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: 24rem;
+}
+
+.graph-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.graph-state[hidden] {
+    display: none;
+}
+
+.steps-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) auto auto auto;
+    gap: 0.4rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.steps-row .ui-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.steps-mini {
+    min-width: 2.25rem;
+    padding: 0 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .graph-panel-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .graph-search-wrap {
+        max-width: none;
+    }
+
+    .graph-panel-bar > .ui-button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .steps-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .steps-row .steps-instruction {
+        grid-column: 1 / -1;
+    }
+
+    .steps-mini {
+        min-height: 44px;
+    }
+}
+
+/* ============================================================
+   M12.P1-D4 — Campus-map schedule & graph search controls
+   Scoped to the new search/filter/status elements on
+   /admin/campus-map only; no unrelated admin UI is restyled.
+   ============================================================ */
+
+/* Labelled search field inside the schedule filter bar. */
+.admin-search-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    flex: 1 1 240px;
+    max-width: 340px;
+}
+
+.admin-search-field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.admin-search-field input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* The filter bar wraps instead of overflowing horizontally. Alignment is
+   applied only above the shared 640px graph breakpoint, so it cannot fight
+   the stacked mobile layout the graph rules already establish. */
+@media (min-width: 641px) {
+    .admin-filter-bar {
+        align-items: flex-end;
+    }
+}
+
+/* Live "N of total" summaries (panel-level and field-level). The muted token
+   is used deliberately: it matches the surrounding secondary admin text and
+   was MEASURED at 4.83:1 on the light card and 7.4:1 on the dark card, both
+   above the WCAG AA 4.5:1 minimum for normal text. */
+.admin-result-status {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    min-height: 1.25rem;
+}
+
+.admin-field-count {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+/* Visible keyboard focus for every new control, in both themes. */
+.admin-search-field input:focus-visible,
+#schedule-search:focus-visible,
+#schedule-building-search:focus-visible,
+#edge-from-search:focus-visible,
+#edge-to-search:focus-visible,
+#schedule-clear-filters:focus-visible,
+#schedule-apply-filters:focus-visible {
+    outline: 2px solid var(--ring, var(--primary));
+    outline-offset: 2px;
+}
+
+/* Truthful disabled/loading state while a filter request is current. */
+#schedule-apply-filters[aria-busy="true"],
+#schedule-apply-filters:disabled,
+#edge-from-search:disabled,
+#edge-to-search:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    /* Full-width, comfortably tappable controls; never a horizontal scroll.
+       640px matches the existing .graph-panel-bar breakpoint so Apply and
+       Clear stack together rather than splitting across rows. */
+    .admin-search-field {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .admin-search-field input,
+    #schedule-search,
+    #schedule-building-search,
+    #edge-from-search,
+    #edge-to-search {
+        min-height: 44px;
+    }
+
+    #schedule-clear-filters {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+/* ============================================================
+   M12.P1-D5 — Friendly Building Additional-Details Editor
+   Scoped to the Building modal on /admin/campus-map only
+   (.modal-box--building + .bde-*); no unrelated admin UI is
+   restyled and no new framework/font/icon dependency is added.
+   ============================================================ */
+
+/* The nested editor needs more room than the 520px default, while
+   keeping the viewport bounds and scrollable modal body. */
+#building-modal .modal-box--building {
+    max-width: 720px;
+}
+
+.bde-title {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+    margin-bottom: 0.375rem;
+}
+
+.bde-section {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.875rem 0.875rem;
+    margin: 0.75rem 0 0;
+    min-width: 0;
+}
+
+.bde-legend {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    padding: 0 0.35rem;
+}
+
+.bde-legend--sub {
+    font-weight: 500;
+}
+
+.bde-floor {
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.75rem 0.75rem;
+    margin: 0.5rem 0;
+    min-width: 0;
+}
+
+.bde-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0.5rem;
+    min-width: 0;
+}
+
+.bde-row {
+    display: grid;
+    gap: 0.5rem;
+    align-items: end;
+    min-width: 0;
+}
+
+.bde-row--single {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bde-row--info {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+}
+
+.bde-row--room {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1fr) auto;
+}
+
+.bde-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.bde-label {
+    /* M12.P1-D5 corrective: >= 0.75rem (12px) for readable helper text. */
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.bde-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.bde-field-error {
+    margin: 0;
+    /* M12.P1-D5 corrective: >= 0.75rem (12px). */
+    font-size: 0.75rem;
+    color: var(--destructive);
+}
+
+.bde-field-error[hidden] {
+    display: none;
+}
+
+.bde-input[aria-invalid="true"] {
+    border-color: var(--destructive);
+}
+
+.bde-add,
+.bde-remove {
+    align-self: start;
+    white-space: nowrap;
+}
+
+.bde-remove {
+    color: var(--destructive);
+}
+
+/* Read-only preserved legacy items keep their original position. */
+.bde-preserved {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    background: transparent;
+}
+
+.bde-preserved__tag {
+    /* M12.P1-D5 corrective: >= 0.75rem (12px). */
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bde-preserved__value {
+    /* M12.P1-D5 corrective: >= 0.75rem (12px). */
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* A supported key holding a valid but unsupported shape: visible
+   "Legacy data preserved" state; editing disabled for the section. */
+.bde-section.bde-legacy {
+    opacity: 0.85;
+}
+
+.bde-legacy-note {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+}
+
+.bde-passthrough-note {
+    margin: 0.5rem 0 0;
+    /* M12.P1-D5 corrective: >= 0.75rem (12px). */
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+/* Parse failure: fixed actionable message; saving stays disabled. */
+.bde-blocked {
+    border: 1px solid hsl(0 84% 60% / 0.35);
+    background: hsl(0 84% 60% / 0.08);
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+}
+
+.bde-blocked__msg {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--destructive);
+}
+
+/* Visible keyboard focus for the editor controls in both themes. */
+.bde-input:focus-visible,
+.bde-add:focus-visible,
+.bde-remove:focus-visible {
+    outline: 2px solid var(--ring, var(--primary));
+    outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    /* Stack every editor row; 44px minimum targets; no horizontal
+       scrolling at 390px (inputs stay inside the modal box). */
+    .bde-row--single,
+    .bde-row--info,
+    .bde-row--room {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .bde-input,
+    .bde-add,
+    .bde-remove {
+        min-height: 44px;
+    }
+
+    .bde-add,
+    .bde-remove {
+        width: 100%;
     }
 }

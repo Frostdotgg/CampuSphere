@@ -79,6 +79,15 @@ body {
     transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
+/* Dark-theme early-paint fallback (Milestone 8, Section 8.5) — replaces the
+   former inline document.write('<style>…') in head.ejs. Applies the moment the
+   theme script sets data-theme="dark" on <html>, since this stylesheet is parsed
+   before that script runs. */
+html[data-theme="dark"] {
+    background-color: #111827;
+    color: #e5e7eb;
+}
+
 [data-theme="dark"] body {
     background-color: #111827;
     color: #f3f4f6;
@@ -513,6 +522,14 @@ h6 {
     border-style: dashed;
     animation-direction: reverse;
     animation-duration: 45s;
+}
+
+/* Auth button loading spinner (Milestone 8, Section 8.5) — moved here from the
+   former runtime document.createElement('style') in auth.ejs so it is CSP-clean. */
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes spin-slow {
@@ -991,7 +1008,7 @@ h6 {
 }
 
 /* ========================================
-   ANIMATIONS â€” Scroll Reveal
+   ANIMATIONS - Scroll Reveal
    ======================================== */
 .reveal {
     opacity: 0;
@@ -1793,7 +1810,7 @@ select.edit-form-input {
    ======================================== */
 
 /* ========================================
-   HOME DASHBOARD â€” Styles
+   HOME DASHBOARD - Styles
    ======================================== */
 
 /* ---- Dashboard Navbar ---- */
@@ -1941,6 +1958,25 @@ iconify-icon {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.dash-nav__login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-xl);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background var(--transition-fast);
+}
+
+.dash-nav__login-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
 .dash-nav__avatar {
     width: 34px;
     height: 34px;
@@ -1970,11 +2006,16 @@ iconify-icon {
 .dash-nav__hamburger {
     display: none;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 5px;
     background: none;
     border: none;
     cursor: pointer;
     padding: var(--space-sm);
+    /* M12.P1-D2: minimum 44x44 touch target with centered bars */
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .dash-nav__hamburger span {
@@ -1983,7 +2024,21 @@ iconify-icon {
     height: 2.5px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 2px;
-    transition: all var(--transition-base);
+    /* M12.P1-D2: explicit transform/opacity properties only */
+    transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+/* M12.P1-D2: clearly visible high-contrast keyboard focus (existing palette) */
+.dash-nav__hamburger:focus-visible,
+.dash-nav__tab:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-nav__hamburger span {
+        transition: none;
+    }
 }
 
 /* ---- Dashboard Hero Banner ---- */
@@ -2416,7 +2471,7 @@ iconify-icon {
 }
 
 /* ========================================
-   RESPONSIVE â€” Dashboard
+   RESPONSIVE - Dashboard
    ======================================== */
 
 @media (max-width: 1100px) {
@@ -2466,6 +2521,11 @@ iconify-icon {
 
     .dash-nav__hamburger {
         display: flex;
+    }
+
+    /* M12.P1-D2: mobile menu items are at least 44px-high touch targets */
+    .dash-nav__tab {
+        min-height: 44px;
     }
 
     .dash-nav__hamburger.active span:nth-child(1) {
@@ -2524,7 +2584,7 @@ iconify-icon {
 }
 
 /* ========================================
-   DARK MODE â€” Dashboard
+   DARK MODE - Dashboard
    ======================================== */
 [data-theme="dark"] .dash-nav {
     background: rgba(17, 24, 39, 0.95);
@@ -2619,7 +2679,7 @@ iconify-icon {
    ======================================== */
 
 /* ========================================
-   ROLE-BASED DASHBOARD â€” Styles
+   ROLE-BASED DASHBOARD - Styles
    ======================================== */
 
 /* Layout */
@@ -3176,7 +3236,7 @@ iconify-icon {
 }
 
 /* ========================================
-   DARK MODE â€” Dashboard
+   DARK MODE - Dashboard
    ======================================== */
 [data-theme="dark"] .sidebar {
     background: #111827;
@@ -3275,7 +3335,7 @@ iconify-icon {
 }
 
 /* ========================================
-   RESPONSIVE â€” Dashboard
+   RESPONSIVE - Dashboard
    ======================================== */
 @media (max-width: 900px) {
     .sidebar {
@@ -5126,6 +5186,13 @@ a.btn-google {
     pointer-events: all;
 }
 
+/* BE.5: the closed dialog is fully removed from layout, keyboard navigation,
+   and the accessibility tree — opacity/pointer-events alone left its controls
+   Tab-reachable. Placed after .open so the hidden state wins a specificity tie. */
+.route-modal-overlay[hidden] {
+    display: none;
+}
+
 .route-modal {
     background: var(--white);
     border-radius: var(--radius-xl);
@@ -5191,6 +5258,22 @@ a.btn-google {
     overflow-y: auto;
     flex: 1;
     padding: 1.25rem 1.5rem;
+}
+
+/* VR launch action inside route summary / route modal (Milestone 5).
+   New class - additive, does not affect existing pages. */
+.route-modal__vr {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.route-modal__vr .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Restricted warning */
@@ -5315,7 +5398,7 @@ a.btn-google {
     background: #16a34a;
 }
 
-/* ===== DARK MODE â€” Routes ===== */
+/* ===== DARK MODE - Routes ===== */
 [data-theme="dark"] .route-modal {
     background: #111827;
 }
@@ -5972,12 +6055,26 @@ a.btn-google {
     cursor: pointer;
     transition: all 0.2s ease;
     background: var(--white);
+    /* Native <button> reset (BE.5 keyboard access): results are real buttons
+       but must keep the original card layout and typography. */
+    width: 100%;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
 }
 
 .map-bldg-item:hover {
     border-color: var(--navy-300);
     box-shadow: var(--shadow-sm);
     transform: translateY(-2px);
+}
+
+.map-bldg-item:focus-visible {
+    outline: 3px solid var(--navy-500);
+    outline-offset: 2px;
 }
 
 .map-bldg-item.active {
@@ -6036,6 +6133,210 @@ a.btn-google {
     /* Map background fallback */
 }
 
+.map-view--fallback {
+    overflow: hidden;
+    background: #e9ece7;
+}
+
+/* Minimal local Leaflet layout fallback for CDN stylesheet failures. */
+.leaflet-container {
+    overflow: hidden;
+    background: #dddddd;
+    outline: 0;
+}
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.leaflet-tile {
+    width: 256px;
+    height: 256px;
+    border: 0;
+}
+
+.leaflet-map-pane { z-index: 400; }
+.leaflet-tile-pane { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane { z-index: 500; }
+.leaflet-marker-pane { z-index: 600; }
+.leaflet-tooltip-pane { z-index: 650; }
+.leaflet-popup-pane { z-index: 700; }
+
+.leaflet-top,
+.leaflet-bottom {
+    position: absolute;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.leaflet-top { top: 10px; }
+.leaflet-right { right: 10px; }
+.leaflet-bottom { bottom: 10px; }
+.leaflet-left { left: 10px; }
+.leaflet-control { position: relative; z-index: 800; pointer-events: auto; float: left; clear: both; }
+.leaflet-right .leaflet-control { float: right; }
+.leaflet-control-zoom a {
+    display: block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    border-bottom: 1px solid #cccccc;
+    background: #ffffff;
+    color: #111827;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 800;
+}
+.leaflet-control-zoom a:last-child { border-bottom: 0; }
+.leaflet-control-attribution {
+    padding: 0.15rem 0.35rem;
+    background: rgba(255, 255, 255, 0.82);
+    color: #111827;
+    font-size: 0.68rem;
+}
+
+.map-fallback {
+    position: absolute;
+    inset: 0;
+    isolation: isolate;
+    background:
+        linear-gradient(90deg, rgba(18, 52, 83, 0.08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(18, 52, 83, 0.08) 1px, transparent 1px),
+        radial-gradient(circle at 52% 44%, rgba(45, 132, 92, 0.18), transparent 34%),
+        #e9ece7;
+    background-size: 72px 72px, 72px 72px, auto, auto;
+}
+
+.map-fallback::before {
+    content: '';
+    position: absolute;
+    inset: 13% 9% 10% 12%;
+    border: 2px solid rgba(28, 91, 59, 0.26);
+    border-radius: 28% 44% 32% 38%;
+    transform: rotate(-8deg);
+    z-index: 0;
+}
+
+.map-fallback::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 10%;
+    top: 53%;
+    height: 34px;
+    border-top: 3px solid rgba(31, 84, 135, 0.26);
+    border-bottom: 3px solid rgba(31, 84, 135, 0.16);
+    transform: rotate(-9deg);
+    z-index: 0;
+}
+
+.map-fallback__status {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    max-width: min(360px, calc(100% - 2rem));
+    padding: 0.65rem 0.8rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(15, 42, 68, 0.14);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--navy-800);
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+    z-index: 3;
+}
+
+.map-fallback__points {
+    position: absolute;
+    inset: 3.25rem 2rem 3rem 2rem;
+    z-index: 2;
+}
+
+.map-fallback__marker {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    transform: translate(-50%, -50%);
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: var(--navy-600);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(15, 42, 68, 0.24);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.map-fallback__marker::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 9px);
+    max-width: 160px;
+    transform: translateX(-50%);
+    padding: 0.22rem 0.45rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--navy-900);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+}
+
+.map-fallback__marker.active,
+.map-fallback__marker:hover {
+    background: var(--red-accent);
+    transform: translate(-50%, -50%) scale(1.12);
+    box-shadow: 0 10px 26px rgba(178, 34, 52, 0.32);
+    z-index: 4;
+}
+
+.map-fallback__marker:focus-visible {
+    outline: 3px solid rgba(74, 144, 226, 0.5);
+    outline-offset: 4px;
+}
+
+.map-fallback__marker {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.map-fallback__empty {
+    margin: 0;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--gray-700);
+    font-weight: 700;
+}
+
 /* Simulated Google Maps iframe */
 .map-iframe {
     width: 100%;
@@ -6074,14 +6375,23 @@ a.btn-google {
     color: var(--navy-900);
 }
 
-/* Floating Panel (Building Info / Floor Plan) */
+/* Floating Panel (Building Info / Floor Plan).
+   Desktop: docks to the right (default) or left edge of the map view so
+   the selected pin stays visible beside the panel. The active side is
+   chosen at runtime in views/map.ejs (selectBuilding). Mobile keeps the
+   existing bottom-sheet behavior via the @media block further down. */
 .map-panel {
     position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%) translateY(120%);
-    width: 90%;
-    max-width: 450px;
+    top: 5.5rem;
+    right: 1rem;
+    bottom: 1rem;
+    left: auto;
+    transform: translateX(calc(100% + 1.5rem));
+    width: min(380px, calc(100% - 2rem));
+    max-width: 400px;
+    max-height: calc(100% - 6.5rem);
+    display: flex;
+    flex-direction: column;
     background: var(--white);
     border-radius: var(--radius-xl);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -6092,7 +6402,19 @@ a.btn-google {
 }
 
 .map-panel.visible {
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(0);
+}
+
+.map-panel.map-panel--left {
+    top: 1rem;
+    right: auto;
+    left: 1rem;
+    max-height: calc(100% - 2rem);
+    transform: translateX(calc(-100% - 1.5rem));
+}
+
+.map-panel.map-panel--left.visible {
+    transform: translateX(0);
 }
 
 .map-panel__close {
@@ -6121,10 +6443,15 @@ a.btn-google {
     width: 100%;
     height: 160px;
     object-fit: cover;
+    flex-shrink: 0;
 }
 
 .map-panel__content {
     padding: 1.5rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .map-panel__header {
@@ -6147,9 +6474,13 @@ a.btn-google {
 .map-panel__actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 1.25rem;
+    margin: 1.25rem -1.5rem -1.5rem -1.5rem;
+    padding: 1rem 1.5rem 1.25rem 1.5rem;
     border-top: 1px solid var(--gray-100);
-    padding-top: 1rem;
+    background: var(--white);
+    position: sticky;
+    bottom: -1.5rem;
+    z-index: 1;
 }
 
 /* Floor Switcher logic */
@@ -6326,8 +6657,34 @@ a.btn-google {
     }
 
     .map-panel {
+        top: auto;
+        right: auto;
+        left: 50%;
         bottom: 5rem;
         width: 95%;
+        max-width: 450px;
+        max-height: calc(100vh - 180px);
+        transform: translate(-50%, 120%);
+    }
+
+    .map-panel.visible {
+        transform: translate(-50%, 0);
+    }
+
+    .map-panel.map-panel--left {
+        top: auto;
+        right: auto;
+        left: 50%;
+        max-height: calc(100vh - 180px);
+        transform: translate(-50%, 120%);
+    }
+
+    .map-panel.map-panel--left.visible {
+        transform: translate(-50%, 0);
+    }
+
+    .map-panel__img {
+        height: 130px;
     }
 
     .map-controls {
@@ -6384,6 +6741,10 @@ a.btn-google {
     border-color: var(--navy-400);
 }
 
+[data-theme="dark"] .map-bldg-item:focus-visible {
+    outline-color: var(--navy-300);
+}
+
 [data-theme="dark"] .map-bldg-item.active {
     background: rgba(59, 130, 246, 0.1);
     border-color: var(--navy-400);
@@ -6414,6 +6775,7 @@ a.btn-google {
 
 [data-theme="dark"] .map-panel__actions {
     border-color: #1f2937;
+    background: #111827;
 }
 
 [data-theme="dark"] .floor-switcher {
@@ -6431,6 +6793,54 @@ a.btn-google {
     color: white;
 }
 
+@media (max-width: 768px) {
+    .map-fallback__points {
+        inset: 3rem 1rem 4.25rem 1rem;
+    }
+
+    .map-fallback__marker::before {
+        display: none;
+    }
+
+    .map-fallback__status {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.85rem;
+        max-width: none;
+        font-size: 0.78rem;
+    }
+}
+
+[data-theme="dark"] .map-view--fallback,
+[data-theme="dark"] .map-fallback {
+    background-color: #1a202c;
+}
+
+[data-theme="dark"] .map-fallback {
+    background:
+        linear-gradient(90deg, rgba(126, 176, 220, 0.12) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(126, 176, 220, 0.12) 1px, transparent 1px),
+        radial-gradient(circle at 52% 44%, rgba(67, 154, 117, 0.2), transparent 34%),
+        #1a202c;
+    background-size: 72px 72px, 72px 72px, auto, auto;
+}
+
+[data-theme="dark"] .map-fallback::before {
+    border-color: rgba(90, 188, 137, 0.32);
+}
+
+[data-theme="dark"] .map-fallback::after {
+    border-top-color: rgba(126, 176, 220, 0.34);
+    border-bottom-color: rgba(126, 176, 220, 0.18);
+}
+
+[data-theme="dark"] .map-fallback__status,
+[data-theme="dark"] .map-fallback__marker::before,
+[data-theme="dark"] .map-fallback__empty {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(17, 24, 39, 0.92);
+    color: #f3f4f6;
+}
 /* ========================================
    REGISTER PAGE - inline styles
    ======================================== */
@@ -6552,7 +6962,7 @@ a.btn-google {
    ======================================== */
 
 /* ============================================
-   CAMPUSSPHERE ADMIN â€” Navy / Gold Theme
+   CAMPUSSPHERE ADMIN - Navy / Gold Theme
    Matches root site aesthetics (styles.css)
    ============================================ */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
@@ -8334,4 +8744,886 @@ details[open] .accordion-icon {
 .room-card--active .room-card__star {
     color: #3b82f6;
     font-size: 0.8rem;
+}
+
+/* =====================================================
+   MAP - Route Planner widget (sidebar)
+   ===================================================== */
+.map-route-planner {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .85rem 1rem;
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50, #f9fafb);
+}
+
+.map-route-planner__heading {
+    margin: 0 0 .15rem 0;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--navy-500, #334155);
+}
+
+.map-route-planner__row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.map-route-planner__label {
+    flex: 0 0 76px;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.map-route-planner__input {
+    flex: 1;
+    padding: .4rem .6rem;
+    font-size: .82rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md, 6px);
+    background: var(--white, #fff);
+    color: var(--gray-700);
+}
+
+.map-route-planner__input:focus {
+    outline: none;
+    border-color: var(--navy-500, #60a5fa);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, .15);
+}
+
+.map-route-planner__dest {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .4rem .6rem;
+    border: 1px dashed var(--gray-300, #d1d5db);
+    border-radius: var(--radius-md, 6px);
+    background: var(--white, #fff);
+    font-size: .82rem;
+    color: var(--gray-700);
+    min-height: 34px;
+}
+
+.map-route-planner__dest-text--empty {
+    color: var(--gray-400, #9ca3af);
+    font-style: italic;
+}
+
+.map-route-planner__dest-clear {
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-200);
+    color: var(--gray-600);
+    cursor: pointer;
+    font-size: .9rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.map-route-planner__dest-clear[hidden] {
+    display: none;
+}
+
+.map-route-planner__dest-clear:hover {
+    background: var(--gray-300);
+}
+
+.map-route-planner__input--readonly {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-700);
+    cursor: not-allowed;
+    border-style: dashed;
+}
+
+.map-route-planner__input--readonly:focus {
+    box-shadow: none;
+    border-color: var(--gray-200);
+}
+
+.map-route-planner__find {
+    width: 100%;
+}
+
+.map-route-planner__find:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.map-route-planner__hint {
+    font-size: .72rem;
+    color: var(--gray-500);
+    margin: 0;
+    min-height: 1em;
+}
+
+/* Route-type sidebar item */
+.map-bldg-item--route {
+    align-items: center;
+}
+
+.map-bldg-item__route-icon {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md, 6px);
+    background: rgba(96, 165, 250, .12);
+    color: var(--navy-700, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Info panel action button row */
+.map-panel__action-buttons {
+    margin-left: auto;
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* Sidebar empty/error message */
+.map-empty-msg {
+    color: var(--gray-500);
+    text-align: center;
+    padding: 1rem;
+    font-size: .85rem;
+    margin: 0;
+}
+
+/* Route modal empty-state callout */
+.route-empty {
+    font-size: .88rem;
+    color: #92400e;
+    background: rgba(245, 158, 11, .1);
+    border: 1px solid rgba(245, 158, 11, .25);
+    border-radius: var(--radius-md, 6px);
+    padding: .85rem 1rem;
+    margin: 0 0 1rem 0;
+}
+
+/* ===== DARK MODE - Map planner ===== */
+[data-theme="dark"] .map-route-planner {
+    background: #0f172a;
+    border-top-color: rgba(255, 255, 255, .07);
+    border-bottom-color: rgba(255, 255, 255, .07);
+}
+
+[data-theme="dark"] .map-route-planner__heading {
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .map-route-planner__input,
+[data-theme="dark"] .map-route-planner__dest {
+    background: #1f2537;
+    border-color: rgba(255, 255, 255, .12);
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .map-route-planner__input--readonly {
+    background: #0f172a;
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, .1);
+}
+
+[data-theme="dark"] .map-route-planner__dest-text--empty {
+    color: #6b7280;
+}
+
+[data-theme="dark"] .map-route-planner__dest-clear {
+    background: #2a3146;
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .map-route-planner__dest-clear:hover {
+    background: #374151;
+    color: #fff;
+}
+
+[data-theme="dark"] .map-bldg-item__route-icon {
+    background: rgba(96, 165, 250, .15);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .route-empty {
+    background: rgba(245, 158, 11, .14);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, .3);
+}
+
+/* ===== MOBILE - Map planner ===== */
+@media (max-width: 768px) {
+    .map-panel__action-buttons {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .map-panel__action-buttons .btn {
+        /* grow to fill, but keep a tappable min width so a 3rd button
+           (Start VR Route) wraps cleanly instead of cramping at ~390px */
+        flex: 1 1 8.5rem;
+        min-height: 44px;
+    }
+
+    .map-route-planner__label {
+        flex-basis: 64px;
+        font-size: .68rem;
+    }
+}
+
+/* =====================================================
+   MAP - Enriched info panel sections
+   ===================================================== */
+.map-panel__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: .55rem 0 .25rem 0;
+}
+
+.map-panel__meta[hidden] { display: none; }
+
+.map-panel__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .25rem .6rem;
+    border-radius: var(--radius-full, 999px);
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-700);
+    font-size: .72rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.map-panel__chip[hidden] { display: none; }
+
+.map-panel__section {
+    margin-top: .85rem;
+}
+
+.map-panel__section[hidden] { display: none; }
+
+.map-panel__section-title {
+    margin: 0 0 .4rem 0;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--navy-500, #334155);
+}
+
+.map-panel__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    font-size: .82rem;
+    color: var(--gray-700);
+}
+
+.map-panel__list li {
+    line-height: 1.5;
+}
+
+.map-panel__list li::before {
+    content: '*';
+    color: var(--navy-500, #334155);
+    margin-right: .45rem;
+}
+
+.map-panel__list--floors li::before {
+    content: '>';
+}
+
+.map-panel__list-sub {
+    color: var(--gray-500);
+    font-size: .8rem;
+    font-weight: 400;
+}
+
+.map-panel__rooms {
+    list-style: none;
+    padding: 0;
+    margin: .3rem 0 .35rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    font-size: .8rem;
+    color: var(--gray-600);
+}
+
+.map-panel__rooms li {
+    line-height: 1.4;
+}
+
+.map-panel__rooms li::before {
+    content: '.';
+    color: var(--gray-400);
+    margin-right: .45rem;
+}
+
+.map-panel__chips {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.map-panel__chips li {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .6rem;
+    border-radius: var(--radius-full, 999px);
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-700);
+    font-size: .76rem;
+    line-height: 1.2;
+}
+
+/* Dark mode */
+[data-theme="dark"] .map-panel__chip,
+[data-theme="dark"] .map-panel__chips li {
+    background: #1f2537;
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .map-panel__section-title {
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .map-panel__list {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .map-panel__list li::before {
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .map-panel__list-sub {
+    color: #6b7280;
+}
+
+[data-theme="dark"] .map-panel__rooms {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .map-panel__rooms li::before {
+    color: #4b5563;
+}
+
+/* =====================================================
+   MAP - Sidebar reordering (list before planner on mobile)
+   ===================================================== */
+.map-sidebar__header { order: 0; }
+.map-route-planner   { order: 1; }
+.map-sidebar__list   { order: 2; }
+
+@media (max-width: 768px) {
+    .map-sidebar__list { order: 1; }
+    .map-route-planner {
+        order: 2;
+        padding: .6rem .85rem;
+        gap: .35rem;
+    }
+    .map-route-planner__heading {
+        font-size: .66rem;
+        letter-spacing: .06em;
+    }
+    .map-route-planner__row { gap: .35rem; }
+    .map-route-planner__input,
+    .map-route-planner__dest {
+        padding: .35rem .5rem;
+        font-size: .78rem;
+        min-height: 30px;
+    }
+}
+
+/* =====================================================
+   MAP - Result card badges (search results only)
+   ===================================================== */
+.map-bldg-item__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin-top: .3rem;
+}
+
+.map-bldg-item__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-radius: 999px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.map-bldg-item__badge--building {
+    background: rgba(37, 99, 235, .12);
+    color: #1d4ed8;
+}
+
+.map-bldg-item__badge--route {
+    background: rgba(16, 185, 129, .14);
+    color: #047857;
+}
+
+.map-bldg-item__badge--match {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-600);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+}
+
+/* BE.3 — buildings with no usable route. They remain visible as campus
+   information; only their navigation actions are withdrawn. */
+.map-bldg-item__badge--unavailable {
+    background: rgba(217, 119, 6, .14);
+    color: #b45309;
+    border: 1px solid rgba(217, 119, 6, .35);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+}
+
+.map-bldg-item--route-unavailable .map-bldg-item__img {
+    filter: grayscale(1);
+    opacity: .75;
+}
+
+.map-panel__route-notice {
+    margin: .5rem 0 0;
+    font-size: .82rem;
+    line-height: 1.4;
+    color: #b45309;
+}
+
+/* Anchors cannot be natively disabled; the JS strips href + sets aria-disabled,
+   and this makes the state visible and unclickable. */
+.btn.is-disabled,
+.btn[aria-disabled="true"] {
+    opacity: .5;
+    pointer-events: none;
+    cursor: default;
+}
+
+[data-theme="dark"] .map-bldg-item__badge--unavailable {
+    background: rgba(217, 119, 6, .22);
+    color: #fbbf24;
+    border-color: rgba(217, 119, 6, .45);
+}
+
+[data-theme="dark"] .map-panel__route-notice {
+    color: #fbbf24;
+}
+
+/* BE.3 — Buildings Explorer card + modal. */
+.bldg-card__route-badge {
+    position: absolute;
+    left: .6rem;
+    bottom: .6rem;
+    display: inline-block;
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 700;
+    background: rgba(217, 119, 6, .92);
+    color: #fff;
+    max-width: calc(100% - 1.2rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bldg-card--route-unavailable .bldg-card__img img {
+    filter: grayscale(1);
+    opacity: .8;
+}
+
+.route-info-label--unavailable {
+    color: #b45309;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .route-info-label--unavailable {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .map-bldg-item__badge--building {
+    background: rgba(96, 165, 250, .18);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .map-bldg-item__badge--route {
+    background: rgba(52, 211, 153, .18);
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .map-bldg-item__badge--match {
+    background: #1f2537;
+    color: #cbd5e1;
+}
+
+/* =====================================================
+   MAP - Mobile bottom-sheet layout v2
+   Goals: stable flex column, scrollable result list,
+   collapsible route planner, no theme-toggle overlap.
+   ===================================================== */
+
+/* Compact toggle bar for the route planner (mobile-only, hidden by default) */
+.map-route-planner__toggle {
+    display: none;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.1rem 0 0.25rem;
+    background: transparent;
+    border: none;
+    font: inherit;
+    color: var(--gray-700);
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.map-route-planner__toggle-label {
+    flex: 0 0 auto;
+    font-weight: 700;
+    font-size: 0.72rem;
+    color: var(--navy-500, #334155);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.map-route-planner__toggle-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.map-route-planner__toggle-chevron {
+    flex: 0 0 auto;
+    color: var(--gray-500);
+    transition: transform 0.2s ease;
+}
+
+.map-route-planner:not(.is-collapsed) .map-route-planner__toggle-chevron {
+    transform: rotate(180deg);
+}
+
+[data-theme="dark"] .map-route-planner__toggle-label { color: #93c5fd; }
+[data-theme="dark"] .map-route-planner__toggle-status { color: #cbd5e1; }
+[data-theme="dark"] .map-route-planner__toggle-chevron { color: #94a3b8; }
+
+@media (max-width: 768px) {
+    /* Stable bottom-sheet: header (auto) / list (1fr) / planner (auto) */
+    .map-sidebar {
+        height: min(78vh, calc(100dvh - 96px));
+        overflow: hidden;
+    }
+
+    .map-sidebar__header {
+        flex: 0 0 auto;
+        padding: 0.85rem 1.25rem 0.85rem;
+    }
+
+    .map-sidebar__title {
+        font-size: 1.05rem;
+        margin-bottom: 0.65rem;
+    }
+
+    /* Result list is THE scrollable region */
+    .map-sidebar__list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0.75rem 1rem 1rem;
+        gap: 0.55rem;
+    }
+
+    /* Compact result cards for 390px */
+    .map-bldg-item {
+        padding: 0.7rem;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .map-bldg-item__img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .map-bldg-item__info {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .map-bldg-item__name {
+        font-size: 0.88rem;
+        line-height: 1.25;
+        margin-bottom: 0.15rem;
+        overflow-wrap: anywhere;
+    }
+
+    .map-bldg-item__cat {
+        font-size: 0.68rem;
+        line-height: 1.2;
+    }
+
+    .map-bldg-item__badges {
+        margin-top: 0.25rem;
+    }
+
+    /* Planner pinned to bottom of the sheet, never grabs more than needed */
+    .map-route-planner {
+        flex: 0 0 auto;
+        order: 2;
+    }
+
+    /* Toggle bar appears */
+    .map-route-planner__toggle {
+        display: flex;
+    }
+
+    /* Collapsed: only the toggle bar is visible */
+    .map-route-planner.is-collapsed > .map-route-planner__heading,
+    .map-route-planner.is-collapsed > .map-route-planner__row,
+    .map-route-planner.is-collapsed > .map-route-planner__find,
+    .map-route-planner.is-collapsed > .map-route-planner__hint {
+        display: none;
+    }
+
+    /* Hide the floating dark-mode button while the sheet is open
+       so it never overlaps the Find Route button. */
+    body.map-sheet-open .theme-toggle {
+        display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .map-bldg-item__img {
+        width: 56px;
+        height: 56px;
+    }
+
+    .map-bldg-item {
+        padding: 0.6rem;
+        gap: 0.65rem;
+    }
+
+    .map-sidebar__header {
+        padding: 0.75rem 1rem 0.75rem;
+    }
+
+    .map-sidebar__list {
+        padding: 0.6rem 0.85rem 0.85rem;
+    }
+}
+
+/* =====================================================
+   MAP - Mobile sheet: clickable drag handle + close button
+   ===================================================== */
+
+/* Real drag-handle button (hidden on desktop). On mobile it sits
+   at the top of the sheet and is clickable to close. */
+.map-sidebar__handle {
+    display: none;
+}
+
+/* Close button (hidden on desktop) */
+.map-sidebar__close {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* Drop the old decorative ::before - replaced by a real button */
+    .map-sidebar__header::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    .map-sidebar__handle {
+        display: block;
+        flex: 0 0 auto;
+        width: 100%;
+        height: 22px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .map-sidebar__handle::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 5px;
+        background: var(--gray-300);
+        border-radius: 999px;
+        transition: background 0.2s, transform 0.15s;
+    }
+
+    .map-sidebar__handle:hover::before,
+    .map-sidebar__handle:active::before {
+        background: var(--gray-400);
+        transform: translate(-50%, -50%) scaleX(1.15);
+    }
+
+    /* Header anchors the close button */
+    .map-sidebar__header {
+        position: relative;
+        padding-top: 0.5rem;
+    }
+
+    .map-sidebar__close {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        position: absolute;
+        top: 0.5rem;
+        right: 1rem;
+        padding: 0.5rem 0.85rem;
+        background: var(--navy-600);
+        color: #fff;
+        border: 1.5px solid #fff;
+        border-radius: 999px;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        z-index: 5;
+        min-height: 34px;
+        white-space: nowrap;
+        transition: background 0.15s, transform 0.15s;
+    }
+
+    .map-sidebar__close:hover,
+    .map-sidebar__close:active {
+        background: var(--navy-700);
+        transform: translateY(-1px);
+    }
+
+    .map-sidebar__close:active {
+        transform: translateY(0);
+    }
+
+    .map-sidebar__close-label {
+        line-height: 1;
+    }
+
+    /* Keep the title from colliding with the close button */
+    .map-sidebar__title {
+        padding-right: 6.5rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .map-sidebar__close-label {
+        display: none;
+    }
+    .map-sidebar__close {
+        padding: 0.45rem 0.55rem;
+        min-width: 34px;
+    }
+    .map-sidebar__title {
+        padding-right: 3rem;
+    }
+}
+
+/* =====================================================
+   MAP - High-contrast mobile "Building List" FAB
+   ===================================================== */
+.mobile-toggle-btn {
+    background: var(--navy-600);
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 0.85rem 1.6rem;
+    min-height: 48px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    /* Neutral dark shadow so it stands out on bright OR dark map tiles */
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.mobile-toggle-btn:hover,
+.mobile-toggle-btn:active {
+    background: var(--navy-700);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .mobile-toggle-btn {
+        bottom: 1.5rem;
+        z-index: 35;
+    }
+
+    /* Hide the FAB while the sheet is open - the in-sheet close button
+       and drag handle are the primary close affordances. */
+    body.map-sheet-open .mobile-toggle-btn {
+        display: none;
+    }
+}
+
+[data-theme="dark"] .mobile-toggle-btn {
+    background: var(--navy-500, #1d4ed8);
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .map-sidebar__handle::before {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .map-sidebar__handle:hover::before,
+[data-theme="dark"] .map-sidebar__handle:active::before {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .map-sidebar__close {
+    background: var(--navy-500, #1d4ed8);
+    border-color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .map-sidebar__close:hover,
+[data-theme="dark"] .map-sidebar__close:active {
+    background: var(--navy-600, #1e40af);
 }

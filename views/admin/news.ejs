@@ -2,12 +2,11 @@
 <html lang="en">
 
 <head>
-    <script>
+    <script nonce="<%= cspNonce %>">
         (function () {
             var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
             if (savedTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
             }
         })();
     </script>
@@ -17,10 +16,14 @@
     <meta name="description" content="<%= description %>">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/admin-styles.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <%# M12.P1-R6: Lucide is self-hosted at the exact reviewed 1.25.0 (see
+        public/vendor/manifest.json). The former unpkg "lucide@latest" reference
+        executed whatever build the CDN served at request time. %>
+    <script src="/vendor/lucide/lucide.min.js"></script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/admin/main.js" defer></script>
     <script src="/js/admin/admin-news.js" defer></script>
-    <style>
+    <style nonce="<%= cspNonce %>">
         .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
         .modal-backdrop.modal--open{display:flex;}
         .modal-box{background:var(--card);border:1px solid var(--border);border-radius:0.75rem;width:95%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}
@@ -72,6 +75,7 @@
                 <a href="/admin/faqs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">FAQs</span></a>
                 <a href="/admin/logs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System Logs</span></a>
                 <a href="/admin/campus-map" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/vr" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="globe" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">VR Tour</span></a>
                 <a href="/admin/settings" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Settings</span></a>
             </nav>
             <div class="border-t border-sidebar-border p-4">
@@ -83,7 +87,10 @@
                         <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
                         <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
                     </div>
-                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></a>
+                    <form method="POST" action="/logout" class="logout-form" style="display:contents;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></button>
+                    </form>
                 </div>
             </div>
             <button id="sidebar-toggle" class="ui-button ui-button-ghost ui-button-size-icon absolute -right-3 top-7 h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent" style="width:1.5rem;height:1.5rem;padding:0;">
@@ -98,21 +105,6 @@
                 <div>
                     <h1 class="text-xl font-semibold text-foreground">News & Events</h1>
                     <p class="text-sm text-muted-foreground">Manage announcements, articles, and campus events</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
-                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
-                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                            style="padding:0;min-width:1.25rem;">3</span></button>
-                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
-                        style="min-width:20rem;right:1.5rem;">
-                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
-                        <div class="h-px bg-border my-1"></div>
-                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
-                                class="font-medium text-foreground">New user registration</span><span
-                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
-                                class="text-xs text-muted-foreground">2 min ago</span></div>
-                    </div>
                 </div>
             </header>
 
@@ -155,13 +147,16 @@
                                     <span>All Categories</span><i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
                                 <div id="cat-filter-menu" class="dropdown-menu-content p-1" style="width:150px;">
+                                    <!-- Static fallback = initial News-tab categories; admin-news.js rebuilds this per tab -->
                                     <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All</div>
-                                    <div class="dropdown-menu-item" data-value="Announcement">Announcement</div>
-                                    <div class="dropdown-menu-item" data-value="Campus Update">Campus Update</div>
-                                    <div class="dropdown-menu-item" data-value="Events">Events</div>
+                                    <div class="dropdown-menu-item" data-value="General">General</div>
                                     <div class="dropdown-menu-item" data-value="Academic">Academic</div>
-                                    <div class="dropdown-menu-item" data-value="Sports">Sports</div>
-                                    <div class="dropdown-menu-item" data-value="Cultural">Cultural</div>
+                                    <div class="dropdown-menu-item" data-value="Event">Event</div>
+                                    <div class="dropdown-menu-item" data-value="Events">Events</div>
+                                    <div class="dropdown-menu-item" data-value="Advisory">Advisory</div>
+                                    <div class="dropdown-menu-item" data-value="Maintenance">Maintenance</div>
+                                    <div class="dropdown-menu-item" data-value="Emergency">Emergency</div>
+                                    <div class="dropdown-menu-item" data-value="Facilities">Facilities</div>
                                 </div>
                             </div>
                             <button id="add-content-btn" class="ui-button ui-button-default ui-button-size-default">
@@ -217,9 +212,14 @@
                             <label for="news-category">Category</label>
                             <select name="category" id="news-category" required>
                                 <option value="">Select...</option>
-                                <option value="Announcement">Announcement</option>
-                                <option value="Campus Update">Campus Update</option>
+                                <option value="General">General</option>
+                                <option value="Academic">Academic</option>
+                                <option value="Event">Event</option>
                                 <option value="Events">Events</option>
+                                <option value="Advisory">Advisory</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Emergency">Emergency</option>
+                                <option value="Facilities">Facilities</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -229,6 +229,16 @@
                                 <option value="draft">Draft</option>
                             </select>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="news-audience">Audience</label>
+                        <select name="audience" id="news-audience">
+                            <option value="all">Everyone</option>
+                            <option value="student-cspc">Students (CSPC)</option>
+                            <option value="instructor">Instructors</option>
+                            <option value="guest">Guests</option>
+                            <option value="admin">Admins</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="news-excerpt">Excerpt</label>
@@ -330,8 +340,8 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="articles-data-json" type="application/json"><%- JSON.stringify(articles.map(a => ({ id: a.id, title: a.title, category: a.category, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
-    <script id="events-data-json" type="application/json"><%- JSON.stringify(events.map(e => ({ id: e.id, title: e.title, category: e.category, event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
+    <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
+    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
@@ -339,7 +349,8 @@
         <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
 
-    <script>lucide.createIcons();</script>
+    <%# M12.P1-R6: guarded so a missing Lucide bundle cannot throw and abort the page. %>
+    <script nonce="<%= cspNonce %>">if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); }</script>
 </body>
 
 </html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="<%= description %>">
+    <title><%= title %></title>
+
+    <link rel="stylesheet" href="/css/styles.css?v=5">
+    <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+    <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f2a44">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CampuSphere">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+    <!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
+    <script src="/js/pwa.js" defer></script>
+
+    <!-- Iconify -->
+    <!-- iconify-icon script removed (post-11.8A cleanup): the web component
+         injects shadow-root <style> nodes that violate style-src-elem under
+         the nonce CSP. Icons below are safe inline SVGs. -->
+
+    <!--
+      Pannellum 2.5.6 360 viewer — self-hosted (M12.P1-R6). The viewer's own
+      CSS/JS are now same-origin; its built stylesheet embeds every control
+      image as a data: URI, so it has no relative image dependency.
+      This does NOT change the media policy: panorama IMAGES are still loaded
+      at runtime from owner-controlled Cloudinary delivery (or a local /img/vr
+      fallback), and Milestone 6 offline scope remains offline DEMO navigation
+      only — no panorama mirroring or bundling.
+    -->
+    <link rel="stylesheet" href="/vendor/pannellum/pannellum.css">
+    <script src="/vendor/pannellum/pannellum.js"></script>
+
+    <style nonce="<%= cspNonce %>">
+        /* Scoped VR-page styles. Kept in the view to avoid touching the
+           shared stylesheet in this section; can be migrated into
+           public/css/styles.css during Section 7 polish. */
+        /* padding-top clears the fixed dash-navbar so the Back to Map
+           link (and the rest of the header) is not covered/overlaid. */
+        .vr-page { max-width: 1100px; margin: 0 auto; padding: 5rem 16px 48px; position: relative; z-index: 1; }
+        .vr-backlink { position: relative; z-index: 2; }
+        .vr-head { display: flex; flex-wrap: wrap; align-items: center;
+            justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .vr-head__titles { min-width: 0; }
+        .vr-title { font-size: 1.4rem; font-weight: 700; margin: 0; }
+        .vr-progress { font-size: .85rem; opacity: .75; margin: 2px 0 0; }
+        .vr-desc { margin: 6px 0 14px; opacity: .85; }
+        .vr-backlink { display: inline-flex; align-items: center; gap: 6px;
+            text-decoration: none; font-weight: 600; border: 1px solid currentColor;
+            padding: 8px 14px; border-radius: 8px; font-size: .9rem; }
+        .vr-notice { background: rgba(220, 160, 0, .12);
+            border: 1px solid rgba(220, 160, 0, .5); color: inherit;
+            padding: 10px 14px; border-radius: 8px; margin: 0 0 14px; font-size: .9rem; }
+        .vr-stage { position: relative; width: 100%; aspect-ratio: 16 / 9;
+            min-height: 320px; background: #11151c; border-radius: 12px;
+            overflow: hidden; }
+        #vrPano { position: absolute; inset: 0; display: none; }
+        .vr-fallback { position: absolute; inset: 0; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 24px; color: #e8edf4; gap: 8px; }
+        .vr-fallback__icon { font-size: 2.4rem; opacity: .8; }
+        .vr-fallback__title { font-weight: 700; font-size: 1.05rem; }
+        .vr-fallback__hint { font-size: .85rem; opacity: .7; max-width: 420px; }
+        .vr-controls { margin-top: 18px; }
+        .vr-controls__label { font-size: .8rem; text-transform: uppercase;
+            letter-spacing: .06em; opacity: .6; margin: 0 0 10px; }
+        .vr-hotspots { list-style: none; padding: 0; margin: 0;
+            display: flex; flex-direction: column; gap: 10px; }
+        .vr-hotspot { border: 1px solid rgba(128, 128, 128, .35);
+            border-radius: 10px; padding: 12px 14px; }
+        .vr-hotspot__type { font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .05em; opacity: .55; }
+        .vr-hotspot__label { font-weight: 600; display: block; margin: 2px 0; }
+        .vr-hotspot__text { font-size: .9rem; opacity: .85; margin: 4px 0 0; }
+        .vr-hotspot__go { display: inline-block; margin-top: 6px;
+            text-decoration: none; font-weight: 600; border: 1px solid currentColor;
+            padding: 6px 12px; border-radius: 8px; font-size: .85rem; }
+        .vr-hotspot__schedule-btn { display: inline-flex; align-items: center;
+            min-height: 36px; margin-top: 8px; border: 1px solid currentColor;
+            border-radius: 8px; background: transparent; color: inherit;
+            padding: 6px 12px; font: inherit; font-size: .85rem;
+            font-weight: 700; cursor: pointer; }
+        .vr-hotspot--disabled { opacity: .55; }
+        .vr-scenelist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .vr-scenelist a { text-decoration: none; border: 1px solid currentColor;
+            padding: 6px 12px; border-radius: 8px; font-size: .85rem; }
+        .vr-schedule-panel { position: fixed; right: 18px; bottom: 18px;
+            width: min(390px, calc(100vw - 24px)); max-height: min(70vh, 560px);
+            overflow: auto; z-index: 30; background: rgba(9, 15, 28, .97);
+            color: #f8fbff; border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: 12px; box-shadow: 0 18px 45px rgba(0, 0, 0, .36); }
+        .vr-schedule-panel[hidden] { display: none; }
+        .vr-schedule-panel__head { display: flex; justify-content: space-between;
+            gap: 12px; padding: 14px 16px 10px; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+        .vr-schedule-panel__title { margin: 0; font-size: 1rem; line-height: 1.3; }
+        .vr-schedule-panel__meta { margin: 3px 0 0; font-size: .82rem; opacity: .72; }
+        .vr-schedule-panel__close { width: 34px; height: 34px; flex: 0 0 auto;
+            border-radius: 8px; border: 1px solid rgba(255, 255, 255, .2);
+            background: transparent; color: inherit; cursor: pointer; }
+        .vr-schedule-panel__body { padding: 12px 16px 16px; }
+        .vr-schedule-status { margin: 0; font-size: .9rem; color: rgba(255, 255, 255, .78); }
+        .vr-schedule-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+        .vr-schedule-row { border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 8px; padding: 10px 12px; background: rgba(255, 255, 255, .05); }
+        .vr-schedule-row__title { margin: 0; font-size: .95rem; font-weight: 700; }
+        .vr-schedule-row__time, .vr-schedule-row__desc { margin: 4px 0 0; font-size: .84rem; line-height: 1.45; }
+        .vr-schedule-row__time { color: rgba(255, 255, 255, .74); }
+        .vr-schedule-row__desc { color: rgba(255, 255, 255, .86); }
+        @media (max-width: 480px) {
+            .vr-head { flex-direction: column; align-items: flex-start; }
+            .vr-stage { aspect-ratio: 4 / 3; }
+            .vr-backlink, .vr-hotspot__go, .vr-scenelist a {
+                min-height: 44px; display: inline-flex;
+                align-items: center; justify-content: center; }
+            .vr-scenelist { gap: 10px; }
+            .vr-schedule-panel { left: 12px; right: 12px; bottom: 12px;
+                width: auto; max-height: 62vh; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== NAVBAR (shared partial) ===== -->
+    <%- include('partials/dash-navbar', { activeTab: activeTab }) %>
+
+    <main class="vr-page">
+
+        <div class="vr-head">
+            <div class="vr-head__titles">
+                <h1 class="vr-title"><%= scene ? scene.title : 'VR Campus Tour' %></h1>
+                <% if (scene && sceneCount > 0) { %>
+                <p class="vr-progress">Scene <%= sceneIndex %> of <%= sceneCount %></p>
+                <% } %>
+            </div>
+            <a class="vr-backlink" href="/map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back to Map
+            </a>
+        </div>
+
+        <% if (scene && scene.description) { %>
+        <p class="vr-desc"><%= scene.description %></p>
+        <% } %>
+
+        <% if (notice) { %>
+        <p class="vr-notice"><%= notice %></p>
+        <% } %>
+
+        <% if (scene) { %>
+        <div class="vr-stage">
+            <div id="vrPano" role="img" aria-label="360 panorama of <%= scene.title %>"></div>
+            <div class="vr-fallback" id="vrFallback">
+                <div class="vr-fallback__icon">
+                    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div class="vr-fallback__title" id="vrFallbackTitle">360 image not available yet</div>
+                <div class="vr-fallback__hint">
+                    The panorama for "<%= scene.title %>" has not been added.
+                    You can still read the scene details and use the navigation below.
+                </div>
+            </div>
+        </div>
+        <% } %>
+
+        <div class="vr-controls">
+            <p class="vr-controls__label">
+                <%= scene ? 'Navigation and Points' : 'Available Scenes' %>
+            </p>
+
+            <% if (scene && hotspots && hotspots.length > 0) { %>
+            <ul class="vr-hotspots">
+                <% hotspots.forEach(function (h) { %>
+                <li class="vr-hotspot<%= (h.hotspot_type === 'scene' && !h.target_scene_key) ? ' vr-hotspot--disabled' : '' %>">
+                    <span class="vr-hotspot__type"><%= h.hotspot_type %></span>
+                    <span class="vr-hotspot__label"><%= h.label %></span>
+                    <% if (h.text) { %>
+                    <p class="vr-hotspot__text"><%= h.text %></p>
+                    <% } %>
+                    <% if (h.hotspot_type === 'scene') { %>
+                        <% if (h.target_scene_key) { %>
+                        <a class="vr-hotspot__go" href="/vr/<%= h.target_scene_key %>">
+                            Go to <%= h.target_title || h.target_scene_key %>
+                        </a>
+                        <% } else { %>
+                        <span class="vr-hotspot__text">(Target scene not available.)</span>
+                        <% } %>
+                    <% } %>
+                    <% if (h.hotspot_type === 'schedule' && h.schedule_building_id && h.schedule_location_type && h.schedule_location_label) { %>
+                    <button type="button" class="vr-hotspot__schedule-btn"
+                        data-vr-schedule-hotspot
+                        data-schedule-title="<%= h.label || 'Room schedule' %>"
+                        data-schedule-building-id="<%= h.schedule_building_id %>"
+                        data-schedule-location-type="<%= h.schedule_location_type %>"
+                        data-schedule-location-label="<%= h.schedule_location_label %>"
+                        data-schedule-floor-label="<%= h.schedule_floor_label || '' %>">
+                        View schedule
+                    </button>
+                    <% } %>
+                </li>
+                <% }); %>
+            </ul>
+            <% } else if (scene) { %>
+            <p class="vr-hotspot__text">This scene has no navigation points yet.</p>
+            <% } %>
+
+            <% if (!scene && scenes && scenes.length > 0) { %>
+            <div class="vr-scenelist">
+                <% scenes.forEach(function (s) { %>
+                <a href="/vr/<%= s.scene_key %>"><%= s.title %></a>
+                <% }); %>
+            </div>
+            <% } else if (!scene) { %>
+            <p class="vr-hotspot__text">
+                There are no VR scenes to show.
+                <a href="/map">Return to the campus map.</a>
+            </p>
+            <% } %>
+        </div>
+
+        <aside class="vr-schedule-panel" id="vrSchedulePanel" hidden aria-live="polite">
+            <div class="vr-schedule-panel__head">
+                <div>
+                    <h2 class="vr-schedule-panel__title" id="vrScheduleTitle">Room schedule</h2>
+                    <p class="vr-schedule-panel__meta" id="vrScheduleMeta"></p>
+                </div>
+                <button type="button" class="vr-schedule-panel__close" id="vrScheduleClose" aria-label="Close schedule">X</button>
+            </div>
+            <div class="vr-schedule-panel__body">
+                <p class="vr-schedule-status" id="vrScheduleStatus"></p>
+                <ul class="vr-schedule-list" id="vrScheduleList"></ul>
+            </div>
+        </aside>
+    </main>
+
+    <%- include('partials/theme-toggle') %>
+
+    <script src="/js/vr-schedule.js"></script>
+    <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
+        inline viewer initialization below. %>
+    <script src="/js/vr-hotspot-navigation.js"></script>
+    <script id="vrData" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({ scene: (typeof scene !== 'undefined' ? scene : null), hotspots: (typeof hotspots !== 'undefined' ? hotspots : []) }) %></script>
+
+    <script nonce="<%= cspNonce %>">
+        (function () {
+            var data = {};
+            try {
+                data = JSON.parse(document.getElementById('vrData').textContent);
+            } catch (e) {
+                data = { scene: null, hotspots: [] };
+            }
+
+            var stagePano = document.getElementById('vrPano');
+            var fallback = document.getElementById('vrFallback');
+            var scene = data.scene;
+            var scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
+            var hotspotNav = window.CampuSphereVrHotspotNavigation || null;
+
+            // No scene or no image: leave the server-rendered fallback visible.
+            if (!scene || !scene.image_url || !stagePano || !fallback) {
+                return;
+            }
+
+            function showFallback() {
+                stagePano.style.display = 'none';
+                fallback.style.display = 'flex';
+            }
+            function showPano() {
+                fallback.style.display = 'none';
+                stagePano.style.display = 'block';
+            }
+            var fbTitle = document.getElementById('vrFallbackTitle');
+            function setFallbackText(msg) {
+                if (fbTitle) { fbTitle.textContent = msg; }
+            }
+            // Offline, the panorama/CDN cannot be fetched; keep the panel readable
+            // and say so explicitly. Scene details stay rendered server-side below.
+            var OFFLINE_FALLBACK_MSG = '360 view is unavailable offline. Scene details remain available below.';
+            function isOffline() { return navigator.onLine === false; }
+
+            // M12.P1-D3: Free Roam scene hotspots navigate through the shared
+            // vr-hotspot-navigation helper, which validates target_scene_key
+            // against the server scene-key contract and applies Pannellum's
+            // NATIVE info-hotspot link contract (URL + attributes
+            // { target: '_self' }) — no custom window-location callback and
+            // no schedule-helper fallback coupling. A rejected or missing
+            // target stays a non-navigating info point. info/exit hotspots
+            // keep their label tooltip; schedule hotspots keep the schedule
+            // panel behavior via vr-schedule.js. The server-rendered list
+            // below remains the accessible fallback if Pannellum is
+            // unavailable.
+            function buildHotspots() {
+                var list = Array.isArray(data.hotspots) ? data.hotspots : [];
+                var out = [];
+                list.forEach(function (h) {
+                    var hs = {
+                        pitch: Number(h.pitch) || 0,
+                        yaw: Number(h.yaw) || 0,
+                        type: 'info',
+                        text: h.label || (h.hotspot_type || 'point')
+                    };
+                    if (h.hotspot_type === 'scene' && hotspotNav) {
+                        hs = hotspotNav.decoratePannellumHotspot(hs, h, 'free-roam', window.location) || hs;
+                    } else if (h.hotspot_type === 'schedule' && scheduleUi) {
+                        hs = scheduleUi.makePannellumHotspot(h);
+                    }
+                    out.push(hs);
+                });
+                return out;
+            }
+
+            // Visible loading state while the image is fetched (the
+            // fallback panel is already shown by default server-side).
+            setFallbackText('Loading 360 view...');
+
+            // Probe the image first so a missing/placeholder URL never
+            // shows a broken viewer - it falls back cleanly.
+            var probe = new Image();
+            probe.onload = function () {
+                if (!window.pannellum) {
+                    // Pannellum failed to load (e.g. offline / CDN blocked).
+                    setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 viewer could not be loaded.');
+                    showFallback();
+                    return;
+                }
+                try {
+                    window.pannellum.viewer('vrPano', {
+                        type: 'equirectangular',
+                        panorama: scene.image_url,
+                        autoLoad: true,
+                        showZoomCtrl: true,
+                        yaw: Number(scene.initial_yaw) || 0,
+                        pitch: Number(scene.initial_pitch) || 0,
+                        hotSpots: buildHotspots()
+                    });
+                    showPano();
+                } catch (err) {
+                    setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 image not available yet');
+                    showFallback();
+                }
+            };
+            probe.onerror = function () {
+                setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 image not available yet');
+                showFallback();
+            };
+            probe.src = scene.image_url;
+        })();
+    </script>
+
+    <script src="/js/nav-role.js"></script>
+    <script src="/js/profile-script.js"></script>
+</body>
+
+</html>

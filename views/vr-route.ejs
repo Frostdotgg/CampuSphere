@@ -1,0 +1,893 @@
+<%
+  // Defensive local defaults so this view renders even with the
+  // minimal plan.md EJS render check locals. ASCII only.
+  var vrRoute = (typeof route !== 'undefined' && route) ? route : null;
+  if (!vrRoute) vrRoute = { id: 0, title: 'VR Route', start_label: '', estimated_walk_time: '', destination: { name: 'Destination' } };
+  if (!vrRoute.destination) vrRoute.destination = { name: 'Destination' };
+  var vrScene = (typeof scene !== 'undefined') ? scene : null;
+  var vrScenes = (typeof scenes !== 'undefined' && Array.isArray(scenes)) ? scenes : [];
+  var vrHotspots = (typeof hotspots !== 'undefined' && Array.isArray(hotspots)) ? hotspots : [];
+  var vrStepIndex = (typeof stepIndex !== 'undefined') ? stepIndex : 0;
+  var vrStepCount = (typeof stepCount !== 'undefined') ? stepCount : vrScenes.length;
+  var vrIsFinal = (typeof isFinal !== 'undefined') ? isFinal : false;
+  var vrPrevUrl = (typeof prevUrl !== 'undefined') ? prevUrl : null;
+  var vrNextUrl = (typeof nextUrl !== 'undefined') ? nextUrl : null;
+  var vrNotice = (typeof notice !== 'undefined') ? notice : null;
+  // Step links work for BOTH flows (11.8B): predefined campus_routes rows use
+  // /vr/routes/:id; the synthesized destination flow (route.id null) uses
+  // /vr/to/:buildingId from the destination building id.
+  var vrStepBase = vrRoute.id
+    ? ('/vr/routes/' + vrRoute.id)
+    : ((vrRoute.destination && vrRoute.destination.id) ? ('/vr/to/' + vrRoute.destination.id) : null);
+%>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="<%= description %>">
+    <title><%= title %></title>
+
+    <link rel="stylesheet" href="/css/styles.css?v=5">
+    <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+    <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f2a44">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CampuSphere">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+    <!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
+    <script src="/js/pwa.js" defer></script>
+
+    <!-- Iconify -->
+    <!-- iconify-icon script removed (post-11.8A cleanup): the web component
+         injects shadow-root <style> nodes that violate style-src-elem under
+         the nonce CSP. Icons below are safe inline SVGs. -->
+
+    <!--
+      Pannellum 2.5.6 360 viewer — self-hosted (M12.P1-R6). The viewer's own
+      CSS/JS are now same-origin; its built stylesheet embeds every control
+      image as a data: URI, so it has no relative image dependency.
+      This does NOT change the media policy: panorama IMAGES are still loaded
+      at runtime from owner-controlled Cloudinary delivery (or a local /img/vr
+      fallback), and Milestone 6 offline scope remains offline DEMO navigation
+      only — no panorama mirroring or bundling.
+    -->
+    <link rel="stylesheet" href="/vendor/pannellum/pannellum.css">
+    <script src="/vendor/pannellum/pannellum.js"></script>
+
+    <style nonce="<%= cspNonce %>">
+        /* Scoped VR-route styles. Polished navy/gold theme to match the
+           rest of CampuSphere (map, dashboard, buildings). Page-scoped:
+           applies only when /vr/routes/:routeId is rendered. */
+        body { background: #050c18; }
+        .vr-page {
+            position: relative;
+            z-index: 1;
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 6rem 1rem 3rem;
+            color: #e6edf7;
+        }
+        .vr-page::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(1200px 600px at 15% -5%, rgba(31, 111, 235, 0.22), transparent 60%),
+                radial-gradient(900px 500px at 95% 10%, rgba(42, 111, 199, 0.18), transparent 60%),
+                linear-gradient(180deg, #0a1628 0%, #050c18 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .vr-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .vr-head__main { flex: 1; min-width: 240px; }
+        .vr-head__eyebrow {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gold-light);
+            margin-bottom: 0.5rem;
+        }
+        .vr-title {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin: 0 0 0.6rem;
+            color: #fff;
+        }
+        .vr-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0;
+        }
+        .vr-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            font-size: 0.82rem;
+            color: #e6edf7;
+        }
+        .vr-chip--accent {
+            background: rgba(212, 168, 67, 0.14);
+            border-color: rgba(212, 168, 67, 0.4);
+            color: var(--gold-light);
+        }
+        .vr-backlink {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 0.95rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            position: relative;
+            z-index: 2;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .vr-backlink:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.32);
+        }
+
+        .vr-progress { margin: 0 0 1.25rem; }
+        .vr-progress__row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.85rem;
+            margin-bottom: 0.45rem;
+        }
+        .vr-progress__label { font-weight: 600; color: #cbd5e1; }
+        .vr-progress__pct {
+            font-weight: 700;
+            color: var(--gold-light);
+            font-variant-numeric: tabular-nums;
+        }
+        .vr-progress__bar {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        .vr-progress__fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--navy-300), var(--gold));
+            transition: width 0.4s ease;
+        }
+
+        .vr-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            background: rgba(220, 160, 0, 0.12);
+            border: 1px solid rgba(220, 160, 0, 0.4);
+            color: #fde68a;
+            font-size: 0.88rem;
+            margin: 0 0 1.25rem;
+        }
+
+        .vr-scene {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.25rem;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+        }
+        .vr-scene__head { margin-bottom: 1rem; }
+        .vr-scene__eyebrow {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 0.35rem;
+        }
+        .vr-scene__title {
+            margin: 0 0 0.35rem;
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .vr-scene__desc {
+            margin: 0;
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.78);
+            line-height: 1.5;
+        }
+
+        .vr-stage {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            min-height: 280px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 40%, #14233d 0%, #07101e 100%);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+        #vrPano { position: absolute; inset: 0; display: none; }
+        .vr-fallback {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            text-align: center;
+            padding: 1.5rem;
+            color: #e6edf7;
+        }
+        .vr-fallback__icon { color: var(--gold-light); opacity: 0.85; }
+        .vr-fallback__title { font-weight: 700; font-size: 1rem; }
+        .vr-fallback__hint {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.65);
+            max-width: 420px;
+            line-height: 1.5;
+        }
+
+        .vr-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .vr-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.65rem 1.1rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+        .vr-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.32);
+        }
+        .vr-btn:active { transform: translateY(1px); }
+        .vr-btn--primary {
+            background: linear-gradient(135deg, var(--navy-400), var(--blue-accent));
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(42, 111, 199, 0.35);
+        }
+        .vr-btn--primary:hover {
+            filter: brightness(1.08);
+            border-color: transparent;
+        }
+        .vr-btn[aria-disabled="true"] {
+            opacity: 0.45;
+            pointer-events: none;
+            box-shadow: none;
+        }
+
+        .vr-complete {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            padding: 0.9rem 1.1rem;
+            border-radius: 12px;
+            background: rgba(22, 163, 74, 0.14);
+            border: 1px solid rgba(22, 163, 74, 0.5);
+        }
+        .vr-complete__icon { color: #4ade80; flex-shrink: 0; }
+        .vr-complete__title {
+            margin: 0;
+            font-weight: 700;
+            color: #ecfdf5;
+            font-size: 0.95rem;
+        }
+        .vr-complete__text {
+            margin: 0.15rem 0 0;
+            font-size: 0.85rem;
+            color: rgba(236, 253, 245, 0.85);
+        }
+
+        .vr-section { margin-top: 1.5rem; }
+        .vr-section__title {
+            font-family: var(--font-heading);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0 0 0.6rem;
+        }
+        .vr-steplist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .vr-steplist__item a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #e6edf7;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .vr-steplist__item a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+        .vr-steplist__item.is-current a {
+            background: rgba(42, 111, 199, 0.25);
+            border-color: var(--navy-300);
+            color: #fff;
+        }
+        .vr-steplist__num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .vr-steplist__item.is-current .vr-steplist__num {
+            background: var(--gold);
+            color: var(--navy-900);
+        }
+
+        .vr-hotspots {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 0.6rem;
+        }
+        .vr-hotspot {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .vr-hotspot__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(42, 111, 199, 0.2);
+            color: var(--navy-300);
+            flex-shrink: 0;
+        }
+        .vr-hotspot--scene .vr-hotspot__icon {
+            color: var(--gold-light);
+            background: rgba(212, 168, 67, 0.18);
+        }
+        .vr-hotspot--finish .vr-hotspot__icon,
+        .vr-hotspot--exit .vr-hotspot__icon {
+            color: #4ade80;
+            background: rgba(22, 163, 74, 0.18);
+        }
+        .vr-hotspot__body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+        .vr-hotspot__type {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.55);
+            font-weight: 700;
+        }
+        .vr-hotspot__label {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .vr-hotspot__text {
+            margin: 0.15rem 0 0;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.5;
+        }
+        .vr-hotspot__schedule-btn {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            margin-top: 0.45rem;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 8px;
+            background: transparent;
+            color: #fff;
+            padding: 0.35rem 0.75rem;
+            font: inherit;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        /* BE.4: post-arrival interior exploration link (final step only). */
+        .vr-hotspot__explore {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            margin-top: 0.45rem;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 8px;
+            color: #fff;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .vr-schedule-panel {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: min(390px, calc(100vw - 24px));
+            max-height: min(70vh, 560px);
+            overflow: auto;
+            z-index: 30;
+            background: rgba(9, 15, 28, .97);
+            color: #f8fbff;
+            border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: 12px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, .36);
+        }
+        .vr-schedule-panel[hidden] { display: none; }
+        .vr-schedule-panel__head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .12);
+        }
+        .vr-schedule-panel__title { margin: 0; font-size: 1rem; line-height: 1.3; }
+        .vr-schedule-panel__meta { margin: 3px 0 0; font-size: .82rem; opacity: .72; }
+        .vr-schedule-panel__close {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, .2);
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+        }
+        .vr-schedule-panel__body { padding: 12px 16px 16px; }
+        .vr-schedule-status { margin: 0; font-size: .9rem; color: rgba(255, 255, 255, .78); }
+        .vr-schedule-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+        .vr-schedule-row {
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, .05);
+        }
+        .vr-schedule-row__title { margin: 0; font-size: .95rem; font-weight: 700; }
+        .vr-schedule-row__time, .vr-schedule-row__desc { margin: 4px 0 0; font-size: .84rem; line-height: 1.45; }
+        .vr-schedule-row__time { color: rgba(255, 255, 255, .74); }
+        .vr-schedule-row__desc { color: rgba(255, 255, 255, .86); }
+
+        .vr-empty {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 255, 255, 0.18);
+            border-radius: 18px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .vr-empty__icon { color: var(--gold-light); }
+        .vr-empty__title {
+            margin: 0.5rem 0 0.2rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #fff;
+        }
+        .vr-empty__desc {
+            margin: 0 0 1rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 600px) {
+            .vr-page { padding: 8.25rem 0.85rem 2.5rem; }
+            .theme-toggle {
+                position: absolute;
+                top: 5.25rem;
+                right: 0.85rem;
+                bottom: auto;
+                width: 44px;
+                height: 44px;
+            }
+            .vr-title { font-size: 1.4rem; }
+            .vr-head { flex-direction: column-reverse; align-items: stretch; gap: 0.75rem; }
+            .vr-backlink { align-self: flex-start; min-height: 44px; }
+            .vr-stage { aspect-ratio: 4 / 3; min-height: 240px; }
+            .vr-nav { flex-direction: column; align-items: stretch; }
+            .vr-btn { min-height: 44px; }
+            .vr-scene { padding: 1rem; }
+            .vr-steplist__item a { min-height: 38px; }
+            .vr-meta { gap: 0.4rem; }
+            .vr-chip { font-size: 0.78rem; }
+            .vr-schedule-panel {
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+                width: auto;
+                max-height: 62vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== NAVBAR (shared partial) ===== -->
+    <%- include('partials/dash-navbar', { activeTab: activeTab }) %>
+
+    <main class="vr-page">
+
+        <header class="vr-head">
+            <div class="vr-head__main">
+                <span class="vr-head__eyebrow">Guided VR Route</span>
+                <h1 class="vr-title"><%= vrRoute.title %></h1>
+                <div class="vr-meta">
+                    <span class="vr-chip">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>Destination: <%= vrRoute.destination.name %></span>
+                    </span>
+                    <% if (vrRoute.estimated_walk_time) { %>
+                    <span class="vr-chip vr-chip--accent">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Approx. <%= vrRoute.estimated_walk_time %></span>
+                    </span>
+                    <% } %>
+                </div>
+            </div>
+            <a class="vr-backlink" href="/map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Back to Map</span>
+            </a>
+        </header>
+
+        <% if (vrScene && vrStepCount > 0) {
+            var vrPct = Math.max(0, Math.min(100, Math.round((vrStepIndex / vrStepCount) * 100)));
+        %>
+        <div class="vr-progress" aria-label="Route progress">
+            <div class="vr-progress__row">
+                <span class="vr-progress__label">Scene <%= vrStepIndex %> of <%= vrStepCount %></span>
+                <span class="vr-progress__pct"><%= vrPct %>%</span>
+            </div>
+            <div class="vr-progress__bar" aria-hidden="true">
+                <div class="vr-progress__fill" style="width: <%= vrPct %>%"></div>
+            </div>
+        </div>
+        <% } %>
+
+        <% if (vrNotice) { %>
+        <div class="vr-notice" role="status">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span><%= vrNotice %></span>
+        </div>
+        <% } %>
+
+        <% if (vrScene) { %>
+        <section class="vr-scene">
+            <header class="vr-scene__head">
+                <span class="vr-scene__eyebrow">Current Scene</span>
+                <h2 class="vr-scene__title"><%= vrScene.title %></h2>
+                <% if (vrScene.description) { %>
+                <p class="vr-scene__desc"><%= vrScene.description %></p>
+                <% } %>
+            </header>
+
+            <div class="vr-stage">
+                <div id="vrPano" role="img" aria-label="360 panorama of <%= vrScene.title %>"></div>
+                <div class="vr-fallback" id="vrFallback">
+                    <div class="vr-fallback__icon" aria-hidden="true">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div class="vr-fallback__title" id="vrFallbackTitle">360 image not available yet</div>
+                    <div class="vr-fallback__hint">
+                        The panorama for "<%= vrScene.title %>" has not been added.
+                        You can still follow the route using the controls below.
+                    </div>
+                </div>
+            </div>
+
+            <nav class="vr-nav" aria-label="Scene navigation">
+                <% if (vrPrevUrl) { %>
+                <a class="vr-btn" href="<%= vrPrevUrl %>">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>Previous scene</span>
+                </a>
+                <% } else { %>
+                <span class="vr-btn" aria-disabled="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>Previous scene</span>
+                </span>
+                <% } %>
+
+                <% if (!vrIsFinal && vrNextUrl) { %>
+                <a class="vr-btn vr-btn--primary" id="vrNextBtn" href="<%= vrNextUrl %>">
+                    <span>Next scene</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </a>
+                <% } else { %>
+                <span class="vr-btn vr-btn--primary" aria-disabled="true">
+                    <span>Next scene</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+                <% } %>
+            </nav>
+
+            <% if (vrIsFinal) { %>
+            <div class="vr-complete" role="status">
+                <svg class="vr-complete__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.27"/></svg>
+                <div>
+                    <p class="vr-complete__title">Route complete</p>
+                    <p class="vr-complete__text">You have arrived at <%= vrRoute.destination.name %>.</p>
+                </div>
+            </div>
+            <% } %>
+
+            <% if (vrScenes.length > 0) { %>
+            <section class="vr-section" aria-label="All scenes">
+                <h3 class="vr-section__title">Route steps</h3>
+                <ol class="vr-steplist">
+                    <% vrScenes.forEach(function (s, i) { var isCur = (i + 1 === vrStepIndex); %>
+                    <li class="vr-steplist__item <%= isCur ? 'is-current' : '' %>">
+                        <a href="<%= vrStepBase ? (vrStepBase + '?step=' + (i + 1)) : '#' %>">
+                            <span class="vr-steplist__num"><%= (i + 1) %></span>
+                            <span><%= s.title %></span>
+                        </a>
+                    </li>
+                    <% }); %>
+                </ol>
+            </section>
+            <% } %>
+
+            <% if (vrHotspots.length > 0) { %>
+            <section class="vr-section" aria-label="Points in this scene">
+                <h3 class="vr-section__title">Points in this scene</h3>
+                <ul class="vr-hotspots">
+                    <% vrHotspots.forEach(function (h) {
+                        var hType = String(h.hotspot_type || 'info').toLowerCase();
+                    %>
+                    <li class="vr-hotspot vr-hotspot--<%= hType %>">
+                        <span class="vr-hotspot__icon" aria-hidden="true">
+                            <% if (hType === 'scene') { %>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                            <% } else if (hType === 'finish' || hType === 'exit') { %>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                            <% } else if (hType === 'schedule') { %>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+                            <% } else { %>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <% } %>
+                        </span>
+                        <div class="vr-hotspot__body">
+                            <span class="vr-hotspot__type"><%= h.hotspot_type || 'point' %></span>
+                            <span class="vr-hotspot__label"><%= h.label %></span>
+                            <% if (h.text) { %>
+                            <p class="vr-hotspot__text"><%= h.text %></p>
+                            <% } %>
+                            <% if (hType === 'scene' && h.nav_url) { %>
+                            <%# FIX 3 (BE.4 NO-GO repair): the accessible list mirrors the
+                                in-panorama navigation. Each scene hotspot links to its OWN
+                                server-derived URL — a guided Previous/Next step, or (on the
+                                arrival scene) a Free Roam Explore link into an interior scene.
+                                Scene hotspots with no derived URL render as plain, honest,
+                                non-navigating points (no misleading link). %>
+                            <a class="vr-hotspot__explore" href="<%= h.nav_url %>">
+                                <% if (h.nav_kind === 'next') { %>Next: <%= h.target_title || h.target_scene_key %><% } else if (h.nav_kind === 'prev') { %>Previous: <%= h.target_title || h.target_scene_key %><% } else { %>Explore: <%= h.target_title || h.target_scene_key %><% } %>
+                            </a>
+                            <% } %>
+                            <% if (hType === 'schedule' && h.schedule_building_id && h.schedule_location_type && h.schedule_location_label) { %>
+                            <button type="button" class="vr-hotspot__schedule-btn"
+                                data-vr-schedule-hotspot
+                                data-schedule-title="<%= h.label || 'Room schedule' %>"
+                                data-schedule-building-id="<%= h.schedule_building_id %>"
+                                data-schedule-location-type="<%= h.schedule_location_type %>"
+                                data-schedule-location-label="<%= h.schedule_location_label %>"
+                                data-schedule-floor-label="<%= h.schedule_floor_label || '' %>">
+                                View schedule
+                            </button>
+                            <% } %>
+                        </div>
+                    </li>
+                    <% }); %>
+                </ul>
+            </section>
+            <% } %>
+        </section>
+
+        <% } else { %>
+        <div class="vr-empty">
+            <svg class="vr-empty__icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/><path d="M14.12 13.88a3 3 0 1 1-4.24-4.24"/></svg>
+            <p class="vr-empty__title">No VR walkthrough yet</p>
+            <p class="vr-empty__desc">This route does not have a guided VR walkthrough yet.</p>
+            <a class="vr-btn vr-btn--primary" href="/map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Return to map</span>
+            </a>
+        </div>
+        <% } %>
+
+        <aside class="vr-schedule-panel" id="vrSchedulePanel" hidden aria-live="polite">
+            <div class="vr-schedule-panel__head">
+                <div>
+                    <h2 class="vr-schedule-panel__title" id="vrScheduleTitle">Room schedule</h2>
+                    <p class="vr-schedule-panel__meta" id="vrScheduleMeta"></p>
+                </div>
+                <button type="button" class="vr-schedule-panel__close" id="vrScheduleClose" aria-label="Close schedule">X</button>
+            </div>
+            <div class="vr-schedule-panel__body">
+                <p class="vr-schedule-status" id="vrScheduleStatus"></p>
+                <ul class="vr-schedule-list" id="vrScheduleList"></ul>
+            </div>
+        </aside>
+    </main>
+
+    <%- include('partials/theme-toggle') %>
+
+    <script src="/js/vr-schedule.js"></script>
+    <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
+        inline viewer initialization below. %>
+    <script src="/js/vr-hotspot-navigation.js"></script>
+    <script id="vrData" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({ scene: vrScene, nextUrl: vrNextUrl, hotspots: vrHotspots }) %></script>
+
+    <script nonce="<%= cspNonce %>">
+        (function () {
+            var data = {};
+            try {
+                data = JSON.parse(document.getElementById('vrData').textContent);
+            } catch (e) {
+                data = { scene: null, nextUrl: null, hotspots: [] };
+            }
+
+            var stagePano = document.getElementById('vrPano');
+            var fallback = document.getElementById('vrFallback');
+            var scene = data.scene;
+            var scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
+            var hotspotNav = window.CampuSphereVrHotspotNavigation || null;
+
+            if (!scene || !scene.image_url || !stagePano || !fallback) {
+                return; // server-rendered fallback stays visible
+            }
+
+            function showFallback() {
+                stagePano.style.display = 'none';
+                fallback.style.display = 'flex';
+            }
+            function showPano() {
+                fallback.style.display = 'none';
+                stagePano.style.display = 'block';
+            }
+            var fbTitle = document.getElementById('vrFallbackTitle');
+            function setFallbackText(msg) {
+                if (fbTitle) { fbTitle.textContent = msg; }
+            }
+            // Offline, the panorama/CDN cannot be fetched; keep the panel readable
+            // and say so explicitly. Step/scene details stay rendered server-side below.
+            var OFFLINE_FALLBACK_MSG = '360 view is unavailable offline. Scene details remain available below.';
+            function isOffline() { return navigator.onLine === false; }
+
+            // M12.P1-D3: each scene hotspot consumes ONLY its exact
+            // server-derived nav_url (guided Previous/Next step or, on the
+            // truthful arrival scene, a Free Roam interior explore URL)
+            // through the shared vr-hotspot-navigation helper, which applies
+            // Pannellum's NATIVE info-hotspot link contract (URL +
+            // attributes { target: '_self' }) — no custom window-location
+            // callback and no schedule-helper fallback coupling. A rejected
+            // or missing target stays a non-navigating info point. info/exit
+            // hotspots keep their label tooltip; schedule hotspots keep the
+            // schedule panel behavior via vr-schedule.js.
+            function buildHotspots() {
+                var list = Array.isArray(data.hotspots) ? data.hotspots : [];
+                var out = [];
+                list.forEach(function (h) {
+                    var hs = {
+                        pitch: Number(h.pitch) || 0,
+                        yaw: Number(h.yaw) || 0,
+                        type: 'info',
+                        text: h.label || (h.hotspot_type || 'point')
+                    };
+                    if (h.hotspot_type === 'scene' && hotspotNav) {
+                        hs = hotspotNav.decoratePannellumHotspot(hs, h, 'guided', window.location) || hs;
+                    } else if (h.hotspot_type === 'schedule' && scheduleUi) {
+                        hs = scheduleUi.makePannellumHotspot(h);
+                    }
+                    out.push(hs);
+                });
+                return out;
+            }
+
+            // Visible loading state while the image is fetched (the
+            // fallback panel is already shown by default server-side).
+            setFallbackText('Loading 360 view...');
+
+            var probe = new Image();
+            probe.onload = function () {
+                if (!window.pannellum) {
+                    setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 viewer could not be loaded.');
+                    showFallback();
+                    return;
+                }
+                try {
+                    window.pannellum.viewer('vrPano', {
+                        type: 'equirectangular',
+                        panorama: scene.image_url,
+                        autoLoad: true,
+                        showZoomCtrl: true,
+                        yaw: Number(scene.initial_yaw) || 0,
+                        pitch: Number(scene.initial_pitch) || 0,
+                        hotSpots: buildHotspots()
+                    });
+                    showPano();
+                } catch (err) {
+                    setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 image not available yet');
+                    showFallback();
+                }
+            };
+            probe.onerror = function () {
+                setFallbackText(isOffline() ? OFFLINE_FALLBACK_MSG : '360 image not available yet');
+                showFallback();
+            };
+            probe.src = scene.image_url;
+        })();
+    </script>
+
+    <script src="/js/nav-role.js"></script>
+    <script src="/js/profile-script.js"></script>
+</body>
+
+</html>

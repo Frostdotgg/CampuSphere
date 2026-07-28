@@ -4,11 +4,369 @@
 
 All requested files were readable: `AGENTS.md`, `CLAUDE.md`, `MANUSCRIPT_TEAMDUTCHESS.pdf`, and the first-party source files outside `node_modules`. The manuscript PDF was parsed from its text streams. A few extracted sections had formatting noise, especially the numbered objectives, but the project scope, modules, testing plan, and technical expectations were readable enough to compare against the codebase.
 
+## Scope Revision Note
+
+The team has revised the capstone scope to remove simulated academic records from the role dashboards. The final roadmap no longer includes fake student enrollment status, simulated enrollment information, fake instructor assigned-room widgets, fake instructor teaching schedules, or a fake instructor "all rooms" dashboard feature. Student and instructor dashboards should focus on role-appropriate campus navigation, announcements, profile information, room/facility schedule information where real data exists, and quick access to map/building/event features instead of pretending to integrate with enrollment systems.
+
+Real room/facility scheduling is now a post-Milestone 8 manuscript-alignment item. It must be implemented as admin-managed schedule data, not as hardcoded dashboard filler.
+
+## Final Product Stack Decision
+
+The team has decided that the defended final product should align with the manuscript stack instead of stopping at the current prototype stack. The current codebase still uses Express/EJS, MySQL, Leaflet/OpenStreetMap, and local static assets, but the final target is:
+
+- Express.js for server routes, authentication, and API endpoints.
+- EJS or compatible server-rendered views for the web interface unless a later approved frontend migration changes this.
+- Supabase with PostgreSQL/PostGIS for cloud-hosted relational and spatial campus data.
+- MapLibre GL JS for the interactive campus map.
+- Cloudinary for optimized delivery of campus images and VR panorama assets.
+- Pannellum.js for 360-degree guided route scenes and hotspot navigation.
+- Web App Manifest, custom Service Worker, and Cache Storage API for PWA installability and offline fallback.
+
+This is now an approved migration target, not an undecided option. The roadmap should still call out migration risk because the current repository has not yet completed this stack transition.
+
+## Post-Milestone 8 Manuscript Alignment Roadmap
+
+Milestone 8 production hardening is complete. The next roadmap work aligns the hardened application with the manuscript while preserving the security posture already approved in Milestone 8.
+
+Final architecture target:
+
+- Supabase is the production data store and production session-store target.
+- MySQL remains available for local development and fallback only.
+- Cloudinary stores and delivers campus images and 360-degree VR panorama assets.
+- Vercel is a demo/UAT hosting target for students, instructors, and guests.
+- Docker remains the full deployment and institutional production-style hosting path.
+- Guest access is authenticated guest-role access, not anonymous public browsing, due to school policy.
+
+### Milestone 9: Supabase Session Store
+
+Priority: P0
+
+Goal: make production sessions manuscript-aligned by moving the production session store from MySQL to Supabase/PostgreSQL while preserving MySQL as a fallback.
+
+Concrete tasks:
+
+- Add a Supabase `app_sessions` table/migration compatible with `express-session` semantics.
+- Add a Supabase-backed session-store service and support `SESSION_STORE=supabase`.
+- Make `SESSION_STORE=supabase` the preferred production configuration after verification.
+- Keep `SESSION_STORE=mysql` working for fallback and local rehearsal.
+- Update deployment docs, README, and handoffs so production no longer requires MySQL once this milestone is complete.
+- Verify login persistence across server restart, logout session deletion, expired-session cleanup, session secret rotation, and no session ID leakage in logs/responses.
+
+Acceptance criteria:
+
+- Supabase-mode production can run without MySQL for session persistence.
+- Login, logout, CSRF, rate limiting, admin access, and role dashboards pass using `SESSION_STORE=supabase`.
+- MySQL fallback session storage still passes the existing QA gates.
+
+### Milestone 10: Cloudinary Media Support
+
+Priority: P0
+
+Goal: store real campus images and 360-degree VR panoramas in Cloudinary while keeping database rows as metadata and URL references.
+
+Concrete tasks:
+
+- Add server-only Cloudinary environment documentation for cloud name, API key, and API secret.
+- Store `image_url` and `cloudinary_public_id` for VR scenes and campus media.
+- Update CSP/security headers and PWA approved host logic for Cloudinary media delivery.
+- Upload the final demo 360 panoramas to Cloudinary and replace `/img/vr/*.jpg` placeholder URLs.
+- Keep missing-panorama fallback UI for incomplete scenes.
+
+Acceptance criteria:
+
+- Pannellum loads Cloudinary-hosted panorama URLs on `/vr`, `/vr/:sceneKey`, and guided VR routes.
+- No Cloudinary API secret appears in EJS, public JavaScript, browser storage, logs, screenshots, or committed files.
+- At least the final demo VR routes use real Cloudinary media.
+
+### Milestone 11: Room Scheduling
+
+Priority: P1
+
+Goal: implement real admin-managed room/facility scheduling without bringing back fake enrollment or fake instructor dashboard widgets.
+
+Concrete tasks:
+
+- Add database support for room/facility schedule entries tied to buildings, floors, rooms, or facilities.
+- Add admin CRUD for schedule entries with validation for date/time, room/facility, title/purpose, audience, and status.
+- Display schedule/availability information in building or room detail views where it helps users navigate.
+- Keep dashboards focused on role-relevant summaries and links; do not simulate enrollment, assigned classes, or instructor teaching loads.
+
+Acceptance criteria:
+
+- Admins can create, update, and remove real schedule entries.
+- Users can view relevant room/facility schedule information without seeing fake academic records.
+- Schedule data survives refresh and is served from the configured runtime data source.
+
+### Pre-Milestone-12 Routing, Privacy, and Pilot Gates
+
+The Road-Following Map Destination Routing Repair (RF.1-RF.6) and BE.5
+selected 13-building parity/regression gate are complete and Codex GO.
+Supabase migrations are exactly `0001` through `0019`, and `0014` through
+`0019` are owner-applied. The
+verified MySQL/Supabase graph has 20 nodes, 48 directed edges, 24 exact reverse
+pairs, 48 valid owner-managed road geometries, and 13 routable destinations.
+CampuSphere computes routes from its own campus graph; Google Maps, Google
+Earth, Strava, SIS, and external routing engines are not integrated. Guided VR
+reports arrival only when mapped scene coverage reaches the destination.
+BE.6 selected-demo dataset freeze is complete and Codex GO. Its manifest pins
+VR totals `85/66`, the selected CAS scope
+`26/51`, exact 24-scene arrival sequence, two interior scenes, one CAS schedule
+target, and deferred CCS policy under aggregate fingerprint
+`a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d`.
+
+The `M12.P1-R3` runtime/bootstrap work and all session-hygiene/ownership/
+import-detector follow-ups are **complete and Codex GO**. The implementation mints the regenerated
+session's CSRF token before the authenticated session is saved, stops the test
+harness from inheriting an ambient `SESSION_STORE`, gives every canonical-login
+probe an owned logout path, and adds a registered SELECT-only residue gate as
+the authoritative zero-session postcondition. Accepted evidence: full suite
+`2921/2921` with `QUALITY-GATES OK`; standalone R1
+`24/24`, R2 `88/88`, R3 `86/86`, BE.6 `46/46`. R4 later received Codex GO
+after focused `180/180`, R2 `119/119`, unchanged R3 `86/86`, R4 full suite
+`3040/3040`, R1 `24/24`, residue `18/18`, and BE.6 `46/46`. The superseded
+pre-R5 authority-sync suite was `3050/3050` with `QUALITY-GATES OK` (+10
+`docs-current` checks); after the R5 follow-up the accepted R5 closeout suite
+passed `3234/3234` with `QUALITY-GATES OK`, with focused R5 `90/90` standalone.
+The accepted 2026-07-22 compatible dependency-security remediation remains
+historical Codex GO evidence: at that closeout production resolved
+`body-parser@2.3.0` and `brace-expansion@2.1.2` with zero audit vulnerabilities
+and no `package.json` change.
+
+OFF.1 Offline Baseline Audit and Domain Contract is complete and Codex GO. It
+verified authenticated HTML is network-only and `no-store, private`, `/map`
+logout carries a valid CSRF token, explicit API/static/session-neutral shell
+caching remains available, and browser Back/reload after logout cannot replay
+the authenticated map or retain CampuSphere dynamic caches/catalog records.
+
+<!-- M12.P1 CURRENT STATUS START -->
+The owner-authorized `M12.P1` deployment-readiness and exposure audit is
+complete with Codex NO-GO after one critical and six high blockers. R1-R7,
+D1-D5, and expanded D7 are complete and Codex GO, including all R3 follow-ups,
+the R4 follow-up, both R5 follow-ups, dependency-security remediation, both R7
+source-auditability corrections, and the expanded D7 cross-role
+admin-to-participant regression gate. `M12.P1-R7` is complete and Codex GO.
+Accepted R7 closeout evidence is focused `71/71`, in-suite
+`vercel-package-boundary` `70/70`, full suite `3495/3495` with
+`QUALITY-GATES OK`, and `npm audit --omit=dev` at zero vulnerabilities. The
+`3492/3492` initial R7 candidate and `3494/3494` literal-NUL remediation
+candidate are historical/superseded. Following the accepted 2026-07-22
+dependency closeout, a subsequent 2026-07-26 npm advisory drift is remediated:
+production pins `ejs@6.0.1`, the
+`jake/filelist/minimatch/brace-expansion` chain is absent, and
+`npm audit --omit=dev` reports zero vulnerabilities. `M12.P1-D7` is complete
+and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun:
+separate Playwright `BrowserContext` objects with no storage carryover, both
+MySQL and Supabase legs completed and cleaned up through supported application
+interfaces, `npm test` `3511/3511` with `QUALITY-GATES OK`, `npm audit
+--omit=dev` zero vulnerabilities, and postconditions `24/24 -> 18/18 -> 46/46`
+with fingerprint
+`a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d`
+unchanged. The post-D7 logout-output hygiene remediation is independently
+Codex-accepted as additive evidence: `3529/3529` with `QUALITY-GATES OK`, zero
+escaped logout-error lines, `npm audit --omit=dev` zero vulnerabilities, and
+postconditions `24/24 -> 18/18 -> 46/46`; it does not supersede D7. `M12.P1-R8`
+is the next potential section. R8 is read-only and is
+not authorized by this synchronization; even R8 GO authorizes only a separate
+owner deployment decision. `M12.P1` remains NO-GO for deployment and pilot
+readiness; deployment is not authorized.
+<!-- M12.P1 CURRENT STATUS END -->
+
+Superseded, historical: the earlier post-synchronization full-suite candidate
+was RED after Supabase logout/session-destroy failures left unexpired canonical
+administrator and student sessions; the distinct post-run safety check was
+`22/24`, the embedded residue check was red, and the embedded BE.6 check did not
+establish its frozen postcondition. That blocker is closed. A separately
+owner-authorized supported cleanup/restoration was performed and independently
+reproduced, and the R6 session re-verified safety `24/24`, residue `18/18`, and
+BE.6 `46/46` before editing and again after its full-suite run.
+
+The eventual pilot exposes the full authenticated application while
+facilitators guide students and guests to evaluate routing. Feedback uses an
+owner-created Google Form; no CampuSphere feedback table, API mutation, or
+migration is added. OFF.2 through OFF.6 resume after pilot review and remain
+mandatory before final Milestone 12 GO. D6 remains the lowest-priority item and
+runs post-pilot after OFF.2-OFF.5 and before OFF.6.
+
+### Deferred Offline Campus Navigation Package
+
+The following work is deferred, not cancelled. It must resume after the
+limited-pilot findings are reviewed.
+
+**OFF.2 — Installability, Offline Shell, and Update Lifecycle**
+
+- Complete manifest/installability behavior and the session-neutral shell.
+- Add visible online/offline and update-available states, safe activation,
+  version cleanup, interrupted-install recovery, and reconnect handling.
+- Keep authenticated HTML and sensitive routes network-only.
+
+**OFF.3 — Privacy-Safe Public Data Availability**
+
+- Package the frozen 13-building catalog, precomputed route data/geometries,
+  approved public schedules, and required CAS VR metadata in bounded,
+  versioned, read-only storage after explicit user download.
+- Exclude sessions, CSRF, credentials, profiles, admin/private responses,
+  mutations, raw errors, and personalized HTML.
+
+**OFF.4 — Offline Map and Destination Routing**
+
+- Render the frozen destinations, route lines, steps, and unavailable states
+  without network access.
+- Do not mirror OpenStreetMap; the route experience must remain readable when
+  tiles are absent and preserve clearing/stale-response behavior.
+
+**OFF.5 — Offline CAS VR and Deferred CCS State**
+
+- Cache only the approved Guard House/general-road/CAS selected-demo media and
+  Free Roam entry path within the agreed quota.
+- Preserve CAS schedule-hotspot behavior and the truthful CCS-unavailable
+  state; never cache missing CCS placeholder media or claim false arrival.
+
+**OFF.6 — Offline Feature, Privacy, and Final GO/NO-GO**
+
+- Run clean-install and warmed-cache desktop/mobile matrices for restart,
+  network loss, routing, CAS VR, deferred CCS, schedules, quota/errors,
+  upgrades, reconnect, logout, and shared-device privacy.
+- Require zero private cache data, zero server mutations, green online
+  regressions, and complete fixture/service-worker/listener cleanup.
+- OFF.6 GO is required before final Milestone 12 GO.
+
+### Milestone 12: Vercel Demo Deployment
+
+Priority: P1
+
+Goal: support Vercel as a demo/UAT target, not as the full production deployment path.
+
+#### M12.P1 — Limited Routing-Focused Pilot
+
+Status: the audit is complete with Codex NO-GO; blocker remediation is in
+progress, and deployment is not authorized.
+
+- The completed audit covered the entire exposed authenticated surface, Vercel
+  configuration, Supabase-only data operation, Supabase sessions, OAuth
+  redirects, cookies, CSRF/CSP/rate limits, logs/errors, secrets, Cloudinary
+  delivery, service-worker behavior, rollback, and tester accounts.
+- R1-R7 and D1-D5 are complete and Codex GO. R3 (awaited Vercel runtime and
+  session bootstrap), together with all session-hygiene/ownership/import-
+  detector follow-ups, is complete and Codex GO. R4 (shared Upstash rate
+  limiting) and the dependency-security remediation are complete and Codex GO.
+  `M12.P1-R5` (bounded anonymous access-denial auditing), its authoritative
+  global-total follow-up, and its documentation-gate final correction are
+  complete and Codex GO. `M12.P1-R6` (self-hosted browser dependencies) is
+  complete and Codex GO. `M12.P1-R7` (Vercel package and static-CDN boundary)
+  and both source-auditability corrections are complete and Codex GO.
+  M12.P1 remains NO-GO for deployment and pilot readiness.
+- R7 adds an allowlist `.vercelignore` (`/*` first, then only `server.js`, the
+  two package manifests, `vercel.json`, and the ten runtime directories, with
+  `public/img/sample 360/**` denied after the `public` re-inclusion), a minimal
+  `vercel.json` carrying exactly `$schema` and seven narrow static/PWA header
+  rules with one fixed static-only CSP confined to `/offline.html`, a standalone
+  read-only package-boundary probe, and an in-suite fail-closed gate. Express's
+  per-response nonce CSP is untouched and remains the sole CSP authority for
+  dynamic responses.
+- R6 serves Leaflet `1.9.4`, MapLibre GL JS `4.7.1`, Pannellum `2.5.6`, Iconify
+  Icon `1.0.7`, and Lucide `1.25.0` from `public/vendor` with a provenance
+  manifest recording registry integrity, license, and SHA-256 per shipped file,
+  and removes `unpkg.com`, `cdn.jsdelivr.net`, and `code.iconify.design` from
+  every CSP directive. Google Fonts, OSM tiles, the Iconify data API, and
+  Cloudinary media delivery remain the only approved external origins, none of
+  them executable. Provenance is additionally pinned INDEPENDENTLY of the
+  manifest in `EXPECTED_VENDOR_INVENTORY` (probe code), verified against official
+  `npm view`/`npm pack`; the analyzer and gate fail closed on any divergence and
+  re-verify disk/HTTP bytes against the pinned hashes. Accepted R6 Codex GO
+  evidence: focused `230/230`, full suite `3415/3415` with `QUALITY-GATES OK`
+  (pre-remediation `3375/3375`), and the complete independent desktop/mobile
+  affected-page and missing-library browser matrix green.
+- R5 stops routine anonymous protected-route denials from writing `system_logs`
+  rows while preserving the exact `302 /auth`, fixed `401` JSON, and `403`
+  HTML/JSON contracts. The one retained authorization-denial write is the
+  authenticated wrong-role case, guarded by an authenticated-only helper that
+  requires a positive integer actor id and a non-blank role. Real
+  authentication failures remain audited. No anonymous-denial table, raw IP,
+  Redis denial record, timer, aggregation job, dependency, or migration was
+  added. The R5 follow-up strengthens the focused probe to prove the
+  authoritative unfiltered `system_logs` total (`summary.total`) is unchanged
+  across the twenty anonymous requests — not merely the filtered
+  authorization/denied count — and makes both reusable session-grounding
+  prompts in `docs/new-session-grounding-prompts.md` carry current authority
+  under a dedicated documentation gate.
+- R4 keeps every existing limiter scope, configurable limit, fixed `429` body,
+  and `Retry-After` contract while moving Vercel counters to a shared
+  `@upstash/redis@1.38.0` store incremented by one atomic server-side Lua
+  `EVAL`. It requires server-only `UPSTASH_REDIS_REST_URL`,
+  `UPSTASH_REDIS_REST_TOKEN`, and a `RATE_LIMIT_KEY_SECRET` of at least 32
+  characters, persists only HMAC-SHA-256 bucket digests, keeps the in-memory
+  adapter off Vercel, and fails closed with a fixed sanitized `503` rather than
+  falling back to a process-local Map.
+- R3 must use one shared single-flight session-readiness promise, make local
+  startup await it, prevent the exported/Vercel app from reaching session
+  middleware or routes before readiness, return a fixed sanitized `503` on
+  initialization failure, and avoid duplicate stores, timers, listeners, logs,
+  or initialization attempts.
+- Expanded D7 is complete and Codex GO. It exercised a temporary building with
+  structured details, linked node, forward/reverse geometry edge pair, and
+  public schedule through supported interfaces in both MySQL and Supabase;
+  verified student, guest, and instructor propagation, authorization, and
+  all-reachable-page behavior with separate fresh browser/storage contexts; then
+  cleaned up in reverse dependency order and restored BE.6 plus
+  credential/session safety. Accepted evidence is `npm test` `3511/3511` with
+  `QUALITY-GATES OK`, `npm audit --omit=dev` zero vulnerabilities, and
+  postconditions `24/24 -> 18/18 -> 46/46` with the frozen fingerprint
+  unchanged. The later logout-output hygiene remediation is accepted only as
+  additive evidence at `3529/3529`; it does not replace the D7 closeout.
+- R8 is a read-only integrated readiness review. R8 GO does not deploy; it only
+  permits the owner to make a separate deployment decision.
+- Only after that separate owner authorization may the full authenticated app
+  be deployed for facilitated student/guest routing evaluation. No anonymous
+  browsing is added.
+- Collect feedback through the owner-created Google Form; add no feedback
+  table, API mutation, or migration.
+- Classify and review pilot findings before OFF.2–OFF.6 resume.
+
+#### M12.P2 — Final Demo/UAT Closeout
+
+Status: blocked by pilot review and OFF.2–OFF.6.
+
+Concrete tasks:
+
+- Add Vercel demo deployment docs/config after Supabase sessions are working.
+- Document required environment variables, including Supabase data switches, `SESSION_STORE=supabase`, OAuth redirect URI, and Cloudinary media settings.
+- Verify the demo URL supports student, instructor, and guest UAT flows.
+- Document limitations of Vercel demo hosting versus Docker full deployment.
+- Re-run final deployment, security, online/offline, and regression checks
+  after OFF.6 GO.
+
+Acceptance criteria:
+
+- Vercel demo deployment can run without local MySQL.
+- Google OAuth redirect URI variants are documented for Vercel preview and production URLs.
+- UAT testers can access the demo through authenticated student, instructor, and guest flows.
+- Pilot findings are resolved or formally accepted, and OFF.2–OFF.6 receive
+  Codex GO before final Milestone 12 GO.
+
+### Milestone 13: Docker Full Deployment Finalization
+
+Priority: P1
+
+Goal: keep Docker as the full deployment and institutional hosting path while updating it to the final Supabase-session architecture.
+
+Concrete tasks:
+
+- Update Docker deployment docs to default to Supabase data and Supabase sessions.
+- Keep MySQL compose support only for fallback/local rehearsal.
+- Verify the Docker image still excludes `.env`, database dumps, screenshots, secrets, `node_modules`, and local artifacts.
+- Run the full QA gate against the final Docker deployment path.
+
+Acceptance criteria:
+
+- Docker deployment runs with Supabase app data, Supabase sessions, and Cloudinary media.
+- MySQL is documented as local fallback only.
+- Docker remains the recommended full deployment path after Vercel demo/UAT.
+
 ## Project Summary
 
-CampuSphere is a role-based campus navigation and information portal for Camarines Sur Polytechnic Colleges. The manuscript defines the target as a Progressive Web Application with user roles, searchable campus map data, VR/360-degree guided navigation, announcements, room scheduling, admin content management, offline access, and black-box/usability/security testing before deployment.
+CampuSphere is a role-based campus navigation and information portal for Camarines Sur Polytechnic Colleges. The manuscript defines the target as a Progressive Web Application with user roles, searchable campus map data, VR/360-degree guided navigation, announcements, real room/facility scheduling, admin content management, offline access, and black-box/usability/security testing before deployment. The revised team scope excludes simulated enrollment and fake classroom-schedule dashboard widgets, but keeps real admin-managed room/facility scheduling in the post-Milestone 8 roadmap.
 
-The current repository already has a working Express/EJS/MySQL foundation with authentication, role dashboards, public map/building/event pages, and several admin CRUD screens. The largest remaining work is turning the prototype into a manuscript-aligned capstone product: DB-backed map consistency, VR route walkthroughs, PWA/offline support, room scheduling, complete admin tooling, security hardening, and test/demo evidence.
+The current repository already has a working Express/EJS/MySQL foundation with authentication, role dashboards, public map/building/event pages, VR route groundwork, and several admin CRUD screens. The largest remaining work is turning the prototype into the final manuscript-aligned capstone product: Supabase/PostGIS-backed campus data, MapLibre map rendering, Cloudinary-hosted media assets, VR route walkthroughs, PWA/offline support, complete admin tooling, security hardening, and test/demo evidence.
 
 ## Current Implementation Status
 
@@ -38,13 +396,15 @@ The current repository already has a working Express/EJS/MySQL foundation with a
 ### Missing
 
 - PWA manifest, service worker, offline cache strategy, IndexedDB/local cache, and installability.
-- Pannellum.js or any equivalent 360-degree/VR scene viewer.
-- VR scene assets, hotspot graph, scene-to-scene route progression, and route completion flow.
-- Room and schedule tables, schedule plotting, room occupancy, and admin schedule management.
-- MapLibre GL JS, vector tiles, Supabase/PostgreSQL/PostGIS, and Cloudinary, which are named in the manuscript. The current app uses Leaflet, OpenStreetMap tiles, MySQL, and local assets instead.
+- Final PWA implementation using Web App Manifest, custom Service Worker, and Cache Storage API.
+- Final real VR panorama assets for the seeded scenes.
+- Final Supabase/PostgreSQL/PostGIS migration for users, buildings, routes, announcements, and VR scene records.
+- Final MapLibre GL JS map implementation to replace the current Leaflet/OpenStreetMap map views.
+- Final Cloudinary integration for campus images and VR panorama delivery.
 - Automated test framework. `package.json` has an `npm test` placeholder that exits with failure.
 - Formal black-box test cases, SUS/usability survey materials, security test checklist evidence, and deployment checklist.
 - Production session hardening, CSRF protection, strong input validation, audit logging, and authorization checks for every sensitive operation.
+- Cleanup of dashboard mock data that no longer belongs in the revised scope, especially simulated enrollment information and fake instructor schedule/room widgets.
 
 ## Manuscript vs Existing App Gaps
 
@@ -52,11 +412,11 @@ The current repository already has a working Express/EJS/MySQL foundation with a
 | --- | --- | --- |
 | Role-based PWA campus mapping portal with offline support | Express/EJS web app; no manifest or service worker in `public/` or `views/partials/head.ejs` | Not installable and not offline-capable, which is a core capstone claim. |
 | VR/360-degree navigation using scenes and hotspots | No Pannellum, no VR routes, no panorama assets; only textual routes in `views/buildings.ejs` | The "VR-based campus mapping" requirement is not yet met. |
-| Searchable building, office, and room directory | Building search exists in `views/map.ejs` and `views/buildings.ejs`; room data is hardcoded in `public/js/data.js` | Search is not authoritative, does not cover real DB rooms/offices, and is split across data sources. |
-| Admin control over users, map data, announcements, VR scenes, navigation routes, room data, and schedules | Admin can manage users, news/events, and buildings through `routes/admin.js` and admin controllers | Missing VR scene management, route management, room/schedule management, FAQ CRUD, settings persistence, and logs. |
-| Student and instructor dashboards with schedules and assigned rooms | Dashboards exist, but instructor assigned rooms and student schedules are hardcoded fallback data in `public/js/data.js` and `views/dashboard.ejs` | Schedule features are demo-only and not maintained by admins. |
+| Searchable building, office, and service directory | Building search exists in `views/map.ejs` and `views/buildings.ejs`; some office/service data is still stored inside building details JSON | Search should prioritize DB-backed buildings, offices, services, landmarks, and routes without depending on stale browser-side data. |
+| Admin control over users, map data, announcements, VR scenes, and navigation routes | Admin can manage users, news/events, and buildings through `routes/admin.js` and admin controllers | Missing VR scene management, route management, FAQ CRUD, settings persistence, and logs. |
+| Student and instructor dashboards with role-appropriate campus information | Dashboards exist, but some dashboard widgets still contain hardcoded academic/schedule-style mock data in `public/js/data.js` and `views/dashboard.ejs` | Remove simulated enrollment, fake assigned-room, fake teaching-schedule, and fake all-room dashboard sections; keep dashboards focused on navigation, announcements, events, profile, real room/facility schedule information where available, and quick actions. |
 | Announcement dissemination | News/announcements table and admin CRUD exist | No role targeting, notification state, instructor posting, or dashboard-specific filtering. |
-| MapLibre GL JS, Supabase/PostgreSQL/PostGIS, Cloudinary | Current stack is Leaflet/OpenStreetMap CDN, MySQL, local/static images | Team must either implement equivalent features in the current stack or revise the manuscript/defense narrative to match the actual stack. |
+| MapLibre GL JS, Supabase/PostgreSQL/PostGIS, Cloudinary | Current stack is Leaflet/OpenStreetMap CDN, MySQL, local/static images | Final product decision now requires migration to the manuscript stack before defense. |
 | Black-box, usability, security, and user satisfaction testing | No tests or testing artifacts in repo | Capstone validation evidence is missing. |
 | Deployment within CSPC or cloud environment | `npm start` works by design, but no deployment config/checklist exists | Demo/deployment readiness is unproven. |
 
@@ -68,7 +428,7 @@ Priority: P0
 
 Concrete tasks:
 
-- Decide whether the final technical narrative will keep the current MySQL/Leaflet stack or migrate toward the manuscript stack of Supabase/PostGIS/MapLibre.
+- Document the final technical narrative as a planned migration from the current MySQL/Leaflet prototype to Supabase/PostGIS, MapLibre GL JS, Cloudinary, Pannellum.js, and custom Service Worker PWA support.
 - Make the database the single source for buildings used by `/buildings`, `/map`, dashboard map widgets, and admin map management.
 - Add server JSON endpoints for public map/building data instead of relying on `public/js/data.js`.
 - Keep `models/data.js` as seed-only data and remove runtime dependence where practical.
@@ -82,85 +442,127 @@ Acceptance criteria:
 - No core screen depends on stale duplicate building data from `public/js/data.js`.
 - The team can explain the final chosen stack consistently in defense.
 
-### Milestone 2: Harden Authentication, Roles, and Profiles
+### Milestones 2-5 Migration Rule
+
+Milestones 2 through 5 are not a rewrite from scratch. They are the verified migration path from the already-built MySQL-era features to the final Supabase/PostgreSQL/PostGIS runtime. The old MySQL work remains the behavior baseline: every migrated feature must keep the same user-facing routes, EJS locals, API response shapes, role behavior, and demo flows unless a change is explicitly approved.
+
+Do not jump to Milestone 6 PWA/offline work until these runtime slices are stable, because offline caching should target the final Supabase-backed APIs and assets, not a temporary MySQL/Leaflet state.
+
+### Milestone 2: Migrate Authentication, Roles, and Profiles to Supabase Runtime
 
 Priority: P0
 
+Migration stance:
+
+- Keep Express session authentication, local bcrypt passwords, and the existing Google OAuth domain-to-role flow.
+- Do not move to Supabase Auth in this milestone.
+- Use Supabase/PostgreSQL as the server-side data store through the repository boundary prepared in Milestone 1.
+- Keep MySQL behavior available as the rollback/baseline until Supabase auth/profile flows pass verification.
+
 Concrete tasks:
 
-- Prevent public self-registration as `admin` in `controllers/authController.js`; admin creation should be seed-only or admin-only.
-- Standardize on `middleware/roleAuth.js` for protected routes.
-- Review all admin API routes for server-side authorization, not just client-side navigation hiding.
-- Add server validation for profile updates in `controllers/profileController.js`.
-- Add guest behavior that matches the manuscript: either true public guest access or authenticated guest accounts, but document the choice.
-- Configure production session settings: secure secret, secure cookies when HTTPS is used, sameSite, and environment checks.
+- Re-verify the current auth baseline before editing: local login, logout, Google OAuth missing-config behavior, role redirects, admin route protection, profile hydration, and profile update validation.
+- Implement the Supabase-backed user/profile repository methods needed by `controllers/authController.js`, `controllers/profileController.js`, `controllers/dashboardController.js`, and admin user screens.
+- Migrate local login, local registration, Google OAuth registration, complete-registration, profile hydration, and profile update paths from direct MySQL queries to the repository/Supabase path one group at a time.
+- Preserve `req.session.user` shape and `res.locals.user` fields consumed by EJS, dashboard partials, `public/js/nav-role.js`, and controllers.
+- Preserve admin creation as seed-only or admin-only; public registration must never create an admin.
+- Preserve server-side authorization for `/admin` and `/admin/api/*`; client-side nav hiding is not security.
+- Verify no Supabase service role key reaches EJS locals, public JavaScript, browser globals, logs, screenshots, or committed files.
 
 Acceptance criteria:
 
-- Students, instructors, admins, and guests land on the correct role experience.
+- Students, instructors, admins, and guests can log in and land on the same role experience using Supabase-backed data.
 - Non-admin users cannot access `/admin` pages or `/admin/api/*` endpoints by direct URL or crafted request.
-- A user cannot register themselves as admin through the public form.
-- Profile changes persist in the database and reload correctly after logout/login.
+- Public registration cannot create an admin.
+- Profile changes persist in Supabase and reload correctly after logout/login.
+- Google OAuth still maps domains to roles, stores `oauth_provider` / `oauth_subject`, and does not store Google passwords.
+- API and EJS response shapes remain compatible with the current frontend.
 
-### Milestone 3: Complete Campus Map, Search, and Non-VR Route MVP
+### Milestone 3: Migrate Campus Map, Search, Routes, and Map Rendering to Supabase/PostGIS
 
 Priority: P0
 
+Migration stance:
+
+- Keep the current MySQL/Leaflet map, building, search, route, and pathfinding behavior as the baseline until each route/API is migrated and verified.
+- Move data access first, then map rendering. Do not replace the UI and the database source in one unchecked step.
+- Use PostGIS where it helps final search/spatial work, but continue returning `lat` and `lng` in API responses while the frontend expects them.
+
 Concrete tasks:
 
-- Add DB-backed search covering building name, category, description, rooms, offices, and key services.
-- Add a simple route model for demo-ready predefined paths: starting point, destination, ordered steps, landmarks, and estimated walk time.
-- Decide whether to keep textual routes only as fallback or add a lightweight graph for Dijkstra/A* later.
-- Add map details panel fields for office hours, contact info, floor/room summary, and route entry points.
-- Make map UI usable on mobile with search, filters, building selection, and route details.
+- Re-verify current `/buildings`, `/api/buildings`, `/map`, `/api/search`, `/api/routes`, `/api/routes/:id`, and `/api/pathfind` behavior before editing.
+- Implement Supabase-backed `buildingRepository` and `routeRepository` read methods for buildings, search, campus routes, route steps, route nodes, and directed route edges.
+- Migrate building directory, admin building reads, map markers, search, route summaries, and pathfinding reads from direct MySQL queries to repository/Supabase calls in small sections.
+- Preserve the current Dijkstra directed-edge semantics in `utils/pathfinding.js`.
+- Preserve existing JSON/API response shapes, especially building `details`, `vr_route_id`, route step lists, and pathfinding output.
+- After Supabase-backed map/search/route APIs are stable, replace Leaflet map rendering with MapLibre GL JS while preserving the same user workflows.
+- Keep mobile map behavior usable: search, filters, selected building details, route summary, and route path must not overlap or become unreachable.
 
 Acceptance criteria:
 
-- A user can search for a building, office, or room and open a details panel from the result.
-- A user can select a starting point and destination and see a route summary.
-- Routes are admin-maintained or seed-maintained and survive page reload.
+- A user can search for a building, office/service, category, landmark, or route using Supabase-backed data and open the correct detail panel or route summary.
+- A user can select a starting point and destination and receive a route/pathfinding result backed by Supabase route graph data.
+- Admin building edits persist in Supabase and appear consistently on `/buildings`, `/map`, and related APIs after refresh.
+- MapLibre renders the campus map without losing existing search, marker, route, and mobile behavior.
 - At least the main gate to three important destinations are demo-ready.
 
-### Milestone 4: Add Room Scheduling and Announcement Workflows
+### Milestone 4: Migrate Dashboards, Announcements, Events, and Role Content to Supabase Runtime
 
 Priority: P1
 
+Migration stance:
+
+- Do not reintroduce removed fake academic dashboard scope. Student enrollment simulation, fake instructor assigned rooms, fake instructor schedules, and fake all-room widgets remain out of scope. Real room/facility scheduling belongs to the post-Milestone 8 scheduling milestone, not to dashboard filler.
+- Preserve the cleaned dashboard behavior and move the remaining real content to Supabase-backed repositories.
+- Keep role filtering server-side; do not rely on browser-only role checks for sensitive content.
+
 Concrete tasks:
 
-- Add `rooms`, `room_schedules`, and optionally `announcement_targets` tables in `database/schema.sql`.
-- Seed a small realistic room/schedule dataset for students and instructors.
-- Add admin CRUD for rooms and schedules.
-- Show student schedule and instructor assigned rooms from the database instead of hardcoded arrays.
-- Add announcement categories and optional role targeting: all, students, instructors, guests.
-- Decide whether instructors can post announcements directly or submit them for admin approval.
+- Re-verify current student, instructor, admin, and guest dashboards before editing.
+- Implement Supabase-backed `contentRepository` methods for news announcements, events, role-filtered dashboard reads, and admin content CRUD.
+- Migrate `controllers/dashboardController.js` announcement/event reads to Supabase while preserving published-only and audience-filtered behavior.
+- Migrate `controllers/adminContentController.js` news/events CRUD to Supabase with the same category and audience allowlists.
+- Keep dashboard EJS locals and rendered sections stable unless the user approves a UI change.
+- Confirm removed fake academic/schedule widgets do not return during migration.
+- Decide separately whether instructor posting is in scope; do not add it just because announcements are being migrated.
 
 Acceptance criteria:
 
-- Admin can create/update/delete rooms and schedules.
-- Student and instructor dashboards display schedule data from MySQL.
-- Announcements appear chronologically and can be filtered by role/category.
-- Demo accounts have realistic dashboard content without relying on `public/js/data.js` mock data.
+- Student, instructor, admin, and guest dashboards load using Supabase-backed announcements/events where applicable.
+- Announcements remain chronological, published-only for normal dashboards, and filtered by allowed role audience.
+- Admin-created news/events appear on public/dashboard screens after refresh.
+- Non-admin users cannot mutate content APIs.
+- Dashboards remain demo-ready and do not rely on fake enrollment, fake schedule, or fake room data.
 
-### Milestone 5: Implement VR/360-Degree Guided Navigation
+### Milestone 5: Migrate VR/360 Guided Navigation and Media References to Supabase Runtime
 
 Priority: P1
 
+Migration stance:
+
+- Keep Pannellum.js and the existing VR route UX unless a later approved frontend change replaces it.
+- Treat the current MySQL VR route flow as the behavior baseline.
+- Move VR scenes, hotspots, and route graph reads to Supabase before Cloudinary media delivery is finalized.
+- Missing real panorama assets must continue to fail gracefully.
+
 Concrete tasks:
 
-- Choose a practical VR library. Pannellum.js matches the manuscript and is lightweight for the current EJS app.
-- Create a `vr_scenes` table with scene id, title, panorama URL, building/route relation, and hotspot definitions.
-- Add at least one complete route with 3 to 5 linked scenes, such as Main Gate to Administration/Registrar.
-- Add a VR route page or modal launched from map/building details.
-- Add hotspot navigation, details panel, current route progress, and route completion state.
-- Use optimized image assets and keep file sizes realistic for student devices.
+- Re-verify current `/vr`, `/vr/:sceneKey`, `/vr/routes/:routeId`, and `/api/vr/routes/:routeId` behavior before editing.
+- Implement Supabase-backed `vrRepository` methods for `vr_scenes`, `vr_hotspots`, and route-scene lookups.
+- Migrate VR scene browser, guided route viewer, hotspot loading, route-scene resolution, and API route reads to Supabase.
+- Preserve current fallback UI for missing `/img/vr/*.jpg` or Cloudinary placeholders.
+- Preserve current route progress, next/previous navigation, completion state, and Back to Map behavior.
+- Wire Cloudinary-ready fields (`image_url`, `cloudinary_public_id`) without requiring final asset uploads before the flow can be tested.
+- Verify desktop and mobile VR pages after migration, including dark/light theme readability if both themes are supported.
 
 Acceptance criteria:
 
-- A user can start a VR route from a building/map details panel.
-- Each hotspot moves to the next scene without console errors.
-- The user can reach a destination and see a route completion state.
-- At least two campus destinations have complete demo routes.
-- Missing VR assets fail gracefully with a useful message instead of a broken viewer.
+- A user can start a VR route from a building/map detail entry and load Supabase-backed scenes/hotspots.
+- Each navigation hotspot moves to the expected scene without console errors.
+- The user can reach a destination and see the route completion state.
+- At least two campus destinations have complete demo route data.
+- Missing or placeholder panorama assets show a useful fallback instead of a broken viewer.
+- Cloudinary fields are ready for final media migration without blocking current demo fallback behavior.
 
 ### Milestone 6: Add PWA Installability and Offline Mode
 
@@ -169,7 +571,7 @@ Priority: P1
 Concrete tasks:
 
 - Add `manifest.webmanifest`, icons, theme colors, and app metadata.
-- Add a service worker and register it in a shared partial such as `views/partials/head.ejs`.
+- Add a custom Service Worker and register it in a shared partial such as `views/partials/head.ejs`.
 - Cache the app shell, CSS, JS, logo, selected building data, and a small set of VR/demo route assets.
 - Add an offline indicator and fallback page.
 - Store last-loaded map/building/route data in IndexedDB or Cache Storage.
@@ -193,13 +595,17 @@ Concrete tasks:
 - Log important events: login success/failure, admin CRUD actions, profile updates, and authorization denials.
 - Back `views/admin/settings.ejs` with `system_settings`.
 - Remove misleading hardcoded values, especially the MongoDB URI shown on the settings page.
-- Add admin management for VR scenes and route definitions if time allows.
+- Add required admin management for VR scenes and hotspots.
+- Add required admin management for campus routes, ordered route steps, route nodes, and directed route edges.
+- Keep all new admin writes behind the existing MySQL/Supabase runtime boundaries and record successful mutations in the audit log.
 
 Acceptance criteria:
 
 - FAQ, logs, and settings pages show database-backed data.
 - Admin actions create audit log entries.
 - Settings persist after refresh.
+- Admins can create, update, and delete valid VR scenes/hotspots and route definitions in both MySQL and Supabase modes.
+- VR and route mutations preserve referential integrity and do not break scene browsing, guided routes, or pathfinding.
 - No admin page presents obviously fake operational data during the final demo.
 
 ### Milestone 8: Testing, Security Review, and Deployment Readiness
@@ -213,21 +619,31 @@ Concrete tasks:
 - Add at least lightweight automated smoke tests if time allows, using Playwright or Node's built-in test runner.
 - Prepare SUS and user satisfaction survey forms matching manuscript Tables 10 and 12.
 - Prepare a demo script using default accounts from `database/seed.js`.
-- Document environment setup, seed steps, OAuth limitations, and fallback local login demo path.
-- Decide final hosting plan: local school server, Render/Railway/Vercel-style frontend plus Node host, or local defense laptop.
+- Document environment setup, Supabase SQL apply order, MySQL fallback seed steps, OAuth limitations, and fallback local-login demo path.
+- Add Docker packaging for the Express/EJS app: `Dockerfile`, `.dockerignore`, documented build/run commands, and a runtime-env-only secret model.
+- Add an optional `docker-compose.yml` only if it helps local defense rehearsal, for example pairing the app with a MySQL fallback service. Supabase remains an external cloud service and should not be replaced by an in-container database.
+- Verify the container can run the final Supabase mode with runtime environment variables: `AUTH_DATA_SOURCE=supabase`, `BUILDING_DATA_SOURCE=supabase`, `ROUTE_DATA_SOURCE=supabase`, `CONTENT_DATA_SOURCE=supabase`, later `VR_DATA_SOURCE=supabase`, and `MAP_RENDERER=maplibre`.
+- If MySQL fallback is demonstrated through Docker, document that `DB_HOST` must point to the compose service name, not `localhost` inside the app container.
+- Confirm `.env`, Supabase service-role keys, OAuth secrets, DB passwords, screenshots, local database dumps, and `node_modules` are not copied into the Docker image.
+- Document OAuth redirect URI differences for local Node, Docker localhost, and any final hosted URL.
+- Document the approved hosting split: Vercel for demo/UAT access and Docker for full deployment or institutional production-style hosting.
 
 Acceptance criteria:
 
 - Test checklist has pass/fail evidence for every core module.
 - Demo can be reset from a clean database.
 - App runs with `npm start` and all required `.env` values are documented.
+- Docker image builds from a clean checkout and starts the app with runtime environment variables, without baking secrets into the image.
+- Container smoke checks pass for the final Supabase-backed runtime. MySQL fallback is either verified through compose or clearly documented as a local/fallback path, not the manuscript-aligned production target after Supabase sessions are implemented.
+- Deployment notes explain required ports, environment variables, OAuth redirect URLs, Supabase SQL prerequisites, and reset/demo steps.
 - The team has screenshots or recordings for map search, admin CRUD, VR route, offline mode, and role-based access.
 
 ## Suggested Technical Improvements
 
-- Keep the current Express/EJS/MySQL stack unless the panel specifically requires the exact manuscript stack. Migrating to Supabase/PostGIS/MapLibre late in the project is high risk.
-- If keeping MySQL, revise the manuscript/defense language to say "MySQL spatial-ready relational data" or "Leaflet/OpenStreetMap implementation" instead of claiming Supabase/PostGIS/MapLibre.
-- Add small, focused tables instead of overloading `buildings.details`: `rooms`, `room_schedules`, `routes`, `route_steps`, `vr_scenes`, `vr_hotspots`, `announcement_targets`, and `system_logs`.
+- Treat the current Express/EJS/MySQL/Leaflet implementation as the prototype baseline, then migrate deliberately toward Supabase/PostGIS, MapLibre GL JS, and Cloudinary for the final defended system.
+- Keep Express.js and EJS unless there is a separate approved reason to introduce a frontend build stack. Do not add Vite only to satisfy a package table.
+- Use a custom Service Worker, Web App Manifest, and Cache Storage API for PWA/offline support. Do not add Workbox or `vite-plugin-pwa` unless the frontend architecture later justifies it.
+- Add small, focused tables instead of overloading `buildings.details` where needed: `routes`, `route_steps`, `vr_scenes`, `vr_hotspots`, `announcement_targets`, `room_schedules`, `system_logs`, and Supabase-backed `app_sessions`.
 - Use shared validation helpers for admin APIs, especially for JSON fields and numeric coordinates.
 - Add CSRF protection for form/API mutations before deployment.
 - Add input sanitization/output escaping review for admin-created content.
@@ -244,7 +660,7 @@ Acceptance criteria:
 - Admin users: create, edit, delete, duplicate email, invalid role, and self-delete protection are verified.
 - Admin content: news/events CRUD appears on public/dashboard screens after refresh.
 - Buildings: admin building edits appear on `/buildings` and `/map`.
-- Search: building, room, office, and category searches produce correct results.
+- Search: building, office/service, landmark, route, and category searches produce correct results.
 - Routes: at least three predefined routes from main gate are demo-ready.
 - VR: at least two VR route walkthroughs load on desktop and mobile.
 - PWA: manifest is valid, service worker registers, installability works, and offline fallback works.
@@ -257,50 +673,54 @@ Acceptance criteria:
 
 ### Risks
 
-- The manuscript and implementation stack do not match. This is a defense risk unless the team either implements the named stack or explains an approved equivalent.
+- The current prototype stack and final manuscript stack do not yet fully match. This is a defense risk until Supabase sessions, Cloudinary media, Vercel demo docs, Docker full-deployment docs, real room scheduling, Supabase/PostGIS, MapLibre GL JS, and PWA support are actually implemented and verified.
+- Migrating database, map, and media services late in the project can introduce regressions in authentication, admin CRUD, map search, route display, and VR launch flows.
 - VR asset collection can consume more time than coding. Without actual campus panoramas, the VR requirement will look incomplete.
 - Offline caching for 360-degree assets can become slow or storage-heavy on student phones.
 - Google OAuth depends on correct Google Cloud credentials and redirect URI setup.
 - The app has no automated tests, so late changes can break core demo flows.
 - Admin pages currently mix real and mock data, which can undermine credibility during a demo.
-- Campus building, room, and route accuracy depends on verified CSPC data.
+- Campus building, office/service, and route accuracy depends on verified CSPC data.
 
 ### Blockers
 
-- No current panorama/VR assets are present in the repository.
-- No room/schedule source of truth exists in `database/schema.sql`.
-- No deployment target or production environment is defined.
-- No final decision is documented for MySQL/Leaflet versus Supabase/PostGIS/MapLibre.
+- Final stack migration has not yet been implemented in the repository.
+- No current real panorama/VR assets are present in the repository.
+- No final VR panorama asset set exists yet.
+- Deployment targets are now defined conceptually: Vercel for demo/UAT and Docker for full deployment. They still need final docs/config and runtime verification.
 
 ### Assumptions
 
-- Real-time GPS, indoor positioning, automatic rerouting, and CSPC SIS/enrollment integration are out of scope, consistent with the manuscript limitations.
-- Mocked or manually maintained room schedules are acceptable for the capstone demo if clearly documented.
+- Real-time GPS, indoor positioning, automatic rerouting, CSPC SIS/enrollment integration, student enrollment-status simulation, fake instructor teaching schedules, fake assigned rooms, and fake all-room instructor dashboards are out of scope.
+- The final demo should not include fake enrollment or fake schedule/room widgets just to fill dashboard space. Any schedule shown must come from the real room/facility scheduling module.
 - A small number of polished VR routes is better than many incomplete routes.
 - The team has limited time, so the roadmap prioritizes defense-critical features over broad refactoring.
 
 ## Recommended Order of Work
 
-1. Decide and document the final implementation stack.
-2. Make buildings/map data database-backed everywhere.
-3. Lock down auth and RBAC, especially admin registration and admin APIs.
-4. Add room/schedule tables and replace hardcoded dashboard schedule data.
-5. Complete announcements with role-aware display.
-6. Build the first complete VR route with real or approved placeholder panoramas.
-7. Add PWA manifest, service worker, offline shell, and offline indicator.
-8. Finish admin FAQ/log/settings backing data if time remains.
-9. Run the manuscript-aligned functional and security test checklist.
-10. Prepare the final demo database, accounts, screenshots, and deployment notes.
+1. Document the final stack decision in the paper and technical plan.
+2. Preserve the working prototype baseline before migration.
+3. Complete Milestone 1 Supabase/PostGIS foundation: schema, seed, server client, smoke checks, and repository stubs.
+4. Migrate authentication, roles, and profiles to Supabase runtime while keeping Express sessions, local bcrypt login, and Google OAuth.
+5. Migrate buildings, map/search/routes, and pathfinding to Supabase/PostGIS; preserve API shapes first, then move the map UI from Leaflet to MapLibre GL JS.
+6. Migrate dashboards, announcements, events, and role content to Supabase while keeping fake academic widgets out of scope.
+7. Migrate VR scenes, hotspots, and guided routes to Supabase; wire Cloudinary-ready media fields and keep missing-panorama fallback behavior.
+8. Add PWA manifest, custom Service Worker, offline shell, and offline indicator after Supabase-backed runtime flows are stable.
+9. Finish admin FAQ/log/settings backing data if time remains.
+10. Run the manuscript-aligned functional and security test checklist.
+11. Complete post-Milestone 8 manuscript alignment: Supabase sessions, Cloudinary media, real room scheduling, Vercel demo support, and Docker full-deployment finalization.
+12. Prepare the final demo database, accounts, screenshots, and deployment notes.
 
 ## Minimum Defense-Ready Cut
 
 If time becomes tight, focus on this reduced but credible scope:
 
-- Database-backed buildings, search, route text, and admin building edits.
+- Supabase-backed buildings, search, route text, and admin building edits.
+- MapLibre campus map with working search, building selection, and route display.
+- Cloudinary-hosted final campus images and VR panorama assets where available.
 - Secure role login with admin-only backend.
-- Student/instructor dashboards populated from the database.
+- Student/instructor dashboards cleaned of fake enrollment, fake schedule, and fake room widgets while preserving useful role actions and real room/facility schedule links where available.
 - Admin news/events plus role-visible announcements.
 - Two polished VR routes with hotspot progression.
-- Basic PWA installability and offline shell with cached building/route data.
+- Basic PWA installability and custom Service Worker offline shell with cached building/route data.
 - Manual black-box, security, SUS, and user satisfaction test artifacts.
-

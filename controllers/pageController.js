@@ -11,7 +11,7 @@
 exports.landing = (req, res) => {
   res.render('landing', {
     title: 'CampuSphere | CSPC Virtual Map Tour',
-    description: 'CampusSphere — Navigate CSPC with ease. An interactive virtual campus map tour for Camarines Sur Polytechnic Colleges.'
+    description: 'CampuSphere — Navigate CSPC with ease. An interactive virtual campus map tour for Camarines Sur Polytechnic Colleges.'
   });
 };
 
@@ -32,7 +32,7 @@ exports.home = (req, res) => {
 exports.about = (req, res) => {
   res.render('about', {
     title: 'CampuSphere | About Us',
-    description: 'Learn about the CampusSphere team and the CSPC virtual map tour project.',
+    description: 'Learn about the CampuSphere team and the CSPC virtual map tour project.',
     activeTab: 'tabAbout'
   });
 };

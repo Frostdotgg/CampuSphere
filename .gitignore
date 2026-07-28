@@ -7,3 +7,44 @@ dist/
 build/
 coverage/
 .edge-profile/
+# Local scratch VR panoramas (owner-only). Keep them out of git so a broad
+# `git add` cannot commit local panoramas. Narrow on purpose: /img/vr, /img/icons,
+# and the normal app images under public/img are NOT ignored.
+public/img/sample 360/
+# Local DB dump (owner-only; real users/bcrypt hashes/OAuth subjects). Ignore ONLY
+# this exact file so a broad `git add` cannot commit it. Narrow on purpose: this
+# does NOT ignore database/schema.sql, database/supabase/*.sql, or the tracked
+# database/drop_student_section_status.sql helper.
+database/campusphere_db.sql
+
+# ---------------------------------------------------------------------------
+# M12.P1-R8 — owner-only local artifacts, excluded from the clean snapshot.
+#
+# Every rule below is ROOT-ANCHORED with a leading slash on purpose. The
+# repository legitimately ships images (public/img/**, public/vendor/**), an
+# HTML shell (public/offline.html), and Markdown throughout, so an unanchored
+# *.png / *.html / *.md rule would silently drop real application content from
+# the deployment package. These rules therefore match the project root ONLY.
+#
+# Nothing here is deleted or moved — the files stay in the working tree as
+# owner property; they are simply not part of the committed snapshot.
+# ---------------------------------------------------------------------------
+
+# Local Playwright MCP capture directory (browser-verification scratch).
+/.playwright-mcp/
+
+# Root-level screenshots and image evidence from manual verification runs.
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+
+# Root-level document exports (defense/presentation material, not source).
+/*.pdf
+/*.docx
+/*.pptx
+/*.html
+
+# Superseded root-level change proposal, retained locally for reference only.
+/Proposed_changes.md

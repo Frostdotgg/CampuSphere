@@ -4,6 +4,49 @@
  * Uses server session data (window.__SESSION_USER) with localStorage fallback.
  */
 
+// ===== OUTPUT-ENCODING HELPERS (R1: Stored-XSS Removal) =====
+// This universal script injects the profile dropdown/edit modal on every
+// authenticated page using session (DB-derived) profile fields. Those values
+// must never be interpreted as HTML: escapeHtml() encodes text/quoted-attribute
+// contexts and safeUrl() validates image URLs (rejecting javascript:, unsafe
+// data:, and attribute-breakout input).
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+function safeUrl(value, opts) {
+    if (value === null || value === undefined) return '';
+    var s = String(value).trim();
+    if (s === '') return '';
+    var scheme = s.replace(/\s+/g, '').toLowerCase();
+    if (scheme.indexOf('javascript:') === 0 || scheme.indexOf('vbscript:') === 0) return '';
+    if (scheme.indexOf('data:') === 0) {
+        if (opts && opts.allowDataImage &&
+            /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+        return '';
+    }
+    if (s.charAt(0) === '/' || s.charAt(0) === '#' || s.charAt(0) === '.') return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    var colon = s.indexOf(':');
+    if (colon === -1) return s;
+    var slash = s.indexOf('/');
+    if (slash !== -1 && slash < colon) return s;
+    return '';
+}
+
+// CSRF synchronizer token for same-origin unsafe fetches / the logout POST
+// (Milestone 8, Section 8.2). Read from the rendered <meta> tag only — never
+// from localStorage/sessionStorage/IndexedDB.
+function getCsrfToken() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? (m.getAttribute('content') || '') : '';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Determine role and profile info from session or localStorage
     const sessionUser = window.__SESSION_USER || null;
@@ -20,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
             course: sessionUser.course || '',
             yearLevel: sessionUser.year_level || '',
             enrollmentStatus: sessionUser.enrollment_status || '',
-            semester: sessionUser.semester || ''
+            semester: sessionUser.semester || '',
+            address: sessionUser.address || '',
+            phone: sessionUser.phone_number || ''
         };
     } else {
         // Fallback to localStorage
@@ -71,7 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Apply Profile Image globally
-    const applyProfileImage = (base64Img) => {
+    const applyProfileImage = (rawImg) => {
+        // Validate the image URL/data-URL before it touches the DOM; an invalid
+        // value falls through to the default avatar SVG (R1).
+        const base64Img = safeUrl(rawImg, { allowDataImage: true });
         const avatars = document.querySelectorAll('.dash-nav__avatar, .sidebar-profile__img, .sidebar__avatar');
         if (!base64Img) {
             // Revert back to default SVG
@@ -90,9 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Show uploaded image
+        // Show uploaded image — validated URL set via DOM APIs, never innerHTML.
         avatars.forEach(avatar => {
-            avatar.innerHTML = `<img src="${base64Img}" alt="Profile Image" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            avatar.textContent = '';
+            const img = document.createElement('img');
+            img.src = base64Img;
+            img.alt = 'Profile Image';
+            img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:50%;';
+            avatar.appendChild(img);
             avatar.style.padding = '0'; // Remove padding for full fill
         });
     };
@@ -111,7 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropdown = document.createElement('div');
     dropdown.className = 'profile-dropdown';
 
-    const canEdit = savedRole !== 'guest';
+    // Editing requires an authenticated session — anonymous visitors must not see
+    // the Edit Profile button. All real roles (including guest) can edit; the
+    // per-role modal branch below decides which fields are shown.
+    const canEdit = Boolean(sessionUser);
     let dropdownHTML = '';
 
     if (canEdit) {
@@ -151,7 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Build Edit Modal if applicable
     if (canEdit) {
         let modalFields = '';
-        const currentImg = profileData.profileImage ? `<img src="${profileData.profileImage}" alt="Profile" id="previewProfileImg">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        const safeProfileImg = safeUrl(profileData.profileImage, { allowDataImage: true });
+        const currentImg = safeProfileImg ? `<img src="${escapeHtml(safeProfileImg)}" alt="Profile" id="previewProfileImg">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
         const photoUploadArea = `
             <div class="edit-profile-photo">
@@ -188,15 +245,15 @@ document.addEventListener('DOMContentLoaded', () => {
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${profileData.name}">
+                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Student ID</label>
-                    <input type="text" id="editId" class="edit-form-input" value="${profileData.studentId}">
+                    <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.studentId)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Email</label>
-                    <input type="email" id="editEmail" class="edit-form-input" value="${profileData.email}">
+                    <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Course</label>
@@ -211,42 +268,61 @@ document.addEventListener('DOMContentLoaded', () => {
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${profileData.name}">
+                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Employee ID</label>
-                    <input type="text" id="editId" class="edit-form-input" value="${profileData.employeeId}">
+                    <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.employeeId)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Email</label>
-                    <input type="email" id="editEmail" class="edit-form-input" value="${profileData.email}">
+                    <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Department</label>
-                    <input type="text" id="editDept" class="edit-form-input" value="${profileData.department}">
+                    <input type="text" id="editDept" class="edit-form-input" value="${escapeHtml(profileData.department)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Position</label>
-                    <input type="text" id="editPos" class="edit-form-input" value="${profileData.position}">
+                    <input type="text" id="editPos" class="edit-form-input" value="${escapeHtml(profileData.position)}">
                 </div>
             `;
-        } else {
-            // admin, student-non-cspc — simple name + email + photo only
+        } else if (savedRole === 'guest') {
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${profileData.name}">
+                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label">Email</label>
-                    <input type="email" id="editEmail" class="edit-form-input" value="${profileData.email}">
+                    <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Address</label>
+                    <input type="text" id="editAddress" class="edit-form-input" value="${escapeHtml(profileData.address || '')}">
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Phone</label>
+                    <input type="text" id="editPhone" class="edit-form-input" value="${escapeHtml(profileData.phone || '')}">
+                </div>
+            `;
+        } else {
+            // admin — simple name + email + photo only
+            modalFields = photoUploadArea + `
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Full Name</label>
+                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Email</label>
+                    <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
             `;
         }
 
         const modalHTML = `
             <div class="edit-modal-overlay" id="editModalOverlay">
-                <div class="edit-modal" onclick="event.stopPropagation()">
+                <div class="edit-modal" id="editModalDialog">
                     <div class="edit-modal__header">
                         <div class="edit-modal__title">Edit Profile</div>
                         <button class="edit-modal__close" id="closeEditModal">
@@ -270,6 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
         const overlay = document.getElementById('editModalOverlay');
+        // CSP (8.5): keep clicks inside the dialog from bubbling to the overlay
+        // backdrop-close, via a listener instead of an inline onclick attribute.
+        const modalDialog = document.getElementById('editModalDialog');
+        if (modalDialog) modalDialog.addEventListener('click', (e) => e.stopPropagation());
         const closeBtn = document.getElementById('closeEditModal');
         const cancelBtn = document.getElementById('cancelEditBtn');
         const saveBtn = document.getElementById('saveEditBtn');
@@ -284,18 +364,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Mobile Edit Profile button (in hamburger menu)
+        // Mobile Edit Profile button (in hamburger menu). M12.P1-D2: menu
+        // open/close state is owned solely by /js/authenticated-nav.js (its
+        // capture-phase tab delegation closes the menu even though this
+        // handler stops propagation), so no menu classes are touched here.
         const mobileEditBtn = document.getElementById('mobileEditProfileBtn');
         if (mobileEditBtn) {
             mobileEditBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 overlay.classList.add('show');
-                // Close the hamburger menu
-                const dashTabs = document.getElementById('dashTabs');
-                const dashHamburger = document.getElementById('dashHamburger');
-                if (dashTabs) dashTabs.classList.remove('open');
-                if (dashHamburger) dashHamburger.classList.remove('active');
             });
         }
 
@@ -313,12 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 base64String = null; // Removed
             }
 
-            // Build newData based on role
+            // Build newData based on role.
+            // NOTE: email is intentionally not collected from the input — it is an
+            // immutable identity field. The server rejects it if sent.
             let newData = { ...profileData, profileImage: base64String };
             const nameEl = document.getElementById('editName');
-            const emailEl = document.getElementById('editEmail');
             if (nameEl) newData.name = nameEl.value;
-            if (emailEl) newData.email = emailEl.value;
 
             if (savedRole === 'student-cspc') {
                 const idEl = document.getElementById('editId');
@@ -340,6 +418,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.CampuSphereData) {
                     window.CampuSphereData.instructorProfile = { ...window.CampuSphereData.instructorProfile, ...newData };
                 }
+            } else if (savedRole === 'guest') {
+                const addressEl = document.getElementById('editAddress');
+                const phoneEl = document.getElementById('editPhone');
+                if (addressEl) newData.address = addressEl.value;
+                if (phoneEl) newData.phone = phoneEl.value;
             }
 
             // Save to localStorage using the role's key (for backward compat)
@@ -359,20 +442,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     saveBtn.disabled = true;
                     saveBtn.textContent = 'Saving...';
+                    // Do NOT send role or email — both are immutable and the server
+                    // will reject the request outright if either is present.
+                    const payload = { name: newData.name };
+                    if (savedRole === 'student-cspc') {
+                        payload.studentId = newData.studentId;
+                        payload.course = newData.course;
+                        payload.yearLevel = newData.yearLevel;
+                    } else if (savedRole === 'instructor') {
+                        payload.employeeId = newData.employeeId;
+                        payload.department = newData.department;
+                        payload.position = newData.position;
+                    } else if (savedRole === 'guest') {
+                        payload.address = newData.address;
+                        payload.phone = newData.phone;
+                    }
+
                     const resp = await fetch('/api/update-profile', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            role: savedRole,
-                            name: newData.name,
-                            email: newData.email,
-                            studentId: newData.studentId,
-                            course: newData.course,
-                            yearLevel: newData.yearLevel,
-                            employeeId: newData.employeeId,
-                            department: newData.department,
-                            position: newData.position
-                        })
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': getCsrfToken()
+                        },
+                        body: JSON.stringify(payload)
                     });
                     if (resp.ok) {
                         closeModal();
@@ -381,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     } else {
                         const errData = await resp.json().catch(() => ({}));
-                        alert(errData.error || 'Failed to save profile. Please try again.');
+                        alert(errData.message || errData.error || 'Failed to save profile. Please try again.');
                         saveBtn.disabled = false;
                         saveBtn.textContent = 'Save Changes';
                     }
@@ -418,7 +510,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        previewContainer.innerHTML = `<img src="${e.target.result}" alt="Profile" id="previewProfileImg">`;
+                        // Validate the data-URL and set it via DOM, never innerHTML.
+                        const safeData = safeUrl(e.target.result, { allowDataImage: true });
+                        previewContainer.textContent = '';
+                        if (safeData) {
+                            const img = document.createElement('img');
+                            img.src = safeData;
+                            img.alt = 'Profile';
+                            img.id = 'previewProfileImg';
+                            previewContainer.appendChild(img);
+                        }
                     }
                     reader.readAsDataURL(file);
                 }
@@ -433,25 +534,149 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 4. Logout — use server endpoint instead of localStorage
+    // 4. Logout — truthful shared async flow (M12.P1-D1).
+    // A fresh token is fetched from GET /auth/csrf-token immediately before the
+    // POST (the rendered meta can be stale after bfcache/second-tab logout). On
+    // the FIRST 403 only, one refreshed retry runs — never a third POST. Local
+    // auth remnants are cleared and navigation happens ONLY after a confirmed
+    // 200 success (or a 401 proving no live session remains); a failure keeps
+    // the signed-in state truthful, restores both buttons, and announces a
+    // fixed message in a role=alert region. The redirect target is the exact
+    // allowlisted /auth?logged_out=1 constant — the server response's redirect
+    // field is deliberately NOT trusted — so public/js/pwa.js retains ownership
+    // of the dynamic-cache/offline-catalog cleanup on that landing.
     const logoutBtn = document.getElementById('logoutBtn');
     const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-    
-    const handleLogout = (e) => {
+    const LOGOUT_REDIRECT = '/auth?logged_out=1';
+    const LOGOUT_ERROR_MESSAGE = 'Unable to sign out. Please try again.';
+    const AUTH_STORAGE_KEYS = [
+        'campusphere-role',
+        'campusphere-student',
+        'campusphere-instructor',
+        'campusphere-admin',
+        'campusphere-non-cspc'
+    ];
+    let logoutInFlight = false;
+
+    const setLogoutBusy = (busy) => {
+        [logoutBtn, mobileLogoutBtn].forEach((btn) => {
+            if (!btn) return;
+            btn.disabled = busy;
+            btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+        });
+    };
+
+    // Visible accessible failure announcement (textContent only; styles via
+    // CSSOM like the pwa.js banner, so the nonce CSP is unaffected).
+    const showLogoutError = () => {
+        let el = document.getElementById('logoutErrorAlert');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'logoutErrorAlert';
+            el.setAttribute('role', 'alert');
+            el.setAttribute('aria-live', 'assertive');
+            el.style.cssText = [
+                'position:fixed',
+                'left:50%',
+                'transform:translateX(-50%)',
+                'top:calc(12px + env(safe-area-inset-top, 0px))',
+                'z-index:2147483646',
+                'max-width:calc(100vw - 24px)',
+                'padding:10px 18px',
+                'border-radius:10px',
+                'font:600 0.9rem/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
+                'background:#7a2e0e',
+                'color:#ffffff',
+                'box-shadow:0 6px 20px rgba(0,0,0,0.28)',
+                'text-align:center'
+            ].join(';');
+            (document.body || document.documentElement).appendChild(el);
+        }
+        el.textContent = LOGOUT_ERROR_MESSAGE;
+        el.hidden = false;
+    };
+
+    // Confirmed end of the authenticated session (200 success or 401): clear
+    // ONLY the auth remnants — theme, unrelated storage, and PWA shell/static
+    // caches are preserved — then navigate to the exact allowlisted target.
+    const finishLogoutSuccess = () => {
+        AUTH_STORAGE_KEYS.forEach((key) => {
+            try { localStorage.removeItem(key); } catch (err) { /* storage unavailable */ }
+        });
+        window.location.assign(LOGOUT_REDIRECT);
+    };
+
+    const failLogout = () => {
+        logoutInFlight = false;
+        setLogoutBusy(false);
+        showLogoutError();
+    };
+
+    // Fetch the CURRENT session token. Returns { token } on success,
+    // { unauthenticated: true } on 401 (no live session remains), or
+    // { failed: true } for anything else. The token stays in memory only.
+    const fetchFreshCsrfToken = async () => {
+        const resp = await fetch('/auth/csrf-token', {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (resp.status === 401) return { unauthenticated: true };
+        if (!resp.ok) return { failed: true };
+        let data = null;
+        try { data = await resp.json(); } catch (err) { return { failed: true }; }
+        if (!data || data.success !== true ||
+            typeof data.csrfToken !== 'string' || data.csrfToken.length === 0) {
+            return { failed: true };
+        }
+        return { token: data.csrfToken };
+    };
+
+    const postLogout = (token) => fetch('/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-CSRF-Token': token }
+    });
+
+    const handleLogout = async (e) => {
         e.preventDefault();
-        // Clear any localStorage remnants
-        localStorage.removeItem('campusphere-role');
-        localStorage.removeItem('campusphere-student');
-        localStorage.removeItem('campusphere-instructor');
-        localStorage.removeItem('campusphere-admin');
-        // Redirect to server-side logout route to destroy the session
-        window.location.href = '/logout';
+        if (logoutInFlight) return;
+        logoutInFlight = true;
+        setLogoutBusy(true);
+        try {
+            const first = await fetchFreshCsrfToken();
+            if (first.unauthenticated) return finishLogoutSuccess();
+            if (!first.token) return failLogout();
+
+            let resp = await postLogout(first.token);
+            if (resp.status === 403) {
+                // Exactly one refreshed retry on the FIRST 403 — never a third POST.
+                const second = await fetchFreshCsrfToken();
+                if (second.unauthenticated) return finishLogoutSuccess();
+                if (!second.token) return failLogout();
+                resp = await postLogout(second.token);
+            }
+
+            if (resp.status === 401) return finishLogoutSuccess();
+            if (resp.status === 200) {
+                let data = null;
+                try { data = await resp.json(); } catch (err) { return failLogout(); }
+                if (data && data.success === true) return finishLogoutSuccess();
+                return failLogout();
+            }
+            // 403 after the retry, 5xx, or any other status: stay put, stay truthful.
+            return failLogout();
+        } catch (err) {
+            // Network failure: no navigation, no remnant clearing.
+            return failLogout();
+        }
     };
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
-    
+
     if (mobileLogoutBtn) {
         mobileLogoutBtn.addEventListener('click', handleLogout);
     }

@@ -1,0 +1,68 @@
+# =============================================================================
+# CampuSphere — Vercel upload boundary (M12.P1-R7)
+# =============================================================================
+# ALLOWLIST, not a denylist. The first rule ignores every entry in the project
+# root, and only the explicitly re-included runtime surface is uploaded. A new
+# root file, directory, scratch capture, evidence document, dump, or local tool
+# is therefore EXCLUDED BY DEFAULT and stays out of the deployment package
+# until someone deliberately adds a reviewed negation below.
+#
+# Semantics (same as .gitignore, per Vercel's .vercelignore documentation):
+#   - `/*` matches every entry in the PROJECT ROOT only, so re-including a root
+#     directory also re-includes its descendants. The explicit `!<dir>/**`
+#     companion lines below state that intent instead of relying on it.
+#   - Later rules win. The `public/img/sample 360` denial is therefore placed
+#     AFTER the `public` re-inclusion so it cannot be silently re-included.
+#
+# Deliberately NOT re-included (excluded by `/*`, listed here for review):
+#   .env, .env.*, .env.example        — secrets and the secret-shaped template
+#   AGENTS.md, CLAUDE.md, *_HANDOFF.md, plan.md, ROADMAP.md, README.md, docs/
+#                                     — handoffs, plans, and documentation
+#   scripts/                          — probes, quality gates, and QA harnesses
+#   database/                         — schema, seed, and Supabase migrations
+#   *.png, *.jpg, *.jpeg, *.pdf, *.docx, *.html at root
+#                                     — screenshots, evidence, and defense media
+#   Dockerfile, .dockerignore, docker-compose.yml
+#                                     — the separate Milestone 13 container path
+#   .agents/, .claude/, .codex/, .playwright-mcp/
+#                                     — local agent/tooling metadata
+#   node_modules/                     — reinstalled from package-lock.json
+#   .git/, .gitignore                 — version-control metadata
+#   public/img/sample 360/            — owner-only local scratch panoramas
+# =============================================================================
+
+# ---- 1. Ignore every project-root entry ----
+/*
+
+# ---- 2. Re-include the required root files ----
+!server.js
+!package.json
+!package-lock.json
+!vercel.json
+
+# ---- 3. Re-include the runtime source directories and their descendants ----
+!config
+!config/**
+!controllers
+!controllers/**
+!middleware
+!middleware/**
+!models
+!models/**
+!repositories
+!repositories/**
+!routes
+!routes/**
+!services
+!services/**
+!utils
+!utils/**
+!views
+!views/**
+!public
+!public/**
+
+# ---- 4. Deny the local scratch panorama directory AFTER the public
+#         re-inclusion, so it is neither uploadable nor CDN-addressable ----
+public/img/sample 360/
+public/img/sample 360/**

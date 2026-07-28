@@ -29,6 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentFilter = { role: 'all', status: 'all', search: '' };
 
+  // ---- Utility: Refresh Lucide icons (M12.P1-R6 guard) ----
+  // Every call site below used to invoke `lucide.createIcons()` directly. When
+  // the Lucide bundle was unavailable that threw a ReferenceError mid-function,
+  // so the statements AFTER it never ran — leaving the rendered user table with
+  // no row actions and no dropdown bindings. Icons are decorative here; the
+  // table, its labels and its actions must survive without them.
+  function refreshIcons() {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
   // ---- Utility: Show Toast ----
   function showToast(message, type = 'success') {
     if (!toast) return;
@@ -83,8 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Utility: Initials ----
+  // Type-safe: non-string inputs behave as blank (never throw mid-render).
+  // "Bleak Santos" -> "BS"; a missing first/last name still yields the other initial.
   function getInitials(firstName, lastName) {
-    return ((firstName || '')[0] || '') .toUpperCase() + ((lastName || '')[0] || '').toUpperCase();
+    const f = typeof firstName === 'string' ? firstName : '';
+    const l = typeof lastName === 'string' ? lastName : '';
+    return ((f[0] || '') + (l[0] || '')).toUpperCase();
   }
 
   // ---- Render Table ----
@@ -129,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </td>
         </tr>`;
-      lucide.createIcons();
+      refreshIcons();
       return;
     }
 
@@ -138,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>
           <div class="flex items-center gap-3">
             <div class="ui-avatar h-9 w-9 shrink-0">
-              <div class="ui-avatar-fallback text-xs font-semibold">${getInitials(u.first_name, u.last_name)}</div>
+              <div class="ui-avatar-fallback text-xs font-semibold">${escapeHtml(getInitials(u.first_name, u.last_name))}</div>
             </div>
             <span class="text-sm font-medium">${escapeHtml(u.first_name + ' ' + u.last_name)}</span>
           </div>
@@ -165,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr>
     `).join('');
 
-    lucide.createIcons();
+    refreshIcons();
     bindRowActions();
     rebindDropdowns();
   }
@@ -340,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create User';
-        lucide.createIcons();
+        refreshIcons();
       }
     });
   }
@@ -414,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
-        lucide.createIcons();
+        refreshIcons();
       }
     });
   }
@@ -473,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingDeleteId = null;
         confirmDeleteBtn.disabled = false;
         confirmDeleteBtn.innerHTML = '<i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete';
-        lucide.createIcons();
+        refreshIcons();
       }
     });
   }

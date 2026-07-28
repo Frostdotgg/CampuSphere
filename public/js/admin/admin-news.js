@@ -31,6 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventModal = document.getElementById('event-modal');
   const deleteModal = document.getElementById('delete-content-modal');
 
+  // ---- Refresh Lucide icons (M12.P1-R6 guard) ----
+  // Every call site below used to invoke `lucide.createIcons()` directly. When
+  // the Lucide bundle was unavailable that threw a ReferenceError mid-function,
+  // so the statements AFTER it never ran — most damagingly inside the submit
+  // `finally` blocks, which would have left the Save/Create buttons permanently
+  // disabled. Icons are decorative; the content grids, modals and actions must
+  // survive without them.
+  function refreshIcons() {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
   // ---- Toast ----
   function showToast(msg, type='success') {
     if(!toast) return;
@@ -58,15 +71,55 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Category badge ----
   function catBadge(cat){
     const map={
-      'Announcement':{cls:'bg-chart-1/10 text-chart-1 border-chart-1/20'},
-      'Campus Update':{cls:'bg-chart-2/10 text-chart-2 border-chart-2/20'},
-      'Events':{cls:'bg-chart-4/10 text-chart-4 border-chart-4/20'},
+      'General':{cls:'bg-muted text-muted-foreground border-border'},
       'Academic':{cls:'bg-primary/10 text-primary border-primary/20'},
+      'Event':{cls:'bg-chart-4/10 text-chart-4 border-chart-4/20'},
+      'Advisory':{cls:'bg-chart-2/10 text-chart-2 border-chart-2/20'},
+      'Maintenance':{cls:'bg-chart-1/10 text-chart-1 border-chart-1/20'},
+      'Emergency':{cls:'bg-destructive/10 text-destructive border-destructive/20'},
       'Sports':{cls:'bg-chart-2/10 text-chart-2 border-chart-2/20'},
       'Cultural':{cls:'bg-chart-4/10 text-chart-4 border-chart-4/20'}
     };
     const info=map[cat]||{cls:'bg-muted text-muted-foreground border-border'};
     return `<span class="ui-badge ui-badge-outline ${info.cls}">${esc(cat)}</span>`;
+  }
+
+  // ---- Audience label ----
+  function audienceLabel(a){
+    const map={'all':'Everyone','student-cspc':'Students (CSPC)','instructor':'Instructors','guest':'Guests','admin':'Admins'};
+    return map[a]||'Everyone';
+  }
+
+  // ---- Tab-aware category filter ----
+  const NEWS_CATEGORIES=['General','Academic','Event','Events','Advisory','Maintenance','Emergency','Facilities'];
+  const EVENT_CATEGORIES=['Academic','Sports','Cultural'];
+
+  function setCatFilterLabel(){
+    if(!catFilterBtn) return;
+    const s=catFilterBtn.querySelector('span');
+    if(s) s.textContent=(filter.category==='all')?'All Categories':filter.category;
+  }
+
+  function rebuildCategoryFilter(){
+    if(!catFilterMenu) return;
+    const cats=(currentTab==='news')?NEWS_CATEGORIES:EVENT_CATEGORIES;
+    // Reset selection to 'all' if it is not valid for the active tab
+    if(filter.category!=='all' && !cats.includes(filter.category)) filter.category='all';
+    catFilterMenu.innerHTML=['all',...cats].map(v=>{
+      const label=(v==='all')?'All':v;
+      const active=(filter.category===v)?' bg-accent text-accent-foreground':'';
+      return `<div class="dropdown-menu-item${active}" data-value="${v}">${label}</div>`;
+    }).join('');
+    setCatFilterLabel();
+    catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(item=>{
+      item.addEventListener('click',()=>{
+        filter.category=item.dataset.value||'all';
+        setCatFilterLabel();
+        catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>i.classList.remove('bg-accent','text-accent-foreground'));
+        item.classList.add('bg-accent','text-accent-foreground');
+        renderAll();
+      });
+    });
   }
 
   // ---- Tabs ----
@@ -83,7 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
       newsPanel.style.display='none'; eventsPanel.style.display='';
       addBtn.innerHTML='<i data-lucide="plus" class="mr-2 h-4 w-4"></i>New Event';
     }
-    lucide.createIcons();
+    rebuildCategoryFilter();
+    refreshIcons();
     renderAll();
   }
   if(tabNews) tabNews.addEventListener('click',()=>switchTab('news'));
@@ -114,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       newsGrid.innerHTML=`<div class="ui-card border-border" style="grid-column:1/-1;text-align:center;padding:3rem;">
         <i data-lucide="newspaper" style="width:2.5rem;height:2.5rem;color:var(--muted-foreground);margin:0 auto .75rem;display:block;"></i>
         <p class="text-muted-foreground text-sm">No articles found.</p></div>`;
-      lucide.createIcons(); return;
+      refreshIcons(); return;
     }
 
     newsGrid.innerHTML=items.map(a=>{
@@ -138,11 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="text-sm text-muted-foreground line-clamp-2">${esc(a.excerpt)}</p>
           <div class="flex items-center justify-between mt-2">
             <span class="text-xs text-muted-foreground">${timeAgo(a.created_at)}</span>
+            <span class="ui-badge ui-badge-outline" style="font-size:0.7rem;">${esc(audienceLabel(a.audience))}</span>
           </div>
           ${statusBadge}
         </div></div>`;
     }).join('');
-    lucide.createIcons();
+    refreshIcons();
     bindNewsActions();
     rebindDropdowns(newsGrid);
   }
@@ -163,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       eventsTableBody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:2rem;">
         <i data-lucide="calendar-x" style="width:2.5rem;height:2.5rem;color:var(--muted-foreground);display:inline-block;"></i>
         <p class="text-muted-foreground text-sm" style="margin-top:.5rem;">No events found.</p></td></tr>`;
-      lucide.createIcons(); return;
+      refreshIcons(); return;
     }
 
     eventsTableBody.innerHTML=items.map(ev=>`<tr data-id="${ev.id}">
@@ -181,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="dropdown-menu-item text-destructive btn-delete-event" data-id="${ev.id}"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</div>
         </div>
       </td></tr>`).join('');
-    lucide.createIcons();
+    refreshIcons();
     bindEventActions();
     rebindDropdowns(eventsTableBody);
   }
@@ -235,9 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function openCreateNews(){
     const form=document.getElementById('news-form'); if(form)form.reset();
     form.removeAttribute('data-edit-id');
+    if(form.audience) form.audience.value='all';
     document.getElementById('news-modal-title').textContent='Create New Article';
     document.getElementById('news-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Article';
-    clearFormErrors(newsModal); openModal(newsModal); lucide.createIcons();
+    clearFormErrors(newsModal); openModal(newsModal); refreshIcons();
   }
 
   function openEditNews(id){
@@ -249,20 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
     form.excerpt.value=a.excerpt||'';
     form.content.value=a.content||a.excerpt||'';
     form.status.value=a.published_date?'published':'draft';
+    if(form.audience) form.audience.value=a.audience||'all';
     document.getElementById('news-modal-title').textContent='Edit Article';
     document.getElementById('news-submit-btn').innerHTML='<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
-    clearFormErrors(newsModal); openModal(newsModal); lucide.createIcons();
+    clearFormErrors(newsModal); openModal(newsModal); refreshIcons();
   }
 
   const newsForm=document.getElementById('news-form');
   if(newsForm) newsForm.addEventListener('submit', async e=>{
     e.preventDefault(); clearFormErrors(newsModal);
     const editId=newsForm.dataset.editId;
-    const data={title:newsForm.title_field.value.trim(),category:newsForm.category.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
+    const data={title:newsForm.title_field.value.trim(),category:newsForm.category.value,audience:newsForm.audience.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
     if(!data.title||!data.category||!data.excerpt){showFormError(newsModal,'Title, category, and excerpt are required.');return;}
 
     const btn=document.getElementById('news-submit-btn');
-    btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; lucide.createIcons();
+    btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; refreshIcons();
 
     try{
       const url=editId?'/admin/api/news/'+editId:'/admin/api/news';
@@ -276,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(editId?'Article updated!':'Article created!','success');
       } else showFormError(newsModal,json.message);
     }catch(err){showFormError(newsModal,'Network error.');}
-    finally{btn.disabled=false;btn.innerHTML=editId?'<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes':'<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Article';lucide.createIcons();}
+    finally{btn.disabled=false;btn.innerHTML=editId?'<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes':'<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Article';refreshIcons();}
   });
 
   // ============================================================
@@ -287,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.removeAttribute('data-edit-id');
     document.getElementById('event-modal-title').textContent='Create New Event';
     document.getElementById('event-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Event';
-    clearFormErrors(eventModal); openModal(eventModal); lucide.createIcons();
+    clearFormErrors(eventModal); openModal(eventModal); refreshIcons();
   }
 
   function openEditEvent(id){
@@ -302,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.description.value=ev.description||'';
     document.getElementById('event-modal-title').textContent='Edit Event';
     document.getElementById('event-submit-btn').innerHTML='<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
-    clearFormErrors(eventModal); openModal(eventModal); lucide.createIcons();
+    clearFormErrors(eventModal); openModal(eventModal); refreshIcons();
   }
 
   const eventForm=document.getElementById('event-form');
@@ -313,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!data.title||!data.category||!data.event_date){showFormError(eventModal,'Title, category, and date are required.');return;}
 
     const btn=document.getElementById('event-submit-btn');
-    btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; lucide.createIcons();
+    btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; refreshIcons();
 
     try{
       const url=editId?'/admin/api/events/'+editId:'/admin/api/events';
@@ -327,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(editId?'Event updated!':'Event created!','success');
       } else showFormError(eventModal,json.message);
     }catch(err){showFormError(eventModal,'Network error.');}
-    finally{btn.disabled=false;btn.innerHTML=editId?'<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes':'<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Event';lucide.createIcons();}
+    finally{btn.disabled=false;btn.innerHTML=editId?'<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes':'<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Event';refreshIcons();}
   });
 
   // ============================================================
@@ -351,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if(confirmDelBtn) confirmDelBtn.addEventListener('click', async()=>{
     if(!pendingDelete.id)return;
     confirmDelBtn.disabled=true;
-    confirmDelBtn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Deleting...'; lucide.createIcons();
+    confirmDelBtn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Deleting...'; refreshIcons();
 
     try{
       const url=pendingDelete.type==='news'?'/admin/api/news/'+pendingDelete.id:'/admin/api/events/'+pendingDelete.id;
@@ -364,20 +421,13 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(pendingDelete.type==='news'?'Article deleted.':'Event deleted.','success');
       } else showToast(json.message||'Failed to delete.','error');
     }catch(err){showToast('Network error.','error');}
-    finally{pendingDelete={type:null,id:null};confirmDelBtn.disabled=false;confirmDelBtn.innerHTML='<i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete';lucide.createIcons();}
+    finally{pendingDelete={type:null,id:null};confirmDelBtn.disabled=false;confirmDelBtn.innerHTML='<i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete';refreshIcons();}
   });
 
   // ---- Search & Filter ----
   if(searchInput) searchInput.addEventListener('input',()=>{filter.search=searchInput.value;renderAll();});
-  if(catFilterMenu) catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(item=>{
-    item.addEventListener('click',()=>{
-      filter.category=item.dataset.value||'all';
-      if(catFilterBtn)catFilterBtn.querySelector('span').textContent=item.textContent;
-      catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>i.classList.remove('bg-accent','text-accent-foreground'));
-      item.classList.add('bg-accent','text-accent-foreground');
-      renderAll();
-    });
-  });
+  // Category filter menu is rebuilt per-tab and click-bound in rebuildCategoryFilter()
+  // (invoked from switchTab, including the initial switchTab('news') call below).
 
   // ---- Init ----
   switchTab('news');

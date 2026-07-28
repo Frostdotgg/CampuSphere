@@ -2,12 +2,11 @@
 <html lang="en">
 
 <head>
-    <script>
+    <script nonce="<%= cspNonce %>">
         (function () {
             var savedTheme = localStorage.getItem('adminTheme') || localStorage.getItem('theme');
             if (savedTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
             }
         })();
     </script>
@@ -17,10 +16,25 @@
     <meta name="description" content="<%= description %>">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/admin-styles.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <%# M12.P1-R6: Lucide is self-hosted at the exact reviewed 1.25.0 (see
+        public/vendor/manifest.json). The former unpkg "lucide@latest" reference
+        executed whatever build the CDN served at request time. %>
+    <script src="/vendor/lucide/lucide.min.js"></script>
+    <!-- Leaflet 1.9.4 for the RF.4 road-geometry editor. M12.P1-R6: CSS is now
+         self-hosted alongside the already self-hosted JS, so the editor loads no
+         executable or style asset from a CDN. leaflet.css resolves its control
+         and marker images relatively from /vendor/leaflet/images/. -->
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <script src="/vendor/leaflet/leaflet.js" defer></script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/admin/main.js" defer></script>
+    <%# M12.P1-D5: the structured building-details editor must load BEFORE
+        admin-buildings.js, which mounts it into the Building modal. %>
+    <script src="/js/admin/building-details-editor.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
-    <style>
+    <script src="/js/admin/admin-map-graph.js" defer></script>
+    <script src="/js/admin/admin-schedules.js" defer></script>
+    <style nonce="<%= cspNonce %>">
         .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
         .modal-backdrop.modal--open{display:flex;}
         .modal-box{background:var(--card);border:1px solid var(--border);border-radius:0.75rem;width:95%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}
@@ -67,6 +81,7 @@
                 <a href="/admin/faqs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">FAQs</span></a>
                 <a href="/admin/logs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System Logs</span></a>
                 <a href="/admin/campus-map" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+                <a href="/admin/vr" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="globe" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">VR Tour</span></a>
                 <a href="/admin/settings" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Settings</span></a>
             </nav>
             <div class="border-t border-sidebar-border p-4">
@@ -78,7 +93,10 @@
                         <span class="text-sm font-medium truncate"><%= user ? user.first_name + ' ' + user.last_name : 'Admin User' %></span>
                         <span class="text-xs text-sidebar-foreground/60 truncate"><%= user ? user.email : 'admin@cspc.edu.ph' %></span>
                     </div>
-                    <a href="/logout" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></a>
+                    <form method="POST" action="/logout" class="logout-form" style="display:contents;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 text-sidebar-foreground/70 shrink-0" title="Logout" style="cursor:pointer;"><i data-lucide="log-out" class="h-4 w-4"></i></button>
+                    </form>
                 </div>
             </div>
             <button id="sidebar-toggle" class="ui-button ui-button-ghost ui-button-size-icon absolute -right-3 top-7 h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent" style="width:1.5rem;height:1.5rem;padding:0;">
@@ -93,21 +111,6 @@
                 <div>
                     <h1 class="text-xl font-semibold text-foreground">Campus Map Management</h1>
                     <p class="text-sm text-muted-foreground">Manage building markers, locations, and map data</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button class="ui-button ui-button-ghost ui-button-size-icon relative dropdown-trigger"
-                        data-dropdown-target="notifications-menu"><i data-lucide="bell" class="h-5 w-5"></i><span
-                            class="ui-badge ui-badge-default absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                            style="padding:0;min-width:1.25rem;">3</span></button>
-                    <div id="notifications-menu" class="dropdown-menu-content w-80 p-1"
-                        style="min-width:20rem;right:1.5rem;">
-                        <div class="px-2 py-1.5 text-sm font-semibold">Notifications</div>
-                        <div class="h-px bg-border my-1"></div>
-                        <div class="dropdown-menu-item flex flex-col items-start gap-1 p-3"><span
-                                class="font-medium text-foreground">New user registration</span><span
-                                class="text-xs text-muted-foreground">John Doe registered as a student</span><span
-                                class="text-xs text-muted-foreground">2 min ago</span></div>
-                    </div>
                 </div>
             </header>
 
@@ -157,17 +160,126 @@
                         <!-- Rendered by admin-buildings.js -->
                     </div>
 
+                    <!-- ======== Routes & Campus Graph (Section 7.9) ======== -->
+                    <div class="ui-card border-border" id="graph-card">
+                        <div class="p-6 pb-0">
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Routes &amp; Campus Graph</h3>
+                            <p class="text-sm text-muted-foreground">Manage guided routes, ordered steps, graph nodes, and directed edges.</p>
+                            <div class="graph-tabs" role="tablist" aria-label="Route and graph sections">
+                                <button type="button" class="graph-tab graph-tab--active" data-graph-tab="routes" role="tab" aria-selected="true">Routes</button>
+                                <button type="button" class="graph-tab" data-graph-tab="nodes" role="tab" aria-selected="false">Nodes</button>
+                                <button type="button" class="graph-tab" data-graph-tab="edges" role="tab" aria-selected="false">Edges</button>
+                            </div>
+                        </div>
+                        <div class="p-6 pt-4">
+
+                            <!-- Routes panel -->
+                            <div class="graph-panel" data-graph-panel="routes">
+                                <div class="graph-panel-bar">
+                                    <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="route-search" placeholder="Search routes…" aria-label="Search routes" class="ui-input pl-9" style="width:100%;"></div>
+                                    <button id="add-route-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Route</button>
+                                </div>
+                                <p id="route-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <div id="route-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading routes…</p></div>
+                                <div id="route-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load routes.</p><button id="route-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
+                                <div id="route-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No routes yet. Use “Add Route” to create one.</p></div>
+                                <div id="route-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No routes match your search.</p></div>
+                                <div id="route-list" hidden></div>
+                            </div>
+
+                            <!-- Nodes panel -->
+                            <div class="graph-panel" data-graph-panel="nodes" hidden>
+                                <div class="graph-panel-bar">
+                                    <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="node-search" placeholder="Search nodes…" aria-label="Search nodes" class="ui-input pl-9" style="width:100%;"></div>
+                                    <button id="add-node-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Node</button>
+                                </div>
+                                <p id="node-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <div id="node-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading nodes…</p></div>
+                                <div id="node-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load nodes.</p><button id="node-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
+                                <div id="node-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No nodes yet. Use “Add Node” to create one.</p></div>
+                                <div id="node-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No nodes match your search.</p></div>
+                                <div id="node-list" hidden></div>
+                            </div>
+
+                            <!-- Edges panel -->
+                            <div class="graph-panel" data-graph-panel="edges" hidden>
+                                <div class="graph-panel-bar">
+                                    <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="edge-search" placeholder="Search edges…" aria-label="Search edges" class="ui-input pl-9" style="width:100%;"></div>
+                                    <button id="add-edge-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Edge</button>
+                                </div>
+                                <p id="edge-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <div id="edge-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading edges…</p></div>
+                                <div id="edge-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load edges.</p><button id="edge-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
+                                <div id="edge-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No edges yet. Use “Add Edge” to create one.</p></div>
+                                <div id="edge-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No edges match your search.</p></div>
+                                <div id="edge-list" hidden></div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ======== Room Schedules (Milestone 11, Section 11.5) ======== -->
+                    <div class="ui-card border-border" id="schedule-card">
+                        <div class="p-6 pb-0">
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Room Schedules</h3>
+                            <p class="text-sm text-muted-foreground">Manage real room/facility schedule entries tied to campus buildings.</p>
+                        </div>
+                        <div class="p-6 pt-4">
+                            <div class="graph-panel-bar admin-filter-bar" style="flex-wrap:wrap;gap:0.5rem;">
+                                <%# M12.P1-D4: bounded server-backed text search across title, building,
+                                    room/facility label, floor, and description. Enter applies; typing
+                                    alone never calls the server. %>
+                                <div class="admin-search-field">
+                                    <label for="schedule-search">Search schedules</label>
+                                    <input type="search" id="schedule-search" class="ui-input" maxlength="100" aria-describedby="schedule-result-status"
+                                        autocomplete="off" placeholder="Title, building, room, floor, description…">
+                                </div>
+                                <select id="schedule-filter-building" aria-label="Filter by building" class="ui-input" style="max-width:220px;">
+                                    <option value="">All buildings</option>
+                                </select>
+                                <input type="date" id="schedule-filter-from" aria-label="From date" class="ui-input" style="max-width:170px;">
+                                <input type="date" id="schedule-filter-to" aria-label="To date" class="ui-input" style="max-width:170px;">
+                                <select id="schedule-filter-audience" aria-label="Filter by audience" class="ui-input" style="max-width:170px;">
+                                    <option value="">All audiences</option>
+                                    <option value="all">all</option>
+                                    <option value="student-cspc">student-cspc</option>
+                                    <option value="instructor">instructor</option>
+                                    <option value="guest">guest</option>
+                                    <option value="admin">admin</option>
+                                </select>
+                                <select id="schedule-filter-status" aria-label="Filter by status" class="ui-input" style="max-width:160px;">
+                                    <option value="">All statuses</option>
+                                    <option value="scheduled">scheduled</option>
+                                    <option value="cancelled">cancelled</option>
+                                    <option value="completed">completed</option>
+                                </select>
+                                <button id="schedule-apply-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="filter" class="mr-2 h-4 w-4"></i>Apply</button>
+                                <button id="schedule-clear-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="x" class="mr-2 h-4 w-4"></i>Clear</button>
+                                <button id="add-schedule-btn" type="button" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Schedule</button>
+                            </div>
+                            <%# Live result summary: count plus the date window the SERVER actually
+                                applied (from appliedFilters), so the default window is never a guess. %>
+                            <p id="schedule-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                            <div id="schedule-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading schedules…</p></div>
+                            <div id="schedule-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p id="schedule-error-text" class="text-sm text-muted-foreground">Could not load schedules.</p><button id="schedule-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
+                            <div id="schedule-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No schedule entries in this date window. Use “Add Schedule” to create one.</p></div>
+                            <div id="schedule-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No schedules match the current filters. Adjust the search or choose “Clear”.</p></div>
+                            <div id="schedule-list" hidden></div>
+                        </div>
+                    </div>
+
                 </div>
             </main>
         </div>
     </div>
 
     <!-- ======== BUILDING MODAL (Create/Edit) ======== -->
-    <div id="building-modal" class="modal-backdrop">
-        <div class="modal-box">
+    <%# M12.P1-D5: proper dialog semantics + an accessible Close button. %>
+    <div id="building-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="building-modal-title">
+        <div class="modal-box modal-box--building">
             <div class="modal-header">
                 <h3 id="building-modal-title"><i data-lucide="building-2" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Add New Building</h3>
-                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8"><i data-lucide="x" class="h-4 w-4"></i></button>
+                <button type="button" class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button>
             </div>
             <form id="building-form">
                 <div class="modal-body">
@@ -201,10 +313,24 @@
                             <input type="number" step="any" name="lng" id="building-lng" class="ui-input" placeholder="e.g. 123.1830" required>
                         </div>
                     </div>
+                    <%# M12.P1-D5: structured additional-details editor replaces the
+                        raw JSON textarea. The editor mounts into this container and
+                        submits the same canonical JSON string / null contract. %>
+                    <div class="form-group bde-group">
+                        <span class="bde-title">Additional Details</span>
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Walking time, entrances, landmarks, floors with rooms, and other campus information. No JSON needed — stored data in older formats is preserved unchanged.</small>
+                        <div id="building-details-editor" class="bde"></div>
+                        <p id="building-details-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                    </div>
                     <div class="form-group">
-                        <label for="building-details">Additional Details (JSON)</label>
-                        <textarea name="details" id="building-details" placeholder='{"floors":[],"entrances":[]}  -  or leave blank'></textarea>
-                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Must be a valid JSON object, or leave blank.</small>
+                        <label for="building-image-url">Image URL (optional)</label>
+                        <input type="text" name="image_url" id="building-image-url" class="ui-input" maxlength="255" placeholder="/img/your-image.jpg  or  https://res.cloudinary.com/...">
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Local <code>/img/</code> path or an <code>https://res.cloudinary.com/...</code> URL. Leave blank to use the default.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="building-cloudinary-id">Cloudinary Public ID (optional)</label>
+                        <input type="text" name="cloudinary_public_id" id="building-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. campus/main-building">
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Letters, numbers, <code>/ . _ - ~</code> only. Leave blank if unused.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -240,11 +366,191 @@
         </div>
     </div>
 
+    <!-- ======== ROUTE MODAL (Create/Edit) ======== -->
+    <div id="route-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="route-modal-title">
+        <div class="modal-box">
+            <div class="modal-header"><h3 id="route-modal-title">Add Route</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <form id="route-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <div class="form-group"><label for="route-title">Title</label><input type="text" name="title" id="route-title" class="ui-input" maxlength="150" required placeholder="e.g. Main Gate to Library"></div>
+                    <div class="form-group"><label for="route-start">Start label</label><input type="text" name="start_label" id="route-start" class="ui-input" maxlength="100" required placeholder="e.g. Main Gate"></div>
+                    <div class="form-group"><label for="route-dest">Destination building</label><select name="destination_building_id" id="route-dest" required><option value="">Select a building…</option></select></div>
+                    <div class="form-group"><label for="route-walk">Estimated walk time <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="estimated_walk_time" id="route-walk" class="ui-input" maxlength="50" placeholder="e.g. 5 minutes"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="route-submit" class="ui-button ui-button-default ui-button-size-default"><span id="route-submit-label">Create Route</span></button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== STEPS MODAL (ordered steps editor) ======== -->
+    <div id="steps-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="steps-modal-title">
+        <div class="modal-box" style="max-width:640px;">
+            <div class="modal-header"><h3 id="steps-modal-title">Edit Steps</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <div class="modal-body">
+                <div class="form-error"></div>
+                <p class="form-hint" id="steps-route-label" style="font-size:0.75rem;color:var(--muted-foreground);margin-bottom:0.75rem;"></p>
+                <div id="steps-editor"></div>
+                <button type="button" id="add-step-btn" class="ui-button ui-button-outline ui-button-size-sm" style="margin-top:0.5rem;"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Step</button>
+            </div>
+            <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="button" id="steps-save" class="ui-button ui-button-default ui-button-size-default">Save Steps</button></div>
+        </div>
+    </div>
+
+    <!-- ======== NODE MODAL (Create/Edit) ======== -->
+    <div id="node-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="node-modal-title">
+        <div class="modal-box">
+            <div class="modal-header"><h3 id="node-modal-title">Add Node</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <form id="node-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <div class="form-group"><label for="node-key">Node key</label><input type="text" name="node_key" id="node-key" class="ui-input" maxlength="60" required placeholder="e.g. main-gate"><p class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin-top:0.25rem;">Lowercase letters, numbers, hyphens. Must be unique.</p></div>
+                    <div class="form-group"><label for="node-label">Label</label><input type="text" name="label" id="node-label" class="ui-input" maxlength="150" required placeholder="e.g. Main Gate"></div>
+                    <div class="form-group"><label for="node-type">Type</label><select name="node_type" id="node-type" required><option value="gate">gate</option><option value="walkway">walkway</option><option value="building">building</option><option value="service">service</option></select></div>
+                    <div class="form-group"><label for="node-building">Building id <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="number" name="building_id" id="node-building" class="ui-input" min="1" step="1" placeholder="—"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label for="node-lat">Latitude</label><input type="number" name="lat" id="node-lat" class="ui-input" step="any" min="-90" max="90" required placeholder="13.405"></div>
+                        <div class="form-group"><label for="node-lng">Longitude</label><input type="number" name="lng" id="node-lng" class="ui-input" step="any" min="-180" max="180" required placeholder="123.373"></div>
+                        <div class="form-group"><label for="node-order">Order</label><input type="number" name="display_order" id="node-order" class="ui-input" min="0" max="2147483647" step="1" placeholder="0"></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="node-submit" class="ui-button ui-button-default ui-button-size-default"><span id="node-submit-label">Create Node</span></button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== EDGE MODAL (Create/Edit) ======== -->
+    <div id="edge-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edge-modal-title">
+        <div class="modal-box">
+            <div class="modal-header"><h3 id="edge-modal-title">Add Edge</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <form id="edge-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <%# M12.P1-D4: independent endpoint filters. Each search narrows only its
+                        own native select, always preserves that select's current selection, and
+                        both are disabled while editing because RF.4 makes endpoints immutable. %>
+                    <p id="edge-endpoint-note" class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;" hidden>Endpoints cannot be changed after an edge is created. Delete the edge and add a new one to reconnect different nodes.</p>
+                    <div class="form-group">
+                        <label for="edge-from-search">Search from-nodes</label>
+                        <input type="search" id="edge-from-search" class="ui-input" autocomplete="off" aria-describedby="edge-from-count" placeholder="Filter by node key or label…">
+                        <p id="edge-from-count" class="admin-field-count" aria-live="polite"></p>
+                    </div>
+                    <div class="form-group"><label for="edge-from">From node</label><select name="from_node_id" id="edge-from" required><option value="">Select a node…</option></select></div>
+                    <div class="form-group">
+                        <label for="edge-to-search">Search to-nodes</label>
+                        <input type="search" id="edge-to-search" class="ui-input" autocomplete="off" aria-describedby="edge-to-count" placeholder="Filter by node key or label…">
+                        <p id="edge-to-count" class="admin-field-count" aria-live="polite"></p>
+                    </div>
+                    <div class="form-group"><label for="edge-to">To node</label><select name="to_node_id" id="edge-to" required><option value="">Select a node…</option></select></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label for="edge-dist">Distance (m)</label><input type="number" name="distance_meters" id="edge-dist" class="ui-input" min="1" step="1" required placeholder="60"></div>
+                        <div class="form-group"><label for="edge-time">Walk time (s)</label><input type="number" name="walk_time_seconds" id="edge-time" class="ui-input" min="1" step="1" required placeholder="50"></div>
+                    </div>
+                    <div class="form-group"><label for="edge-label">Path label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="path_label" id="edge-label" class="ui-input" maxlength="150" placeholder="e.g. Main pathway"></div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;"><input type="checkbox" name="is_accessible" id="edge-access" checked style="width:auto;"><label for="edge-access" style="margin:0;">Accessible</label></div>
+
+                    <!-- RF.4 road-geometry editor: shown only when editing an existing edge -->
+                    <div id="edge-geometry-section" style="display:none;margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+                            <label style="margin:0;font-weight:600;">Road geometry (drawing only)</label>
+                            <span id="edge-geo-endpoints" class="text-muted-foreground" style="font-size:0.78rem;"></span>
+                        </div>
+                        <p class="text-muted-foreground" style="font-size:0.76rem;margin:0.25rem 0 0.5rem;line-height:1.4;">
+                            Click the map to add a waypoint, or use “Add waypoint”. Drag intermediate markers to adjust; edit
+                            coordinates in the list for keyboard control. Endpoints are locked to the node coordinates. Saving
+                            writes both directions; “Clear” removes geometry from both.
+                        </p>
+                        <div id="edge-geo-map" style="height:260px;width:100%;max-width:100%;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;background:#11151c;"></div>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;">
+                            <button type="button" id="edge-geo-add" class="ui-button ui-button-outline ui-button-size-sm">Add waypoint</button>
+                            <button type="button" id="edge-geo-undo" class="ui-button ui-button-outline ui-button-size-sm">Undo</button>
+                            <button type="button" id="edge-geo-reset" class="ui-button ui-button-outline ui-button-size-sm">Reset to endpoints</button>
+                            <button type="button" id="edge-geo-clear" class="ui-button ui-button-outline ui-button-size-sm">Clear</button>
+                            <button type="button" id="edge-geo-preview" class="ui-button ui-button-outline ui-button-size-sm">Preview</button>
+                        </div>
+                        <ol id="edge-geo-list" aria-label="Ordered waypoints" style="list-style:none;margin:0.5rem 0 0;padding:0;display:flex;flex-direction:column;gap:0.4rem;"></ol>
+                        <p id="edge-geo-status" class="text-muted-foreground" style="font-size:0.78rem;margin:0.5rem 0 0;" aria-live="polite"></p>
+                        <div style="margin-top:0.5rem;">
+                            <button type="button" id="edge-geo-save" class="ui-button ui-button-default ui-button-size-sm">Save geometry</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="edge-submit" class="ui-button ui-button-default ui-button-size-default"><span id="edge-submit-label">Create Edge</span></button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== GRAPH DELETE CONFIRMATION MODAL ======== -->
+    <div id="graph-delete-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="graph-delete-title">
+        <div class="modal-box" style="max-width:420px;">
+            <div class="modal-header"><h3 id="graph-delete-title">Confirm Deletion</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <div class="modal-body"><div class="modal-delete-warn"><i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i><p id="graph-delete-text">Are you sure?</p><p style="margin-top:0.5rem;">This action cannot be undone.</p></div></div>
+            <div class="modal-footer"><button id="graph-cancel-delete" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button><button id="graph-confirm-delete" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</button></div>
+        </div>
+    </div>
+
+    <!-- ======== SCHEDULE MODAL (Create/Edit) — Milestone 11, Section 11.5 ======== -->
+    <div id="schedule-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="schedule-modal-title"><i data-lucide="calendar-clock" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Add Schedule</h3>
+                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
+            <form id="schedule-form">
+                <div class="modal-body">
+                    <div class="form-error"></div>
+                    <%# M12.P1-D4: client-side building filter above the native select. The
+                        select itself stays a keyboard-usable native control and always keeps
+                        the currently selected option, even when it does not match the search. %>
+                    <div class="form-group">
+                        <label for="schedule-building-search">Search buildings</label>
+                        <input type="search" id="schedule-building-search" class="ui-input" autocomplete="off" aria-describedby="schedule-building-count" placeholder="Filter by building name…">
+                        <p id="schedule-building-count" class="admin-field-count" aria-live="polite"></p>
+                    </div>
+                    <div class="form-group"><label for="schedule-building">Building</label><select name="building_id" id="schedule-building" required><option value="">Select a building…</option></select></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label for="schedule-location-type">Location type</label><select name="location_type" id="schedule-location-type" required><option value="room">room</option><option value="facility">facility</option></select></div>
+                        <div class="form-group"><label for="schedule-location-label">Location label</label><input type="text" name="location_label" id="schedule-location-label" class="ui-input" maxlength="120" required placeholder="e.g. Room 204 or Gymnasium"></div>
+                    </div>
+                    <div class="form-group"><label for="schedule-floor-label">Floor label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="floor_label" id="schedule-floor-label" class="ui-input" maxlength="80" placeholder="e.g. 2nd Floor"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label for="schedule-date">Date</label><input type="date" name="schedule_date" id="schedule-date" class="ui-input" required></div>
+                        <div class="form-group"><label for="schedule-start-time">Start time</label><input type="time" name="start_time" id="schedule-start-time" class="ui-input" required></div>
+                        <div class="form-group"><label for="schedule-end-time">End time</label><input type="time" name="end_time" id="schedule-end-time" class="ui-input" required></div>
+                    </div>
+                    <div class="form-group"><label for="schedule-title">Title / Purpose</label><input type="text" name="title" id="schedule-title" class="ui-input" maxlength="150" required placeholder="e.g. Org meeting, Facility maintenance"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label for="schedule-audience">Audience</label><select name="audience" id="schedule-audience" required><option value="all">all</option><option value="student-cspc">student-cspc</option><option value="instructor">instructor</option><option value="guest">guest</option><option value="admin">admin</option></select></div>
+                        <div class="form-group"><label for="schedule-status">Status</label><select name="status" id="schedule-status" required><option value="scheduled">scheduled</option><option value="cancelled">cancelled</option><option value="completed">completed</option></select></div>
+                    </div>
+                    <div class="form-group"><label for="schedule-description">Description <span class="text-muted-foreground" style="font-weight:400;">(optional, public-safe text)</span></label><textarea name="description" id="schedule-description" maxlength="1000" placeholder="Short public-safe note about this schedule entry..."></textarea></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                    <button type="submit" id="schedule-submit" class="ui-button ui-button-default ui-button-size-default"><span id="schedule-submit-label">Create Schedule</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======== SCHEDULE DELETE CONFIRMATION MODAL ======== -->
+    <div id="schedule-delete-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-delete-title">
+        <div class="modal-box" style="max-width:420px;">
+            <div class="modal-header"><h3 id="schedule-delete-title">Confirm Deletion</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <div class="modal-body"><div class="modal-delete-warn"><i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i><p id="schedule-delete-text">Are you sure you want to delete this schedule entry?</p><p style="margin-top:0.5rem;">This action cannot be undone.</p></div></div>
+            <div class="modal-footer"><button id="schedule-cancel-delete" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button><button id="schedule-confirm-delete" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</button></div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="buildings-data-json" type="application/json"><%- JSON.stringify(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, created_at: b.created_at, updated_at: b.updated_at }))).replace(/</g, '\\u003c') %></script>
+    <!-- BE.3: this whitelist is what the admin cards render from on first paint, so
+         the route-availability fields must be carried through it. They are sanitized
+         server-side (boolean + fixed reason code + route-source id) — no graph
+         payload, node key, or backend error is exposed. -->
+    <script id="buildings-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, image_url: b.image_url, cloudinary_public_id: b.cloudinary_public_id, created_at: b.created_at, updated_at: b.updated_at, route_available: b.route_available, route_destination_id: b.route_destination_id, route_unavailable_reason: b.route_unavailable_reason }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">
@@ -252,7 +558,13 @@
         <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
 
-    <script>lucide.createIcons();</script>
+    <script nonce="<%= cspNonce %>">
+        // Guarded: the Lucide CDN script can be unavailable/offline-cached.
+        // Icons then remain as <i data-lucide> placeholders; never throw.
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+    </script>
 </body>
 
 </html>

@@ -1,898 +1,1994 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
-
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <meta name="description"
-        content="CampusSphere Interactive Map — Navigate the CSPC campus with search, filtering, and floor plans.">
+        content="CampuSphere Interactive Map - Navigate the CSPC campus with search, filtering, and predefined campus routes.">
+    <title>CampuSphere | Interactive Map</title>
 
-    <title>CampusSphere | Interactive Map</title>
+    <!-- Per-session CSRF token for POST forms/fetches on this page (read via
+         document.querySelector('meta[name="csrf-token"]').content — never stored in
+         JS storage, URLs, logs, caches, or IndexedDB). Same escaped element as
+         views/partials/head.ejs; map.ejs owns its own <head>, so it must carry it. -->
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <link rel="stylesheet" href="/css/styles.css?v=2">
-
+    <link rel="stylesheet" href="/css/styles.css?v=5">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+    <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f2a44">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CampuSphere">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+    <!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
+    <script src="/js/pwa.js" defer></script>
 
-    <!-- Iconify -->
 
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <%
+        // Active renderer chosen server-side by MAP_RENDERER (config/mapRuntime.js).
+        // Default/fallback is Leaflet; only 'maplibre' opts into MapLibre GL JS.
+        var __mapRenderer = (typeof mapRenderer !== 'undefined' && mapRenderer === 'maplibre') ? 'maplibre' : 'leaflet';
+    %>
+    <% if (__mapRenderer === 'maplibre') { %>
+    <!-- MapLibre GL JS 4.7.1 CSS & JS (MAP_RENDERER=maplibre) — both self-hosted
+         (M12.P1-R6). This is the exact UMD bundle previously served from the CDN;
+         it creates its worker from a blob: URL, which worker-src already allows,
+         so no separate worker file is shipped. -->
+    <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css" />
+    <script src="/vendor/maplibre/maplibre-gl.js"></script>
+    <% } else { %>
+    <!-- Leaflet 1.9.4 CSS & JS (default fallback) — both self-hosted (M12.P1-R6).
+         leaflet.css resolves its control/marker images relatively from
+         /vendor/leaflet/images/, which is also how L.Icon.Default auto-detects
+         the marker image path — so no marker URL is hard-coded below. -->
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <script src="/vendor/leaflet/leaflet.js"></script>
+    <% } %>
 
-
-
-    <!-- Leaflet CSS & JS -->
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+    <style nonce="<%= cspNonce %>">
+        /* Free Roam 360 entry (Milestone 11, Section 11.8C). Scoped here to
+           avoid touching the shared stylesheet (cache-busted at ?v=5). */
+        .map-free-roam { display: flex; align-items: center; gap: 10px;
+            margin: 10px 14px 4px; padding: 10px 12px;
+            border: 1px solid rgba(128, 128, 128, .35); border-radius: 10px;
+            text-decoration: none; color: inherit; }
+        .map-free-roam:hover, .map-free-roam:focus-visible { border-color: currentColor; }
+        .map-free-roam__icon { flex: 0 0 auto; display: inline-flex; opacity: .85; }
+        .map-free-roam__text { display: flex; flex-direction: column; min-width: 0; }
+        .map-free-roam__label { font-weight: 700; font-size: .95rem; }
+        .map-free-roam__hint { font-size: .78rem; opacity: .7; }
+    </style>
 </head>
 
-
-
 <body>
-
-<!-- Server-injected session data (available to all client-side scripts) -->
-<script id="sessionData" type="application/json">
-  <%- JSON.stringify(user || null) %>
-</script>
-<script>
-  window.__SESSION_USER = JSON.parse(document.getElementById('sessionData').textContent);
-</script>
-
-    <!-- ===== NAVBAR ===== -->
-
-    <nav class="dash-nav" id="dashNav">
-
-        <div class="dash-nav__inner">
-
-            <a href="/home" class="dash-nav__brand">
-
-                <img src="/img/cspc-logo.png" alt="CSPC Logo" class="dash-nav__logo">
-
-                <span class="dash-nav__title">CampusSphere</span>
-
-            </a>
-
-            <div class="dash-nav__tabs" id="dashTabs">
-
-                <a href="/home" class="dash-nav__tab" id="tabHome">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-
-                    </svg>
-
-                    <span>Home</span>
-
-                </a>
-
-                <a href="/dashboard" class="dash-nav__tab" id="tabDashboard">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
-                        <rect x="3" y="3" width="7" height="7" />
-
-                        <rect x="14" y="3" width="7" height="7" />
-
-                        <rect x="14" y="14" width="7" height="7" />
-
-                        <rect x="3" y="14" width="7" height="7" />
-
-                    </svg>
-
-                    <span>Dashboard</span>
-
-                </a>
-
-                <a href="/buildings" class="dash-nav__tab" id="tabBuildings">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <rect x="4" y="2" width="16" height="20" rx="2" />
-
-                        <path d="M9 22v-4h6v4" />
-
-                        <path d="M8 6h.01" />
-
-                        <path d="M16 6h.01" />
-
-                        <path d="M12 6h.01" />
-
-                        <path d="M12 10h.01" />
-
-                        <path d="M12 14h.01" />
-
-                        <path d="M16 10h.01" />
-
-                        <path d="M8 10h.01" />
-
-                    </svg>
-
-                    <span>Buildings</span>
-
-                </a>
-
-                <a href="/events" class="dash-nav__tab" id="tabEvents">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-
-                        <line x1="16" y1="2" x2="16" y2="6" />
-
-                        <line x1="8" y1="2" x2="8" y2="6" />
-
-                        <line x1="3" y1="10" x2="21" y2="10" />
-
-                    </svg>
-
-                    <span>Events</span>
-
-                </a>
-
-                <a href="/map" class="dash-nav__tab dash-nav__tab--active" id="tabMap">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-
-                        <line x1="8" y1="2" x2="8" y2="18" />
-
-                        <line x1="16" y1="6" x2="16" y2="22" />
-
-                    </svg>
-
-                    <span>Campus Map</span>
-
-                </a>
-
-                <a href="/about" class="dash-nav__tab" id="tabAbout">
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-
-                        <circle cx="12" cy="12" r="10" />
-
-                        <line x1="12" y1="16" x2="12" y2="12" />
-
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-
-                    </svg>
-
-                    <span>About Us</span>
-
-                </a>
-
-                <div class="dash-nav__tabs-divider mobile-only"></div>
-                <button class="dash-nav__tab mobile-only" id="mobileEditProfileBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Edit Profile</span>
-                </button>
-                <button class="dash-nav__tab dash-nav__tab--logout mobile-only" id="mobileLogoutBtn" type="button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    <span>Logout</span>
-                </button>
-
-            </div>
-
-            <!-- Right: Notification + User -->
-
-            <div class="dash-nav__right">
-
-                <button class="dash-nav__icon-btn" id="notifBtn" aria-label="Notifications">
-
-                    <iconify-icon icon="ep:bell" width="20"></iconify-icon>
-
-                    <span class="dash-nav__notif-dot"></span>
-
-                </button>
-
-                <div class="dash-nav__user" id="userMenu">
-
-                    <div class="dash-nav__avatar">
-
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-
-                            <circle cx="12" cy="7" r="4" />
-
-                        </svg>
-
-                    </div>
-
-                    <span class="dash-nav__username" id="navUsername"><%= user ? user.first_name : 'Guest' %></span>
-
-                    <iconify-icon icon="ep:arrow-down" width="14" class="dash-nav__chevron"></iconify-icon>
-
-                </div>
-
-            </div>
-
-            <button class="dash-nav__hamburger" aria-label="Toggle menu" id="dashHamburger">
-
-                <span></span><span></span><span></span>
-
-            </button>
-
-        </div>
-
-    </nav>
-
-
+    <!-- ===== NAVBAR (shared partial) ===== -->
+    <%- include('partials/dash-navbar', { activeTab: 'tabMap' }) %>
 
     <!-- ===== MAP PAGE LAYOUT ===== -->
-
     <div class="map-page">
 
-
-
         <!-- SIDEBAR -->
-
         <aside class="map-sidebar" id="mapSidebar">
-
+            <button type="button" class="map-sidebar__handle" id="mapSidebarHandle"
+                aria-label="Close building list"></button>
             <div class="map-sidebar__header">
-
+                <button type="button" class="map-sidebar__close" id="mapSidebarClose"
+                    aria-label="Close building list, view map">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    <span class="map-sidebar__close-label">View Map</span>
+                </button>
                 <h2 class="map-sidebar__title">Find Location</h2>
 
-
-
                 <!-- Search -->
-
                 <div class="map-search">
-
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
-
                         <circle cx="11" cy="11" r="8" />
-
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
-
                     </svg>
-
                     <input type="text" class="map-search__input" id="mapSearchInput"
-                        placeholder="Search buildings, rooms...">
-
-                    <button class="map-search__clear" id="mapSearchClear">
-
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-
+                        placeholder="Search buildings, offices, routes...">
+                    <button class="map-search__clear" id="mapSearchClear" type="button" aria-label="Clear search">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18" />
-
                             <line x1="6" y1="6" x2="18" y2="18" />
-
                         </svg>
-
                     </button>
-
                 </div>
-
-
 
                 <!-- Filters -->
-
                 <div class="map-filters">
-
-                    <button class="map-filter-btn active" data-filter="all">All</button>
-
-                    <button class="map-filter-btn" data-filter="Academic">Academic</button>
-
-                    <button class="map-filter-btn" data-filter="Administrative">Admin</button>
-
-                    <button class="map-filter-btn" data-filter="Facilities">Facilities</button>
-
+                    <button class="map-filter-btn active" data-filter="all" type="button">All</button>
+                    <button class="map-filter-btn" data-filter="Academic" type="button">Academic</button>
+                    <button class="map-filter-btn" data-filter="Administrative" type="button">Admin</button>
+                    <button class="map-filter-btn" data-filter="Facilities" type="button">Facilities</button>
                 </div>
-
             </div>
 
+            <!-- Route Planner (collapsed by default on mobile) -->
+            <div class="map-route-planner is-collapsed" id="routePlanner" aria-label="Plan a campus route">
+                <button class="map-route-planner__toggle" type="button" id="routePlannerToggle"
+                    aria-expanded="false" aria-controls="routePlannerBody">
+                    <span class="map-route-planner__toggle-label">Plan Route</span>
+                    <span class="map-route-planner__toggle-status" id="routePlannerToggleStatus">Pick a destination</span>
+                    <svg class="map-route-planner__toggle-chevron" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
 
+                <p class="map-route-planner__heading">Plan a Route</p>
+                <div class="map-route-planner__row">
+                    <label class="map-route-planner__label" for="routeStartInput">Start</label>
+                    <input type="text" id="routeStartInput"
+                        class="map-route-planner__input map-route-planner__input--readonly"
+                        value="Guard House / Main Gate" readonly aria-readonly="true"
+                        title="Routes start from the fixed Guard House / Main Gate.">
+                </div>
+                <div class="map-route-planner__row">
+                    <span class="map-route-planner__label">Destination</span>
+                    <div class="map-route-planner__dest">
+                        <span class="map-route-planner__dest-text map-route-planner__dest-text--empty"
+                            id="routeDestText">Pick a building</span>
+                        <button type="button" class="map-route-planner__dest-clear" id="routeDestClear"
+                            aria-label="Clear destination" hidden>X</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn--primary btn--sm map-route-planner__find" id="routeFindBtn"
+                    disabled>Find Route</button>
+                <p class="map-route-planner__hint" id="routePlannerHint" aria-live="polite"></p>
+            </div>
+
+            <!-- Free Roam 360 (11.8C; BE.4): opens the existing authenticated
+                 VR scene browser at the Guard House (scene-guard-house — the
+                 authoritative campus entry; /vr stays as a compatible fallback
+                 rendering the same scene). Deliberately NOT a route flow: it
+                 computes no path, needs no destination, and implies no
+                 arrival/completion. Set as Destination / Set VR Route are
+                 untouched. -->
+            <a class="map-free-roam" id="freeRoamBtn" href="/vr/scene-guard-house">
+                <span class="map-free-roam__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                </span>
+                <span class="map-free-roam__text">
+                    <span class="map-free-roam__label">Free Roam 360</span>
+                    <span class="map-free-roam__hint">Explore campus scenes from the Guard House — no destination needed</span>
+                </span>
+            </a>
 
             <!-- List -->
-
             <div class="map-sidebar__list" id="bldgList">
-
                 <!-- Rendered by JS -->
-
             </div>
-
         </aside>
 
-
-
         <!-- MAP CONTAINER -->
-
         <main class="map-container">
-
-
-
             <!-- The actual Map -->
-
             <div class="map-view" id="mapView"></div>
 
-
-
             <!-- Floating Info Panel -->
-
             <div class="map-panel" id="infoPanel">
-
-                <button class="map-panel__close" id="closePanel">
-
+                <button class="map-panel__close" id="closePanel" type="button" aria-label="Close panel">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
                         <line x1="18" y1="6" x2="6" y2="18" />
-
                         <line x1="6" y1="6" x2="18" y2="18" />
-
                     </svg>
-
                 </button>
-
                 <img src="" alt="Building Image" class="map-panel__img" id="panelImg">
-
                 <div class="map-panel__content">
-
                     <div class="map-panel__header">
-
                         <span class="map-bldg-item__cat" id="panelCat">Academic</span>
-
                         <h3 class="map-panel__title" id="panelTitle">Building Name</h3>
-
                     </div>
-
                     <p class="map-panel__desc" id="panelDesc">Building description goes here.</p>
 
+                    <div class="map-panel__meta" id="panelMeta" hidden>
+                        <span class="map-panel__chip" id="panelWalkTime" hidden>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span id="panelWalkTimeText"></span>
+                        </span>
+                        <span class="map-panel__chip" id="panelEntranceCount" hidden></span>
+                        <span class="map-panel__chip" id="panelLandmarkCount" hidden></span>
+                    </div>
 
+                    <section class="map-panel__section" id="panelInfoSection" hidden>
+                        <h4 class="map-panel__section-title">Offices &amp; Services</h4>
+                        <ul class="map-panel__list" id="panelInfoList"></ul>
+                    </section>
+
+                    <section class="map-panel__section" id="panelFloorsSection" hidden>
+                        <h4 class="map-panel__section-title">Floors</h4>
+                        <ul class="map-panel__list map-panel__list--floors" id="panelFloorsList"></ul>
+                    </section>
+
+                    <section class="map-panel__section" id="panelEntrancesSection" hidden>
+                        <h4 class="map-panel__section-title">Entrances</h4>
+                        <ul class="map-panel__chips" id="panelEntrancesList"></ul>
+                    </section>
+
+                    <section class="map-panel__section" id="panelLandmarksSection" hidden>
+                        <h4 class="map-panel__section-title">Landmarks</h4>
+                        <ul class="map-panel__chips" id="panelLandmarksList"></ul>
+                    </section>
 
                     <div class="map-panel__actions">
-
-                        <div class="floor-switcher">
-
-                            <button class="floor-btn" data-floor="1">1st Floor</button>
-
-                            <button class="floor-btn active" data-floor="2">2nd Floor</button>
-
-                            <button class="floor-btn" data-floor="3">3rd Floor</button>
-
+                        <div class="map-panel__action-buttons">
+                            <button type="button" class="btn btn--secondary btn--sm" id="panelSetDestBtn">Set as Destination</button>
+                            <!-- BE.3: sanitized reason shown when this building has no usable route. -->
+                            <p class="map-panel__route-notice" id="panelRouteNotice" role="status" hidden></p>
+                            <a href="/buildings" class="btn btn--primary btn--sm">View Details</a>
+                            <a id="panelVrBtn" class="btn btn--primary btn--sm" href="#" hidden>Set VR Route</a>
                         </div>
-
-                        <a href="/buildings" class="btn btn--primary btn--sm" style="margin-left:auto;">View
-
-                            Details</a>
-
                     </div>
-
                 </div>
-
             </div>
 
-
-
-            <!-- Map Controls (Zoom, Geolocation, etc.) -->
-
+            <!-- Map Controls -->
             <div class="map-controls">
-
-                <button class="map-ctrl-btn" title="My Location">
-
+                <button class="map-ctrl-btn" title="My Location" type="button">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
                         <polygon points="3 11 22 2 13 21 11 13 3 11" />
-
                     </svg>
-
                 </button>
-
-                <button class="map-ctrl-btn" title="Toggle Gates">
-
+                <button class="map-ctrl-btn" title="Toggle Gates" type="button">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
                         <path d="M4 2v20M20 2v20M4 10h16M4 14h16" />
-
                     </svg>
-
                 </button>
-
             </div>
-
-
-
         </main>
 
-
-
         <!-- Mobile Toggle Button -->
-
-        <button class="mobile-toggle-btn" id="mobileListToggle">
-
+        <button class="mobile-toggle-btn" id="mobileListToggle" type="button">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
                 <line x1="8" y1="6" x2="21" y2="6" />
-
                 <line x1="8" y1="12" x2="21" y2="12" />
-
                 <line x1="8" y1="18" x2="21" y2="18" />
-
                 <line x1="3" y1="6" x2="3.01" y2="6" />
-
                 <line x1="3" y1="12" x2="3.01" y2="12" />
-
                 <line x1="3" y1="18" x2="3.01" y2="18" />
-
             </svg>
-
             Building List
-
         </button>
-
-
-
     </div>
 
-
-
-    <!-- Theme Toggle -->
-
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-
-        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-
-            <circle cx="12" cy="12" r="5" />
-
-            <line x1="12" y1="1" x2="12" y2="3" />
-
-            <line x1="12" y1="21" x2="12" y2="23" />
-
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-
-            <line x1="1" y1="12" x2="3" y2="12" />
-
-            <line x1="21" y1="12" x2="23" y2="12" />
-
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-
-        </svg>
-
-        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-
-        </svg>
-
-    </button>
-
-
-
-    <script id="buildingsData" type="application/json"><%- JSON.stringify(buildings || []).replace(/</g, '\\u003c') %></script>
-
-    <script>
-
-        const mapBuildings = JSON.parse(document.getElementById('buildingsData').textContent);
-
-
-
-        // DOM Elements
-
-        const bldgList = document.getElementById('bldgList');
-
-        const searchInput = document.getElementById('mapSearchInput');
-
-        const searchClear = document.getElementById('mapSearchClear');
-
-        const filterBtns = document.querySelectorAll('.map-filter-btn');
-
-
-
-        const infoPanel = document.getElementById('infoPanel');
-
-        const closePanelBtn = document.getElementById('closePanel');
-
-        const panelImg = document.getElementById('panelImg');
-
-        const panelCat = document.getElementById('panelCat');
-
-        const panelTitle = document.getElementById('panelTitle');
-
-        const panelDesc = document.getElementById('panelDesc');
-
-
-
-        const mobileListToggle = document.getElementById('mobileListToggle');
-
-        const mapSidebar = document.getElementById('mapSidebar');
-
-
-
-        let currentFilter = 'all';
-
-        let searchQuery = '';
-
-
-
-        let leafletMap = null;
-
-        let leafletMarkers = {};
-
-
-
-        /* ===== RENDER BUILDING LIST ===== */
-
-        function renderSidebar() {
-
-            const filtered = mapBuildings.filter(b => {
-
-                const matchFilter = currentFilter === 'all' || b.category === currentFilter;
-
-                const matchSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-                return matchFilter && matchSearch;
-
-            });
-
-
-
-            if (filtered.length === 0) {
-
-                bldgList.innerHTML = `<p style="color:var(--gray-500);text-align:center;padding:1rem;">No buildings found.</p>`;
-
-                return;
-
-            }
-
-
-
-            bldgList.innerHTML = filtered.map(b => `
-
-                <div class="map-bldg-item" data-id="${b.id}" onclick="selectBuilding(${b.id})">
-
-                    <img src="${b.img}" alt="${b.name}" class="map-bldg-item__img">
-
-                    <div class="map-bldg-item__info">
-
-                        <span class="map-bldg-item__name">${b.name}</span>
-
-                        <span class="map-bldg-item__cat">${b.category}</span>
-
-                    </div>
-
+    <!-- ===== ROUTE SUMMARY OVERLAY ===== -->
+    <div class="route-modal-overlay" id="routePanelOverlay" role="dialog" aria-modal="true"
+        aria-labelledby="routePanelTitle" aria-hidden="true" hidden>
+        <div class="route-modal" role="document">
+            <div class="route-modal__header">
+                <div>
+                    <h3 class="route-modal__title" id="routePanelTitle">Route</h3>
+                    <p class="route-modal__subtitle" id="routePanelSubtitle"></p>
+                </div>
+                <button type="button" class="route-modal__close" id="routePanelClose"
+                    aria-label="Close route panel">X</button>
+            </div>
+            <div class="route-modal__body">
+                <span class="route-time" id="routePanelTime" hidden></span>
+                <p class="route-empty" id="routePanelEmpty" hidden></p>
+
+                <div class="route-steps-wrap" id="routePanelStepsWrap">
+                    <p class="route-info-label">Steps</p>
+                    <ol class="route-steps" id="routePanelSteps"></ol>
                 </div>
 
-            `).join('');
+                <div class="route-landmarks" id="routePanelLandmarkWrap" hidden>
+                    <p class="route-info-label">Landmarks</p>
+                    <ul class="route-landmark-list" id="routePanelLandmarks"></ul>
+                </div>
 
+                <div class="route-modal__vr">
+                    <a class="btn btn--primary btn--sm" id="routePanelVrBtn" href="#" hidden>Set VR Route</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+    </button>
+
+    <script id="buildingsData" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(buildings || []) %></script>
+    <script id="mapConfig" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({ renderer: (typeof __mapRenderer !== 'undefined' ? __mapRenderer : 'leaflet') }) %></script>
+
+    <script nonce="<%= cspNonce %>">
+        const mapBuildings = JSON.parse(document.getElementById('buildingsData').textContent);
+        const buildingIndex = new Map(mapBuildings.map(b => [b.id, b]));
+
+        // Active map renderer, chosen server-side by MAP_RENDERER. Values:
+        // 'leaflet' (default/fallback) or 'maplibre'. Non-secret config only.
+        const MAP_RENDERER = (function () {
+            try {
+                const cfg = JSON.parse(document.getElementById('mapConfig').textContent);
+                return cfg && cfg.renderer === 'maplibre' ? 'maplibre' : 'leaflet';
+            } catch (e) {
+                return 'leaflet';
+            }
+        })();
+
+        // Sidebar / search DOM
+        const bldgList = document.getElementById('bldgList');
+        const searchInput = document.getElementById('mapSearchInput');
+        const searchClear = document.getElementById('mapSearchClear');
+        const filterBtns = document.querySelectorAll('.map-filter-btn');
+
+        // Info panel
+        const infoPanel = document.getElementById('infoPanel');
+        const closePanelBtn = document.getElementById('closePanel');
+        const panelImg = document.getElementById('panelImg');
+        const panelCat = document.getElementById('panelCat');
+        const panelTitle = document.getElementById('panelTitle');
+        const panelDesc = document.getElementById('panelDesc');
+        const panelSetDestBtn = document.getElementById('panelSetDestBtn');
+        const panelRouteNotice = document.getElementById('panelRouteNotice');
+        const panelVrBtn = document.getElementById('panelVrBtn');
+        const panelMeta = document.getElementById('panelMeta');
+        const panelWalkTime = document.getElementById('panelWalkTime');
+        const panelWalkTimeText = document.getElementById('panelWalkTimeText');
+        const panelEntranceCount = document.getElementById('panelEntranceCount');
+        const panelLandmarkCount = document.getElementById('panelLandmarkCount');
+        const panelInfoSection = document.getElementById('panelInfoSection');
+        const panelInfoList = document.getElementById('panelInfoList');
+        const panelFloorsSection = document.getElementById('panelFloorsSection');
+        const panelFloorsList = document.getElementById('panelFloorsList');
+        const panelEntrancesSection = document.getElementById('panelEntrancesSection');
+        const panelEntrancesList = document.getElementById('panelEntrancesList');
+        const panelLandmarksSection = document.getElementById('panelLandmarksSection');
+        const panelLandmarksList = document.getElementById('panelLandmarksList');
+
+        // Route planner
+        const routeStartInput = document.getElementById('routeStartInput');
+        const routeDestText = document.getElementById('routeDestText');
+        const routeDestClear = document.getElementById('routeDestClear');
+        const routeFindBtn = document.getElementById('routeFindBtn');
+        const routePlannerHint = document.getElementById('routePlannerHint');
+        const routePlanner = document.getElementById('routePlanner');
+        const routePlannerToggle = document.getElementById('routePlannerToggle');
+        const routePlannerToggleStatus = document.getElementById('routePlannerToggleStatus');
+
+        // Route summary modal
+        const routePanelOverlay = document.getElementById('routePanelOverlay');
+        const routePanelClose = document.getElementById('routePanelClose');
+        const routePanelTitle = document.getElementById('routePanelTitle');
+        const routePanelSubtitle = document.getElementById('routePanelSubtitle');
+        const routePanelTime = document.getElementById('routePanelTime');
+        const routePanelSteps = document.getElementById('routePanelSteps');
+        const routePanelStepsWrap = document.getElementById('routePanelStepsWrap');
+        const routePanelLandmarks = document.getElementById('routePanelLandmarks');
+        const routePanelLandmarkWrap = document.getElementById('routePanelLandmarkWrap');
+        const routePanelEmpty = document.getElementById('routePanelEmpty');
+        const routePanelVrBtn = document.getElementById('routePanelVrBtn');
+
+        // Mobile / nav
+        const mobileListToggle = document.getElementById('mobileListToggle');
+        const mapSidebar = document.getElementById('mapSidebar');
+        const mapSidebarClose = document.getElementById('mapSidebarClose');
+        const mapSidebarHandle = document.getElementById('mapSidebarHandle');
+
+        // State
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let currentBuildingId = null;
+        let destinationBuilding = null;
+        let leafletMap = null;
+        const leafletMarkers = {};
+        let maplibreMap = null;
+        const maplibreMarkers = {};
+        let staticFallbackActive = false;
+        let leafletTileLoaded = false;
+        let leafletTileErrors = 0;
+        let searchDebounceTimer = null;
+        let searchToken = 0;
+        let plannerHintTimer = null;
+        let lastSearchResults = [];
+
+        const MATCH_LABELS = {
+            name: 'Name match',
+            category: 'Category match',
+            description: 'Description match',
+            details: 'Matched in details',
+            route_title: 'Route title',
+            route_start: 'Starting point',
+            route_destination: 'Destination match',
+            route_landmark: 'Landmark match'
+        };
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
         }
 
+        function mapInitials(name) {
+            return String(name || 'B')
+                .replace(/\([^)]*\)/g, ' ')
+                .replace(/[^a-z0-9]+/gi, ' ')
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(part => part.charAt(0).toUpperCase())
+                .join('') || 'B';
+        }
 
+        function validMapPoint(b) {
+            const lat = Number(b && b.lat);
+            const lng = Number(b && b.lng);
+            return Number.isFinite(lat) && Number.isFinite(lng);
+        }
 
-        /* ===== SELECT BUILDING ===== */
+        function clearMapEngines() {
+            if (leafletMap) {
+                try { leafletMap.remove(); } catch (e) {}
+                leafletMap = null;
+            }
+            if (maplibreMap) {
+                try { maplibreMap.remove(); } catch (e) {}
+                maplibreMap = null;
+            }
+            Object.keys(leafletMarkers).forEach(k => { delete leafletMarkers[k]; });
+            Object.keys(maplibreMarkers).forEach(k => { delete maplibreMarkers[k]; });
+        }
 
-        function selectBuilding(id) {
+        function renderStaticMapFallback(reason) {
+            const mapView = document.getElementById('mapView');
+            if (!mapView || staticFallbackActive) return;
+            staticFallbackActive = true;
+            clearMapEngines();
 
-            const bldg = mapBuildings.find(b => b.id === id);
+            mapView.className = 'map-view map-view--fallback';
+            mapView.replaceChildren();
 
-            if (!bldg) return;
+            const shell = document.createElement('div');
+            shell.className = 'map-fallback';
 
+            const status = document.createElement('div');
+            status.className = 'map-fallback__status';
+            status.textContent = reason || 'Campus map is available in offline view.';
+            shell.appendChild(status);
 
+            const points = document.createElement('div');
+            points.className = 'map-fallback__points';
+            shell.appendChild(points);
 
-            // Highlight sidebar list item
-
-            document.querySelectorAll('.map-bldg-item').forEach(el => el.classList.remove('active'));
-
-            const listItem = document.querySelector(`.map-bldg-item[data-id="${id}"]`);
-
-            if (listItem) listItem.classList.add('active');
-
-
-
-            // Pan map
-
-            if (leafletMap && bldg.lat && bldg.lng) {
-
-                leafletMap.flyTo([bldg.lat, bldg.lng], 18);
-
+            const buildingsWithCoords = mapBuildings.filter(validMapPoint);
+            if (!buildingsWithCoords.length) {
+                const empty = document.createElement('p');
+                empty.className = 'map-fallback__empty';
+                empty.textContent = 'No mapped building coordinates are available.';
+                points.appendChild(empty);
+                mapView.appendChild(shell);
+                return;
             }
 
+            const lats = buildingsWithCoords.map(b => Number(b.lat));
+            const lngs = buildingsWithCoords.map(b => Number(b.lng));
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLng = Math.min(...lngs);
+            const maxLng = Math.max(...lngs);
+            const latRange = Math.max(maxLat - minLat, 0.0001);
+            const lngRange = Math.max(maxLng - minLng, 0.0001);
+            const inset = 8;
 
+            buildingsWithCoords.forEach((b) => {
+                const lat = Number(b.lat);
+                const lng = Number(b.lng);
+                const x = inset + ((lng - minLng) / lngRange) * (100 - inset * 2);
+                const y = inset + ((maxLat - lat) / latRange) * (100 - inset * 2);
 
-            // Populate Info Panel
+                const marker = document.createElement('button');
+                marker.type = 'button';
+                marker.className = 'map-fallback__marker';
+                marker.dataset.id = String(b.id);
+                marker.dataset.label = b.name || 'Building';
+                marker.style.left = `${x}%`;
+                marker.style.top = `${y}%`;
+                marker.textContent = mapInitials(b.name);
+                marker.setAttribute('aria-label', b.name || 'Building');
+                marker.addEventListener('click', () => selectBuilding(b.id));
+                points.appendChild(marker);
+            });
 
+            mapView.appendChild(shell);
+        }
+
+        function setHint(msg, clearAfter = 0) {
+            clearTimeout(plannerHintTimer);
+            routePlannerHint.textContent = msg || '';
+            if (msg && clearAfter > 0) {
+                plannerHintTimer = setTimeout(() => { routePlannerHint.textContent = ''; }, clearAfter);
+            }
+        }
+
+        /* ===== MOBILE LAYOUT HELPERS ===== */
+        const mobileQuery = window.matchMedia('(max-width: 768px)');
+        function isMobile() { return mobileQuery.matches; }
+
+        function setPlannerCollapsed(collapsed) {
+            routePlanner.classList.toggle('is-collapsed', collapsed);
+            routePlannerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        }
+
+        function updatePlannerToggleStatus() {
+            routePlannerToggleStatus.textContent = destinationBuilding
+                ? 'To: ' + destinationBuilding.name
+                : 'Pick a destination';
+        }
+
+        function syncSheetState() {
+            document.body.classList.toggle('map-sheet-open', mapSidebar.classList.contains('open'));
+        }
+
+        /* ===== INFO PANEL DETAIL RENDERERS ===== */
+        function renderRoomText(r) {
+            if (r == null || r === '') return '';
+            if (typeof r === 'string' || typeof r === 'number') return escapeHtml(r);
+            if (typeof r === 'object') {
+                const num = r.room || r.number || r.id || '';
+                const name = r.name || r.label || '';
+                const use = r.use || r.purpose || '';
+                const parts = [];
+                if (num) parts.push(`<strong>${escapeHtml(num)}</strong>`);
+                if (name) parts.push(escapeHtml(name));
+                const head = parts.join(' - ');
+                const tail = use ? ` <span class="map-panel__list-sub">(${escapeHtml(use)})</span>` : '';
+                if (head) return head + tail;
+                const firstStr = Object.values(r).find(v => typeof v === 'string' && v.length);
+                return firstStr ? escapeHtml(firstStr) : '';
+            }
+            return escapeHtml(String(r));
+        }
+
+        function renderDetailItem(item) {
+            if (item == null || item === '') return '';
+            if (typeof item === 'string' || typeof item === 'number') return escapeHtml(item);
+            if (typeof item === 'object') {
+                // Floor with rooms[] (e.g. { label: 'Ground Floor', rooms: [{room,name,use}] })
+                if (Array.isArray(item.rooms)) {
+                    const floorLabel = item.label || item.name || 'Floor';
+                    if (item.rooms.length) {
+                        const roomsHtml = item.rooms
+                            .map(r => `<li>${renderRoomText(r)}</li>`)
+                            .join('');
+                        return `<strong>${escapeHtml(floorLabel)}</strong>` +
+                            `<ul class="map-panel__rooms">${roomsHtml}</ul>`;
+                    }
+                    return `<strong>${escapeHtml(floorLabel)}</strong>`;
+                }
+                // Office entry (e.g. { office: 'Registrar', floor: 'Ground Floor' })
+                if (item.office) {
+                    return `<strong>${escapeHtml(item.office)}</strong>` +
+                        (item.floor ? ` <span class="map-panel__list-sub">- ${escapeHtml(item.floor)}</span>` : '');
+                }
+                // Key/value pair
+                if (item.label && item.value) {
+                    return `<strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.value)}`;
+                }
+                // Fallback: first string-ish value
+                const firstStr = Object.values(item).find(v => typeof v === 'string' && v.length);
+                return firstStr ? escapeHtml(firstStr) : '';
+            }
+            return escapeHtml(String(item));
+        }
+
+        function populateDetailList(ul, section, items) {
+            const arr = Array.isArray(items) ? items.filter(x => x != null && x !== '') : [];
+            if (!arr.length) {
+                section.hidden = true;
+                ul.innerHTML = '';
+                return 0;
+            }
+            ul.innerHTML = arr.map(x => `<li>${renderDetailItem(x)}</li>`).join('');
+            section.hidden = false;
+            return arr.length;
+        }
+
+        function populatePanelDetails(bldg) {
+            populateDetailList(panelInfoList, panelInfoSection, bldg.info);
+            populateDetailList(panelFloorsList, panelFloorsSection, bldg.floors);
+            const entranceCount = populateDetailList(panelEntrancesList, panelEntrancesSection, bldg.entrances);
+            const landmarkCount = populateDetailList(panelLandmarksList, panelLandmarksSection, bldg.landmarks);
+
+            let hasMeta = false;
+            if (bldg.walkTime) {
+                panelWalkTimeText.textContent = bldg.walkTime;
+                panelWalkTime.hidden = false;
+                hasMeta = true;
+            } else {
+                panelWalkTime.hidden = true;
+            }
+            if (entranceCount > 0) {
+                panelEntranceCount.textContent = `${entranceCount} entrance${entranceCount === 1 ? '' : 's'}`;
+                panelEntranceCount.hidden = false;
+                hasMeta = true;
+            } else {
+                panelEntranceCount.hidden = true;
+            }
+            if (landmarkCount > 0) {
+                panelLandmarkCount.textContent = `${landmarkCount} landmark${landmarkCount === 1 ? '' : 's'}`;
+                panelLandmarkCount.hidden = false;
+                hasMeta = true;
+            } else {
+                panelLandmarkCount.hidden = true;
+            }
+            panelMeta.hidden = !hasMeta;
+        }
+
+        /* ===== LIST RENDERING ===== */
+        function badgesHtml(type, matchedOn) {
+            const typeLabel = type === 'route' ? 'Route' : 'Building';
+            const matchLabel = matchedOn && MATCH_LABELS[matchedOn] ? MATCH_LABELS[matchedOn] : '';
+            const matchChip = matchLabel
+                ? `<span class="map-bldg-item__badge map-bldg-item__badge--match">${escapeHtml(matchLabel)}</span>`
+                : '';
+            // BE.5: the badge wrapper is a SPAN — result cards are native
+            // <button>s, and a div inside their phrasing content is invalid
+            // HTML. Layout is unchanged (.map-bldg-item__badges is flex).
+            return `
+                <span class="map-bldg-item__badges">
+                    <span class="map-bldg-item__badge map-bldg-item__badge--${type}">${escapeHtml(typeLabel)}</span>
+                    ${matchChip}
+                </span>`;
+        }
+
+        // BE.3: a building with no usable route stays VISIBLE (campus info) but is
+        // clearly marked, and its destination/VR actions are disabled. Availability
+        // is decided server-side by services/routeAvailability.js — the client only
+        // renders it.
+        function isRouteAvailable(b) {
+            return !!(b && b.route_available === true);
+        }
+        function routeUnavailableLabel(b) {
+            switch (b && b.route_unavailable_reason) {
+                case 'not_mapped': return 'Route not set up yet';
+                case 'unreachable': return 'No walking route yet';
+                case 'invalid_geometry': return 'Route unavailable';
+                case 'ambiguous_name': return 'Duplicate building name — route unavailable';
+                case 'route_data_unavailable': return 'Route status unavailable';
+                default: return 'Route unavailable';
+            }
+        }
+
+        // BE.3 repair: the ROUTE-SOURCE destination id, validated. /api/pathfind and
+        // /vr/to/:id are both served from the route backend, so a BUILDING-source id
+        // is meaningless to them. Returns null when there is no usable destination —
+        // callers must then withhold the action rather than fall back to building.id.
+        function routeDestinationId(b) {
+            const n = Number(b && b.route_destination_id);
+            return (Number.isInteger(n) && n > 0) ? n : null;
+        }
+
+        function buildingItemHtml(b, opts) {
+            const badges = opts && opts.showBadges ? badgesHtml('building', opts.matchedOn) : '';
+            const avail = isRouteAvailable(b);
+            const unavailChip = avail
+                ? ''
+                : `<span class="map-bldg-item__badge map-bldg-item__badge--unavailable">${escapeHtml(routeUnavailableLabel(b))}</span>`;
+            // BE.5 keyboard accessibility: results are NATIVE buttons so they are
+            // focusable and Enter/Space-activatable without custom key emulation.
+            // Unroutable buildings stay enabled — they remain selectable for campus
+            // information while their route actions stay unavailable.
+            return `
+                <button type="button" class="map-bldg-item${avail ? '' : ' map-bldg-item--route-unavailable'}" data-id="${b.id}" data-name="${escapeHtml(b.name)}"${avail ? '' : ' data-route-unavailable="true"'}>
+                    <img src="${escapeHtml(b.img)}" alt="${escapeHtml(b.name)}" class="map-bldg-item__img">
+                    <span class="map-bldg-item__info">
+                        <span class="map-bldg-item__name">${escapeHtml(b.name)}</span>
+                        <span class="map-bldg-item__cat">${escapeHtml(b.category)}</span>
+                        ${badges}
+                        ${unavailChip}
+                    </span>
+                </button>`;
+        }
+
+        function routeItemHtml(r, opts) {
+            const title = r.route.title || `${r.route.start_label} to ${r.building.name}`;
+            const sub = `${r.route.start_label || 'Start'} to ${r.building.name}`;
+            const badges = opts && opts.showBadges ? badgesHtml('route', r.matchedOn) : '';
+            // BE.5 keyboard accessibility: route results are NATIVE buttons too.
+            return `
+                <button type="button" class="map-bldg-item map-bldg-item--route" data-route-id="${r.route.id}">
+                    <span class="map-bldg-item__route-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </span>
+                    <span class="map-bldg-item__info">
+                        <span class="map-bldg-item__name">${escapeHtml(title)}</span>
+                        <span class="map-bldg-item__cat">${escapeHtml(sub)}</span>
+                        ${badges}
+                    </span>
+                </button>`;
+        }
+
+        function categoryOfResult(r) {
+            if (r.type === 'route' && r.building) return r.building.category || '';
+            return (r.building && r.building.category) || '';
+        }
+
+        function applyFilterToResults(results) {
+            if (currentFilter === 'all') return results;
+            return results.filter(r => categoryOfResult(r) === currentFilter);
+        }
+
+        function renderLocalList() {
+            const filtered = mapBuildings.filter(b => currentFilter === 'all' || b.category === currentFilter);
+            if (filtered.length === 0) {
+                bldgList.innerHTML = `<p class="map-empty-msg">No buildings in "${escapeHtml(currentFilter)}".</p>`;
+                bldgList.scrollTop = 0;
+                return;
+            }
+            bldgList.innerHTML = filtered.map(b => buildingItemHtml(b)).join('');
+            bldgList.scrollTop = 0;
+        }
+
+        function renderSearchResults(results) {
+            lastSearchResults = results || [];
+            // BE.3 repair: the first-paint buildingIndex (built from /map's own
+            // BUILDING_DATA_SOURCE rows) is AUTHORITATIVE and is never overwritten by
+            // search payloads. Previously a search result could clobber an index entry
+            // by numeric id; if a result ever carried a foreign-backend id, clicking it
+            // opened the wrong building. Search results are now only allowed to SELECT
+            // an existing authoritative row, never to define one.
+            const filtered = applyFilterToResults(lastSearchResults);
+            if (!filtered.length) {
+                const reason = lastSearchResults.length === 0
+                    ? `No results for "${escapeHtml(searchQuery)}".`
+                    : `No "${escapeHtml(currentFilter)}" results for "${escapeHtml(searchQuery)}". Try clearing the filter.`;
+                bldgList.innerHTML = `<p class="map-empty-msg">${reason}</p>`;
+                bldgList.scrollTop = 0;
+                return;
+            }
+            bldgList.innerHTML = filtered.map(r =>
+                r.type === 'route' && r.route
+                    ? routeItemHtml(r, { showBadges: true })
+                    : buildingItemHtml(r.building, { showBadges: true, matchedOn: r.matchedOn })
+            ).join('');
+            bldgList.scrollTop = 0;
+        }
+
+        // Shared canonical-name key. Must match services/routeAvailability.js so the
+        // client and server agree on what "the same building" means.
+        function canonicalName(s) {
+            return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        }
+
+        // BE.3 repair: a sidebar/search row may only open a panel for a building that
+        // exists in the AUTHORITATIVE first-paint index AND whose canonical name
+        // matches. Anything unknown or conflicting FAILS CLOSED: no panel, no
+        // destination change, no /api/pathfind, no drawn line.
+        function selectBuildingFromResult(id, expectedName) {
+            const authoritative = buildingIndex.get(id);
+            if (!authoritative) { setHint('That result is no longer available.', 4000); return; }
+            if (expectedName != null &&
+                canonicalName(authoritative.name) !== canonicalName(expectedName)) {
+                setHint('That result is no longer available.', 4000);
+                return;
+            }
+            selectBuilding(id);
+        }
+
+        // BE5-RESULT-ACTIVATION-PURE-START — extracted & unit-tested by scripts/publicRoadRouteRendering-probe.js; keep pure (no outer globals)
+        // Resolve which result button (if any) a click belongs to. The button
+        // must be the .map-bldg-item ancestor of the event target AND still
+        // live inside the stable list container — a detached or outside-list
+        // node fails closed to null.
+        function resolveResultActivationTarget(target, container) {
+            const btn = target && typeof target.closest === 'function'
+                ? target.closest('.map-bldg-item')
+                : null;
+            if (!btn || !container || typeof container.contains !== 'function'
+                || !container.contains(btn)) return null;
+            return btn;
+        }
+
+        // Strict, non-coercive positive-id grammar. parseInt() coerced
+        // "7abc" -> 7 and "3x" -> 3, silently activating the wrong-shaped
+        // identity. Here a number is valid only as a positive safe integer,
+        // and a string only when it is EXACTLY canonical decimal
+        // (/^[1-9][0-9]*$/ — no trim, no sign, no leading zero, no decimal /
+        // exponent / hex form). Everything else returns null.
+        function parseResultPositiveId(value) {
+            if (typeof value === 'number') {
+                return (Number.isSafeInteger(value) && value >= 1) ? value : null;
+            }
+            if (typeof value !== 'string') return null;
+            if (!/^[1-9][0-9]*$/.test(value)) return null;
+            const n = Number(value);
+            return (Number.isSafeInteger(n) && n >= 1) ? n : null;
+        }
+
+        // Activate one resolved result button through the caller's actions.
+        // Route rows require a strictly valid data-route-id; an invalid route
+        // id fails closed immediately and NEVER falls through to data-id.
+        // Building rows require a strictly valid data-id and pass data-name
+        // through so the existing canonical-name check stays fail-closed
+        // downstream. Numeric ids are NEVER compared or reused across data
+        // backends. Returns true only after exactly one action ran.
+        function activateResultButton(btn, actions) {
+            if (!btn || !btn.dataset || !actions) return false;
+            if (btn.dataset.routeId !== undefined) {
+                const rid = parseResultPositiveId(btn.dataset.routeId);
+                if (rid === null) return false;
+                actions.openRouteById(rid);
+                return true;
+            }
+            const id = parseResultPositiveId(btn.dataset.id);
+            if (id === null) return false;
+            actions.selectBuildingFromResult(id, btn.dataset.name || null);
+            return true;
+        }
+        // BE5-RESULT-ACTIVATION-PURE-END
+
+        // BE.5 true-mobile repair: ONE delegated click handler on the stable
+        // list container, attached exactly once. The previous per-render,
+        // per-row listener re-attachment was brittle on true mobile: an
+        // asynchronous search rerender between rendering and the tap left the
+        // tapped row without its listener (a tap spanning a rerender can even
+        // dispatch the click on the container itself, where nothing listened).
+        // Delegation survives innerHTML replacement, filter changes, empty
+        // states, and repeated async rerenders. Native buttons keep providing
+        // the Enter/Space keyboard contract — no key emulation here.
+        bldgList.addEventListener('click', (e) => {
+            const btn = resolveResultActivationTarget(e.target, bldgList);
+            if (!btn) return;
+            activateResultButton(btn, {
+                openRouteById: openRouteById,
+                selectBuildingFromResult: selectBuildingFromResult
+            });
+        });
+
+        async function runApiSearch(q) {
+            const token = ++searchToken;
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (token !== searchToken) return;
+                renderSearchResults(data.results || []);
+            } catch (err) {
+                if (token === searchToken) {
+                    // /api/search is intentionally network-only (never SW-cached), so a
+                    // failure here means the live search backend is unreachable.
+                    bldgList.innerHTML = `<p class="map-empty-msg">Connect to refresh search data.</p>`;
+                }
+                // Stay quiet for expected offline failures; keep real errors debuggable.
+                if (navigator.onLine !== false) console.error('Search failed', err);
+            }
+        }
+
+        /* ===== SELECT BUILDING ===== */
+        // Re-center the map so the selected pin lands inside the visible
+        // (non-panel) area, and pick which side the panel docks on so the
+        // pin is never hidden under the panel. Dispatches to the active
+        // renderer; both implementations honor the same docking contract.
+        function focusMarkerForPanel(bldg) {
+            if (MAP_RENDERER === 'maplibre') {
+                focusMarkerForPanelMapLibre(bldg);
+            } else {
+                focusMarkerForPanelLeaflet(bldg);
+            }
+        }
+
+        function focusMarkerForPanelLeaflet(bldg) {
+            if (!leafletMap || !bldg.lat || !bldg.lng) {
+                infoPanel.classList.remove('map-panel--left');
+                return;
+            }
+            const targetLatLng = L.latLng(bldg.lat, bldg.lng);
+            if (isMobile()) {
+                // Mobile keeps the bottom-sheet panel; just center normally.
+                infoPanel.classList.remove('map-panel--left');
+                leafletMap.flyTo(targetLatLng, 18);
+                return;
+            }
+            const zoom = 18;
+            const size = leafletMap.getSize();
+            let markerPx = null;
+            try {
+                const centerPx = leafletMap.project(leafletMap.getCenter(), zoom);
+                const projPx = leafletMap.project(targetLatLng, zoom);
+                markerPx = {
+                    x: projPx.x - centerPx.x + size.x / 2,
+                    y: projPx.y - centerPx.y + size.y / 2
+                };
+            } catch (e) {
+                markerPx = null;
+            }
+            // Default dock is right. Switch to the left dock when the
+            // marker would otherwise sit under the right-docked panel.
+            const placeLeft = markerPx ? (markerPx.x > size.x / 2) : false;
+            infoPanel.classList.toggle('map-panel--left', placeLeft);
+
+            // Center the marker in the visible non-panel half. Panel is
+            // ~380px wide plus 1rem margin; reserve ~400px on the panel side.
+            const panelReserved = 400;
+            const targetX = placeLeft
+                ? (size.x + panelReserved) / 2
+                : (size.x - panelReserved) / 2;
+            const targetY = size.y / 2;
+            try {
+                const projPx = leafletMap.project(targetLatLng, zoom);
+                const newCenterPx = L.point(
+                    projPx.x + (size.x / 2 - targetX),
+                    projPx.y + (size.y / 2 - targetY)
+                );
+                const newCenter = leafletMap.unproject(newCenterPx, zoom);
+                leafletMap.flyTo(newCenter, zoom);
+            } catch (e) {
+                leafletMap.flyTo(targetLatLng, zoom);
+            }
+        }
+
+        // MapLibre equivalent of the Leaflet docking logic. project() decides
+        // which side the panel docks on; flyTo({ offset }) seats the selected
+        // marker inside the visible (non-panel) half on desktop (MapLibre's
+        // idiomatic stand-in for Leaflet's manual project/unproject recenter,
+        // and correct across the simultaneous zoom change). Mobile centers
+        // normally under the bottom sheet.
+        function focusMarkerForPanelMapLibre(bldg) {
+            if (!maplibreMap || !bldg.lat || !bldg.lng) {
+                infoPanel.classList.remove('map-panel--left');
+                return;
+            }
+            const center = [bldg.lng, bldg.lat];
+            const zoom = 18;
+            if (isMobile()) {
+                infoPanel.classList.remove('map-panel--left');
+                maplibreMap.flyTo({ center, zoom, essential: true });
+                return;
+            }
+            const container = maplibreMap.getContainer();
+            const width = container ? (container.clientWidth || 0) : 0;
+            let placeLeft = false;
+            try {
+                const projPx = maplibreMap.project(center);
+                placeLeft = projPx.x > width / 2;
+            } catch (e) {
+                placeLeft = false;
+            }
+            // Default dock is right; switch to left when the marker would
+            // otherwise sit under the right-docked panel.
+            infoPanel.classList.toggle('map-panel--left', placeLeft);
+
+            // Reserve ~400px on the panel side and shift the marker into the
+            // visible half (panel right -> shift left; panel left -> shift right).
+            const panelReserved = 400;
+            const offsetX = placeLeft ? (panelReserved / 2) : -(panelReserved / 2);
+            maplibreMap.flyTo({ center, zoom, offset: [offsetX, 0], essential: true });
+        }
+
+        function selectBuilding(id) {
+            const bldg = buildingIndex.get(id);
+            if (!bldg) return;
+            currentBuildingId = id;
+
+            document.querySelectorAll('.map-bldg-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.map-fallback__marker').forEach(el => el.classList.remove('active'));
+            const listItem = bldgList.querySelector(`.map-bldg-item[data-id="${id}"]`);
+            if (listItem) listItem.classList.add('active');
+            const fallbackMarker = document.querySelector(`.map-fallback__marker[data-id="${id}"]`);
+            if (fallbackMarker) fallbackMarker.classList.add('active');
+
+            focusMarkerForPanel(bldg);
             panelImg.src = bldg.img;
-
+            panelImg.alt = bldg.name;
             panelCat.textContent = bldg.category;
-
             panelTitle.textContent = bldg.name;
+            panelDesc.textContent = bldg.desc || bldg.description || '';
+            populatePanelDetails(bldg);
 
-            panelDesc.textContent = bldg.desc;
+            // BE.3: route-dependent actions follow the server's availability
+            // verdict. An unavailable building keeps its info panel (name, photo,
+            // category, details) but cannot be used as a navigation destination.
+            const avail = isRouteAvailable(bldg);
 
+            // VR launch (11.8B): a predefined campus_routes row keeps its curated
+            // guided route; otherwise the destination-based /vr/to/:buildingId flow
+            // computes the Guard House / Main Gate path on demand. Both depend on a
+            // real route, so both are disabled when there is none.
+            if (panelVrBtn) {
+                // BE.3 repair: route-source id only — NEVER a building.id fallback.
+                const panelDestId = routeDestinationId(bldg);
+                if (avail && (bldg.vr_route_id || panelDestId !== null)) {
+                    panelVrBtn.href = bldg.vr_route_id
+                        ? '/vr/routes/' + bldg.vr_route_id
+                        : '/vr/to/' + panelDestId;
+                    panelVrBtn.removeAttribute('aria-disabled');
+                    panelVrBtn.classList.remove('is-disabled');
+                    panelVrBtn.removeAttribute('tabindex');
+                } else {
+                    // Anchors cannot be natively disabled: neutralise the href, mark
+                    // aria-disabled, and drop it out of the tab order.
+                    panelVrBtn.removeAttribute('href');
+                    panelVrBtn.setAttribute('aria-disabled', 'true');
+                    panelVrBtn.classList.add('is-disabled');
+                    panelVrBtn.setAttribute('tabindex', '-1');
+                }
+                panelVrBtn.hidden = false;
+            }
 
+            if (panelSetDestBtn) {
+                panelSetDestBtn.disabled = !avail;
+                panelSetDestBtn.setAttribute('aria-disabled', avail ? 'false' : 'true');
+                panelSetDestBtn.title = avail ? '' : routeUnavailableLabel(bldg);
+            }
+            if (panelRouteNotice) {
+                panelRouteNotice.textContent = avail ? '' : routeUnavailableLabel(bldg);
+                panelRouteNotice.hidden = avail;
+            }
 
-            // Show Panel
+            // BE.3: SELECTING an unavailable building must itself invalidate any
+            // pending lookup and remove any route line already on the map — not
+            // merely disable the button. Otherwise the previous destination's line
+            // stays drawn while an unroutable building is selected, which reads as
+            // "this is the route to the building I just picked". Routing through
+            // setDestination() reuses the single unavailable guard (which clears the
+            // destination, calls cancelRouteLookup(), and surfaces the reason) and
+            // still issues no /api/pathfind.
+            if (!avail) setDestination(bldg);
 
             infoPanel.classList.add('visible');
 
-
-
-            // Close sidebar on mobile
-
-            if (window.innerWidth <= 768) {
-
+            if (isMobile()) {
                 mapSidebar.classList.remove('open');
-
+                syncSheetState();
             }
-
         }
 
+        /* ===== ROUTE PLANNER ===== */
+        const PLANNER_HINT_EMPTY = 'Select a building, then click Set as Destination.';
 
+        function setDestination(b) {
+            // BE.3: an unavailable building can NEVER become the destination. It is
+            // treated exactly like clearing the destination: invalidate any in-flight
+            // lookup and remove the drawn line immediately (cancelRouteLookup), show
+            // the sanitized reason, and never issue /api/pathfind. Without this, a
+            // late response from a previous destination could repaint a route line
+            // while the user has an unroutable building selected.
+            if (b && !isRouteAvailable(b)) {
+                destinationBuilding = null;
+                routeDestText.textContent = 'Pick a building';
+                routeDestText.classList.add('map-route-planner__dest-text--empty');
+                routeDestClear.hidden = true;
+                routeFindBtn.disabled = true;
+                cancelRouteLookup();
+                setHint(routeUnavailableLabel(b) + ' for ' + b.name + '.', 5000);
+                updatePlannerToggleStatus();
+                return;
+            }
+
+            // Carry the ROUTE-SOURCE destination id: /api/pathfind expects the route
+            // backend's building id, which is NOT the building row's id when
+            // BUILDING_DATA_SOURCE and ROUTE_DATA_SOURCE differ.
+            // BE.3 repair: store the validated ROUTE-SOURCE id (or null). Never
+            // substitute the BUILDING-source id — see findComputedRoute.
+            destinationBuilding = b
+                ? { id: b.id, name: b.name, route_destination_id: routeDestinationId(b) }
+                : null;
+            if (destinationBuilding) {
+                routeDestText.textContent = destinationBuilding.name;
+                routeDestText.classList.remove('map-route-planner__dest-text--empty');
+                routeDestClear.hidden = false;
+                routeFindBtn.disabled = false;
+                setHint('');
+                if (isMobile()) setPlannerCollapsed(false);
+            } else {
+                routeDestText.textContent = 'Pick a building';
+                routeDestText.classList.add('map-route-planner__dest-text--empty');
+                routeDestClear.hidden = true;
+                routeFindBtn.disabled = true;
+                setHint(PLANNER_HINT_EMPTY);
+                // RF.5: clearing the destination must invalidate any in-flight
+                // route request and remove the drawn line, so a late response
+                // can't paint a route for a destination the user just cleared.
+                cancelRouteLookup();
+                if (isMobile()) setPlannerCollapsed(true);
+            }
+            updatePlannerToggleStatus();
+        }
+
+        async function findRoute() {
+            if (!destinationBuilding) return;
+            // BE.5: the canonical public start label is the single authoritative
+            // fallback — never the stale short "Main Gate" literal.
+            const start = (routeStartInput.value || COMPUTED_START_LABEL).trim() || COMPUTED_START_LABEL;
+            // RF.5: begin a new lookup generation (clears any prior line + stale
+            // panel content) and keep matching this token after every await.
+            const token = beginRouteLookup();
+            setHint('Finding route...');
+            routeFindBtn.disabled = true;
+            try {
+                const url = `/api/routes?start=${encodeURIComponent(start)}&destination=${destinationBuilding.id}`;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                });
+                if (!isCurrentRouteLookup(token)) return; // superseded by a newer lookup
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!isCurrentRouteLookup(token)) return;
+                const route = (data.routes && data.routes[0]) || null;
+                if (route) {
+                    openRoutePanel(route);
+                } else if (/guard house|main gate/i.test(start)) {
+                    // 11.8B: no predefined campus_routes row — fall back to the
+                    // computed graph path from the canonical main-gate start,
+                    // sharing THIS lookup's token so both stages stay one
+                    // generation (no second line-clear / no token bump).
+                    await findComputedRoute({
+                        id: destinationBuilding.id,
+                        name: destinationBuilding.name,
+                        route_destination_id: destinationBuilding.route_destination_id
+                    }, token);
+                } else {
+                    openRoutePanel(null, {
+                        title: `${start} to ${destinationBuilding.name}`,
+                        start,
+                        destinationName: destinationBuilding.name,
+                        message: `No predefined route available from "${start}" to "${destinationBuilding.name}" yet.`
+                    });
+                }
+                setHint('');
+            } catch (err) {
+                if (!isCurrentRouteLookup(token)) return;
+                // fetch rejected, or the SW returned its offline 503 because no cached
+                // /api/routes response exists yet. Cached responses still hit the success
+                // path above; only a genuinely unavailable route data load lands here.
+                // Log a fixed label only — never the raw error.
+                setHint('Connect to refresh route data.', 4000);
+                if (navigator.onLine !== false) console.error('findRoute failed');
+            } finally {
+                routeFindBtn.disabled = !destinationBuilding;
+            }
+        }
+
+        async function openRouteById(routeId) {
+            if (!Number.isFinite(routeId)) return;
+            // RF.5 hardening: the predefined-route flow joins the SAME shared
+            // generation as findRoute/findComputedRoute. Beginning the lookup
+            // immediately clears any drawn computed line (Leaflet polyline /
+            // MapLibre computed-route layer) and resets stale route-panel
+            // content, so opening a predefined route can never leave an older
+            // computed destination's line on the map. It also reuses the one
+            // routeRequestToken counter — no second counter, and no duplicate
+            // route computation (this flow never calls /api/pathfind).
+            const token = beginRouteLookup();
+            setHint('Loading route...');
+            try {
+                const res = await fetch(`/api/routes/${routeId}`, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                });
+                if (!isCurrentRouteLookup(token)) return; // superseded -> leave the newer state untouched
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!isCurrentRouteLookup(token)) return;
+                if (data.route) {
+                    openRoutePanel(data.route);
+                    if (data.route.destination) {
+                        if (data.route.start_label) routeStartInput.value = data.route.start_label;
+                        setDestination(data.route.destination);
+                    }
+                    setHint('');
+                } else {
+                    // No such route: the computed line was already removed when
+                    // this lookup began, so nothing stale remains drawn.
+                    setHint(data.message || 'Route not found.', 3500);
+                }
+            } catch (err) {
+                if (!isCurrentRouteLookup(token)) return;
+                // Cached /api/routes/:id still resolves via the success path; a failure
+                // here means the live route data is unavailable (offline / 503). The
+                // computed line was already cleared at lookup start. Log a fixed label
+                // only — never the raw error, response, body, geometry, or URL.
+                setHint('Connect to refresh route data.', 4000);
+                if (navigator.onLine !== false) console.error('openRouteById failed');
+            }
+        }
+
+        /* ===== BE.5 ROUTE-DIALOG FOCUS LIFECYCLE =====
+           One shared lifecycle for the route summary dialog, used by BOTH
+           openRoutePanel (predefined) and openComputedRoutePanel (computed).
+           The invoking control is captured synchronously when a route lookup
+           begins (inside beginRouteLookup, before any await can lose the
+           original focus context), opening moves focus to the close button,
+           and closing restores focus to the saved invoker. The closed dialog
+           is `hidden` + aria-hidden so its controls are unreachable. */
+        let routePanelInvoker = null;
+
+        function rememberRoutePanelInvoker() {
+            const el = document.activeElement;
+            // A lookup begun while the dialog itself has focus keeps the
+            // original invoker instead of trapping focus restoration inside
+            // the dialog that is about to be replaced.
+            if (el && routePanelOverlay.contains(el)) return;
+            routePanelInvoker =
+                (el && el !== document.body && el !== document.documentElement) ? el : null;
+        }
+
+        // BE5-FOCUS-PURE-START — extracted & unit-tested by scripts/publicRoadRouteRendering-probe.js; keep pure (no outer globals)
+        // A route-dialog focus-return target must be genuinely usable AND
+        // visible. isConnected alone is NOT visibility proof: the mobile
+        // Set-as-Destination flow slides the info panel off-screen
+        // (.map-panel loses `visible`) while its buttons stay connected, and
+        // the transform transition can leave a stale intersecting rectangle.
+        function isUsableRoutePanelReturnTarget(el) {
+            if (!el || !el.isConnected || typeof el.focus !== 'function') return false;
+            if (el.disabled) return false;
+            if (typeof el.getAttribute !== 'function' || typeof el.closest !== 'function') return false;
+            if (el.getAttribute('aria-disabled') === 'true') return false;
+            if (el.getAttribute('tabindex') === '-1') return false;
+            // Self-or-ancestor states that remove the control from use.
+            if (el.closest('[hidden], [aria-hidden="true"], [inert]')) return false;
+            // A control inside a closed info panel is off-screen by contract,
+            // even mid-transition while its rectangle still intersects.
+            if (el.closest('.map-panel:not(.visible)')) return false;
+            const doc = el.ownerDocument;
+            const win = doc && doc.defaultView;
+            if (!win || typeof win.getComputedStyle !== 'function') return false;
+            const style = win.getComputedStyle(el);
+            if (!style || style.display === 'none' ||
+                style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+            if (typeof el.getClientRects !== 'function' ||
+                typeof el.getBoundingClientRect !== 'function') return false;
+            const rects = el.getClientRects();
+            if (!rects || rects.length === 0) return false;
+            const rect = el.getBoundingClientRect();
+            if (!rect || !(rect.width > 0) || !(rect.height > 0)) return false;
+            // Entirely outside the current viewport -> not a visible target.
+            if (rect.right <= 0 || rect.bottom <= 0 ||
+                rect.left >= win.innerWidth || rect.top >= win.innerHeight) return false;
+            return true;
+        }
+
+        // First usable, visible focus-return target in EXACT priority order:
+        // the saved invoker, then the caller-supplied fallback candidates.
+        // Returns null (never throws) when no candidate qualifies.
+        function selectRoutePanelReturnTarget(invoker, fallbackCandidates) {
+            const chain = [invoker].concat(fallbackCandidates || []);
+            for (const candidate of chain) {
+                if (isUsableRoutePanelReturnTarget(candidate)) return candidate;
+            }
+            return null;
+        }
+        // BE5-FOCUS-PURE-END
+
+        // Hidden, disabled, aria-disabled and tabindex="-1" controls are never
+        // valid focus targets; the close button always remains one.
+        function routePanelFocusables() {
+            const nodes = routePanelOverlay.querySelectorAll(
+                'a[href], button, input, select, textarea, [tabindex]'
+            );
+            return Array.prototype.filter.call(nodes, (el) =>
+                !el.hidden &&
+                !el.closest('[hidden]') &&
+                !el.disabled &&
+                el.getAttribute('aria-disabled') !== 'true' &&
+                el.getAttribute('tabindex') !== '-1' &&
+                (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement));
+        }
+
+        function showRoutePanelDialog() {
+            routePanelOverlay.hidden = false;
+            routePanelOverlay.setAttribute('aria-hidden', 'false');
+            routePanelOverlay.classList.add('open');
+            if (routePanelClose && typeof routePanelClose.focus === 'function') {
+                routePanelClose.focus();
+            }
+        }
+
+        function openRoutePanel(route, fallback = null) {
+            if (route) {
+                const destName = (route.destination && route.destination.name) || '';
+                routePanelTitle.textContent = route.title || `${route.start_label} to ${destName}`;
+                routePanelSubtitle.textContent = `${route.start_label || 'Start'} to ${destName || 'Destination'}`;
+                if (route.estimated_walk_time) {
+                    routePanelTime.textContent = `Walk time: ${route.estimated_walk_time}`;
+                    routePanelTime.hidden = false;
+                } else {
+                    routePanelTime.hidden = true;
+                }
+
+                const steps = Array.isArray(route.steps) ? route.steps : [];
+                if (steps.length) {
+                    routePanelSteps.innerHTML = steps.map((s, i) => `
+                        <li class="route-step">
+                            <span class="route-step__num">${escapeHtml(s.step_order || (i + 1))}</span>
+                            <span class="route-step__text">${escapeHtml(s.instruction || '')}</span>
+                        </li>`).join('');
+                    routePanelStepsWrap.hidden = false;
+                } else {
+                    routePanelSteps.innerHTML = '';
+                    routePanelStepsWrap.hidden = true;
+                }
+
+                const landmarks = Array.isArray(route.landmarks) ? route.landmarks : [];
+                if (landmarks.length) {
+                    routePanelLandmarks.innerHTML = landmarks.map(l => `<li>${escapeHtml(l)}</li>`).join('');
+                    routePanelLandmarkWrap.hidden = false;
+                } else {
+                    routePanelLandmarkWrap.hidden = true;
+                }
+                routePanelEmpty.hidden = true;
+            } else if (fallback) {
+                routePanelTitle.textContent = fallback.title;
+                routePanelSubtitle.textContent = `${fallback.start} to ${fallback.destinationName}`;
+                routePanelTime.hidden = true;
+                routePanelSteps.innerHTML = '';
+                routePanelStepsWrap.hidden = true;
+                routePanelLandmarks.innerHTML = '';
+                routePanelLandmarkWrap.hidden = true;
+                routePanelEmpty.textContent = fallback.message || 'No route available yet.';
+                routePanelEmpty.hidden = false;
+            }
+            // VR launch in the route summary: route.id is the campus_routes
+            // id (from /api/routes); fallback state has no route -> hidden.
+            if (routePanelVrBtn) {
+                const vrId = route && route.id;
+                if (vrId) {
+                    routePanelVrBtn.href = '/vr/routes/' + vrId;
+                    routePanelVrBtn.hidden = false;
+                } else {
+                    routePanelVrBtn.removeAttribute('href');
+                    routePanelVrBtn.hidden = true;
+                }
+            }
+
+            showRoutePanelDialog();
+        }
+
+        // Idempotent: safe to call when the dialog is already closed.
+        function closeRoutePanel() {
+            routePanelOverlay.classList.remove('open');
+            routePanelOverlay.setAttribute('aria-hidden', 'true');
+            // hidden immediately: controls of a closed dialog must never be
+            // reachable, even while the opacity transition finishes.
+            routePanelOverlay.hidden = true;
+            // Copy + clear the saved invoker exactly once, then restore focus
+            // to the FIRST usable visible target: invoker -> Find Route ->
+            // the current building's result card -> search -> mobile toggle.
+            // (currentBuildingId is the existing backend-local building id and
+            // is used only for this DOM lookup — no cross-backend comparison.)
+            // With no usable target, close safely without focusing anything
+            // hidden or off-screen.
+            const invoker = routePanelInvoker;
+            routePanelInvoker = null;
+            const target = selectRoutePanelReturnTarget(invoker, [
+                routeFindBtn,
+                (currentBuildingId != null)
+                    ? bldgList.querySelector('.map-bldg-item[data-id="' + currentBuildingId + '"]')
+                    : null,
+                searchInput,
+                mobileListToggle
+            ]);
+            if (target) target.focus();
+        }
+
+        /* ===== COMPUTED PATH FROM GUARD HOUSE / MAIN GATE (11.8B) =====
+           Set as Destination computes a graph path from the canonical
+           internal start "main-gate" via /api/pathfind — no predefined
+           campus_routes row required. The path is drawn on the active
+           renderer where possible; the route panel always shows the
+           readable route state (start, destination, walk time, ordered
+           segments), so a drawing failure never hides the result. */
+        const COMPUTED_START_KEY = 'main-gate';
+        const COMPUTED_START_LABEL = 'Guard House / Main Gate';
+        let leafletRouteLayer = null;
+
+        /* RF.5: one monotonically increasing generation token shared by
+           findRoute and findComputedRoute. Beginning a lookup clears the
+           current line and stale panel content and returns the new token;
+           every awaited response is ignored unless its token is still current,
+           so a slow, failed, aborted, or superseded request can never resurrect
+           a line for a stale destination. */
+        let routeRequestToken = 0;
+
+        // Hide any previously shown route-panel content (steps, walk time,
+        // landmarks, empty message) so a new lookup never displays the prior
+        // destination's details while it is in flight. Re-populated on success.
+        function resetRoutePanelTransient() {
+            routePanelSteps.innerHTML = '';
+            routePanelStepsWrap.hidden = true;
+            routePanelLandmarks.innerHTML = '';
+            routePanelLandmarkWrap.hidden = true;
+            routePanelTime.hidden = true;
+            routePanelEmpty.hidden = true;
+        }
+
+        // Start a new route-lookup generation: invalidate any in-flight
+        // response, clear the drawn line, reset stale panel content, and return
+        // the token this lookup must keep matching after every await.
+        function beginRouteLookup() {
+            routeRequestToken += 1;
+            // BE.5: capture the invoking control NOW — synchronously, before the
+            // route request awaits — so closing the dialog can restore focus even
+            // though the dialog opens after asynchronous work.
+            rememberRoutePanelInvoker();
+            clearComputedPath();
+            resetRoutePanelTransient();
+            return routeRequestToken;
+        }
+
+        function isCurrentRouteLookup(token) {
+            return token === routeRequestToken;
+        }
+
+        // Destination cleared / aborted: invalidate any pending response and
+        // remove the drawn line WITHOUT starting a new lookup.
+        function cancelRouteLookup() {
+            routeRequestToken += 1;
+            clearComputedPath();
+        }
+
+        function clearComputedPath() {
+            try {
+                if (maplibreMap) {
+                    if (maplibreMap.getLayer('computed-route-line')) maplibreMap.removeLayer('computed-route-line');
+                    if (maplibreMap.getSource('computed-route')) maplibreMap.removeSource('computed-route');
+                }
+            } catch (e) { /* best-effort */ }
+            try {
+                if (leafletRouteLayer && leafletMap) {
+                    leafletMap.removeLayer(leafletRouteLayer);
+                }
+            } catch (e) { /* best-effort */ }
+            leafletRouteLayer = null;
+        }
+
+        // RF5-PURE-START — extracted & unit-tested by scripts/publicRoadRouteRendering-probe.js; keep pure (no DOM / no globals)
+        // Strict all-or-nothing point-list validator: a drawable list is an
+        // array of >= 2 points, every point a plain object with finite numeric
+        // lat in [-90, 90] and lng in [-180, 180]. Any invalid point rejects the
+        // WHOLE shape — points are never filtered, so a dropped point can never
+        // stitch a building-crossing diagonal between its surviving neighbours.
+        function isValidRoutePointList(list) {
+            if (!Array.isArray(list) || list.length < 2) return false;
+            for (let i = 0; i < list.length; i++) {
+                const p = list[i];
+                if (!p || typeof p !== 'object') return false;
+                const lat = p.lat;
+                const lng = p.lng;
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+                if (lat < -90 || lat > 90) return false;
+                if (lng < -180 || lng > 180) return false;
+            }
+            return true;
+        }
+
+        // Prefer the road-following route.geometry; fall back to route.nodes
+        // ONLY when geometry is unavailable or invalid; otherwise there is no
+        // drawable path (the readable route panel remains the canonical result).
+        function selectRoutePoints(route) {
+            if (!route) return null;
+            if (isValidRoutePointList(route.geometry)) return route.geometry;
+            if (isValidRoutePointList(route.nodes)) return route.nodes;
+            return null;
+        }
+        // RF5-PURE-END
+
+        function drawComputedPath(route) {
+            // RF.5: prefer road-following route.geometry, fall back to
+            // route.nodes only when geometry is unavailable/invalid, and reject
+            // any partial shape so a dropped point can never create a diagonal.
+            const pts = selectRoutePoints(route);
+            if (!pts) return false;
+            try {
+                if (MAP_RENDERER === 'maplibre' && maplibreMap) {
+                    const coords = pts.map(p => [p.lng, p.lat]);
+                    const data = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
+                    const src = maplibreMap.getSource('computed-route');
+                    if (src) {
+                        src.setData(data);
+                    } else {
+                        maplibreMap.addSource('computed-route', { type: 'geojson', data });
+                        maplibreMap.addLayer({
+                            id: 'computed-route-line',
+                            type: 'line',
+                            source: 'computed-route',
+                            layout: { 'line-join': 'round', 'line-cap': 'round' },
+                            paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }
+                        });
+                    }
+                    const lngs = coords.map(c => c[0]);
+                    const lats = coords.map(c => c[1]);
+                    maplibreMap.fitBounds(
+                        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+                        { padding: 70, essential: true }
+                    );
+                    return true;
+                }
+                if (MAP_RENDERER === 'leaflet' && leafletMap && typeof L !== 'undefined') {
+                    if (leafletRouteLayer) leafletMap.removeLayer(leafletRouteLayer);
+                    leafletRouteLayer = L.polyline(pts.map(p => [p.lat, p.lng]), {
+                        color: '#2563eb', weight: 4, opacity: 0.85
+                    }).addTo(leafletMap);
+                    leafletMap.fitBounds(leafletRouteLayer.getBounds(), { padding: [60, 60] });
+                    return true;
+                }
+            } catch (e) {
+                // Static fallback / renderer not ready: the panel's readable
+                // route state below is the canonical result.
+            }
+            return false;
+        }
+
+        function openComputedRoutePanel(route, b, failMessage) {
+            const destName = (b && b.name) ||
+                (route && route.destination && route.destination.label) || 'Destination';
+            routePanelTitle.textContent = `${COMPUTED_START_LABEL} to ${destName}`;
+            routePanelSubtitle.textContent = `${COMPUTED_START_LABEL} to ${destName}`;
+            if (route && route.estimated_walk_time) {
+                routePanelTime.textContent = `Walk time: ${route.estimated_walk_time}`;
+                routePanelTime.hidden = false;
+            } else {
+                routePanelTime.hidden = true;
+            }
+            routePanelLandmarks.innerHTML = '';
+            routePanelLandmarkWrap.hidden = true;
+
+            const segments = route && Array.isArray(route.segments) ? route.segments : [];
+            if (segments.length) {
+                const labelByKey = new Map((route.nodes || []).map(n => [n.key, n.label || n.key]));
+                routePanelSteps.innerHTML = segments.map((s, i) => `
+                    <li class="route-step">
+                        <span class="route-step__num">${i + 1}</span>
+                        <span class="route-step__text">${escapeHtml(
+                            (labelByKey.get(s.from) || s.from) + ' to ' + (labelByKey.get(s.to) || s.to) +
+                            (s.path_label ? ' via ' + s.path_label : '') +
+                            (s.distance_meters ? ' (' + s.distance_meters + ' m)' : '')
+                        )}</span>
+                    </li>`).join('');
+                routePanelStepsWrap.hidden = false;
+                routePanelEmpty.hidden = true;
+            } else {
+                routePanelSteps.innerHTML = '';
+                routePanelStepsWrap.hidden = true;
+                routePanelEmpty.textContent = failMessage ||
+                    `No route available between ${COMPUTED_START_LABEL} and ${destName} yet.`;
+                routePanelEmpty.hidden = false;
+            }
+
+            // Set VR Route from the computed route summary.
+            //
+            // BE.3 repair: guided VR reads the ROUTE source, so /vr/to/:id takes a
+            // ROUTE-SOURCE building id. This previously fell back to `b.id` — a
+            // BUILDING-source id — which in a mixed configuration pointed guided VR at
+            // whichever building owned that id in the route backend (or at nothing).
+            // Order is now: curated vr_route_id -> validated route_destination_id ->
+            // withhold the action entirely. There is NO building.id fallback.
+            if (routePanelVrBtn) {
+                const bldg = (b && b.id != null) ? buildingIndex.get(b.id) : null;
+                const vrRouteId = bldg && bldg.vr_route_id;
+                const destId = routeDestinationId(bldg) || routeDestinationId(b);
+
+                if (vrRouteId) {
+                    routePanelVrBtn.href = '/vr/routes/' + vrRouteId;
+                    routePanelVrBtn.removeAttribute('aria-disabled');
+                    routePanelVrBtn.classList.remove('is-disabled');
+                    routePanelVrBtn.hidden = false;
+                } else if (destId !== null) {
+                    routePanelVrBtn.href = '/vr/to/' + destId;
+                    routePanelVrBtn.removeAttribute('aria-disabled');
+                    routePanelVrBtn.classList.remove('is-disabled');
+                    routePanelVrBtn.hidden = false;
+                } else {
+                    // No usable route destination -> no guided VR target. Hide rather
+                    // than link somewhere wrong. (Guided VR's own truthful
+                    // coverage-ended behaviour is untouched.)
+                    routePanelVrBtn.removeAttribute('href');
+                    routePanelVrBtn.setAttribute('aria-disabled', 'true');
+                    routePanelVrBtn.classList.add('is-disabled');
+                    routePanelVrBtn.hidden = true;
+                }
+            }
+
+            showRoutePanelDialog();
+        }
+
+        async function findComputedRoute(b, inheritedToken) {
+            if (!b || b.id == null) return;
+            // BE.3 backstop: never issue /api/pathfind for a building the server has
+            // already declared unroutable. setDestination blocks this path, but a
+            // direct caller must not be able to slip past it.
+            if (b.route_available === false) {
+                cancelRouteLookup();
+                setHint(routeUnavailableLabel(b), 5000);
+                return;
+            }
+            // BE.3 repair: /api/pathfind keys off the ROUTE-SOURCE building id. There
+            // is NO building.id fallback — a BUILDING-source id is meaningless to the
+            // route backend and, in a mixed configuration, could resolve to a
+            // different building entirely. With no valid route destination we fail
+            // closed: clear the line and issue no request.
+            const destId = routeDestinationId(b);
+            if (destId === null) {
+                cancelRouteLookup();
+                setHint(routeUnavailableLabel(b), 5000);
+                return;
+            }
+            // When findRoute falls back to us it passes its own live token so we
+            // share one generation; a direct call (Set as Destination) begins a
+            // fresh lookup, which clears the current line before the fetch.
+            const token = (typeof inheritedToken === 'number') ? inheritedToken : beginRouteLookup();
+            setHint('Finding route...');
+            try {
+                const res = await fetch(
+                    `/api/pathfind?start=${encodeURIComponent(COMPUTED_START_KEY)}&destinationBuildingId=${encodeURIComponent(destId)}`,
+                    { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }
+                );
+                if (!isCurrentRouteLookup(token)) return; // superseded -> ignore, leave newer line intact
+                const data = await res.json().catch(() => null);
+                if (!isCurrentRouteLookup(token)) return;
+                if (res.ok && data && data.success && data.route) {
+                    drawComputedPath(data.route);
+                    openComputedRoutePanel(data.route, b, null);
+                } else {
+                    // Sanitized 400/404 or success:true route:null (no path):
+                    // no line is drawn (already cleared at lookup start) and the
+                    // safe readable state is shown.
+                    clearComputedPath();
+                    openComputedRoutePanel(null, b, (data && data.message) || 'Unable to compute a route right now.');
+                }
+                setHint('');
+            } catch (err) {
+                if (!isCurrentRouteLookup(token)) return;
+                // Aborted / network failure: the line was cleared when the
+                // lookup began, so nothing stale remains visible. Log a fixed
+                // label only — never the response body, geometry, or raw error.
+                setHint('Connect to refresh route data.', 4000);
+                if (navigator.onLine !== false) console.error('findComputedRoute failed');
+            }
+        }
 
         /* ===== EVENT LISTENERS ===== */
-
-        // Searching
-
         searchInput.addEventListener('input', (e) => {
-
             searchQuery = e.target.value;
-
             searchClear.style.display = searchQuery ? 'block' : 'none';
-
-            renderSidebar();
-
+            clearTimeout(searchDebounceTimer);
+            if (searchQuery.trim() === '') {
+                renderLocalList();
+                return;
+            }
+            searchDebounceTimer = setTimeout(() => runApiSearch(searchQuery.trim()), 220);
         });
-
-
 
         searchClear.addEventListener('click', () => {
-
             searchInput.value = '';
-
             searchQuery = '';
-
             searchClear.style.display = 'none';
-
-            renderSidebar();
-
+            lastSearchResults = [];
+            renderLocalList();
         });
-
-
-
-        // Filtering
 
         filterBtns.forEach(btn => {
-
             btn.addEventListener('click', () => {
-
                 filterBtns.forEach(b => b.classList.remove('active'));
-
                 btn.classList.add('active');
-
                 currentFilter = btn.dataset.filter;
-
-                renderSidebar();
-
+                if (searchQuery.trim() === '') {
+                    renderLocalList();
+                } else {
+                    renderSearchResults(lastSearchResults);
+                }
             });
-
         });
-
-
-
-        // Panel Close
 
         closePanelBtn.addEventListener('click', () => {
-
             infoPanel.classList.remove('visible');
-
             document.querySelectorAll('.map-bldg-item').forEach(el => el.classList.remove('active'));
-
+            document.querySelectorAll('.map-fallback__marker').forEach(el => el.classList.remove('active'));
         });
 
+        panelSetDestBtn.addEventListener('click', () => {
+            if (currentBuildingId == null) return;
+            const b = buildingIndex.get(currentBuildingId);
+            if (!b) return;
+            setDestination(b);
+            // 11.8B: setting a destination immediately computes the path from
+            // Guard House / Main Gate over the route graph (no predefined
+            // campus_routes row required).
+            //
+            // BE.3 repair: carry the ROUTE-SOURCE destination id. This previously
+            // rebuilt a bare { id, name } object, dropping route_destination_id, so
+            // findComputedRoute fell back to the BUILDING-source id and /api/pathfind
+            // was called with an id the route backend does not own.
+            findComputedRoute({
+                id: b.id,
+                name: b.name,
+                route_available: b.route_available,
+                route_destination_id: b.route_destination_id
+            });
+            if (isMobile()) {
+                infoPanel.classList.remove('visible');
+                mapSidebar.classList.add('open');
+                syncSheetState();
+            }
+        });
 
+        routePlannerToggle.addEventListener('click', () => {
+            setPlannerCollapsed(!routePlanner.classList.contains('is-collapsed'));
+        });
 
-        // Mobile Sidebar Toggle
+        routeDestClear.addEventListener('click', () => setDestination(null));
+        routeFindBtn.addEventListener('click', findRoute);
+        routePanelClose.addEventListener('click', closeRoutePanel);
+        routePanelOverlay.addEventListener('click', (e) => {
+            if (e.target === routePanelOverlay) closeRoutePanel();
+        });
+        // BE.5 focus containment while the route dialog is open: Tab from the
+        // last enabled visible control wraps to the first, Shift+Tab from the
+        // first wraps to the last, and Escape closes through the ONE shared
+        // closeRoutePanel lifecycle. stopPropagation keeps the document-level
+        // Escape handler from acting on the same keypress a second time.
+        routePanelOverlay.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                e.preventDefault();
+                closeRoutePanel();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            const focusables = routePanelFocusables();
+            const first = focusables[0] || routePanelClose;
+            const last = focusables[focusables.length - 1] || routePanelClose;
+            const active = document.activeElement;
+            if (e.shiftKey) {
+                if (active === first || !routePanelOverlay.contains(active)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else if (active === last || !routePanelOverlay.contains(active)) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (routePanelOverlay.classList.contains('open')) {
+                closeRoutePanel();
+                return;
+            }
+            if (infoPanel.classList.contains('visible')) {
+                infoPanel.classList.remove('visible');
+                document.querySelectorAll('.map-bldg-item').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.map-fallback__marker').forEach(el => el.classList.remove('active'));
+            }
+        });
 
         mobileListToggle.addEventListener('click', () => {
-
             mapSidebar.classList.toggle('open');
-
+            syncSheetState();
         });
 
+        function closeMapSheet() {
+            mapSidebar.classList.remove('open');
+            syncSheetState();
+        }
+        mapSidebarClose.addEventListener('click', closeMapSheet);
+        mapSidebarHandle.addEventListener('click', closeMapSheet);
 
-
-        // Floor Buttons
-
-        document.querySelectorAll('.floor-btn').forEach(btn => {
-
-            btn.addEventListener('click', (e) => {
-
-                document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-
-                e.target.classList.add('active');
-
-                // You would trigger changing the floorplan image / map layer here
-
-            });
-
+        // Keep planner expanded on desktop; collapse on mobile when no destination
+        mobileQuery.addEventListener('change', (e) => {
+            if (!e.matches) {
+                setPlannerCollapsed(false);
+                document.body.classList.remove('map-sheet-open');
+            } else if (!destinationBuilding) {
+                setPlannerCollapsed(true);
+            }
         });
 
-
-
-        // Navbar Mobile
-
-        document.getElementById('dashHamburger').addEventListener('click', () => {
-
-            document.getElementById('dashHamburger').classList.toggle('active');
-
-            document.getElementById('dashTabs').classList.toggle('open');
-
-        });
-
-
+        /* Mobile hamburger: owned by the shared /js/authenticated-nav.js
+           client (M12.P1-D2) */
 
         /* ===== THEME TOGGLE ===== */
-
         (function () {
-
             const toggle = document.getElementById('themeToggle');
-
             const iconSun = toggle.querySelector('.icon-sun');
-
             const iconMoon = toggle.querySelector('.icon-moon');
-
-
-
             function updateThemeUI(isDark) {
-
                 if (isDark) {
-
                     document.documentElement.setAttribute('data-theme', 'dark');
-
                     iconSun.style.display = 'none';
-
                     iconMoon.style.display = 'block';
-
                 } else {
-
                     document.documentElement.removeAttribute('data-theme');
-
                     iconSun.style.display = 'block';
-
                     iconMoon.style.display = 'none';
-
                 }
-
             }
-
-
-
-            if (localStorage.getItem('campussphere-theme') === 'dark') {
-
-                updateThemeUI(true);
-
-            }
-
-
-
+            if (localStorage.getItem('campussphere-theme') === 'dark') updateThemeUI(true);
             toggle.addEventListener('click', () => {
-
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
                 updateThemeUI(!isDark);
-
                 localStorage.setItem('campussphere-theme', !isDark ? 'dark' : 'light');
-
             });
-
         })();
 
-
-
         /* ===== MAP INIT ===== */
-
-        function initLeaflet() {
-
-            leafletMap = L.map('mapView').setView([13.40591, 123.37362], 17);
-
-
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-
-                attribution: '&copy; OpenStreetMap contributors'
-
-            }).addTo(leafletMap);
-
-
-
-            const defaultIcon = L.icon({
-
-                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-
-                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-
-                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-
-                iconSize: [25, 41],
-
-                iconAnchor: [12, 41],
-
-                popupAnchor: [1, -34],
-
-                shadowSize: [41, 41]
-
-            });
-
-
-
-            mapBuildings.forEach(b => {
-
-                if (b.lat && b.lng) {
-
-                    const marker = L.marker([b.lat, b.lng], { icon: defaultIcon })
-
-                        .addTo(leafletMap)
-
-                        .bindTooltip(b.name);
-
-
-
-                    marker.on('click', () => {
-
-                        selectBuilding(b.id);
-
-                    });
-
-
-
-                    leafletMarkers[b.id] = marker;
-
-                }
-
-            });
-
+        function refreshLeafletSize() {
+            if (!leafletMap || staticFallbackActive) return;
+            try { leafletMap.invalidateSize(false); } catch (e) {}
         }
 
+        function scheduleLeafletRecovery() {
+            [0, 150, 600].forEach(delay => setTimeout(refreshLeafletSize, delay));
+            setTimeout(() => {
+                if (!leafletMap || staticFallbackActive || leafletTileLoaded) return;
+                const loaded = Array.from(document.querySelectorAll('#mapView .leaflet-tile'))
+                    .some(img => img.complete && img.naturalWidth > 0);
+                if (loaded) {
+                    leafletTileLoaded = true;
+                    return;
+                }
+                renderStaticMapFallback('Live map tiles are unavailable. Showing campus locations.');
+            }, 5000);
+        }
 
+        function initLeaflet() {
+            if (typeof L === 'undefined') {
+                renderStaticMapFallback('Live map engine is unavailable. Showing campus locations.');
+                return;
+            }
 
+            try {
+                leafletMap = L.map('mapView').setView([13.40591, 123.37362], 17);
+                const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                });
+                tileLayer.on('tileload', () => { leafletTileLoaded = true; });
+                tileLayer.on('tileerror', () => {
+                    leafletTileErrors += 1;
+                    if (leafletTileErrors >= 4 && !leafletTileLoaded) {
+                        setTimeout(() => {
+                            if (!leafletTileLoaded) {
+                                renderStaticMapFallback('Live map tiles are unavailable. Showing campus locations.');
+                            }
+                        }, 250);
+                    }
+                });
+                tileLayer.addTo(leafletMap);
+
+                // M12.P1-R6: the three marker URLs were hard-coded to unpkg. They
+                // are removed rather than rewritten: Leaflet's own L.Icon.Default
+                // resolves marker-icon / marker-icon-2x / marker-shadow from the
+                // .leaflet-default-icon-path rule in the self-hosted leaflet.css,
+                // i.e. /vendor/leaflet/images/.
+                // iconSize [25,41], iconAnchor [12,41], popupAnchor [1,-34] and
+                // shadowSize [41,41] are byte-identical to the values removed
+                // here. L.Icon.Default additionally supplies tooltipAnchor
+                // [16,-28], which the explicit L.icon() did not set, so marker
+                // tooltips now sit beside the pin instead of at its origin.
+                mapBuildings.forEach(b => {
+                    if (b.lat && b.lng) {
+                        const marker = L.marker([b.lat, b.lng])
+                            .addTo(leafletMap)
+                            .bindTooltip(b.name);
+                        marker.on('click', () => selectBuilding(b.id));
+                        leafletMarkers[b.id] = marker;
+                    }
+                });
+                scheduleLeafletRecovery();
+            } catch (e) {
+                renderStaticMapFallback('Live map engine is unavailable. Showing campus locations.');
+            }
+        }
+
+        function initMapLibre() {
+            if (typeof maplibregl === 'undefined') {
+                renderStaticMapFallback('Live map engine is unavailable. Showing campus locations.');
+                return;
+            }
+
+            try {
+                let maplibreLoaded = false;
+                // Raster OpenStreetMap style; no MapTiler/vector token or private
+                // key required. tileSize 256 keeps the zoom scale aligned with the
+                // Leaflet path so center/zoom and focus behavior match.
+                maplibreMap = new maplibregl.Map({
+                    container: 'mapView',
+                    style: {
+                        version: 8,
+                        sources: {
+                            osm: {
+                                type: 'raster',
+                                tiles: [
+                                    'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                                ],
+                                tileSize: 256,
+                                attribution: '&copy; OpenStreetMap contributors'
+                            }
+                        },
+                        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+                    },
+                    center: [123.37362, 13.40591],
+                    zoom: 17
+                });
+                maplibreMap.once('load', () => { maplibreLoaded = true; });
+                setTimeout(() => {
+                    if (!maplibreLoaded && !staticFallbackActive) {
+                        renderStaticMapFallback('Live map tiles are unavailable. Showing campus locations.');
+                    }
+                }, 5000);
+                // Zoom controls top-left (matches Leaflet's default dock) so the
+                // right edge stays clear for the info panel.
+                maplibreMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+
+                mapBuildings.forEach(b => {
+                    if (b.lat && b.lng) {
+                        const marker = new maplibregl.Marker()
+                            .setLngLat([b.lng, b.lat])
+                            .addTo(maplibreMap);
+                        const el = marker.getElement();
+                        el.style.cursor = 'pointer';
+                        el.setAttribute('title', b.name);
+                        el.setAttribute('aria-label', b.name);
+                        el.addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            selectBuilding(b.id);
+                        });
+                        maplibreMarkers[b.id] = marker;
+                    }
+                });
+            } catch (e) {
+                renderStaticMapFallback('Live map engine is unavailable. Showing campus locations.');
+            }
+        }
         /* ===== INIT ===== */
-
-        initLeaflet();
-
-        renderSidebar();
-
-
-
+        if (MAP_RENDERER === 'maplibre') {
+            initMapLibre();
+        } else {
+            initLeaflet();
+        }
+        // Planner: collapsed on mobile by default, expanded on desktop
+        setPlannerCollapsed(isMobile());
+        setDestination(null);
+        renderLocalList();
     </script>
 
-    <!-- Edit Profile Script -->
-
     <script src="/js/profile-script.js"></script>
-
     <script src="/js/nav-role.js"></script>
-
 </body>
-
-
 
 </html>

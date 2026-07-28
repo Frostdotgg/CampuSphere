@@ -1,18 +1,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<%# CSRF synchronizer token for fetch clients (Milestone 8, Section 8.2). Read via
+    document.querySelector('meta[name="csrf-token"]').content — never stored in
+    localStorage/sessionStorage/IndexedDB/CacheStorage. %>
+<meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 <meta name="description"
-  content="<%= typeof description !== 'undefined' ? description : 'CampusSphere — CSPC Virtual Campus Map Tour' %>">
+  content="<%= typeof description !== 'undefined' ? description : 'CampuSphere — CSPC Virtual Campus Map Tour' %>">
 <title>
   <%= typeof title !=='undefined' ? title : 'CampuSphere' %>
 </title>
 <link rel="stylesheet" href="/css/styles.css?v=5">
-<script>
+<script nonce="<%= cspNonce %>">
   (function () {
     var savedTheme = localStorage.getItem('theme') || localStorage.getItem('adminTheme');
     if (savedTheme === 'dark') {
+      // CSP (8.5): set the attribute only; the dark early-paint rule now lives in
+      // styles.css (no document.write injection).
       document.documentElement.setAttribute('data-theme', 'dark');
-      document.write('<style>html[data-theme="dark"], html[data-theme="dark"] body { background-color: #111827 !important; color: #e5e7eb !important; }</style>');
     }
   })();
 </script>
 <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+<!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0f2a44">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CampuSphere">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+<!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
+<script src="/js/pwa.js" defer></script>
