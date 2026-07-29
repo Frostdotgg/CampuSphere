@@ -45,11 +45,13 @@
    OUTSIDE the repository. The listener is closed and the temporary directory is
    removed in `finally`. No process is ever killed.
 
-   OUTPUT. The package preview is CONSOLE-ONLY. Nothing is written into the
+   OUTPUT. The package inventory is CONSOLE-ONLY. Nothing is written into the
    repository: no package manifest, no deployment archive, no `.vercel`
-   metadata. Because the worktree is intentionally dirty, the preview is
-   explicitly labelled as a snapshot of the CURRENT worktree and NOT an
-   immutable deployment manifest.
+   metadata. The inventory reflects the bytes currently present in the
+   repository at the moment it runs. It does NOT itself establish that those
+   bytes are committed, clean, or immutable — this probe never inspects Git
+   state — and it is NOT deployment authorization. Git cleanliness and
+   immutability are established separately, by the reviewer, from Git evidence.
 
    PRIVACY. Fixed sanitized PASS/FAIL labels. Ignored filenames are never
    printed — a forbidden inclusion is reported by CLASS LABEL and COUNT only.

@@ -433,7 +433,8 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | --- | --- | --- | --- |
 | Accepted R7 closeout (historical; unchanged) | 154 | 6,166,956 | `c7c16ed7…38b9ec` |
 | R8 clean-snapshot candidate (reviewed; CANDIDATE NO-GO) | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
-| **Current R8 pilot-readiness correction candidate** | **157** | **6,192,992** | **`0ae9f57d…ab999a1c`** |
+| R8 pilot-readiness correction candidate (superseded) | 157 | 6,192,992 | `0ae9f57d…ab999a1c` |
+| **Current R8 re-review correction candidate** | **157** | **6,194,154** | **`77e34105…e1a8551a`** |
 
 The correction candidate adds exactly two packaged files — `views/privacy.ejs`
 and `public/robots.txt` — plus a byte delta inside files that were already

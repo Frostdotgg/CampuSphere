@@ -93,8 +93,22 @@ facilitator-mediated pilot model in `docs/deployment.md`;
 `MANUSCRIPT_TEAMDUTCHESS.pdf` untracked; and a new fail-closed `pilot-readiness`
 gate. Indexing control is documented as not being access control.
 
-Those corrections await another independent read-only R8 review. No R8 GO,
-Codex GO, deployment GO, or pilot GO is claimed by that work.
+A second independent read-only R8 re-review of that correction candidate found
+further pilot-readiness defects, and a separately owner-authorized re-review
+correction was applied in one follow-up commit: the package-boundary probe no
+longer claims an intentionally dirty worktree or a current-worktree snapshot and
+now states that its inventory reflects current repository bytes, does not itself
+establish Git cleanliness or immutability, and is not deployment authorization;
+the independently pinned gate rejects every stale worktree wording and the
+superseded label; `SEC-37` keeps only the accepted R7 values as history beside a
+freshly recomputed current inventory; the privacy notice now scopes its
+anonymous-denial claim to authorization-denial audit events while preserving the
+separate truthful method/path request-log disclosure; and the local authenticated
+exposure matrix was executed in both runtime modes with a separate fresh browser
+context per role.
+
+Those corrections await another independent read-only R8 review. No R8 GO, Codex
+GO, deployment GO, or pilot GO is claimed by that work.
 
 `M12.P1-R8` is the next potential section. R8 is read-only and is not
 authorized by this synchronization; even R8 GO authorizes only a separate owner

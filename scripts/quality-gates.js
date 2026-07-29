@@ -303,6 +303,22 @@ async function runSuite(base, mode) {
       !/\byou consent\b/i.test(privBody) &&
       !/\bby using this (?:site|application|service) you agree\b/i.test(privBody));
 
+    /* M12.P1-R8 re-review, asserted on the RENDERED body (not just the source):
+       the anonymous-denial claim must be scoped to authorization-denial audit
+       events, must not reappear as a blanket "not recorded/logged" promise, and
+       the separate method/path request-log disclosure must still be present. */
+    ok('R8 /privacy scopes the anonymous-denial claim to authorization-denial audit events',
+      /not\s+written\s+as\s+authorization-denial\s+audit\s+events/i.test(privBody));
+    ok('R8 /privacy does not claim anonymous traffic is unlogged',
+      !/signed-out\s+visitors\s+are\s+not\s+recorded/i.test(privBody) &&
+      !/signed-out\s+visitors\s+are\s+never\s+recorded/i.test(privBody) &&
+      !/anonymous\s+(?:requests|traffic|visitors)\s+are\s+(?:not|never)\s+(?:recorded|logged)/i.test(privBody));
+    // \s+ between words: the rendered markup wraps these sentences across
+    // lines, so a literal single space does not match the served HTML.
+    ok('R8 /privacy still discloses the separate method/path request logging',
+      /HTTP\s+method\s+and\s+the\s+path/i.test(privBody) &&
+      /Query\s+strings\s+are\s+deliberately\s+stripped/i.test(privBody));
+
     ok('R8 anon GET / carries the exact pilot X-Robots-Tag',
       (await fetch(base + '/', { headers: { Accept: 'text/html' } })).headers.get('x-robots-tag') === ROBOTS_TAG);
     ok('R8 anon GET /auth carries the exact pilot X-Robots-Tag',
@@ -2554,6 +2570,41 @@ function hasDeadPlaceholderAnchor(src) {
   return typeof src !== 'string' || /href\s*=\s*"#"/.test(src) || /href\s*=\s*'#'/.test(src);
 }
 
+/* M12.P1-R8 re-review finding: the notice claimed "Requests from signed-out
+   visitors are not recorded". Unscoped, that reads as a promise that anonymous
+   traffic is never logged, which contradicts the adjacent — and truthful —
+   disclosure that every request's method and path IS logged. What
+   middleware/roleAuth.js actually guarantees after R5 is narrower: an anonymous
+   denial writes no authorization-denial audit ROW.
+
+   The required scoped phrasing and the forbidden ambiguous phrasings are pinned
+   here, independently of the view. */
+const REQUIRED_ANON_AUDIT_SCOPE = /not\s+written\s+as\s+authorization-denial\s+audit\s+events/i;
+
+const AMBIGUOUS_ANON_AUDIT_CLAIMS = Object.freeze([
+  /signed-out\s+visitors\s+are\s+<strong>\s*not\s*<\/strong>\s*recorded/i,
+  /signed-out\s+visitors\s+are\s+not\s+recorded/i,
+  /signed-out\s+visitors\s+are\s+never\s+recorded/i,
+  // "traffic IS not logged" and "requests ARE not logged" both appear naturally;
+  // accept either copula so a singular rephrasing cannot slip past.
+  /anonymous\s+(?:requests|traffic|visitors)\s+(?:is|are)\s+(?:not|never)\s+(?:recorded|logged|kept|stored)/i,
+  /we\s+(?:do\s+not|never)\s+(?:log|record|store)\s+anonymous/i,
+]);
+
+/**
+ * PURE: is the anonymous-denial claim correctly SCOPED to authorization-denial
+ * audit events, without any unscoped "not recorded/logged" phrasing, while the
+ * separate method/path request-log disclosure survives? Fails closed.
+ */
+function anonAuditClaimIsScoped(src) {
+  if (typeof src !== 'string' || src === '') return false;
+  if (!REQUIRED_ANON_AUDIT_SCOPE.test(src)) return false;
+  if (AMBIGUOUS_ANON_AUDIT_CLAIMS.some((re) => re.test(src))) return false;
+  // The separate, truthful request-log disclosure must remain.
+  return /HTTP method and the path/i.test(src) &&
+    /Query\s+strings are deliberately stripped/i.test(src);
+}
+
 /**
  * PURE: does the privacy view make every disclosure the owner required, and
  * none of the claims the owner forbade? Shape-based: each clause is a distinct
@@ -2662,6 +2713,15 @@ function runPilotReadinessGate() {
   ok('views/privacy.ejs nonces its inline style element (CSP)',
     /<style nonce="<%= cspNonce %>">/.test(view));
 
+  /* M12.P1-R8 re-review: the anonymous-denial claim must be SCOPED to
+     authorization-denial audit events, and the separate method/path request-log
+     disclosure must survive alongside it. */
+  ok('views/privacy.ejs scopes the anonymous-denial claim to authorization-denial audit events',
+    anonAuditClaimIsScoped(view));
+  ok('views/privacy.ejs keeps the separate truthful method/path request-log disclosure',
+    /HTTP method and the path/i.test(view) &&
+    /Query\s+strings are deliberately stripped/i.test(view));
+
   /* ---- 2. working privacy links, zero dead placeholders ---- */
   for (const rel of PRIVACY_LINK_VIEWS) {
     const src = read(rel);
@@ -2753,6 +2813,28 @@ function runPilotReadinessGate() {
     !privacyViewIsTruthful(view + '<p>We never share your data.</p>'));
   ok('fixture: empty / non-string privacy source is rejected',
     !privacyViewIsTruthful('') && !privacyViewIsTruthful(null) && !privacyViewIsTruthful({}));
+
+  /* Positive + ambiguity-reintroduction fixtures for the scoped anonymous-denial
+     claim. Each ambiguous phrasing is driven separately against the REAL view so
+     a partial revert cannot pass. */
+  ok('fixture: the real view satisfies the scoped anonymous-denial contract',
+    anonAuditClaimIsScoped(view));
+  ok('fixture: restoring the unscoped "signed-out visitors are not recorded" is rejected',
+    !anonAuditClaimIsScoped(
+      view.replace(REQUIRED_ANON_AUDIT_SCOPE, 'not recorded')
+        .replace(/signed-out visitors are\s+<strong>[\s\S]{0,80}?<\/strong>/i,
+          'signed-out visitors are not recorded')));
+  ok('fixture: an unscoped "never recorded" variant is rejected',
+    !anonAuditClaimIsScoped(view + '<p>Requests from signed-out visitors are never recorded.</p>'));
+  ok('fixture: a blanket "anonymous traffic is not logged" claim is rejected',
+    !anonAuditClaimIsScoped(view + '<p>Anonymous traffic is not logged.</p>') &&
+    !anonAuditClaimIsScoped(view + '<p>We do not log anonymous requests at all.</p>'));
+  ok('fixture: dropping the scoped phrasing entirely is rejected',
+    !anonAuditClaimIsScoped(view.replace(REQUIRED_ANON_AUDIT_SCOPE, 'handled differently')));
+  ok('fixture: dropping the separate method/path request-log disclosure is rejected',
+    !anonAuditClaimIsScoped(view.replace(/HTTP method and the path/gi, 'some details')));
+  ok('fixture: empty / non-string input fails the scoped-claim check closed',
+    !anonAuditClaimIsScoped('') && !anonAuditClaimIsScoped(null) && !anonAuditClaimIsScoped(['x']));
   ok('fixture: documentation reintroducing invitation-only framing is rejected',
     !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is invitation-only.'));
   ok('fixture: documentation reintroducing an OAuth allowlist is rejected',
@@ -2811,6 +2893,42 @@ const EXPECTED_R7_AUDITABLE_SOURCE_FILES = Object.freeze([
    grep/diff across shells without encoding ambiguity. */
 const EXPECTED_PACKAGE_INVENTORY_LABEL =
   'CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION';
+
+/* The superseded label, pinned here so the gate can forbid it without the probe
+   ever having to contain it. Built from an escape for the em dash so this
+   constant stays pure ASCII on disk and survives grep/diff across shells. */
+const SUPERSEDED_PACKAGE_INVENTORY_LABEL =
+  'CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST';
+
+/* M12.P1-R8 re-review finding: correcting the LABEL alone was not enough. The
+   probe's header prose still asserted that "the worktree is intentionally
+   dirty" and that the output was "a snapshot of the CURRENT worktree" — claims
+   the probe cannot support, because it never inspects Git state, and which
+   contradict the committed clean snapshot.
+
+   These patterns are pinned INDEPENDENTLY of the probe and are checked against
+   the probe SOURCE, not just its label, so equivalent wording cannot reappear
+   in a comment while the label stays neutral. */
+const STALE_WORKTREE_WORDING = Object.freeze([
+  /worktree\s+is\s+intentionally\s+dirty/i,
+  /intentionally\s+dirty\s+worktree/i,
+  /snapshot\s+of\s+the\s+current\s+worktree/i,
+  /current[-\s]worktree\s+(?:preview|snapshot|boundary|inventory)/i,
+  /dirty[-\s]worktree/i,
+  /dirty\s+(?:preview|snapshot)/i,
+  /DIRTY-WORKTREE BOUNDARY PREVIEW/i,
+]);
+
+/**
+ * PURE: does `value` carry stale worktree/dirty-preview wording, or the
+ * superseded label? Fails CLOSED — a missing or non-string source is reported
+ * as stale so an unreadable file can never silently satisfy the check.
+ */
+function containsStaleWorktreeWording(value) {
+  if (typeof value !== 'string' || value === '') return true;
+  if (value.includes(SUPERSEDED_PACKAGE_INVENTORY_LABEL)) return true;
+  return STALE_WORKTREE_WORDING.some((re) => re.test(value));
+}
 
 /**
  * PURE: does `candidate` equal EXPECTED_R7_AUDITABLE_SOURCE_FILES exactly and in
@@ -3241,11 +3359,50 @@ function runVercelPackageBoundaryGate() {
        forbidden outright — a revert to it fails this gate. */
     ok('the R7 focused probe carries the exact independently pinned neutral inventory label',
       src.includes(EXPECTED_PACKAGE_INVENTORY_LABEL));
-    ok('the R7 focused probe no longer claims its inventory is a dirty-worktree preview',
-      !src.includes('CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW') &&
-      !/labelled as a dirty-worktree preview/.test(src));
+    /* Scans the whole probe SOURCE, not just the label: the R8 re-review found
+       the header prose still claiming an intentionally dirty worktree and a
+       "snapshot of the CURRENT worktree" while the label itself was already
+       neutral. Fails closed on an unreadable source. */
+    ok('the R7 focused probe source carries no stale worktree or dirty-preview wording',
+      !containsStaleWorktreeWording(src));
+    ok('the R7 focused probe source does not carry the superseded inventory label',
+      !src.includes(SUPERSEDED_PACKAGE_INVENTORY_LABEL));
+    ok('the R7 focused probe states its inventory does not establish Git cleanliness or authorize deployment',
+      /does NOT itself establish/i.test(src) &&
+      /committed, clean, or immutable/i.test(src) &&
+      /not deployment authorization/i.test(src));
     ok('the R7 focused probe still rejects a manifest whose label does not match',
       /manifest\.label\s*!==\s*PREVIEW_LABEL/.test(src));
+
+    /* Positive-neutral and negative stale-wording fixtures for the wording
+       predicate. Each stale phrase is exercised individually so a partial
+       revert cannot pass. */
+    {
+      const NEUTRAL =
+        'OUTPUT. The package inventory is CONSOLE-ONLY. It reflects the bytes currently ' +
+        'present in the repository at the moment it runs. It does NOT itself establish ' +
+        'that those bytes are committed, clean, or immutable, and it is NOT deployment ' +
+        'authorization.';
+      ok('wording fixture :: neutral inventory wording is accepted',
+        !containsStaleWorktreeWording(NEUTRAL));
+      ok('wording fixture :: "the worktree is intentionally dirty" is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' Because the worktree is intentionally dirty, ...'));
+      ok('wording fixture :: an "intentionally dirty worktree" variant is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' Preserve the intentionally dirty worktree.'));
+      ok('wording fixture :: "a snapshot of the CURRENT worktree" is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' It is a snapshot of the CURRENT worktree.'));
+      ok('wording fixture :: a current-worktree preview variant is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' See the current-worktree preview above.'));
+      ok('wording fixture :: a dirty-worktree variant is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' This is the dirty-worktree boundary output.'));
+      ok('wording fixture :: a dirty-preview variant is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' Emitted as a dirty preview only.'));
+      ok('wording fixture :: the superseded label embedded in prose is rejected',
+        containsStaleWorktreeWording(NEUTRAL + ' ' + SUPERSEDED_PACKAGE_INVENTORY_LABEL));
+      ok('wording fixture :: empty and non-string sources fail closed',
+        containsStaleWorktreeWording('') && containsStaleWorktreeWording(null) &&
+        containsStaleWorktreeWording(undefined) && containsStaleWorktreeWording(['x']));
+    }
 
     /* Rejecting fixtures for the label predicate itself. Built here so the gate
        proves the contract rather than trusting the probe's own wording. */
@@ -3254,7 +3411,7 @@ function runVercelPackageBoundaryGate() {
       ok('label fixture :: the exact neutral label is accepted',
         labelOk('CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION'));
       ok('label fixture :: the superseded dirty-worktree label is rejected',
-        !labelOk('CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST'));
+        !labelOk(SUPERSEDED_PACKAGE_INVENTORY_LABEL));
       ok('label fixture :: a label that drops the authorization disclaimer is rejected',
         !labelOk('CURRENT VERCEL PACKAGE BOUNDARY INVENTORY'));
       ok('label fixture :: a label that claims deployment authorization is rejected',

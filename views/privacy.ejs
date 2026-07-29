@@ -194,11 +194,24 @@
                     Sign-in attempts are recorded, including the email address that was
                     submitted. A failed sign-in never records the submitted password.
                 </li>
+                <%# M12.P1-R8 re-review correction. The previous sentence ended with an
+                    UNSCOPED denial that named no particular kind of record. That was
+                    ambiguous and overbroad: a reader could take it as a blanket promise
+                    covering all signed-out activity, which would contradict the very next
+                    bullet, where we truthfully disclose that EVERY request's method and
+                    path is written to the server log. The claim is now scoped to exactly
+                    what middleware/roleAuth.js guarantees after M12.P1-R5 — no
+                    authorization-denial audit ROW is created for an anonymous denial.
+                    Do not restore the unscoped wording: the pilot-readiness gate scans
+                    this whole file, comments included, and rejects the ambiguous
+                    phrasings, so reproducing one here would fail the gate. %>
                 <li>
                     When a signed-in account requests something its role is not allowed
                     to access, CampuSphere records the account identifier, the role, and
                     the requested path. Requests from signed-out visitors are
-                    <strong>not</strong> recorded.
+                    <strong>not written as authorization-denial audit events</strong>.
+                    This is specifically about those authorization records; it is not a
+                    claim that anonymous traffic goes unlogged — see the next point.
                 </li>
                 <li>
                     Server request logs record only the HTTP method and the path. Query

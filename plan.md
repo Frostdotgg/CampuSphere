@@ -1381,6 +1381,23 @@ the OAuth client stays in Testing, and CampuSphere requests only `openid`,
 `email` and `profile`, which Google's documented basic-identity exception covers.
 Indexing control is documented as not being access control.
 
+A second independent read-only R8 re-review of that correction candidate found
+further pilot-readiness defects, and a separately owner-authorized re-review
+correction was applied in one follow-up commit. The package-boundary probe no
+longer claims an intentionally dirty worktree or a current-worktree snapshot;
+its header now states that the inventory reflects current repository bytes, does
+not itself establish Git cleanliness or immutability, and is not deployment
+authorization. The independently pinned gate rejects every stale worktree
+wording as well as the superseded label, with positive-neutral and negative
+fixtures. `SEC-37` keeps only the accepted R7 values as history beside a freshly
+recomputed current inventory. The privacy notice scopes its anonymous-denial
+claim to authorization-denial audit events and keeps the separate truthful
+method/path request-log disclosure, covered by static, runtime-rendered,
+positive, and ambiguity-reintroduction gate cases. The owner-supplied pilot
+feedback form was validated anonymously without submitting it and is recorded as
+READY without its URL. The local authenticated exposure matrix was executed in
+both runtime modes with a separate fresh browser context per role.
+
 These corrections await another independent read-only R8 review. No R8 GO,
 Codex GO, deployment GO, or pilot GO is claimed by this work.
 
