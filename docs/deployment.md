@@ -432,7 +432,16 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | Record | Files | Bytes | Aggregate SHA-256 |
 | --- | --- | --- | --- |
 | Accepted R7 closeout (historical; unchanged) | 154 | 6,166,956 | `c7c16ed7…38b9ec` |
-| Current R8 clean-snapshot candidate | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
+| R8 clean-snapshot candidate (reviewed; CANDIDATE NO-GO) | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
+| **Current R8 pilot-readiness correction candidate** | **157** | **6,192,992** | **`0ae9f57d…ab999a1c`** |
+
+The correction candidate adds exactly two packaged files — `views/privacy.ejs`
+and `public/robots.txt` — plus a byte delta inside files that were already
+allowlisted (`server.js`, `middleware/securityHeaders.js`,
+`controllers/pageController.js`, `routes/index.js`, `public/css/styles.css`,
+`views/auth.ejs`, `views/complete-registration.ejs`,
+`views/partials/footer.ejs`). No new packaged path class is introduced: both new
+files sit under directories the allowlist already re-includes.
 
 Two changes separate the two records, and neither adds a new packaged path
 class:
@@ -458,10 +467,24 @@ the per-response nonce CSP for dynamic responses are all as accepted at R7
 closeout, and the focused probe still passes `71/71`.
 
 This inventory describes the COMPLETE clean-snapshot candidate tree — the
-committed repository state, not a dirty working directory. The candidate's
-commit SHA is reported externally in the session report and handed to the
-reviewer there; it is deliberately not embedded in this file, because a commit
-cannot contain its own identifier.
+committed repository state. The candidate's commit SHA is reported externally in
+the session report and handed to the reviewer there; it is deliberately not
+embedded in this file, because a commit cannot contain its own identifier.
+
+**Inventory label (corrected in the R8 pilot-readiness correction).** The focused
+probe previously stamped its output
+`CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST`.
+That was accurate while the deployable application lived in an uncommitted
+working tree, but it became false once the complete intended state was committed,
+and it contradicted this section. The label is now
+`CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION`,
+which stays neutral about worktree state (which the probe does not inspect) and
+keeps the disclaimer that matters: enumerating the package is not permission to
+upload it. The expected label is pinned independently in
+`EXPECTED_PACKAGE_INVENTORY_LABEL` inside `scripts/quality-gates.js`, so the gate
+never learns it from the artifact it audits, and reverting to the superseded
+label fails closed. Accepted historical R7 evidence keeps the original label and
+totals as history.
 
 It nevertheless remains CANDIDATE EVIDENCE, not accepted upload evidence. It
 becomes accepted evidence only through an independent read-only `M12.P1-R8`
@@ -772,6 +795,83 @@ owner-created Google Form. OFF.2 through OFF.6 resume after pilot review and
 remain mandatory before final Milestone 12 GO. The selected 13-building demo
 roster is not the complete campus; later admin edits and additions require
 refreshed freeze evidence rather than being prohibited.
+
+#### Pilot participation model (owner decision, M12.P1-R8)
+
+The pilot is **facilitator-mediated**. Randomly selected participants are
+guided through the application by a facilitator during a session. Participants
+register through **Sign in with Google**, and the application derives the role
+from the verified email domain:
+
+| Email domain | Role assigned |
+| --- | --- |
+| `@my.cspc.edu.ph` | `student-cspc` |
+| `@cspc.edu.ph` | `instructor` |
+| `@gmail.com` | `guest` |
+
+The Google OAuth client stays in **Testing** publishing status. CampuSphere
+requests only the `openid`, `email` and `profile` scopes. Because those three
+are covered by Google's documented **basic-identity exception**, participants do
+**not** need to be registered individually before they can sign in, and no
+per-participant OAuth roster is maintained.
+
+Three consequences follow, and all three are deliberate:
+
+1. **The OAuth publishing status is not an access-control boundary.** It governs
+   which Google consent experience is shown, not who may reach the application.
+2. **Local email/password registration remains open** and creates a `guest`
+   account only. That guest-only restriction is enforced twice — in
+   `controllers/authController.js` and again in the SQL boundary redefined by
+   `database/supabase/0009_public_registration_trust_policy.sql` — so no
+   institutional or admin role can ever be self-registered. Facilitators direct
+   participants to the Google path; the local path is the documented fallback.
+3. **Access control is the session/role layer**, not the sign-in provider. Every
+   participant-reachable surface is behind `requireLogin`, and `/admin` is behind
+   `requireRole('admin')` (`middleware/roleAuth.js`).
+
+Do not change the scopes, credentials, callback URL, publishing status, or the
+domain-to-role mapping as part of pilot preparation.
+
+#### Pilot indexing protection (M12.P1-R8)
+
+The pilot runs on a public production hostname. Vercel applies an automatic
+`noindex` to **preview** deployments only, so a production deployment is
+crawlable unless the application says otherwise. Two voluntary directives are
+therefore shipped:
+
+- `middleware/securityHeaders.js` exports `pilotNoIndex`, mounted in `server.js`
+  beside the security headers, which sets exactly
+  `X-Robots-Tag: noindex, nofollow, noarchive` on **every** response — the
+  anonymous `/`, `/auth` and `/privacy` pages, authenticated HTML, JSON APIs,
+  the readiness `503`, rate-limit `429`s, and error pages.
+- `public/robots.txt` contains exactly `User-agent: *` and `Disallow: /`.
+
+**Indexing control is not access control.** Both are requests that well-behaved
+crawlers honour. They reduce incidental search-engine discovery of the pilot.
+They do not authenticate, authorize, rate-limit, or block anybody, and a crawler
+or person that ignores them is stopped only by the session/role controls above.
+
+#### Participant privacy notice (M12.P1-R8)
+
+`GET /privacy` renders `views/privacy.ejs` and is deliberately **anonymous**: a
+prospective participant must be able to read it before an account exists. It
+touches no session and performs no database access. It is linked from the
+anonymous footer, the sign-in/registration page, and the OAuth
+complete-registration step — the screen that actually collects the
+role-specific profile fields.
+
+The notice states what is collected (identity, role/profile, authentication,
+session, and security/audit data), why, and which services handle it (Vercel,
+Supabase, Upstash, Google, Cloudinary). It records the exact requested Google
+scopes, states that pilot feedback goes to a separate owner-created Google Form
+that CampuSphere never receives or stores, describes retention as **30 days past
+the final defense followed by owner-managed manual deletion unless CSPC requires
+longer**, sets out data-subject rights under RA 10173, and links the official
+CSPC policy at <https://cspc.edu.ph/governance/privacy-policy/>.
+
+It deliberately makes **no** consent, legal-basis, automatic-deletion, or
+data-sharing claim; the `pilot-readiness` gate rejects the notice if any of those
+appear.
 
 #### Required Vercel Project environment variables (complete checklist)
 

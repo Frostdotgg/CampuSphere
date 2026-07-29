@@ -16,6 +16,20 @@ exports.landing = (req, res) => {
 };
 
 /**
+ * GET /privacy — Pilot privacy notice (M12.P1-R8).
+ *
+ * Deliberately ANONYMOUS: a privacy notice that only signed-in users can read
+ * is useless to someone deciding whether to sign in at all. It renders no
+ * session data and performs no database access.
+ */
+exports.privacy = (req, res) => {
+  res.render('privacy', {
+    title: 'CampuSphere | Privacy Notice',
+    description: 'How the CampuSphere pilot at Camarines Sur Polytechnic Colleges collects and uses personal information.'
+  });
+};
+
+/**
  * GET /home — Home Dashboard
  */
 exports.home = (req, res) => {

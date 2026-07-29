@@ -164,7 +164,16 @@ with fingerprint
 unchanged. The post-D7 logout-output hygiene remediation is independently
 Codex-accepted as additive evidence: `3529/3529` with `QUALITY-GATES OK`, zero
 escaped logout-error lines, `npm audit --omit=dev` zero vulnerabilities, and
-postconditions `24/24 -> 18/18 -> 46/46`; it does not supersede D7. `M12.P1-R8`
+postconditions `24/24 -> 18/18 -> 46/46`; it does not supersede D7. A first
+independent read-only R8 review of the clean-snapshot candidate returned
+CANDIDATE NO-GO on pilot-readiness grounds, and a separately owner-authorized
+pilot-readiness correction was then applied in one follow-up commit: anonymous
+`GET /privacy`, pilot indexing protection, zero dead footer placeholders, the
+corrected neutral package-inventory label, the owner-approved
+facilitator-mediated pilot model, `MANUSCRIPT_TEAMDUTCHESS.pdf` untracked, and a
+new fail-closed `pilot-readiness` gate. Those corrections await another
+independent read-only R8 review, and no R8 GO, Codex GO, deployment GO, or pilot
+GO is claimed by that work. `M12.P1-R8`
 is the next potential section. R8 is read-only and is
 not authorized by this synchronization; even R8 GO authorizes only a separate
 owner deployment decision. `M12.P1` remains NO-GO for deployment and pilot

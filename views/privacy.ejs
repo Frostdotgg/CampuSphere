@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head') %>
+</head>
+
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <%- include('partials/navbar') %>
+
+        <%# M12.P1-R8 — Pilot privacy notice.
+
+            Every statement here is grounded in the shipped implementation:
+              - collected fields        -> database/schema.sql, database/supabase/0001,
+                                           controllers/authController.js
+              - Google scopes           -> controllers/authController.js ('openid email profile')
+              - session record/cookie   -> config/sessionConfig.js, services/*SessionStore.js
+              - security logging        -> services/auditService.js, middleware/roleAuth.js (R5),
+                                           middleware/logger.js (path only, never query strings)
+              - rate-limit storage      -> services/rateLimitStore.js (HMAC digest + integer only)
+              - media delivery          -> config/cloudinary.js, utils/mediaUrl.js
+
+            Deliberately NOT claimed: any consent or legal-basis characterisation,
+            any automatic/scheduled deletion, and any assertion about whether data
+            is or is not shared onward. Retention below is an owner-managed manual
+            commitment, described as such. %>
+
+        <main class="legal page-transition" id="privacyMain">
+            <style nonce="<%= cspNonce %>">
+                .legal {
+                    max-width: 900px;
+                    margin: 0 auto;
+                    padding: 7rem 1.25rem 4rem;
+                }
+
+                .legal__title {
+                    font-size: clamp(1.75rem, 4vw, 2.5rem);
+                    margin: 0 0 0.5rem;
+                }
+
+                .legal__updated {
+                    color: var(--gray-500, #6b7280);
+                    margin: 0 0 2rem;
+                    font-size: 0.95rem;
+                }
+
+                .legal h2 {
+                    font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+                    margin: 2.25rem 0 0.75rem;
+                    padding-bottom: 0.4rem;
+                    border-bottom: 1px solid var(--border, #e5e7eb);
+                }
+
+                .legal h3 {
+                    font-size: 1.05rem;
+                    margin: 1.5rem 0 0.5rem;
+                }
+
+                .legal p,
+                .legal li {
+                    line-height: 1.7;
+                }
+
+                .legal ul {
+                    padding-left: 1.4rem;
+                    margin: 0.5rem 0 1rem;
+                }
+
+                .legal li {
+                    margin-bottom: 0.4rem;
+                }
+
+                .legal__callout {
+                    border: 1px solid var(--border, #e5e7eb);
+                    border-left: 3px solid var(--gold, #c8a24a);
+                    border-radius: 6px;
+                    padding: 0.9rem 1.1rem;
+                    margin: 1.25rem 0;
+                }
+
+                .legal__table-wrap {
+                    overflow-x: auto;
+                    margin: 0.75rem 0 1.25rem;
+                }
+
+                .legal table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 520px;
+                }
+
+                .legal th,
+                .legal td {
+                    border: 1px solid var(--border, #e5e7eb);
+                    padding: 0.6rem 0.7rem;
+                    text-align: left;
+                    vertical-align: top;
+                    font-size: 0.95rem;
+                }
+
+                .legal th {
+                    font-weight: 600;
+                }
+
+                .legal a {
+                    text-decoration: underline;
+                }
+
+                @media (max-width: 640px) {
+                    .legal {
+                        padding-top: 5.5rem;
+                    }
+                }
+            </style>
+
+            <h1 class="legal__title">Privacy Notice</h1>
+            <p class="legal__updated">
+                CampuSphere — CSPC Virtual Campus Map Tour. Last updated 29 July 2026.
+            </p>
+
+            <div class="legal__callout">
+                <p>
+                    <strong>CampuSphere is a student capstone project, not an official
+                        Camarines Sur Polytechnic Colleges (CSPC) system.</strong>
+                    It is built and operated by <strong>Team Dutchess</strong>, a student
+                    group at CSPC, and is currently running as a limited, facilitator-guided
+                    pilot for evaluation purposes only. It is not a student records system,
+                    not an enrolment system, and not a source of official CSPC information.
+                </p>
+            </div>
+
+            <h2 id="what-we-collect">1. What CampuSphere collects</h2>
+
+            <p>
+                CampuSphere collects only what it needs to sign you in, show you the
+                role-appropriate parts of the campus tour, and keep the pilot secure.
+            </p>
+
+            <h3>Identity and account details</h3>
+            <ul>
+                <li>Your full name and email address.</li>
+                <li>A username derived from your account details.</li>
+                <li>
+                    Your role, which the application assigns automatically from your
+                    email domain when you sign in with Google:
+                    <code>@my.cspc.edu.ph</code> becomes <em>student</em>,
+                    <code>@cspc.edu.ph</code> becomes <em>instructor</em>, and
+                    <code>@gmail.com</code> becomes <em>guest</em>.
+                </li>
+            </ul>
+
+            <h3>Role-specific profile details</h3>
+            <ul>
+                <li><strong>Students:</strong> student ID number, course, year level, and semester.</li>
+                <li><strong>Instructors:</strong> employee ID, position, and department.</li>
+                <li><strong>Guests:</strong> address and phone number.</li>
+            </ul>
+
+            <h3>Authentication details</h3>
+            <ul>
+                <li>
+                    If you sign in with Google, CampuSphere requests only the
+                    <code>openid</code>, <code>email</code>, and <code>profile</code>
+                    scopes, and stores a Google account identifier alongside your
+                    verified email address. <strong>CampuSphere never receives or
+                        stores your Google password.</strong>
+                </li>
+                <li>
+                    If you register with an email address and password, only a bcrypt
+                    hash of that password is stored. The password itself is never
+                    written to the database or to any log.
+                </li>
+            </ul>
+
+            <h3>Session details</h3>
+            <ul>
+                <li>
+                    A server-side session record containing a session identifier, an
+                    expiry time, and your signed-in account details.
+                </li>
+                <li>
+                    One session cookie in your browser. In production it is named
+                    <code>__Host-campusphere.sid</code> and is set
+                    <code>HttpOnly</code>, <code>Secure</code>, and
+                    <code>SameSite=Lax</code>, so it is not readable by page scripts.
+                </li>
+            </ul>
+
+            <h3>Security and integrity details</h3>
+            <ul>
+                <li>
+                    Sign-in attempts are recorded, including the email address that was
+                    submitted. A failed sign-in never records the submitted password.
+                </li>
+                <li>
+                    When a signed-in account requests something its role is not allowed
+                    to access, CampuSphere records the account identifier, the role, and
+                    the requested path. Requests from signed-out visitors are
+                    <strong>not</strong> recorded.
+                </li>
+                <li>
+                    Server request logs record only the HTTP method and the path. Query
+                    strings are deliberately stripped, so search terms and sign-in codes
+                    do not reach the logs.
+                </li>
+                <li>
+                    Abuse-prevention counters store only a keyed cryptographic digest and
+                    a number. They do not store your IP address, email address, or account
+                    identifier in a readable form.
+                </li>
+            </ul>
+
+            <h2 id="why">2. Why CampuSphere uses this information</h2>
+            <ul>
+                <li><strong>Authentication</strong> — to sign you in and keep you signed in.</li>
+                <li><strong>Authorization</strong> — to show each role only the pages it should see.</li>
+                <li><strong>Routing</strong> — to generate walking routes between campus buildings.</li>
+                <li><strong>Schedules</strong> — to display room and facility schedules published by an administrator.</li>
+                <li><strong>Virtual tour (VR)</strong> — to show 360° panoramas and guided arrival states.</li>
+                <li><strong>Pilot evaluation</strong> — to check that the application behaves correctly during the pilot.</li>
+            </ul>
+
+            <h2 id="services">3. Services CampuSphere runs on</h2>
+
+            <p>
+                CampuSphere is a student project built on external platforms. Running the
+                application necessarily means your information is handled by the services
+                below, each of which operates under its own privacy terms.
+            </p>
+
+            <div class="legal__table-wrap">
+                <table>
+                    <caption class="sr-only">Third-party services CampuSphere depends on and their role</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Service</th>
+                            <th scope="col">Role in CampuSphere</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">Vercel</th>
+                            <td>Hosts and serves the application.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Supabase</th>
+                            <td>Stores the application database, including accounts, profiles, and session records.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Upstash</th>
+                            <td>Stores abuse-prevention counters (keyed digests and numbers only).</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Google (Sign in with Google)</th>
+                            <td>Verifies your identity when you choose to sign in with Google. CampuSphere requests
+                                only <code>openid</code>, <code>email</code>, and <code>profile</code>.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Cloudinary</th>
+                            <td>Delivers campus photographs and 360° panorama images. These are pictures of buildings
+                                and grounds, not personal data about you.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 id="feedback">4. Pilot feedback is collected separately</h2>
+            <p>
+                Pilot feedback is gathered through a <strong>separate Google Form created
+                    by the project owner</strong>. That form is not part of this
+                application. <strong>CampuSphere does not receive, store, or display any
+                    feedback response</strong> — the application has no feedback table, no
+                feedback API, and no feedback screen. Anything you submit in that form is
+                handled by Google Forms under the form's own settings and Google's terms.
+            </p>
+
+            <h2 id="retention">5. How long information is kept</h2>
+            <p>
+                Pilot data is intended to be kept until <strong>30 days after Team
+                    Dutchess's final capstone defense</strong>. After that period, the
+                project owner will <strong>manually delete</strong> the pilot accounts,
+                profiles, and session records, unless CSPC requires them to be retained
+                for longer.
+            </p>
+            <div class="legal__callout">
+                <p>
+                    <strong>This deletion is a manual, owner-managed step.</strong>
+                    CampuSphere does not run any automatic or scheduled deletion job, and
+                    this notice does not promise one. Expired session records are the one
+                    exception: the session store removes them as part of normal operation.
+                </p>
+            </div>
+
+            <h2 id="rights">6. Your rights</h2>
+            <p>
+                Under the Philippine Data Privacy Act of 2012 (Republic Act No. 10173),
+                you have rights over your personal information, including the rights to be
+                informed, to access it, to have inaccurate entries corrected, to object to
+                its processing, and to request its erasure or blocking.
+            </p>
+            <p>
+                To exercise any of these rights during the pilot, you may:
+            </p>
+            <ul>
+                <li>
+                    speak to the <strong>pilot facilitator</strong> running your session,
+                    who can pass the request to Team Dutchess; or
+                </li>
+                <li>
+                    contact the <strong>CSPC Data Protection Officer</strong> through the
+                    official contact details published with the college's privacy policy
+                    (linked below).
+                </li>
+            </ul>
+            <p>
+                You can also simply ask a facilitator not to create an account for you.
+                Taking part in the pilot is voluntary.
+            </p>
+
+            <h2 id="cspc-policy">7. CSPC's official privacy policy</h2>
+            <p>
+                CampuSphere is a student project and this notice covers the pilot
+                application only. Camarines Sur Polytechnic Colleges publishes its own
+                institutional privacy policy, which governs the college's own systems and
+                contains the official Data Protection Officer contact details:
+            </p>
+            <p>
+                <a href="https://cspc.edu.ph/governance/privacy-policy/" rel="noopener noreferrer"
+                    target="_blank">https://cspc.edu.ph/governance/privacy-policy/</a>
+            </p>
+
+            <p style="margin-top:2.5rem;">
+                <a href="/">← Back to Home</a>
+            </p>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <%- include('partials/theme-toggle') %>
+</body>
+
+</html>

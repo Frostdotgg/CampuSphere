@@ -263,8 +263,60 @@ async function runSuite(base, mode) {
     ok('L3 anon GET /api/buildings sets no session cookie', !setsSessionCookie(apiB));
 
     const authPage = await fetch(base + '/auth', { headers: { Accept: 'text/html' } });
-    const authTok = metaCsrf(await authPage.text());
+    const authBody = await authPage.text();
+    const authTok = metaCsrf(authBody);
     ok('L3 anon GET /auth -> 200 HTML with non-empty CSRF token', authPage.status === 200 && !!authTok && authTok.length > 0);
+
+    /* ---- M12.P1-R8: anonymous privacy notice + pilot indexing protection ----
+       The privacy notice must be readable BEFORE an account exists, so it is
+       asserted with a fresh no-cookie GET. The X-Robots-Tag assertions are
+       EXACT-value, not substring, so a weakened directive fails.
+
+       Indexing control is NOT access control: these headers only ask compliant
+       crawlers to stay out. /buildings below is still a 302 to /auth. */
+    const ROBOTS_TAG = 'noindex, nofollow, noarchive';
+
+    const priv = await fetch(base + '/privacy', { redirect: 'manual', headers: { Accept: 'text/html' } });
+    const privBody = await priv.text();
+    ok('R8 anon GET /privacy -> 200 HTML (no redirect, no login required)',
+      priv.status === 200 && /<!DOCTYPE|<html/i.test(privBody));
+    ok('R8 anon GET /privacy sets no session cookie', !setsSessionCookie(priv));
+    ok('R8 /privacy names the operator and the capstone-pilot nature',
+      /Team Dutchess/i.test(privBody) && /capstone/i.test(privBody));
+    ok('R8 /privacy discloses every required processor',
+      /Vercel/i.test(privBody) && /Supabase/i.test(privBody) && /Upstash/i.test(privBody) &&
+      /Google/i.test(privBody) && /Cloudinary/i.test(privBody));
+    ok('R8 /privacy states the exact requested Google scopes',
+      /openid/i.test(privBody) && /\bemail\b/i.test(privBody) && /\bprofile\b/i.test(privBody));
+    ok('R8 /privacy states 30-day-post-defense retention and owner-managed deletion',
+      /30 days/i.test(privBody) && /defense/i.test(privBody) &&
+      /manual/i.test(privBody) && /delet/i.test(privBody));
+    ok('R8 /privacy states data-subject rights and the CSPC DPO route',
+      /10173|Data Privacy Act/i.test(privBody) && /Data Protection Officer/i.test(privBody));
+    ok('R8 /privacy links the official CSPC policy',
+      privBody.includes('https://cspc.edu.ph/governance/privacy-policy/'));
+    ok('R8 /privacy states feedback is a separate Google Form CampuSphere does not store',
+      /Google Form/i.test(privBody) && /does not (?:receive|store)/i.test(privBody));
+    ok('R8 /privacy claims no consent basis, legal basis, or automatic deletion',
+      !/\blegal basis\b/i.test(privBody) &&
+      !/\bautomatically deleted\b/i.test(privBody) &&
+      !/\byou consent\b/i.test(privBody) &&
+      !/\bby using this (?:site|application|service) you agree\b/i.test(privBody));
+
+    ok('R8 anon GET / carries the exact pilot X-Robots-Tag',
+      (await fetch(base + '/', { headers: { Accept: 'text/html' } })).headers.get('x-robots-tag') === ROBOTS_TAG);
+    ok('R8 anon GET /auth carries the exact pilot X-Robots-Tag',
+      authPage.headers.get('x-robots-tag') === ROBOTS_TAG);
+    ok('R8 anon GET /privacy carries the exact pilot X-Robots-Tag',
+      priv.headers.get('x-robots-tag') === ROBOTS_TAG);
+    ok('R8 the authenticated-HTML denial path carries the exact pilot X-Robots-Tag',
+      (await fetch(base + '/dashboard', { redirect: 'manual', headers: { Accept: 'text/html' } }))
+        .headers.get('x-robots-tag') === ROBOTS_TAG);
+
+    const robots = await fetch(base + '/robots.txt');
+    const robotsBody = (await robots.text()).replace(/\r\n/g, '\n').trim();
+    ok('R8 GET /robots.txt -> 200 disallowing every crawler',
+      robots.status === 200 && robotsBody === 'User-agent: *\nDisallow: /');
   }
 
   // 3c. L5: the local "sample 360" scratch panorama dir must NOT be publicly
@@ -898,6 +950,10 @@ async function runSuite(base, mode) {
       await dr.text();
       ok('OFF.1: authenticated /dashboard Cache-Control is exactly no-store, private',
         dr.status === 200 && normCc(dr) === 'no-store,private');
+      // M12.P1-R8: authenticated HTML (200, real session) must also carry the
+      // exact pilot indexing directive, not just the anonymous surfaces.
+      ok('R8: authenticated /dashboard HTML carries the exact pilot X-Robots-Tag',
+        dr.status === 200 && dr.headers.get('x-robots-tag') === 'noindex, nofollow, noarchive');
 
       const ar = await fetch(base + '/api/buildings', { headers: { Accept: 'application/json', Cookie: off1.jar.header() } });
       const ao = parseJson(await ar.text());
@@ -2455,6 +2511,265 @@ function runDbDumpGate() {
   return rec.failures;
 }
 
+/* =================== M12.P1-R8 pilot readiness gate ===========================
+
+   The R8 read-only review found pilot-readiness blockers that no existing gate
+   covered, because every prior gate audited behaviour that EXISTS. These audit
+   things that must NOT exist (dead placeholder links, an unindexed-by-accident
+   public pilot) and things that must exist but had no owner (a privacy notice).
+
+   Every expectation is pinned HERE, independently of the views and routes being
+   audited, and every detector is exercised against a rejecting fixture built at
+   runtime from the real source. Static and database-free; the live HTTP
+   behaviour is asserted separately in the runtime contract section.
+
+   Scope note: this gate proves SOURCE SHAPE and DOCUMENTATION TRUTH. It cannot
+   and does not prove access control — /privacy is deliberately anonymous, and
+   the indexing directives it checks are voluntary crawler hints, not a
+   security boundary. */
+
+const EXPECTED_PRIVACY_ROUTE = '/privacy';
+const EXPECTED_ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive';
+const EXPECTED_ROBOTS_TXT = 'User-agent: *\nDisallow: /';
+const EXPECTED_CSPC_POLICY_URL = 'https://cspc.edu.ph/governance/privacy-policy/';
+const EXPECTED_CSPC_SITE_URL = 'https://cspc.edu.ph/';
+
+// Views that must expose a working link to the privacy notice. The anonymous
+// footer covers the landing page; the two auth surfaces cover the moment a
+// participant is actually asked for personal data.
+const PRIVACY_LINK_VIEWS = Object.freeze([
+  'views/partials/footer.ejs',
+  'views/auth.ejs',
+  'views/complete-registration.ejs',
+]);
+
+/** PURE: does this EJS source link to /privacy with a real href? */
+function linksToPrivacy(src) {
+  return typeof src === 'string' &&
+    new RegExp('href\\s*=\\s*"' + EXPECTED_PRIVACY_ROUTE + '"').test(src);
+}
+
+/** PURE: does this EJS source contain a dead placeholder anchor? */
+function hasDeadPlaceholderAnchor(src) {
+  return typeof src !== 'string' || /href\s*=\s*"#"/.test(src) || /href\s*=\s*'#'/.test(src);
+}
+
+/**
+ * PURE: does the privacy view make every disclosure the owner required, and
+ * none of the claims the owner forbade? Shape-based: each clause is a distinct
+ * required concept, so deleting a section fails even if the file stays long.
+ */
+function privacyViewIsTruthful(src) {
+  if (typeof src !== 'string' || src === '') return false;
+  const required = [
+    /Team Dutchess/i,                                   // operator
+    /capstone/i,                                        // nature of the project
+    /student ID|student_id|student ID number/i,         // role/profile data
+    /bcrypt/i,                                          // authentication data
+    /session/i,                                         // session data
+    /Vercel/i, /Supabase/i, /Upstash/i, /Cloudinary/i,  // processors
+    /openid/i,                                          // exact Google scopes
+    /Google Form/i,                                     // separate feedback
+    /30 days/i,                                         // retention window
+    /manual/i,                                          // owner-managed deletion
+    /10173/,                                            // data-subject rights
+    /Data Protection Officer/i,                         // DPO route
+  ];
+  if (!required.every((re) => re.test(src))) return false;
+  if (!src.includes(EXPECTED_CSPC_POLICY_URL)) return false;
+
+  // Forbidden invented claims.
+  const forbidden = [
+    /\blegal basis\b/i,
+    /\bautomatically deleted\b/i,
+    /\bautomatic deletion\b/i,
+    /\byou consent\b/i,
+    /\bby using this (?:site|application|service) you agree\b/i,
+    /\bwe (?:do not|never) share\b/i,
+  ];
+  return !forbidden.some((re) => re.test(src));
+}
+
+/**
+ * PURE: does documentation describe the facilitator-mediated pilot truthfully?
+ * Requires the owner's model and REJECTS the superseded invitation-only /
+ * allowlist / 100-participant framings that conflict with it.
+ */
+function describesFacilitatorMediatedPilot(text) {
+  if (typeof text !== 'string' || text === '') return false;
+  const t = text.replace(/\s+/g, ' ');
+  const carriesModel =
+    /facilitator-mediated/i.test(t) &&
+    /\bTesting\b/.test(t) &&
+    // Tolerates the Markdown code-span backticks the deployment guide uses
+    // around each scope name, e.g. `openid`, `email` and `profile`.
+    /openid[\s,`'"]*(?:and[\s,`'"]*)?email[\s,`'"]*(?:and[\s,`'"]*)?profile/i.test(t) &&
+    /basic[- ]identity exception/i.test(t);
+  const carriesConflict =
+    /invitation-only/i.test(t) ||
+    /\bOAuth (?:test[- ]user )?allowlist\b/i.test(t) ||
+    /pre-added as (?:OAuth )?test users/i.test(t) ||
+    /\b100[- ]participant\b/i.test(t) ||
+    /\b100 test users\b/i.test(t);
+  return carriesModel && !carriesConflict;
+}
+
+function runPilotReadinessGate() {
+  const rec = makeRecorder('pilot-readiness');
+  const { ok } = rec;
+
+  const ROOT_DIR = path.join(__dirname, '..');
+  const read = (rel) => {
+    const p = path.join(ROOT_DIR, ...rel.split('/'));
+    return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+  };
+  /* Is `rel` tracked by Git? spawnSync is used rather than `spawn` so this stays
+     synchronous like the rest of this static gate. Exit 0 means tracked. If Git
+     is unavailable the check cannot run, so it reports "not tracked" only when
+     Git actually answers — see the guarded assertion below. */
+  const gitAnswered = { ok: false };
+  const gitTracks = (rel) => {
+    try {
+      const r = require('child_process').spawnSync(
+        'git', ['ls-files', '--error-unmatch', '--', rel],
+        { cwd: ROOT_DIR, encoding: 'utf8', windowsHide: true }
+      );
+      if (r.error || typeof r.status !== 'number') return false;
+      gitAnswered.ok = true;
+      return r.status === 0;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  /* ---- 1. anonymous privacy route + notice content ---- */
+  const routes = read('routes/index.js');
+  const ctrl = read('controllers/pageController.js');
+  const view = read('views/privacy.ejs');
+
+  ok('routes/index.js registers GET /privacy',
+    /router\.get\(\s*'\/privacy'\s*,\s*pageController\.privacy\s*\)/.test(routes));
+  ok('GET /privacy is anonymous (no requireLogin on the privacy route)',
+    !/router\.get\(\s*'\/privacy'[^)]*requireLogin/.test(routes));
+  ok('pageController exports a privacy handler that renders the privacy view',
+    /exports\.privacy\s*=/.test(ctrl) && /res\.render\('privacy'/.test(ctrl));
+  ok('the privacy handler touches no session and no database',
+    /exports\.privacy[\s\S]{0,400}?\n\};/.test(ctrl) &&
+    !/exports\.privacy[\s\S]{0,400}?req\.session/.test(ctrl) &&
+    !/exports\.privacy[\s\S]{0,400}?(?:db\.query|Repository)/.test(ctrl));
+  ok('views/privacy.ejs exists and makes every required disclosure',
+    privacyViewIsTruthful(view));
+  ok('views/privacy.ejs nonces its inline style element (CSP)',
+    /<style nonce="<%= cspNonce %>">/.test(view));
+
+  /* ---- 2. working privacy links, zero dead placeholders ---- */
+  for (const rel of PRIVACY_LINK_VIEWS) {
+    const src = read(rel);
+    ok(rel + ' links to the privacy notice', linksToPrivacy(src));
+    ok(rel + ' contains zero dead href="#" placeholders', !hasDeadPlaceholderAnchor(src));
+  }
+  const footer = read('views/partials/footer.ejs');
+  ok('the anonymous footer points at the real CSPC website, not a placeholder',
+    footer.includes(EXPECTED_CSPC_SITE_URL));
+  ok('the anonymous footer links the official CSPC privacy policy',
+    footer.includes(EXPECTED_CSPC_POLICY_URL));
+  ok('the removed Student Portal / FAQ / Contact / Terms placeholders are not back',
+    !/>\s*Student Portal\s*</.test(footer) &&
+    !/>\s*FAQ\s*</.test(footer) &&
+    !/>\s*Contact Us\s*</.test(footer) &&
+    !/>\s*Terms of Use\s*</.test(footer));
+
+  /* ---- 3. indexing protection ---- */
+  const headers = read('middleware/securityHeaders.js');
+  const server = read('server.js');
+  const robotsTxt = read('public/robots.txt').replace(/\r\n/g, '\n').trim();
+
+  ok('securityHeaders pins the exact pilot X-Robots-Tag value',
+    headers.includes("'" + EXPECTED_ROBOTS_TAG_VALUE + "'"));
+  ok('securityHeaders exports a pilotNoIndex middleware that sets X-Robots-Tag',
+    /function pilotNoIndex\(/.test(headers) &&
+    /res\.set\('X-Robots-Tag',\s*PILOT_ROBOTS_TAG\)/.test(headers) &&
+    /module\.exports\s*=\s*\{[^}]*pilotNoIndex/.test(headers));
+  ok('server.js mounts pilotNoIndex before the static handler and the routes',
+    server.indexOf('app.use(pilotNoIndex)') > -1 &&
+    server.indexOf('app.use(pilotNoIndex)') < server.indexOf('express.static') &&
+    server.indexOf('app.use(pilotNoIndex)') < server.indexOf("app.use('/', indexRoutes)"));
+  ok('public/robots.txt disallows every crawler', robotsTxt === EXPECTED_ROBOTS_TXT);
+  ok('the indexing control is documented as NOT access control',
+    /NOT ACCESS CONTROL|not access control/i.test(headers) &&
+    /NOT ACCESS CONTROL|not access control/i.test(server));
+
+  /* ---- 4. truthful OAuth / pilot documentation ---- */
+  const deployDoc = read('docs/deployment.md');
+  ok('docs/deployment.md records the facilitator-mediated pilot model',
+    describesFacilitatorMediatedPilot(deployDoc));
+  ok('no tracked documentation still claims an invitation-only pilot',
+    !/invitation-only/i.test(deployDoc) &&
+    !/invitation-only/i.test(read('plan.md')) &&
+    !/invitation-only/i.test(read('ROADMAP.md')));
+  ok('the shipped OAuth scope request still matches the documented scopes',
+    /scope:\s*'openid email profile'/.test(read('controllers/authController.js')));
+
+  /* ---- 5. current documentation consistency ---- */
+  /* The superseded label may still APPEAR in the deployment guide — the R7
+     closeout is accepted history and must be preserved. What must not happen is
+     the guide presenting it as the CURRENT label. So: the corrected label must
+     be recorded, and any surviving mention of the old one must be explicitly
+     framed as superseded. */
+  ok('docs/deployment.md records the corrected neutral inventory label',
+    deployDoc.includes(EXPECTED_PACKAGE_INVENTORY_LABEL));
+  ok('docs/deployment.md frames the dirty-worktree label only as superseded history',
+    !/dirty[- ]worktree/i.test(deployDoc) ||
+    /\b(?:superseded|previously|became false)\b/i.test(deployDoc));
+  {
+    // Fails CLOSED on a real answer: if Git says the manuscript is tracked, this
+    // fails. It is skipped as "not applicable" only when Git itself could not
+    // answer (no repository / no git binary), which is stated explicitly.
+    const tracked = gitTracks('MANUSCRIPT_TEAMDUTCHESS.pdf');
+    ok('MANUSCRIPT_TEAMDUTCHESS.pdf is not tracked in the deployment snapshot' +
+      (gitAnswered.ok ? '' : ' (git unavailable — not asserted)'),
+      gitAnswered.ok ? !tracked : true);
+  }
+  ok('the root .gitignore still excludes root-level document exports',
+    read('.gitignore').includes('/*.pdf'));
+
+  /* ---- rejecting fixtures: every detector must reject a broken source ---- */
+  ok('fixture: a view with href="#" is flagged',
+    hasDeadPlaceholderAnchor('<a href="#">x</a>') &&
+    hasDeadPlaceholderAnchor("<a href='#'>x</a>"));
+  ok('fixture: a view without a /privacy link is flagged',
+    !linksToPrivacy('<a href="/about">About</a>') && !linksToPrivacy(null));
+  ok('fixture: a privacy notice missing the CSPC policy URL is rejected',
+    !privacyViewIsTruthful(view.split(EXPECTED_CSPC_POLICY_URL).join('https://example.invalid/')));
+  ok('fixture: a privacy notice missing the retention window is rejected',
+    !privacyViewIsTruthful(view.replace(/30 days/g, 'some time')));
+  ok('fixture: a privacy notice missing the DPO route is rejected',
+    !privacyViewIsTruthful(view.replace(/Data Protection Officer/g, 'someone')));
+  ok('fixture: a privacy notice that invents a legal basis is rejected',
+    !privacyViewIsTruthful(view + '<p>Our legal basis is legitimate interest.</p>'));
+  ok('fixture: a privacy notice that promises automatic deletion is rejected',
+    !privacyViewIsTruthful(view + '<p>Your data is automatically deleted.</p>'));
+  ok('fixture: a privacy notice that invents a no-sharing guarantee is rejected',
+    !privacyViewIsTruthful(view + '<p>We never share your data.</p>'));
+  ok('fixture: empty / non-string privacy source is rejected',
+    !privacyViewIsTruthful('') && !privacyViewIsTruthful(null) && !privacyViewIsTruthful({}));
+  ok('fixture: documentation reintroducing invitation-only framing is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is invitation-only.'));
+  ok('fixture: documentation reintroducing an OAuth allowlist is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' Participants are pre-added as OAuth test users.'));
+  ok('fixture: documentation reintroducing a 100-participant cap is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is limited to 100 test users.'));
+  ok('fixture: documentation dropping the basic-identity exception is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc.replace(/basic[- ]identity exception/gi, 'rule')));
+  ok('fixture: a robots.txt that allows crawling is rejected',
+    'User-agent: *\nAllow: /' !== EXPECTED_ROBOTS_TXT);
+  ok('fixture: a weakened X-Robots-Tag value is rejected',
+    'noindex' !== EXPECTED_ROBOTS_TAG_VALUE &&
+    'noindex, nofollow' !== EXPECTED_ROBOTS_TAG_VALUE);
+
+  return rec.failures;
+}
+
 /* ============ M12.P1-R7 Vercel package / static-CDN boundary gate ============
    Drives the SAME real analyzers the standalone probe exports, so the gate and
    the probe can never disagree, and adds negative fixtures that are independent
@@ -2481,6 +2796,21 @@ const EXPECTED_R7_AUDITABLE_SOURCE_FILES = Object.freeze([
   'scripts/vercelPackageBoundary-probe.js',
   'scripts/quality-gates.js',
 ]);
+
+/* M12.P1-R8. The exact label the focused probe must stamp on its package
+   inventory, pinned INDEPENDENTLY of the probe for the same reason as the
+   audited-source list above: a gate that reads the expected label out of the
+   artifact it audits proves nothing.
+
+   The superseded label asserted the inventory was a DIRTY-WORKTREE preview.
+   That was true while the deployable application was uncommitted, but it
+   contradicted docs/deployment.md once the clean snapshot was committed. The
+   replacement is neutral about worktree state and keeps the disclaimer that
+   matters: enumerating the package is not authorization to upload it.
+   Deliberately plain ASCII (hyphen, not an em dash) so the string survives
+   grep/diff across shells without encoding ambiguity. */
+const EXPECTED_PACKAGE_INVENTORY_LABEL =
+  'CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION';
 
 /**
  * PURE: does `candidate` equal EXPECTED_R7_AUDITABLE_SOURCE_FILES exactly and in
@@ -2903,8 +3233,38 @@ function runVercelPackageBoundaryGate() {
     ok('the R7 focused probe builds its temporary static root outside the repository',
       /fs\.mkdtempSync\(\s*path\.join\(os\.tmpdir\(\)/.test(src) &&
       /fs\.rmSync\(staticRoot,\s*\{\s*recursive:\s*true/.test(src));
-    ok('the R7 focused probe labels its preview as a dirty-worktree snapshot',
-      src.includes('CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST'));
+    /* M12.P1-R8 neutral package-inventory label.
+       Pinned HERE, independently of the probe, exactly like
+       EXPECTED_R7_AUDITABLE_SOURCE_FILES: the gate must not learn the expected
+       label from the artifact it is auditing. The former dirty-worktree label
+       became false once the clean snapshot was committed, so it is now
+       forbidden outright — a revert to it fails this gate. */
+    ok('the R7 focused probe carries the exact independently pinned neutral inventory label',
+      src.includes(EXPECTED_PACKAGE_INVENTORY_LABEL));
+    ok('the R7 focused probe no longer claims its inventory is a dirty-worktree preview',
+      !src.includes('CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW') &&
+      !/labelled as a dirty-worktree preview/.test(src));
+    ok('the R7 focused probe still rejects a manifest whose label does not match',
+      /manifest\.label\s*!==\s*PREVIEW_LABEL/.test(src));
+
+    /* Rejecting fixtures for the label predicate itself. Built here so the gate
+       proves the contract rather than trusting the probe's own wording. */
+    {
+      const labelOk = (candidate) => candidate === EXPECTED_PACKAGE_INVENTORY_LABEL;
+      ok('label fixture :: the exact neutral label is accepted',
+        labelOk('CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION'));
+      ok('label fixture :: the superseded dirty-worktree label is rejected',
+        !labelOk('CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST'));
+      ok('label fixture :: a label that drops the authorization disclaimer is rejected',
+        !labelOk('CURRENT VERCEL PACKAGE BOUNDARY INVENTORY'));
+      ok('label fixture :: a label that claims deployment authorization is rejected',
+        !labelOk('CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - DEPLOYMENT AUTHORIZATION'));
+      ok('label fixture :: case and whitespace variants are rejected',
+        !labelOk('current vercel package boundary inventory - not deployment authorization') &&
+        !labelOk(' CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION'));
+      ok('label fixture :: empty and non-string input is rejected',
+        !labelOk('') && !labelOk(null) && !labelOk(undefined) && !labelOk(['x']));
+    }
     ok('the R7 focused probe binds only its own dedicated port',
       /STATIC_PORT\s*=\s*3385\b/.test(src) &&
       /\.listen\(STATIC_PORT,\s*'127\.0\.0\.1'/.test(src) &&
@@ -6416,6 +6776,10 @@ async function main() {
 
   console.log('[Admin dashboard truthfulness] (M12.P1-R8 static view/controller analysis + mutated-source rejecting fixtures)');
   allFailures.push(...runAdminDashboardTruthfulnessGate().map((f) => 'admin-dashboard-truthfulness :: ' + f));
+  console.log('');
+
+  console.log('[Pilot readiness] (M12.P1-R8 privacy notice, footer links, indexing protection, pilot-doc truth + rejecting fixtures)');
+  allFailures.push(...runPilotReadinessGate().map((f) => 'pilot-readiness :: ' + f));
   console.log('');
 
   console.log('[Sample-360 scratch-dir exposure] (static .dockerignore/.gitignore/server.js analysis)');

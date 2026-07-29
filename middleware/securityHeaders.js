@@ -36,6 +36,33 @@ const helmet = require('helmet');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+/* ========================================
+   M12.P1-R8 — Pilot indexing protection.
+
+   The facilitator-mediated pilot runs on a PUBLIC Vercel production hostname.
+   Vercel applies an automatic noindex to PREVIEW deployments only, so a
+   production deployment is crawlable unless the application says otherwise.
+
+   THIS IS NOT ACCESS CONTROL. `X-Robots-Tag` and `public/robots.txt` are
+   voluntary directives that well-behaved crawlers honour. They reduce
+   incidental search-engine discovery of the pilot; they do not authenticate,
+   authorize, rate-limit, or block anyone. Every access-control guarantee still
+   comes from requireLogin/requireRole, the session cookie, and CSRF — see
+   middleware/roleAuth.js. A crawler or person who ignores these directives is
+   stopped by those controls, not by this header.
+   ======================================== */
+const PILOT_ROBOTS_TAG = 'noindex, nofollow, noarchive';
+
+/**
+ * Apply the exact pilot `X-Robots-Tag` to every response this app generates.
+ * Mounted before the static handler and before every route, so anonymous pages
+ * (`/`, `/auth`, `/privacy`), authenticated HTML, and JSON all carry it.
+ */
+function pilotNoIndex(req, res, next) {
+  res.set('X-Robots-Tag', PILOT_ROBOTS_TAG);
+  next();
+}
+
 /**
  * Generate a fresh CSP nonce per request and expose it to views. Mounted BEFORE
  * Helmet (which reads it) and before any route/render (which embeds it).
@@ -105,4 +132,4 @@ const securityHeaders = helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 });
 
-module.exports = { cspNonce, securityHeaders };
+module.exports = { cspNonce, securityHeaders, pilotNoIndex, PILOT_ROBOTS_TAG };

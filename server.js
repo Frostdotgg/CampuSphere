@@ -42,7 +42,7 @@ const { notFound, serverError } = require('./middleware/errorHandler');
 const { requireLogin } = require('./middleware/roleAuth');
 const { attachCsrfToken, verifyCsrf } = require('./middleware/csrfProtection');
 const { preParseAuthLimiter, profileUpdateLimiter } = require('./middleware/rateLimit');
-const { cspNonce, securityHeaders } = require('./middleware/securityHeaders');
+const { cspNonce, securityHeaders, pilotNoIndex } = require('./middleware/securityHeaders');
 
 // Session runtime (Milestone 8, Section 8.4; Milestone 9, Section 9.4):
 // persistent session store (Supabase preferred in production, MySQL fallback)
@@ -125,6 +125,16 @@ const sessionReadiness = createSessionReadiness(sessionStore);
    <script>/<style> nonces. */
 app.use(cspNonce);
 app.use(securityHeaders);
+
+/* ---- Pilot indexing protection (M12.P1-R8) ----
+   Mounted with the security headers so EVERY response this app produces — the
+   anonymous landing/auth/privacy pages, authenticated HTML, JSON APIs, the
+   readiness 503, rate-limit 429s, and error pages — carries the exact pilot
+   X-Robots-Tag. Paired with public/robots.txt.
+
+   NOT ACCESS CONTROL: these are voluntary crawler directives, not an
+   authorization boundary. See middleware/securityHeaders.js. */
+app.use(pilotNoIndex);
 
 /* ---- Session readiness gate (M12.P1-R3) ----
    Immediately after the security headers and BEFORE rate limiting, the body

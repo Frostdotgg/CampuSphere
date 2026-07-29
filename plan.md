@@ -1363,6 +1363,27 @@ and `docs/test-evidence.md`. Preparing that candidate is not the review.
 The clean-snapshot candidate awaits an independent read-only R8 review
 decision.
 
+A first independent read-only R8 review of that clean-snapshot candidate
+returned CANDIDATE NO-GO on pilot-readiness grounds. Under a separate owner
+authorization, a pilot-readiness correction was then applied on top of it in one
+follow-up commit: an anonymous `GET /privacy` notice linked from the anonymous
+footer and both authentication surfaces; pilot indexing protection
+(`X-Robots-Tag: noindex, nofollow, noarchive` on every response plus
+`public/robots.txt`); removal of every dead footer placeholder; the corrected
+neutral package-inventory label; the owner-approved facilitator-mediated pilot
+model recorded in `docs/deployment.md`; `MANUSCRIPT_TEAMDUTCHESS.pdf` untracked;
+and a new fail-closed `pilot-readiness` gate.
+
+The owner pilot decision recorded there is that the pilot is
+facilitator-mediated rather than restricted by any participant roster.
+Participants register through Google under the existing domain-to-role mapping,
+the OAuth client stays in Testing, and CampuSphere requests only `openid`,
+`email` and `profile`, which Google's documented basic-identity exception covers.
+Indexing control is documented as not being access control.
+
+These corrections await another independent read-only R8 review. No R8 GO,
+Codex GO, deployment GO, or pilot GO is claimed by this work.
+
 `M12.P1` remains NO-GO for deployment and pilot readiness; deployment is not
 authorized.
 

@@ -15,7 +15,8 @@ handoff owner, and delivery coordinator.
 
 This is a fresh grounding session. Do not implement, edit, deploy, apply SQL,
 access Cloudinary APIs, create migration 0020, or perform Git state-changing
-operations. Preserve the intentionally dirty worktree.
+operations. The deployable application is now a clean committed snapshot on
+`main`, not a dirty worktree; preserve that clean state and change nothing.
 
 Read completely and in this order:
 1. CODEX_HANDOFF.md
@@ -170,7 +171,8 @@ review and GO/NO-GO control.
 This is a fresh grounding session. Do not implement, edit, create, delete,
 move, stage, commit, apply SQL, mutate database rows, deploy, access Cloudinary
 APIs, create migration 0020, or start a persistent server during grounding.
-Preserve the intentionally dirty worktree.
+The deployable application is now a clean committed snapshot on `main`, not a
+dirty worktree; preserve that clean state and change nothing.
 
 Read completely and in this order:
 1. CODEX_HANDOFF.md

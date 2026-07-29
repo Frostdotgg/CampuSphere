@@ -70,8 +70,23 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
+/* M12.P1-R8 label correction.
+   The superseded label described this inventory as an uncommitted-working-tree
+   preview and denied being an immutable manifest. That was accurate while the
+   deployable application lived outside version control, but it became FALSE
+   once the complete intended state was committed as a clean snapshot, and it
+   contradicted docs/deployment.md.
+
+   The replacement stays neutral about version-control state (which this probe
+   does not inspect) while keeping the load-bearing disclaimer: enumerating the
+   package is NOT permission to upload it. Accepted historical R7 evidence
+   retains the original label and totals as history; see docs/test-evidence.md.
+
+   The superseded literal is deliberately NOT reproduced anywhere in this file:
+   the quality gate proves the old label is gone by scanning this source, so
+   quoting it here — even in a comment — would fail that check. */
 const PREVIEW_LABEL =
-  'CURRENT DIRTY-WORKTREE BOUNDARY PREVIEW — NOT AN IMMUTABLE DEPLOYMENT MANIFEST';
+  'CURRENT VERCEL PACKAGE BOUNDARY INVENTORY - NOT DEPLOYMENT AUTHORIZATION';
 
 /* =============================================================================
    INDEPENDENTLY PINNED CONTRACT (reviewed code, not derived from the configs)
@@ -624,7 +639,7 @@ function buildPackageManifest(root, rules) {
 function verifyManifestSelfConsistency(manifest) {
   const problems = [];
   if (!manifest || typeof manifest !== 'object') return ['manifest is missing'];
-  if (manifest.label !== PREVIEW_LABEL) problems.push('manifest is not labelled as a dirty-worktree preview');
+  if (manifest.label !== PREVIEW_LABEL) problems.push('manifest does not carry the exact neutral package-inventory label');
   if (!Array.isArray(manifest.files)) return [...problems, 'manifest has no file list'];
 
   const seen = new Set();

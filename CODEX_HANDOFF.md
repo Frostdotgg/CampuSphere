@@ -45,6 +45,20 @@ Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 > `npm audit --omit=dev` zero vulnerabilities, and postconditions
 > `24/24 -> 18/18 -> 46/46`. It does not supersede or replace the accepted D7
 > `3511/3511` evidence and authorizes no new section.
+>
+> A first independent read-only R8 review of the clean-snapshot candidate
+> returned CANDIDATE NO-GO on pilot-readiness grounds. A separately
+> owner-authorized pilot-readiness correction was then applied in one follow-up
+> commit: an anonymous `GET /privacy` notice linked from the anonymous footer
+> and both authentication surfaces; `X-Robots-Tag: noindex, nofollow, noarchive`
+> on every response plus `public/robots.txt`; zero dead footer placeholders; the
+> corrected neutral package-inventory label; the owner-approved
+> facilitator-mediated pilot model in `docs/deployment.md`;
+> `MANUSCRIPT_TEAMDUTCHESS.pdf` untracked; and a new fail-closed
+> `pilot-readiness` gate. Indexing control is documented as not being access
+> control. Those corrections await another independent read-only R8 review, and
+> no R8 GO, Codex GO, deployment GO, or pilot GO is claimed by that work.
+>
 > `M12.P1-R8` is the next potential section. R8 is read-only and is not
 > authorized by this synchronization. Even a future R8 GO authorizes only a
 > separate owner deployment decision. Deployment is not authorized, and final
