@@ -492,8 +492,11 @@ becomes accepted evidence only through an independent read-only `M12.P1-R8`
 review decision, and nothing here authorizes an upload, a Vercel link, or a
 deployment.
 
-The clean-snapshot candidate awaits an independent read-only `M12.P1-R8`
-review decision.
+The clean-snapshot candidate, its corrections, and the bounded evidence
+re-execution recorded under "Bounded evidence re-execution (M12.P1-R8)" below
+all await an independent read-only `M12.P1-R8` review decision. No R8 GO, Codex
+GO, deployment GO, pilot GO, or Milestone 12 GO is claimed. Accepted `R1`-`R7`
+and `D1`-`D7` history is unchanged.
 
 `M12.P1` remains NO-GO for deployment and pilot readiness; deployment is not
 authorized.
@@ -832,6 +835,47 @@ Three consequences follow, and all three are deliberate:
 
 Do not change the scopes, credentials, callback URL, publishing status, or the
 domain-to-role mapping as part of pilot preparation.
+
+#### Bounded evidence re-execution (M12.P1-R8; candidate evidence)
+
+A separately owner-authorized bounded evidence re-execution has been completed.
+It gathered evidence only — no source edit, commit, SQL, migration, Vercel
+operation, or OAuth configuration change was made — and it is candidate evidence
+awaiting an independent read-only `M12.P1-R8` review.
+
+- **Local authenticated exposure matrix, clean bounded re-execution.** MySQL
+  `34/34` plus a `14/14` supplement, Supabase `64/64` plus a `14/14` supplement:
+  `126/126` with zero failures. A separate fresh browser context per role, each
+  proven to carry zero cookies and zero web storage before authentication. Every
+  authenticated session was registered with `scripts/probeSessionLifecycle.js`
+  immediately after login and terminated exactly once through `terminateAll()`
+  and the real CSRF-protected `POST /logout`. No `429` occurred, no failed logout
+  was retried, `services/sessionRevocation.js` was never imported or called, and
+  no session row was deleted directly and no database cleanup was performed.
+  Final ordered postconditions were `24/24 -> 18/18 -> 46/46`.
+- **`SEC-05`, the unsupported-domain OAuth flow.** Executed externally and
+  passed. The flow reached `accounts.google.com` requesting exactly `openid`,
+  `email` and `profile`; the unsupported-domain Google account completed Google
+  authorization and returned to CampuSphere; CampuSphere redirected to
+  `/auth?error=unauthorized_domain` with a sanitized message that echoed no
+  email address and no raw error. Supabase `users` held 6 rows before and 6 rows
+  after with zero rows on unsupported domains, no user or role-profile row was
+  created, and no pending OAuth registration persisted. No scope, credential,
+  redirect URI, publishing status, or test-user configuration was changed.
+- **Pilot feedback form.** Opened anonymously; the responder page rather than
+  the editor UI; accepting responses; no email collection; 10/10 SUS-style
+  statements, 8/8 satisfaction questions, and 4/4 open-feedback prompts present.
+  Nothing was submitted and no response row was created. `READY` as external
+  owner evidence; the responder URL stays outside Git.
+
+The first execution of that exposure matrix is historical/superseded and is
+explicitly **not** accepted evidence: rate-limit `429`s disturbed it and an
+orphaned session was cleared by calling `revokeUserSessions` directly rather
+than through the supported logout interface.
+
+`SEC-51`, the actual Vercel production smoke, remains deferred to a separate
+owner deployment decision. Nothing in this subsection is an R8 GO, a deployment
+GO, a pilot GO, or a Milestone 12 GO.
 
 #### Pilot indexing protection (M12.P1-R8)
 

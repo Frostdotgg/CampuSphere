@@ -173,7 +173,31 @@ corrected neutral package-inventory label, the owner-approved
 facilitator-mediated pilot model, `MANUSCRIPT_TEAMDUTCHESS.pdf` untracked, and a
 new fail-closed `pilot-readiness` gate. Those corrections await another
 independent read-only R8 review, and no R8 GO, Codex GO, deployment GO, or pilot
-GO is claimed by that work. `M12.P1-R8`
+GO is claimed by that work. A separately owner-authorized bounded evidence
+re-execution has since been completed as candidate evidence: the local
+authenticated exposure matrix was re-run clean at MySQL `34/34` plus a `14/14`
+supplement and Supabase `64/64` plus a `14/14` supplement, `126/126` with zero
+failures, using a separate fresh browser context per role with zero
+carried-over cookies and web storage before authentication, every authenticated
+session registered immediately with `scripts/probeSessionLifecycle.js` and
+terminated exactly once through `terminateAll()` and the real CSRF-protected
+`POST /logout`, no `429`, no retried logout, no import or call of
+`services/sessionRevocation.js`, no direct session-row deletion or database
+cleanup, and final ordered postconditions `24/24 -> 18/18 -> 46/46`; `SEC-05`
+was executed externally and passed with a sanitized
+`/auth?error=unauthorized_domain` refusal, Supabase `users` at six rows before
+and after, zero unsupported-domain rows, no user or role-profile row, and no
+persisted pending OAuth registration; and the pilot feedback form is READY as
+external owner evidence with its URL kept outside Git. The first execution of
+that exposure matrix is historical/superseded and explicitly NOT accepted:
+rate-limit `429`s disturbed it, and an orphaned session was cleared by a direct
+`revokeUserSessions` call rather than through the supported logout interface.
+The follow-up documentation commit recording that evidence awaits an
+independent read-only R8 review; no R8 GO, Codex GO, deployment GO, pilot GO, or
+Milestone 12 GO is claimed. `SEC-51` production smoke remains deferred to a
+separate owner deployment decision, OFF.2-OFF.6 remain deferred until pilot
+review and are not cancelled, and accepted `R1`-`R7` and `D1`-`D7` history is
+unchanged. `M12.P1-R8`
 is the next potential section. R8 is read-only and is
 not authorized by this synchronization; even R8 GO authorizes only a separate
 owner deployment decision. `M12.P1` remains NO-GO for deployment and pilot
