@@ -3929,6 +3929,194 @@ function analyzeProvenanceRemediationRow(md) {
   return problems;
 }
 
+/* ---- M12.P1-R8 evidence-consistency analyzers (structural, text-in only) ----
+   Every function below reads ONLY the markdown text it is handed. None of them
+   reads a file, and none scans this gate's own source, so the fixture strings
+   and commentary in scripts/quality-gates.js can never collide with a detector.
+   Row targeting is done on PARSED CELLS rather than whole-row substrings: a
+   superseded figure quoted inside an evidence cell as historical context is a
+   legitimate citation, while the same figure sitting in a STATUS cell is a
+   current disposition. Only the latter is a defect. */
+
+/* The current R8 enumerated package inventory, pinned HERE independently of the
+   probe and of both evidence documents, so a document edit alone cannot move
+   what "current" means. */
+const EXPECTED_R8_PACKAGE_INVENTORY = Object.freeze({
+  files: 157,
+  bytes: '6,194,154',
+  sha256: '77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a',
+});
+
+/** PURE: the STATUS cell of an evidence row (always second-to-last column). */
+function evidenceStatusCell(cells) {
+  if (!Array.isArray(cells) || cells.length < 3) return '';
+  return String(cells[cells.length - 2] == null ? '' : cells[cells.length - 2]);
+}
+
+/** PURE: the EVIDENCE/disposition cell of an evidence row (last column). */
+function evidenceReferenceCell(cells) {
+  if (!Array.isArray(cells) || cells.length < 3) return '';
+  return String(cells[cells.length - 1] == null ? '' : cells[cells.length - 1]);
+}
+
+/**
+ * PURE: a row is HISTORICAL only when its OWN label or disposition says so.
+ * The whole-row predicate (evidenceRowIsHistorical) cannot be used to decide
+ * "is this row current?", because a perfectly current row routinely CITES older
+ * evidence as historical inside its evidence cell — that citation is a virtue,
+ * not a self-demotion. Deliberately scoped to the label and status cells, and
+ * kept separate from evidenceRowIsHistorical so no existing gate changes.
+ * @returns {boolean}
+ */
+function evidenceRowSelfMarkedHistorical(cells) {
+  const label = Array.isArray(cells) && cells.length ? String(cells[0] == null ? '' : cells[0]) : '';
+  return /\bhistorical\b|\bsuperseded\b/i.test(label + ' ' + evidenceStatusCell(cells));
+}
+
+/**
+ * PURE: extract one `## <heading>` section's body from a markdown document.
+ * Stops at the next `## ` heading (a deeper `###` heading does not terminate it).
+ * @returns {string} the section body, or '' when the heading is absent
+ */
+function markdownSection(md, headingRe) {
+  const out = [];
+  let inSection = false;
+  for (const line of String(md == null ? '' : md).split(/\r?\n/)) {
+    if (/^##\s+/.test(line)) {
+      if (inSection) break;
+      if (headingRe.test(line.trim())) { inSection = true; continue; }
+    }
+    if (inSection) out.push(line);
+  }
+  return out.join('\n');
+}
+
+/**
+ * PURE: there must be exactly ONE current "Full QA aggregate" disposition, it
+ * must not be Pending or blank, and it must reference verified QA evidence.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeFullQaAggregateRows(md) {
+  const rows = markdownTableRows(md).filter((r) => /full qa aggregate/i.test(r.cells[0] || ''));
+  const problems = [];
+  if (rows.length === 0) problems.push('no Full QA aggregate row');
+  const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
+  if (current.length === 0) problems.push('no current Full QA aggregate disposition');
+  if (current.length > 1) problems.push('duplicate current Full QA aggregate dispositions');
+  for (const r of current) {
+    const status = evidenceStatusCell(r.cells);
+    if (/\bpending\b/i.test(status)) problems.push('current Full QA aggregate row is still Pending');
+    if (status.trim() === '') problems.push('current Full QA aggregate row has a blank status');
+    else if (!/\bPASS\b/i.test(status)) problems.push('current Full QA aggregate row records no PASS disposition');
+    if (!/QUALITY-GATES OK|\b\d{4}\/\d{4}\b/i.test(r.raw)) {
+      problems.push('current Full QA aggregate row references no verified QA evidence');
+    }
+  }
+  return problems;
+}
+
+/**
+ * PURE: every Manual Black-Box Checklist row must carry a nonblank status and a
+ * nonblank evidence/disposition, and none may be Pending. Fails closed when the
+ * section is missing or empty.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeManualBlackBoxRows(md) {
+  const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
+  if (section.trim() === '') return ['no Manual Black-Box Checklist section'];
+  const rows = markdownTableRows(section).filter((r) => !/^area$/i.test(r.cells[0] || ''));
+  const problems = [];
+  if (rows.length === 0) problems.push('Manual Black-Box Checklist has no rows');
+  for (const r of rows) {
+    const label = String(r.cells[0] || '') + ' / ' + String(r.cells[1] || '');
+    if (r.cells.length < 6) { problems.push('malformed manual row: ' + label); continue; }
+    const status = evidenceStatusCell(r.cells);
+    if (/\bpending\b/i.test(status)) problems.push('Pending manual status: ' + label);
+    if (status.trim() === '') problems.push('blank manual status: ' + label);
+    if (evidenceReferenceCell(r.cells).trim() === '') problems.push('blank manual evidence/disposition: ' + label);
+  }
+  return problems;
+}
+
+/**
+ * PURE: the deployment-smoke manual row must remain explicitly DEFERRED, must
+ * name SEC-51, and must never claim PASS.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeDeploymentSmokeRow(md) {
+  const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
+  const rows = markdownTableRows(section).filter((r) => /deployment smoke/i.test(r.cells[0] || ''));
+  if (rows.length === 0) return ['no deployment smoke row'];
+  if (rows.length > 1) return ['duplicate deployment smoke rows'];
+  const status = evidenceStatusCell(rows[0].cells);
+  const problems = [];
+  if (!/\bdeferred\b/i.test(status)) problems.push('deployment smoke row is not marked DEFERRED');
+  if (!/\bSEC-51\b/.test(rows[0].raw)) problems.push('deployment smoke row does not reference SEC-51');
+  if (/\bPASS\b/i.test(status)) problems.push('deployment smoke row claims PASS');
+  return problems;
+}
+
+/**
+ * PURE: a superseded R8 candidate figure (the 3659/3659 suite total or the
+ * 6,192,992-byte inventory) must never occupy a CURRENT row's STATUS cell.
+ * Quoting either in an evidence cell as historical context stays legitimate.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeSupersededCandidateRows(md) {
+  const problems = [];
+  for (const r of markdownTableRows(md)) {
+    const status = evidenceStatusCell(r.cells);
+    if (!/\b3659\/3659\b/.test(status) && !/6,192,992/.test(status)) continue;
+    if (!evidenceRowSelfMarkedHistorical(r.cells)) {
+      problems.push('a superseded R8 candidate figure is presented as current: ' + String(r.cells[0] || ''));
+    }
+  }
+  return problems;
+}
+
+/**
+ * PURE: exactly ONE current R8 package inventory row, stating the independently
+ * pinned file count, byte count, and aggregate SHA-256 in its STATUS cell.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeCurrentPackageInventoryRow(md, expected) {
+  const rows = markdownTableRows(md).filter((r) => /package inventory/i.test(r.cells[0] || ''));
+  const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
+  const problems = [];
+  if (current.length === 0) problems.push('no current package inventory row');
+  if (current.length > 1) problems.push('duplicate current package inventory rows');
+  for (const r of current) {
+    const status = evidenceStatusCell(r.cells);
+    if (!new RegExp('\\b' + String(expected.files) + '\\b').test(status)) {
+      problems.push('current inventory row does not state the pinned file count');
+    }
+    if (!status.includes(expected.bytes)) problems.push('current inventory row does not state the pinned byte count');
+    if (!status.includes(expected.sha256)) problems.push('current inventory row does not state the pinned aggregate SHA-256');
+  }
+  return problems;
+}
+
+/**
+ * PURE: exactly ONE current full-suite/QA correction-candidate row once the
+ * final totals are recorded. A candidate row is one whose STATUS cell both
+ * calls itself a candidate and carries a four-digit suite total.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeCurrentCandidateSuiteRow(md) {
+  const rows = markdownTableRows(md).filter((r) => {
+    const status = evidenceStatusCell(r.cells);
+    return /\bcandidate\b/i.test(status) && /\b\d{4}\/\d{4}\b/.test(status);
+  });
+  const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
+  const problems = [];
+  if (current.length === 0) problems.push('no current full-suite candidate row');
+  if (current.length > 1) problems.push('duplicate current full-suite candidate rows');
+  for (const r of current) {
+    if (/\bpending\b/i.test(evidenceStatusCell(r.cells))) problems.push('current full-suite candidate row is Pending');
+  }
+  return problems;
+}
+
 function runDocsCurrentGate() {
   const rec = makeRecorder('docs-current');
   const { ok } = rec;
@@ -5058,6 +5246,95 @@ function runDocsCurrentGate() {
       analyzePostSyncRow(HDR + '| Post-synchronization candidate (historical/superseded) | `x` | y | RED | closed by a supported restoration |').length === 0);
     ok('fixture: a missing post-synchronization row fails closed',
       analyzePostSyncRow(HDR + NON_SAFETY_24).length > 0);
+
+    /* ---- M12.P1-R8 evidence-consistency corrections (live documents) ---- */
+    ok('docs/test-evidence.md exposes exactly one current, non-Pending Full QA aggregate disposition',
+      analyzeFullQaAggregateRows(te).length === 0);
+    ok('docs/test-evidence.md Manual Black-Box Checklist carries no Pending status and no blank disposition',
+      analyzeManualBlackBoxRows(te).length === 0);
+    ok('docs/test-evidence.md deployment smoke stays explicitly deferred to SEC-51 and never claims PASS',
+      analyzeDeploymentSmokeRow(te).length === 0);
+    ok('docs/test-evidence.md presents no superseded R8 candidate figure as a current status',
+      analyzeSupersededCandidateRows(te).length === 0);
+    ok('docs/security-checklist.md presents no superseded R8 candidate figure as a current status',
+      analyzeSupersededCandidateRows(sc).length === 0);
+    ok('docs/test-evidence.md exposes exactly one current R8 package inventory row with the pinned figures',
+      analyzeCurrentPackageInventoryRow(te, EXPECTED_R8_PACKAGE_INVENTORY).length === 0);
+    ok('docs/test-evidence.md exposes exactly one current full-suite correction-candidate row',
+      analyzeCurrentCandidateSuiteRow(te).length === 0);
+
+    /* ---- fixtures for the R8 evidence-consistency rules, pinned independently
+       of the live documents. Each rule gets an accepting AND a rejecting case. ---- */
+    const Q_HDR = '| Gate | Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- | --- |\n';
+    const M_HDR = '## Manual Black-Box Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- | --- | --- |\n';
+    const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
+
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
+    const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
+    const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
+
+    const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
+    const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
+    const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
+    const M_SMOKE_OK = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
+    const M_SMOKE_PASS = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **PASS (automated)** | claimed without any deployment; SEC-51 |';
+    const M_SMOKE_NO_CASE = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **DEFERRED - separate owner decision** | no case reference recorded |';
+
+    const SUITE_CURRENT = '| Full contract suite (M12.P1-R8 re-review correction candidate) | `npm test` | zero fail | **3685/3685 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
+    const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
+    const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
+
+    const INV_CURRENT = '| M12.P1-R8 package inventory (re-review correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`; focused probe `71/71`** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-R8 package inventory (re-review correction candidate) | `x` | recomputed | **157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`** | same file count as the previous candidate (157 files, 6,192,992 bytes, aggregate `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`) |';
+    const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
+    const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
+
+    ok('fixture: one current Full QA aggregate row plus a historical placeholder is accepted',
+      analyzeFullQaAggregateRows(Q_HDR + Q_QA_CURRENT + '\n' + Q_QA_HISTORICAL).length === 0);
+    ok('fixture: a Pending, duplicated, or history-only Full QA aggregate disposition is rejected',
+      analyzeFullQaAggregateRows(Q_HDR + Q_QA_PENDING).length > 0 &&
+      analyzeFullQaAggregateRows(Q_HDR + Q_QA_CURRENT + '\n' + Q_QA_CURRENT).length > 0 &&
+      analyzeFullQaAggregateRows(Q_HDR + Q_QA_HISTORICAL).length > 0);
+
+    ok('fixture: a fully dispositioned manual checklist section is accepted',
+      analyzeManualBlackBoxRows(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0);
+    ok('fixture: a Pending or blank-evidence manual row is rejected and a missing section fails closed',
+      analyzeManualBlackBoxRows(M_HDR + M_PENDING + M_TAIL).length > 0 &&
+      analyzeManualBlackBoxRows(M_HDR + M_BLANK_EVIDENCE + M_TAIL).length > 0 &&
+      analyzeManualBlackBoxRows('## Some Other Section\n\n| a | b | c | d | e | f |\n').length > 0);
+
+    ok('fixture: a DEFERRED SEC-51 deployment-smoke row is accepted',
+      analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0);
+    ok('fixture: a PASS, SEC-51-less, duplicated, or missing deployment-smoke row is rejected',
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_PASS + M_TAIL).length > 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_NO_CASE + M_TAIL).length > 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_OK + '\n' + M_SMOKE_OK + M_TAIL).length > 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_OK + M_TAIL).length > 0);
+
+    ok('fixture: superseded 3659 and 6,192,992 figures are accepted once marked historical, including a historical citation inside an evidence cell',
+      analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_HIST + '\n' + INV_STALE_HIST).length === 0 &&
+      analyzeSupersededCandidateRows(Q_HDR + INV_CURRENT_CITES_OLD).length === 0);
+    ok('fixture: a superseded 3659 or 6,192,992 figure sitting in a CURRENT status cell is rejected',
+      analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_CURRENT).length > 0 &&
+      analyzeSupersededCandidateRows(Q_HDR + INV_STALE_CURRENT).length > 0);
+
+    /* The second clause pins the scoping regression directly: a CURRENT row that
+       cites older evidence as historical inside its EVIDENCE cell must stay
+       current. Judging "historical" from the whole row demoted the live current
+       inventory row and left zero current rows. */
+    ok('fixture: exactly one current inventory row carrying the pinned figures is accepted, including one that cites older evidence as historical',
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_STALE_HIST, EXPECTED_R8_PACKAGE_INVENTORY).length === 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT_CITES_OLD + '\n' + INV_STALE_HIST, EXPECTED_R8_PACKAGE_INVENTORY).length === 0);
+    ok('fixture: a stale-figure, duplicated, or absent current inventory row is rejected',
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_STALE_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + Q_QA_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0);
+
+    ok('fixture: one current full-suite candidate row plus a historical one is accepted',
+      analyzeCurrentCandidateSuiteRow(Q_HDR + SUITE_CURRENT + '\n' + SUITE_STALE_HIST).length === 0);
+    ok('fixture: two current full-suite candidate rows, or none at all, are rejected',
+      analyzeCurrentCandidateSuiteRow(Q_HDR + SUITE_CURRENT + '\n' + SUITE_STALE_CURRENT).length > 0 &&
+      analyzeCurrentCandidateSuiteRow(Q_HDR + Q_QA_CURRENT).length > 0);
   }
 
   return rec.failures;
