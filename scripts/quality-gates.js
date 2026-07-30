@@ -4282,7 +4282,12 @@ function analyzeManualBlackBoxRows(md) {
    claiming a bare PASS. Any later correction commit is NOT deployed, so the
    baseline recorded here must stay the deployed one. */
 const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
-const EXPECTED_SEC51_DEPLOYED_BASELINE = '78d9053c8ce5c2cc7a9ede80326950cfd29a3a53';
+/* The CURRENT deployed and independently accepted production baseline. The
+   pilot-surface correction is live on this SHA. */
+const EXPECTED_SEC51_DEPLOYED_BASELINE = 'd422b54393f659125912ec5c84ae7927c2533288';
+/* The FIRST accepted production baseline. It remains legitimate history, but it
+   must never be presented as the current deployed baseline. */
+const EXPECTED_SEC51_SUPERSEDED_BASELINE = '78d9053c8ce5c2cc7a9ede80326950cfd29a3a53';
 
 function analyzeDeploymentSmokeRow(md) {
   const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
@@ -4302,7 +4307,93 @@ function analyzeDeploymentSmokeRow(md) {
   if (!raw.includes(EXPECTED_SEC51_DEPLOYED_BASELINE)) {
     problems.push('deployment smoke row does not name the exact deployed baseline');
   }
+  if (raw.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !evidenceRowIsHistorical(raw)) {
+    problems.push('deployment smoke row cites the superseded baseline without a historical marker');
+  }
   return problems;
+}
+
+/**
+ * PURE: the CURRENT `SEC-51` checklist row must record the accepted production
+ * result, name the host and the exact deployed baseline, and never present the
+ * superseded baseline as current. Fails closed on a missing/duplicate row.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeSec51ChecklistRow(md) {
+  const rows = markdownTableRows(md).filter((r) => /^SEC-51$/i.test(String(r.cells[0] || '').trim()));
+  if (rows.length === 0) return ['no SEC-51 row'];
+  if (rows.length > 1) return ['duplicate SEC-51 rows'];
+  const raw = rows[0].raw;
+  const status = evidenceStatusCell(rows[0].cells);
+  const problems = [];
+  if (!/\bPASS\b/i.test(status)) problems.push('SEC-51 row does not record the accepted PASS');
+  if (/\bDEFERRED\b/i.test(status)) problems.push('SEC-51 status cell is still DEFERRED');
+  if (!raw.includes(EXPECTED_SEC51_PRODUCTION_HOST)) problems.push('SEC-51 row omits the production host');
+  if (!raw.includes(EXPECTED_SEC51_DEPLOYED_BASELINE)) {
+    problems.push('SEC-51 row omits the exact deployed baseline');
+  }
+  if (raw.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !evidenceRowIsHistorical(raw)) {
+    problems.push('SEC-51 row cites the superseded baseline without marking it historical');
+  }
+  return problems;
+}
+
+/**
+ * PURE: does the text make a STALE claim about the pilot-surface correction —
+ * that it is undeployed, still an unreviewed candidate, or absent from
+ * production? Scoped two ways so it cannot over-fire: a paragraph is considered
+ * only when it actually mentions the correction (so unrelated archived R5/R6/R7
+ * "awaiting independent Codex review" prose is never flagged), and any paragraph
+ * explicitly marked historical/superseded is exempt.
+ * @returns {boolean} true when a stale claim is present
+ */
+function declaresStalePilotSurfaceDeploymentClaim(text) {
+  if (typeof text !== 'string' || text === '') return false;
+  for (const para of text.split(/\n\s*\n/)) {
+    const t = para.replace(/\s+/g, ' ');
+    if (/\bhistorical\b|\bsuperseded\b/i.test(t)) continue;
+    if (!/pilot[- ]surface|SEC-5[12]/i.test(t)) continue;
+    if (/\b(?:is|are|were|was)\s+not\s+deployed\b/i.test(t)) return true;
+    if (/\bNOT\s+deployed\b/.test(para)) return true;
+    if (/production\s+(?:still\s+)?continues?\s+to\s+serve\s+the\s+(?:accepted|older|previous)\s+baseline/i.test(t)) return true;
+    if (/production\s+still\s+serves\s+the\s+(?:accepted|older|previous|old)\s+baseline/i.test(t)) return true;
+    if (/correction candidate[^.]{0,160}\bawait/i.test(t)) return true;
+    if (/\bawait[^.]{0,80}\bcorrection[- ]candidate\b/i.test(t)) return true;
+  }
+  return false;
+}
+
+/**
+ * PURE: wherever the superseded production baseline appears, it must be framed
+ * as history. Paragraph-scoped so one historical mention cannot license another.
+ * @returns {boolean}
+ */
+function supersededBaselineAlwaysMarkedHistorical(text) {
+  if (typeof text !== 'string') return false;
+  for (const para of text.split(/\n\s*\n/)) {
+    if (!para.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) &&
+      !/\b78d9053\b/.test(para)) continue;
+    if (!/\bhistorical\b|\bsuperseded\b|\bearlier\b|\bfirst accepted\b|\bprevious\b/i.test(para)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * PURE: the current evidence must distinguish the DEPLOYED runtime baseline from
+ * the later documentation-only commit, so a reader cannot mistake this
+ * synchronization for a new deployment.
+ * @returns {boolean}
+ */
+function distinguishesDeployedRuntimeFromDocCommit(text) {
+  if (typeof text !== 'string' || text === '') return false;
+  const t = text.replace(/\s+/g, ' ');
+  const namesDeployed = t.includes(EXPECTED_SEC51_DEPLOYED_BASELINE);
+  const marksDocCommit =
+    /\bnot a runtime deployment\b/i.test(t) ||
+    /(?:documentation|evidence)[^.]{0,100}(?:commit|synchronization)[^.]{0,140}\bis not deployed\b/i.test(t);
+  return namesDeployed && marksDocCommit;
 }
 
 /**
@@ -5525,7 +5616,9 @@ function runDocsCurrentGate() {
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_SMOKE_OK = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed, independently accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded earlier baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
     const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
@@ -5553,12 +5646,14 @@ function runDocsCurrentGate() {
       analyzeManualBlackBoxRows(M_HDR + M_BLANK_EVIDENCE + M_TAIL).length > 0 &&
       analyzeManualBlackBoxRows('## Some Other Section\n\n| a | b | c | d | e | f |\n').length > 0);
 
-    ok('fixture: an accepted SEC-51 row naming the host and the deployed baseline is accepted',
-      analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0);
-    ok('fixture: a still-DEFERRED, evidence-less, baseline-less, duplicated, or missing deployment-smoke row is rejected',
+    ok('fixture: a SEC-51 deployment-smoke row naming the host and the CURRENT deployed baseline is accepted, with or without a marked historical baseline',
+      analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK_WITH_HISTORY + M_TAIL).length === 0);
+    ok('fixture: a still-DEFERRED, evidence-less, baseline-less, stale-baseline, duplicated, or missing deployment-smoke row is rejected',
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_DEFERRED + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_NO_CASE + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_NO_BASELINE + M_TAIL).length > 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_STALE_BASELINE + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_OK + '\n' + M_SMOKE_OK + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_OK + M_TAIL).length > 0);
 
@@ -5586,6 +5681,89 @@ function runDocsCurrentGate() {
     ok('fixture: two current full-suite candidate rows, or none at all, are rejected',
       analyzeCurrentCandidateSuiteRow(Q_HDR + SUITE_CURRENT + '\n' + SUITE_STALE_CURRENT).length > 0 &&
       analyzeCurrentCandidateSuiteRow(Q_HDR + Q_QA_CURRENT).length > 0);
+
+    /* ---- SEC-51 deployed-evidence synchronization (live documents) ---- */
+    const deployDocText = docs['docs/deployment.md'];
+    ok('docs/security-checklist.md SEC-51 row records the accepted production result with host and deployed baseline',
+      analyzeSec51ChecklistRow(sc).length === 0);
+    ok('docs/test-evidence.md keeps every superseded-baseline mention framed as history',
+      supersededBaselineAlwaysMarkedHistorical(te));
+    ok('docs/security-checklist.md keeps every superseded-baseline mention framed as history',
+      supersededBaselineAlwaysMarkedHistorical(sc));
+    ok('docs/test-evidence.md distinguishes the deployed runtime baseline from the documentation-only commit',
+      distinguishesDeployedRuntimeFromDocCommit(te));
+    ok('docs/security-checklist.md distinguishes the deployed runtime baseline from the documentation-only commit',
+      distinguishesDeployedRuntimeFromDocCommit(sc));
+    ok('docs/test-evidence.md makes no stale undeployed pilot-surface claim',
+      !declaresStalePilotSurfaceDeploymentClaim(te));
+    ok('docs/security-checklist.md makes no stale undeployed pilot-surface claim',
+      !declaresStalePilotSurfaceDeploymentClaim(sc));
+    ok('docs/deployment.md makes no stale undeployed pilot-surface claim',
+      !declaresStalePilotSurfaceDeploymentClaim(deployDocText));
+    for (const authorityDoc of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md',
+      'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
+      ok(`${authorityDoc} makes no stale undeployed pilot-surface claim`,
+        !declaresStalePilotSurfaceDeploymentClaim(docs[authorityDoc]));
+    }
+
+    /* ---- fixtures: pinned independently of the live documents ---- */
+    const SEC51_HDR = '| Case | Title | Steps | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
+    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; the historical/superseded first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SEC51_NO_SHA = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app |';
+    const SEC51_DEFERRED = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **DEFERRED - separate owner deployment decision** | not executed |';
+
+    ok('fixture: a current SEC-51 row naming the host and the deployed baseline is accepted, with or without a marked historical baseline',
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_OK).length === 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_WITH_HISTORY).length === 0);
+    ok('fixture: a SEC-51 row presenting only the superseded baseline as current is rejected',
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_ONLY_OLD).length > 0);
+    ok('fixture: a SEC-51 row omitting the host, omitting the deployed SHA, still DEFERRED, duplicated, or absent is rejected',
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_NO_HOST).length > 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_NO_SHA).length > 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_DEFERRED).length > 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR + SEC51_OK + '\n' + SEC51_OK).length > 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR).length > 0);
+
+    const PROSE_OK = 'The SEC-51 production smoke against d422b54393f659125912ec5c84ae7927c2533288 is Codex-accepted and the three pilot-surface corrections are deployed. This evidence synchronization is not a runtime deployment.';
+    const PROSE_HISTORICAL_OLD = 'Historical/superseded: the first accepted SEC-51 production baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.';
+    ok('fixture: the superseded baseline is accepted when framed as history, and rejected when framed as current',
+      supersededBaselineAlwaysMarkedHistorical(PROSE_HISTORICAL_OLD) === true &&
+      supersededBaselineAlwaysMarkedHistorical(
+        'Production serves 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 right now.') === false);
+    ok('fixture: prose naming the deployed baseline and separating the documentation commit is accepted',
+      distinguishesDeployedRuntimeFromDocCommit(PROSE_OK) === true);
+    ok('fixture: prose that omits the deployed SHA or fails to separate the documentation commit is rejected',
+      distinguishesDeployedRuntimeFromDocCommit(
+        'The corrections are deployed. This evidence synchronization is not a runtime deployment.') === false &&
+      distinguishesDeployedRuntimeFromDocCommit(
+        'SEC-51 passed against d422b54393f659125912ec5c84ae7927c2533288.') === false);
+    ok('fixture: each stale undeployed pilot-surface claim is rejected',
+      declaresStalePilotSurfaceDeploymentClaim(
+        'The SEC-51 pilot-surface correction is not deployed.') === true &&
+      declaresStalePilotSurfaceDeploymentClaim(
+        'The pilot-surface corrections are NOT deployed.') === true &&
+      declaresStalePilotSurfaceDeploymentClaim(
+        'SEC-51 stands; production continues to serve the accepted baseline.') === true &&
+      declaresStalePilotSurfaceDeploymentClaim(
+        'The SEC-51 pilot-surface correction candidate awaits an independent Codex review.') === true);
+    ok('fixture: current SEC-51 prose and explicitly historical paragraphs are both accepted',
+      declaresStalePilotSurfaceDeploymentClaim(PROSE_OK) === false &&
+      declaresStalePilotSurfaceDeploymentClaim(
+        'Historical/superseded: the SEC-51 pilot-surface correction was not deployed at that time.') === false);
+    ok('fixture: unrelated archived "awaiting review" prose is not flagged as a stale pilot-surface claim',
+      declaresStalePilotSurfaceDeploymentClaim(
+        'M12.P1-R6 is implemented and awaiting independent Codex review. No GO is claimed.') === false &&
+      declaresStalePilotSurfaceDeploymentClaim(
+        'R7 becomes implemented and awaiting independent Codex review.') === false);
+    ok('fixture: empty / non-string input fails every SEC-51 synchronization check closed',
+      declaresStalePilotSurfaceDeploymentClaim('') === false &&
+      declaresStalePilotSurfaceDeploymentClaim(null) === false &&
+      supersededBaselineAlwaysMarkedHistorical(null) === false &&
+      distinguishesDeployedRuntimeFromDocCommit('') === false &&
+      distinguishesDeployedRuntimeFromDocCommit(null) === false);
   }
 
   return rec.failures;

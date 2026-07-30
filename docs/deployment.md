@@ -434,9 +434,18 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | Accepted R7 closeout (historical; unchanged) | 154 | 6,166,956 | `c7c16ed7…38b9ec` |
 | R8 clean-snapshot candidate (reviewed; CANDIDATE NO-GO) | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
 | R8 pilot-readiness correction candidate (superseded) | 157 | 6,192,992 | `0ae9f57d…ab999a1c` |
-| **Current R8 re-review correction candidate** | **157** | **6,194,154** | **`77e34105…e1a8551a`** |
+| R8 re-review correction candidate (superseded) | 157 | 6,194,154 | `77e34105…e1a8551a` |
+| **Current deployed baseline `d422b54`** | **158** | **6,201,603** | **`28403afa…b664d3636`** |
 
-The correction candidate adds exactly two packaged files — `views/privacy.ejs`
+The current baseline adds one packaged file versus the superseded 157-file
+record — `public/js/public-nav.js`, the shared anonymous-navbar client — under a
+directory the allowlist already re-includes, so no new packaged path class
+appears. The remaining byte delta is confined to already-packaged files
+(`views/landing.ejs`, `views/partials/navbar.ejs`, `views/auth.ejs`,
+`views/complete-registration.ejs`, `public/css/styles.css`).
+
+The superseded 157-file record described a candidate that added two packaged
+files — `views/privacy.ejs`
 and `public/robots.txt` — plus a byte delta inside files that were already
 allowlisted (`server.js`, `middleware/securityHeaders.js`,
 `controllers/pageController.js`, `routes/index.js`, `public/css/styles.css`,
@@ -873,21 +882,42 @@ explicitly **not** accepted evidence: rate-limit `429`s disturbed it and an
 orphaned session was cleared by calling `revokeUserSessions` directly rather
 than through the supported logout interface.
 
-`SEC-51`, the actual Vercel production smoke, has since been executed externally
-against `https://campusphere-cspc.vercel.app` on deployed baseline `78d9053`
-(abbreviated here deliberately — this file is covered by the long-hex secret
-scan; the full baseline is recorded in `docs/test-evidence.md` and
-`docs/security-checklist.md`) and independently accepted. That is
-EXTERNAL owner evidence — the local harness cannot deploy or reach production
-under any authorization in this line of work, so it was not re-executed locally.
-The superseded `DEFERRED` disposition is retained in the SEC-51 row rather than
-erased.
+`SEC-51`, the Vercel production smoke, has been executed against
+`https://campusphere-cspc.vercel.app` twice. SHAs are abbreviated throughout this
+file deliberately — it is covered by the long-hex secret scan; the full values
+are recorded in `docs/test-evidence.md`, `docs/security-checklist.md`, and the
+independently pinned gate.
 
-Three pilot-surface findings were raised against that deployed surface and
-corrected locally afterwards: the landing role-mapping copy, the shared
-accessible anonymous navbar, and the auth-scoped in-card theme control. Those
-corrections are a candidate awaiting independent Codex review. **They are not
-deployed**, so production continues to serve the accepted baseline above.
+| Record | Baseline | Status |
+| --- | --- | --- |
+| First accepted production smoke (historical/superseded) | `78d9053` | Externally executed and accepted; superseded by the corrected baseline below |
+| **Current corrected production baseline** | **`d422b54`** | **Read-only smoke independently completed by Codex; SEC-51 CODEX GO** |
+
+The current smoke established that the exact production hostname serves
+`d422b54`, that dynamic surfaces returned the expected CSP and
+`X-Robots-Tag: noindex, nofollow, noarchive`, that `/robots.txt` and
+`/offline.html` retained their contracts, that anonymous `/dashboard`, `/map`,
+`/buildings`, and `/admin` were denied through the expected redirect contract,
+that the Google OAuth start used `accounts.google.com` with `response_type=code`
+and scopes `openid email profile` against the exact production callback, and
+that at 1440x900 and 390x844 the corrected landing copy, navbar `aria-expanded`
+lifecycle, and non-overlapping auth theme control all behaved as locally
+verified — with zero CSP violations, console errors, page errors, failed
+requests, or horizontal overflow.
+
+The three pilot-surface corrections — landing role-mapping copy, the shared
+accessible anonymous navbar, and the auth-scoped in-card theme control — are
+**deployed** on `d422b54`, with production `public/js/public-nav.js` and
+`public/css/styles.css` byte-identical to that baseline.
+
+The smoke was **read-only**: no authenticated production login was performed, so
+the M12.P1-R2 and M12.P1-R3 session-store and bootstrap evidence stands
+unchanged and is not restated as new. The correction changed no session-store or
+bootstrap implementation.
+
+The subsequent SEC-51 evidence and quality-gate synchronization is a
+documentation-and-gate commit only. It is **not a runtime deployment**, it does
+not change production, and it awaits an independent read-only review.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 

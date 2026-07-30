@@ -194,21 +194,29 @@ rate-limit `429`s disturbed it, and an orphaned session was cleared by a direct
 `revokeUserSessions` call rather than through the supported logout interface.
 The follow-up documentation commit recording that evidence awaits an
 independent read-only R8 review; no R8 GO, Codex GO, deployment GO, pilot GO, or
-Milestone 12 GO is claimed. `SEC-51` production smoke has since been executed
-externally against `https://campusphere-cspc.vercel.app` on deployed baseline
-`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` and independently accepted, with its
-superseded deferral retained in its own row, OFF.2-OFF.6 remain deferred until
+Milestone 12 GO is claimed. `SEC-51` production smoke against deployed baseline
+`d422b54393f659125912ec5c84ae7927c2533288` on
+`https://campusphere-cspc.vercel.app` is independently Codex-accepted,
+OFF.2-OFF.6 remain deferred until
 pilot
 review and are not cancelled, and accepted `R1`-`R7` and `D1`-`D7` history is
 unchanged.
 
-A separately owner-authorized `SEC-51` pilot-surface correction candidate is
-recorded: truthful landing role-mapping copy that matches `getRoleFromEmail()`,
-a shared accessible anonymous navbar owned by `public/js/public-nav.js`, and an
-auth-scoped in-card theme control. Each contract is pinned in the
-`pilot-readiness` gate with mutated-source rejecting fixtures. That candidate
-awaits an independent Codex review, is not deployed, and production continues to
-serve the accepted baseline.
+The three pilot-surface corrections are DEPLOYED on that baseline: truthful
+landing role-mapping copy matching `getRoleFromEmail()`, a shared accessible
+anonymous navbar owned by `public/js/public-nav.js`, and an auth-scoped in-card
+theme control. Each contract is pinned in the `pilot-readiness` gate with
+mutated-source rejecting fixtures, and the read-only production smoke found
+production `public/js/public-nav.js` and `public/css/styles.css` byte-identical
+to that baseline. That smoke performed no authenticated production login, so the
+accepted `R2` and `R3` session-store and bootstrap evidence stands unchanged.
+
+Historical/superseded: the earlier accepted production baseline was
+`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`, and `SEC-51` was originally deferred.
+
+The `SEC-51` evidence and quality-gate synchronization is a documentation and
+quality-gate change only. It is not a runtime deployment, it does not change
+production, and it awaits an independent read-only review.
 
 `M12.P1-R8`
 is the next potential section. R8 is read-only and is
