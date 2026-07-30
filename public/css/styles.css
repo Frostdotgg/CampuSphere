@@ -9642,3 +9642,32 @@ details[open] .accordion-icon {
 [data-theme="dark"] .map-sidebar__close:active {
     background: var(--navy-600, #1e40af);
 }
+
+/* ========================================
+   M12.P1 SEC-51 CORRECTION — AUTH-SCOPED THEME CONTROL
+   ========================================
+   The global .theme-toggle is position:fixed at bottom/right, which on the
+   sign-in and complete-registration surfaces sits on top of the privacy notice
+   and the Back to Home / Back to Sign In link. Those two surfaces now render
+   the control INSIDE .auth-card, and this final scoped rule pins it to the
+   card's top-right instead.
+
+   Deliberately scoped to body.auth-body: every other surface keeps the global
+   fixed placement untouched. The control is never hidden and never shrinks
+   below the 44x44 minimum touch target. `bottom: auto` is required to cancel
+   the inherited fixed-position offset. */
+body.auth-body .auth-card {
+    /* Containing block for the absolutely positioned control. */
+    position: relative;
+}
+
+body.auth-body .auth-card .theme-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    z-index: 5;
+}

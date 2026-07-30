@@ -2665,6 +2665,135 @@ function describesFacilitatorMediatedPilot(text) {
   return carriesModel && !carriesConflict;
 }
 
+/* ---- M12.P1 SEC-51 pilot-surface correction contracts (pure, text-in only) ----
+   Three independently reviewed findings. Every analyzer below reads ONLY the
+   markup/JS/CSS text it is handed, so this gate's own commentary and fixture
+   strings can never satisfy a detector. */
+
+/* The landing page must state the ACTUAL mapping enforced by getRoleFromEmail()
+   in controllers/authController.js. Note `@cspc.edu.ph` is NOT a substring of
+   `@my.cspc.edu.ph` (the `@` anchors it), so the two domains are unambiguous. */
+const EXPECTED_LANDING_REFUSAL = 'Other email domains are not accepted';
+
+/**
+ * PURE: does the landing copy name all three supported account classes, state
+ * the refusal of other domains, and avoid the superseded exclusive claim?
+ * @returns {boolean}
+ */
+function landingStatesTruthfulRoleMapping(html) {
+  if (typeof html !== 'string' || html === '') return false;
+  const t = html.replace(/\s+/g, ' ');
+  const student = /@my\.cspc\.edu\.ph/.test(t);
+  const instructor = /@cspc\.edu\.ph/.test(t);
+  const guest = /\bgmail\b/i.test(t);
+  const refusal = new RegExp(EXPECTED_LANDING_REFUSAL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(t);
+  // The false exclusive framing must be gone in every phrasing seen so far.
+  const exclusive =
+    /restricted to @cspc\.edu\.ph/i.test(t) ||
+    /only @cspc\.edu\.ph/i.test(t) ||
+    /@cspc\.edu\.ph accounts only/i.test(t) ||
+    /limited to @cspc\.edu\.ph/i.test(t);
+  return student && instructor && guest && refusal && !exclusive;
+}
+
+/** PURE: the anonymous hamburger button must expose the full ARIA contract. */
+function publicNavbarExposesAriaContract(navbarHtml) {
+  if (typeof navbarHtml !== 'string' || navbarHtml === '') return false;
+  const btn = (navbarHtml.match(/<button[^>]*id="hamburger"[^>]*>/) || [])[0] || '';
+  if (!btn) return false;
+  return /aria-controls="navLinks"/.test(btn) &&
+    /aria-expanded="false"/.test(btn) &&
+    /aria-label="Open navigation menu"/.test(btn);
+}
+
+/** PURE: the partial must load the shared client once, deferred. */
+function publicNavbarLoadsSharedClient(navbarHtml) {
+  if (typeof navbarHtml !== 'string' || navbarHtml === '') return false;
+  const tags = navbarHtml.match(/<script[^>]*src="\/js\/public-nav\.js"[^>]*>/g) || [];
+  return tags.length === 1 && /\sdefer(?:\s|>|=)/.test(tags[0]);
+}
+
+/**
+ * PURE: the shared client must route ALL menu state through ONE setter.
+ * Counting occurrences is the checkable form of that: if `setOpen` is the only
+ * such function and aria-expanded / aria-label / the open class are each written
+ * in exactly one place, no caller can move them independently.
+ * @returns {boolean}
+ */
+function publicNavClientHasSharedStateSetter(js) {
+  if (typeof js !== 'string' || js === '') return false;
+  const count = (re) => (js.match(re) || []).length;
+  const oneSetter = count(/function setOpen\s*\(/g) === 1;
+  const oneAriaExpanded = count(/setAttribute\('aria-expanded'/g) === 1;
+  const oneAriaLabel = count(/setAttribute\('aria-label'/g) === 1;
+  const oneOpenAdd = count(/classList\.add\('open'\)/g) === 1;
+  const oneOpenRemove = count(/classList\.remove\('open'\)/g) === 1;
+  /* These must match CODE SHAPES, not bare strings. This file documents its own
+     contract in a JSDoc header, so `navbar__link` and the media-query literal
+     each appear in a comment too — a bare-substring scan stayed true after the
+     real handler was deleted, which is fail-open. */
+  const closesOnNavigation = /classList\.contains\('navbar__link'\)/.test(js) &&
+    /\},\s*true\s*\)/.test(js);
+  const closesOnEscape = /'Escape'/.test(js);
+  const closesOnOutside = /'pointerdown'/.test(js);
+  const closesOnDesktop = /win\.matchMedia\('\(max-width: 768px\)'\)/.test(js);
+  const idempotent = /data-cs-nav-owned/.test(js);
+  return oneSetter && oneAriaExpanded && oneAriaLabel && oneOpenAdd && oneOpenRemove &&
+    closesOnNavigation && closesOnEscape && closesOnOutside && closesOnDesktop && idempotent;
+}
+
+/** PURE: an anonymous view must carry NO page-local hamburger/menu handler. */
+function anonymousViewHasNoLocalNavHandler(viewHtml) {
+  if (typeof viewHtml !== 'string') return false;
+  return !/getElementById\(\s*['"]hamburger['"]\s*\)/.test(viewHtml) &&
+    !/getElementById\(\s*['"]navLinks['"]\s*\)/.test(viewHtml);
+}
+
+/**
+ * PURE: an auth surface must carry the auth body class and render EXACTLY one
+ * theme-toggle include positioned inside the card, before the card header.
+ * Requiring it before the header is what distinguishes "inside the card" from
+ * the superseded placement after the card's closing tag, which also sat at a
+ * larger string index.
+ * @returns {boolean}
+ */
+function authViewPlacesThemeToggleInCard(viewHtml) {
+  if (typeof viewHtml !== 'string' || viewHtml === '') return false;
+  if (!/<body class="auth-body">/.test(viewHtml)) return false;
+  const includes = viewHtml.match(/include\('partials\/theme-toggle'\)/g) || [];
+  if (includes.length !== 1) return false;
+  const cardIdx = viewHtml.indexOf('<div class="auth-card">');
+  const headerIdx = viewHtml.indexOf('class="auth-header"');
+  const includeIdx = viewHtml.indexOf("include('partials/theme-toggle')");
+  if (cardIdx === -1 || headerIdx === -1 || includeIdx === -1) return false;
+  return includeIdx > cardIdx && includeIdx < headerIdx;
+}
+
+/**
+ * PURE: the auth-scoped CSS must make the card the containing block and pin a
+ * full-size 44x44 control to its top-right, WITHOUT hiding it and WITHOUT
+ * disturbing the global fixed placement used by every other surface.
+ * @returns {boolean}
+ */
+function authScopedThemeToggleCssIsCorrect(css) {
+  if (typeof css !== 'string' || css === '') return false;
+  const cardBlock = (css.match(/body\.auth-body\s+\.auth-card\s*\{[^}]*\}/) || [])[0] || '';
+  const toggleBlock = (css.match(/body\.auth-body\s+\.auth-card\s+\.theme-toggle\s*\{[^}]*\}/) || [])[0] || '';
+  if (!cardBlock || !toggleBlock) return false;
+  const containingBlock = /position:\s*relative/.test(cardBlock);
+  const absolute = /position:\s*absolute/.test(toggleBlock);
+  const bottomAuto = /bottom:\s*auto/.test(toggleBlock);
+  const topRight = /top:\s*\d+px/.test(toggleBlock) && /right:\s*\d+px/.test(toggleBlock);
+  const fullTarget = /width:\s*44px/.test(toggleBlock) && /height:\s*44px/.test(toggleBlock);
+  const notHidden = !/display:\s*none/.test(toggleBlock) &&
+    !/visibility:\s*hidden/.test(toggleBlock) &&
+    !/opacity:\s*0\b/.test(toggleBlock);
+  // Scope proof: the GLOBAL control keeps its fixed placement.
+  const globalStillFixed = /\n\.theme-toggle\s*\{[^}]*position:\s*fixed/.test(css);
+  return containingBlock && absolute && bottomAuto && topRight && fullTarget &&
+    notHidden && globalStillFixed;
+}
+
 function runPilotReadinessGate() {
   const rec = makeRecorder('pilot-readiness');
   const { ok } = rec;
@@ -2848,6 +2977,109 @@ function runPilotReadinessGate() {
   ok('fixture: a weakened X-Robots-Tag value is rejected',
     'noindex' !== EXPECTED_ROBOTS_TAG_VALUE &&
     'noindex, nofollow' !== EXPECTED_ROBOTS_TAG_VALUE);
+
+  /* ---- SEC-51 pilot-surface correction: three findings ---- */
+  const landingView = read('views/landing.ejs');
+  const navbarPartial = read('views/partials/navbar.ejs');
+  const publicNavJs = read('public/js/public-nav.js');
+  const privacyView = read('views/privacy.ejs');
+  const authView = read('views/auth.ejs');
+  const completeRegView = read('views/complete-registration.ejs');
+  const siteCss = read('public/css/styles.css');
+
+  // Finding 1 — truthful landing role mapping.
+  ok('views/landing.ejs states the real three-domain Google sign-in mapping',
+    landingStatesTruthfulRoleMapping(landingView));
+  ok('views/landing.ejs no longer claims Google sign-in is restricted to @cspc.edu.ph',
+    !/restricted to @cspc\.edu\.ph/i.test(landingView));
+  /* The controller compares BARE domains (no leading '@'), so this asserts the
+     real code shape rather than the address form used in the landing copy. */
+  const authCtrl = read('controllers/authController.js');
+  ok('controllers/authController.js still enforces the three mapped domains',
+    /domain === 'my\.cspc\.edu\.ph'\s*\)\s*return 'student-cspc'/.test(authCtrl) &&
+    /domain === 'cspc\.edu\.ph'\s*\)\s*return 'instructor'/.test(authCtrl) &&
+    /domain === 'gmail\.com'\s*\)\s*return 'guest'/.test(authCtrl));
+
+  // Finding 2 — shared, accessible anonymous navbar.
+  ok('views/partials/navbar.ejs exposes the hamburger ARIA contract',
+    publicNavbarExposesAriaContract(navbarPartial));
+  ok('views/partials/navbar.ejs loads the shared public-nav client exactly once, deferred',
+    publicNavbarLoadsSharedClient(navbarPartial));
+  ok('public/js/public-nav.js routes all menu state through ONE setter and closes on every required trigger',
+    publicNavClientHasSharedStateSetter(publicNavJs));
+  ok('neither anonymous view reintroduces a page-local hamburger handler',
+    anonymousViewHasNoLocalNavHandler(landingView) &&
+    anonymousViewHasNoLocalNavHandler(privacyView));
+  ok('both anonymous views render the shared navbar partial',
+    /include\('partials\/navbar'\)/.test(landingView) &&
+    /include\('partials\/navbar'\)/.test(privacyView));
+
+  // Finding 3 — auth-scoped, in-card theme control.
+  ok('views/auth.ejs places the theme control inside the auth card',
+    authViewPlacesThemeToggleInCard(authView));
+  ok('views/complete-registration.ejs places the theme control inside the auth card',
+    authViewPlacesThemeToggleInCard(completeRegView));
+  ok('the auth-scoped CSS pins a full 44x44 control to the card top-right without disturbing global placement',
+    authScopedThemeToggleCssIsCorrect(siteCss));
+
+  /* ---- rejecting fixtures: each mutates the REAL source ---- */
+  ok('fixture: the superseded exclusive @cspc.edu.ph-only landing claim is rejected',
+    !landingStatesTruthfulRoleMapping(landingView.replace(
+      /Google sign-in supports[\s\S]*?are not accepted\./,
+      'Google OAuth integration restricted to @cspc.edu.ph accounts ensures secure access.')));
+  /* The refusal sentence is line-wrapped in the real view, so the mutation must
+     tolerate whitespace; an exact-text replace silently matched nothing and let
+     the fixture pass without mutating anything. */
+  ok('fixture: landing copy dropping the student, guest, or refusal clause is rejected',
+    !landingStatesTruthfulRoleMapping(landingView.replace(/@my\.cspc\.edu\.ph/g, '@example.edu')) &&
+    !landingStatesTruthfulRoleMapping(landingView.replace(/Gmail/gi, 'other')) &&
+    !landingStatesTruthfulRoleMapping(landingView.replace(/Other\s+email\s+domains\s+are\s+not\s+accepted/i, 'All domains welcome')));
+  ok('fixture: empty / non-string landing input fails the mapping check closed',
+    !landingStatesTruthfulRoleMapping('') && !landingStatesTruthfulRoleMapping(null) &&
+    !landingStatesTruthfulRoleMapping(['x']));
+
+  ok('fixture: a hamburger button missing aria-controls, aria-expanded, or the label is rejected',
+    !publicNavbarExposesAriaContract(navbarPartial.replace(/aria-controls="navLinks"\s*/, '')) &&
+    !publicNavbarExposesAriaContract(navbarPartial.replace(/aria-expanded="false"\s*/, '')) &&
+    !publicNavbarExposesAriaContract(navbarPartial.replace(/aria-label="Open navigation menu"/, 'aria-label="Toggle menu"')));
+  ok('fixture: a missing, non-deferred, or duplicated shared-client tag is rejected',
+    !publicNavbarLoadsSharedClient(navbarPartial.replace(/<script[^>]*public-nav\.js[^>]*>/, '')) &&
+    !publicNavbarLoadsSharedClient(navbarPartial.replace(/\sdefer/, '')) &&
+    !publicNavbarLoadsSharedClient(navbarPartial + '\n<script src="/js/public-nav.js" defer></script>'));
+  ok('fixture: a client that updates aria-expanded outside the single setter is rejected',
+    !publicNavClientHasSharedStateSetter(publicNavJs +
+      "\nhamburger.setAttribute('aria-expanded', 'true');\n"));
+  /* Each mutation targets the CODE occurrence. The media-query literal and
+     `navbar__link` also appear in the client's JSDoc header, so a first-match
+     replace hit the comment and left the real handler intact. */
+  ok('fixture: a client dropping Escape, outside-click, the desktop reset, or the nav-selection close is rejected',
+    !publicNavClientHasSharedStateSetter(publicNavJs.replace(/'Escape'/, "'Enter'")) &&
+    !publicNavClientHasSharedStateSetter(publicNavJs.replace(/'pointerdown'/, "'mouseover'")) &&
+    !publicNavClientHasSharedStateSetter(
+      publicNavJs.replace(/win\.matchMedia\('\(max-width: 768px\)'\)/, 'win.matchMedia()')) &&
+    !publicNavClientHasSharedStateSetter(
+      publicNavJs.replace(/classList\.contains\('navbar__link'\)/, "classList.contains('nope')")));
+  ok('fixture: a reintroduced page-local hamburger handler is rejected',
+    !anonymousViewHasNoLocalNavHandler(landingView +
+      "\n<script>const h = document.getElementById('hamburger');</script>\n"));
+
+  ok('fixture: a theme-toggle left outside the auth card is rejected',
+    !authViewPlacesThemeToggleInCard(
+      authView.replace(/\s*<%- include\('partials\/theme-toggle'\) %>/, '') +
+      "\n<%- include('partials/theme-toggle') %>\n"));
+  ok('fixture: a missing auth body class or a duplicated include is rejected',
+    !authViewPlacesThemeToggleInCard(authView.replace('<body class="auth-body">', '<body>')) &&
+    !authViewPlacesThemeToggleInCard(authView + "\n<%- include('partials/theme-toggle') %>\n"));
+  ok('fixture: auth CSS that hides the control, shrinks it, or drops bottom:auto is rejected',
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{)/, '$1\n    display: none;')) &&
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{[^}]*?)width:\s*44px/, '$1width: 24px')) &&
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{[^}]*?)bottom:\s*auto/, '$1bottom: 28px')));
+  ok('fixture: dropping the card containing block or the whole scoped block is rejected',
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \{[^}]*?)position:\s*relative/, '$1position: static')) &&
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/body\.auth-body \.auth-card \.theme-toggle \{[^}]*\}/, '')));
+  ok('fixture: empty / non-string auth inputs fail both auth checks closed',
+    !authViewPlacesThemeToggleInCard('') && !authViewPlacesThemeToggleInCard(null) &&
+    !authScopedThemeToggleCssIsCorrect('') && !authScopedThemeToggleCssIsCorrect(null));
 
   return rec.failures;
 }
@@ -3942,9 +4174,9 @@ function analyzeProvenanceRemediationRow(md) {
    probe and of both evidence documents, so a document edit alone cannot move
    what "current" means. */
 const EXPECTED_R8_PACKAGE_INVENTORY = Object.freeze({
-  files: 157,
-  bytes: '6,194,154',
-  sha256: '77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a',
+  files: 158,
+  bytes: '6,201,603',
+  sha256: '28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636',
 });
 
 /** PURE: the STATUS cell of an evidence row (always second-to-last column). */
@@ -4043,16 +4275,33 @@ function analyzeManualBlackBoxRows(md) {
  * name SEC-51, and must never claim PASS.
  * @returns {string[]} problems (empty = compliant)
  */
+/* SEC-51 production smoke, pinned INDEPENDENTLY of both evidence documents.
+   The smoke was executed and independently accepted by the owner against the
+   deployed baseline below; the local harness cannot execute it, so the row must
+   name BOTH the production host and the exact deployed baseline rather than
+   claiming a bare PASS. Any later correction commit is NOT deployed, so the
+   baseline recorded here must stay the deployed one. */
+const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
+const EXPECTED_SEC51_DEPLOYED_BASELINE = '78d9053c8ce5c2cc7a9ede80326950cfd29a3a53';
+
 function analyzeDeploymentSmokeRow(md) {
   const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
   const rows = markdownTableRows(section).filter((r) => /deployment smoke/i.test(r.cells[0] || ''));
   if (rows.length === 0) return ['no deployment smoke row'];
   if (rows.length > 1) return ['duplicate deployment smoke rows'];
   const status = evidenceStatusCell(rows[0].cells);
+  const raw = rows[0].raw;
   const problems = [];
-  if (!/\bdeferred\b/i.test(status)) problems.push('deployment smoke row is not marked DEFERRED');
-  if (!/\bSEC-51\b/.test(rows[0].raw)) problems.push('deployment smoke row does not reference SEC-51');
-  if (/\bPASS\b/i.test(status)) problems.push('deployment smoke row claims PASS');
+  if (!/\bPASS\b/i.test(status)) problems.push('deployment smoke row does not record the accepted PASS');
+  if (/\bDEFERRED\b/i.test(status)) problems.push('deployment smoke row is still marked DEFERRED');
+  if (/\bpending\b/i.test(status)) problems.push('deployment smoke row is Pending');
+  if (!/\bSEC-51\b/.test(raw)) problems.push('deployment smoke row does not reference SEC-51');
+  if (!raw.includes(EXPECTED_SEC51_PRODUCTION_HOST)) {
+    problems.push('deployment smoke row does not name the production host');
+  }
+  if (!raw.includes(EXPECTED_SEC51_DEPLOYED_BASELINE)) {
+    problems.push('deployment smoke row does not name the exact deployed baseline');
+  }
   return problems;
 }
 
@@ -5252,7 +5501,7 @@ function runDocsCurrentGate() {
       analyzeFullQaAggregateRows(te).length === 0);
     ok('docs/test-evidence.md Manual Black-Box Checklist carries no Pending status and no blank disposition',
       analyzeManualBlackBoxRows(te).length === 0);
-    ok('docs/test-evidence.md deployment smoke stays explicitly deferred to SEC-51 and never claims PASS',
+    ok('docs/test-evidence.md deployment smoke records the accepted SEC-51 result with its host and deployed baseline',
       analyzeDeploymentSmokeRow(te).length === 0);
     ok('docs/test-evidence.md presents no superseded R8 candidate figure as a current status',
       analyzeSupersededCandidateRows(te).length === 0);
@@ -5276,16 +5525,17 @@ function runDocsCurrentGate() {
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_SMOKE_OK = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
-    const M_SMOKE_PASS = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **PASS (automated)** | claimed without any deployment; SEC-51 |';
-    const M_SMOKE_NO_CASE = '| Deployment smoke | Production-like env | deploy and exercise | boots fail-closed | **DEFERRED - separate owner decision** | no case reference recorded |';
+    const M_SMOKE_OK = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed, independently accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
+    const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
+    const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
 
     const SUITE_CURRENT = '| Full contract suite (M12.P1-R8 re-review correction candidate) | `npm test` | zero fail | **3685/3685 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-R8 package inventory (re-review correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`; focused probe `71/71`** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-R8 package inventory (re-review correction candidate) | `x` | recomputed | **157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`** | same file count as the previous candidate (157 files, 6,192,992 bytes, aggregate `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`) |';
+    const INV_CURRENT = '| M12.P1 SEC-51 pilot-surface package inventory (correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,201,603 bytes, aggregate SHA-256 `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636`; focused probe `71/71`** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1 SEC-51 pilot-surface package inventory (correction candidate) | `x` | recomputed | **158 files, 6,201,603 bytes, aggregate SHA-256 `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636`** | +1 file versus the previous candidate (157 files, 6,192,992 bytes, aggregate `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`) |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
 
@@ -5303,11 +5553,12 @@ function runDocsCurrentGate() {
       analyzeManualBlackBoxRows(M_HDR + M_BLANK_EVIDENCE + M_TAIL).length > 0 &&
       analyzeManualBlackBoxRows('## Some Other Section\n\n| a | b | c | d | e | f |\n').length > 0);
 
-    ok('fixture: a DEFERRED SEC-51 deployment-smoke row is accepted',
+    ok('fixture: an accepted SEC-51 row naming the host and the deployed baseline is accepted',
       analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0);
-    ok('fixture: a PASS, SEC-51-less, duplicated, or missing deployment-smoke row is rejected',
-      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_PASS + M_TAIL).length > 0 &&
+    ok('fixture: a still-DEFERRED, evidence-less, baseline-less, duplicated, or missing deployment-smoke row is rejected',
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_DEFERRED + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_NO_CASE + M_TAIL).length > 0 &&
+      analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_NO_BASELINE + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_OK + '\n' + M_SMOKE_OK + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_OK + M_TAIL).length > 0);
 

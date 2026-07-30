@@ -147,8 +147,9 @@
                         </div>
                         <h3 class="feature-card__title">Secure Authentication</h3>
                         <p class="feature-card__desc">
-                            Google OAuth integration restricted to @cspc.edu.ph accounts ensures
-                            secure and verified access for official CSPC users.
+                            Google sign-in supports CSPC students (@my.cspc.edu.ph), CSPC
+                            instructors (@cspc.edu.ph), and Gmail guests. Other email domains
+                            are not accepted.
                         </p>
                     </div>
                 </div>
@@ -190,22 +191,10 @@
                     navbar.classList.toggle('scrolled', window.scrollY > 20);
                 });
 
-                // ---- Hamburger menu toggle ----
-                const hamburger = document.getElementById('hamburger');
-                const navLinks = document.getElementById('navLinks');
-
-                hamburger.addEventListener('click', () => {
-                    hamburger.classList.toggle('active');
-                    navLinks.classList.toggle('open');
-                });
-
-                // Close menu when a link is clicked
-                navLinks.querySelectorAll('.navbar__link').forEach(link => {
-                    link.addEventListener('click', () => {
-                        hamburger.classList.remove('active');
-                        navLinks.classList.remove('open');
-                    });
-                });
+                // Mobile hamburger: owned by the shared /js/public-nav.js, which
+                // views/partials/navbar.ejs loads once for every anonymous page.
+                // No page-local handler here — a duplicate would double-toggle and
+                // desynchronize aria-expanded from the menu classes.
 
                 // ---- Scroll Reveal Animations ----
                 const revealElements = document.querySelectorAll('.reveal, .reveal-stagger');

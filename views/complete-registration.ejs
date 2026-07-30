@@ -5,10 +5,12 @@
     <%- include('partials/head') %>
 </head>
 
-<body>
+<body class="auth-body">
     <div class="auth-page page-transition"
         style="background-image: linear-gradient(135deg, rgba(10, 22, 40, 0.72) 0%, rgba(26, 58, 107, 0.55) 100%), url('<%= backgroundImage %>');">
         <div class="auth-card">
+            <%# SEC-51 correction: in-card theme control (see views/auth.ejs). %>
+            <%- include('partials/theme-toggle') %>
             <div class="auth-header">
                 <img src="/img/cspc-logo.png" alt="CSPC Logo" class="auth-logo">
                 <div class="auth-brand">CAMPU<span>SPHERE</span></div>
@@ -121,8 +123,6 @@
             <a href="/auth" class="auth-back-home" style="margin-top: 1rem;">← Back to Sign In</a>
         </div>
     </div>
-
-    <%- include('partials/theme-toggle') %>
 </body>
 
 </html>

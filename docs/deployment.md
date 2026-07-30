@@ -873,8 +873,22 @@ explicitly **not** accepted evidence: rate-limit `429`s disturbed it and an
 orphaned session was cleared by calling `revokeUserSessions` directly rather
 than through the supported logout interface.
 
-`SEC-51`, the actual Vercel production smoke, remains deferred to a separate
-owner deployment decision. Nothing in this subsection is an R8 GO, a deployment
+`SEC-51`, the actual Vercel production smoke, has since been executed externally
+against `https://campusphere-cspc.vercel.app` on deployed baseline `78d9053`
+(abbreviated here deliberately — this file is covered by the long-hex secret
+scan; the full baseline is recorded in `docs/test-evidence.md` and
+`docs/security-checklist.md`) and independently accepted. That is
+EXTERNAL owner evidence — the local harness cannot deploy or reach production
+under any authorization in this line of work, so it was not re-executed locally.
+The superseded `DEFERRED` disposition is retained in the SEC-51 row rather than
+erased.
+
+Three pilot-surface findings were raised against that deployed surface and
+corrected locally afterwards: the landing role-mapping copy, the shared
+accessible anonymous navbar, and the auth-scoped in-card theme control. Those
+corrections are a candidate awaiting independent Codex review. **They are not
+deployed**, so production continues to serve the accepted baseline above.
+Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 
 #### Pilot indexing protection (M12.P1-R8)

@@ -5,12 +5,18 @@
     <%- include('partials/head') %>
 </head>
 
-<body>
+<body class="auth-body">
     <div class="auth-page page-transition"
         style="background-image: linear-gradient(135deg, rgba(10, 22, 40, 0.72) 0%, rgba(26, 58, 107, 0.55) 100%), url('<%= backgroundImage %>');">
         <div class="auth-card">
 
-            <!-- ===== HEADER ===== -->
+            <%# SEC-51 correction: the theme control lives INSIDE the auth card so
+                the globally fixed bottom-right placement cannot overlap the
+                privacy notice or the Back to Home link. Scoped by body.auth-body
+                only; every other surface keeps the global placement. %>
+            <%- include('partials/theme-toggle') %>
+
+                <!-- ===== HEADER ===== -->
             <div class="auth-header">
                 <img src="/img/cspc-logo.png" alt="CSPC Logo" class="auth-logo">
                 <div class="auth-brand">CAMPU<span>SPHERE</span></div>
@@ -131,9 +137,6 @@
 
         </div>
     </div>
-
-    <!-- ===== THEME TOGGLE ===== -->
-    <%- include('partials/theme-toggle') %>
 
         <!-- ===== SCRIPTS ===== -->
         <script nonce="<%= cspNonce %>">

@@ -20,10 +20,16 @@
         </div>
 
         <!-- Mobile Toggle -->
-        <button class="navbar__hamburger" id="hamburger" aria-label="Toggle menu">
+        <button class="navbar__hamburger" id="hamburger" type="button"
+            aria-controls="navLinks" aria-expanded="false"
+            aria-label="Open navigation menu">
             <span></span>
             <span></span>
             <span></span>
         </button>
     </div>
 </nav>
+<%# SINGLE owner of the #hamburger/#navLinks state for every anonymous page that
+    includes this partial (landing and /privacy). Page-local hamburger handlers
+    must NOT be reintroduced — see public/js/public-nav.js. %>
+<script src="/js/public-nav.js" defer></script>
