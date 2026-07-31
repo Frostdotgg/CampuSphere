@@ -12,6 +12,69 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
+## 2026-07-30 R8 Continuity Status
+
+- Production at `https://campusphere-cspc.vercel.app` uses the independently
+  Codex-accepted SEC-51 deployed runtime baseline
+  `d422b54393f659125912ec5c84ae7927c2533288`.
+- Repository HEAD `db034e5581e6f409083a43dcb80fb82b473e0127` is a later
+  documentation-only commit whose bytes differ from the production runtime
+  commit. The current local correction candidate is uncommitted and unaccepted;
+  it adds one bounded runtime change in `services/auditService.js` plus
+  authority/gate updates.
+- Independently verified database preconditions are GREEN: credential safety
+  `24/24`, residue `18/18`, and BE.6 `46/46`. The leaked Supabase hotspot and
+  sibling schedule are absent, all four canonical Supabase identities have
+  zero unexpired sessions, MySQL is clean, and both backends carry the frozen
+  51 selected-source hotspots and selected-VR fingerprint.
+- Before the separately authorized 2026-07-30 restoration, the historical
+  state was `22/24 -> 16/18 -> 41/46` with the exact leaked fixture and two
+  canonical Supabase sessions. That superseded incident is not current truth.
+- Do not run `syncSelectedCasVrSupabaseToMysql.js --apply`; before restoration
+  it would have copied the leaked Supabase row into the clean MySQL baseline.
+  The supported restoration is complete. No further cleanup, revocation, SQL,
+  or session-row mutation is authorized by this correction candidate.
+- No R8, deployment, pilot, or Milestone 12 GO is current. Migration `0020`,
+  direct SQL cleanup, direct session-row deletion, staging, commit, push, and
+  deployment remain unauthorized. Candidate totals `3752`, `3755`, `3760`,
+  and `3763` are historical/superseded or rejected. The first 3,772-check
+  authority/audit/total-consistency execution is rejected at 3,742 passes and
+  30 failures with no `QUALITY-GATES OK`. The later 3,774/3,777 matrix also
+  remains rejected after three `docs-current` failures, exit 1, and no
+  `QUALITY-GATES OK`. An earlier frozen 12-file matrix was recorded as green
+  `3777/3777`; that record is superseded and rejected, because a fresh
+  execution against those exact frozen bytes exited 1 at `3776/3777` with one
+  static failure, `cloudinary-docs :: docs contain no JWT/PEM/AWS/long-hex
+  secret values`, raised by an unlabeled 40-hex Repository HEAD value in the
+  then-current copy of this document.
+- A bounded documentation-only correction labelled that value as
+  `Repository HEAD` and preserved the truthful claim that the commit is a
+  documentation-only commit and gate-work candidate, not a runtime deployment.
+  `scripts/quality-gates.js` was not changed by that correction, and the exact
+  frozen 12-file manifest is pinned in `docs/test-evidence.md`. A
+  byte-consistent matrix was then executed once against the corrected manifest:
+  preflight and postflight matched 12/12 hashes with Git, migration, and
+  process state unchanged; both `node --check` runs and `git diff --check`
+  exited 0 with only LF/CRLF advisories; the logout probe passed `75/75` at
+  exit 0 with zero FAIL/ERROR/SKIP and zero escaped logout-error lines;
+  `npm test` exited 0 at `3777/3777` with `QUALITY-GATES OK` present and
+  `QUALITY-GATES FAILED` absent; `npm run qa` exited 0 with exactly 3,777
+  contract PASS lines before `QUALITY-GATES OK` and all five green markers
+  exactly once; and final ordered postconditions were `24/24 -> 18/18 -> 46/46`
+  at exit 0 each. The two disclosed wrapper-only overmatches caused no
+  application failure or retry. That `3777` figure is a transcript-wide
+  PASS-line reconciliation across parent and inherited spawned-probe stdout,
+  not an in-process `makeRecorder` counter.
+- The byte-consistent result is current candidate evidence only. It remains
+  unaccepted pending independent read-only review and establishes no R8,
+  SEC-51, deployment, pilot, or Milestone 12 GO.
+- The local-candidate Vercel package inventory is 158 files, 6,201,747 bytes,
+  aggregate SHA-256
+  `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`.
+  It describes local bytes only and is not deployment authorization.
+- The owner-created feedback form is READY external evidence. Its responder URL
+  and all secret values remain outside Git.
+
 ---
 
 ## 1. Environment variables
@@ -436,13 +499,17 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | R8 pilot-readiness correction candidate (superseded) | 157 | 6,192,992 | `0ae9f57d…ab999a1c` |
 | R8 re-review correction candidate (superseded) | 157 | 6,194,154 | `77e34105…e1a8551a` |
 | **Current deployed baseline `d422b54`** | **158** | **6,201,603** | **`28403afa…b664d3636`** |
+| **Current local schedule-audit correction candidate** | **158** | **6,201,747** | **`acfb1696…da42e8b1`** |
 
-The current baseline adds one packaged file versus the superseded 157-file
+The deployed baseline adds one packaged file versus the superseded 157-file
 record — `public/js/public-nav.js`, the shared anonymous-navbar client — under a
 directory the allowlist already re-includes, so no new packaged path class
-appears. The remaining byte delta is confined to already-packaged files
+appears. Its remaining byte delta is confined to already-packaged files
 (`views/landing.ejs`, `views/partials/navbar.ejs`, `views/auth.ejs`,
 `views/complete-registration.ejs`, `public/css/styles.css`).
+The local candidate keeps the same 158-file set and adds 144 bytes only in the
+already-packaged `services/auditService.js`; its package record is not a
+deployment decision.
 
 The superseded 157-file record described a candidate that added two packaged
 files — `views/privacy.ejs`
@@ -890,7 +957,7 @@ independently pinned gate.
 
 | Record | Baseline | Status |
 | --- | --- | --- |
-| First accepted production smoke (historical/superseded) | `78d9053` | Externally executed and accepted; superseded by the corrected baseline below |
+| First accepted production smoke (historical/superseded) | `78d9053` | Before the corrected baseline was deployed, this was externally executed and accepted; it is superseded by the baseline below |
 | **Current corrected production baseline** | **`d422b54`** | **Read-only smoke independently completed by Codex; SEC-51 CODEX GO** |
 
 The current smoke established that the exact production hostname serves
@@ -915,9 +982,15 @@ the M12.P1-R2 and M12.P1-R3 session-store and bootstrap evidence stands
 unchanged and is not restated as new. The correction changed no session-store or
 bootstrap implementation.
 
-The subsequent SEC-51 evidence and quality-gate synchronization is a
-documentation-and-gate commit only. It is **not a runtime deployment**, it does
-not change production, and it awaits an independent read-only review.
+The subsequent SEC-51 evidence and quality-gate synchronization at
+Repository HEAD `db034e5581e6f409083a43dcb80fb82b473e0127` is a
+documentation-only commit and gate-work candidate; it is **not a runtime
+deployment**, does not change production, and remains unaccepted pending
+independent read-only review. That synchronization commit is
+LATER than the deployed runtime baseline, not earlier: it is the child of
+`d422b543`. The present local candidate additionally repairs the schedule-audit
+allowlist; production remains on `d422b54`, and independent review is still
+required.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 

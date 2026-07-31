@@ -5,6 +5,127 @@ Last updated: 2026-07-27 (Asia/Manila)
 Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 
 <!-- M12.P1 CURRENT STATUS START -->
+**CURRENT STATUS (2026-07-30 authoritative continuity snapshot).**
+
+Accepted history is unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6, and
+OFF.1 are Codex GO. M12.P1 R1-R7, D1-D5, and expanded D7 are complete and
+Codex GO. OFF.2 through OFF.6 remain deferred until the limited-pilot review,
+are not cancelled, and remain required before final Milestone 12 GO.
+
+The dependency-security remediation is complete and Codex GO. A subsequent
+2026-07-26 advisory drift was remediated: production pins `ejs@6.0.1`, the
+`jake/filelist/minimatch/brace-expansion` chain is absent, and
+`npm audit --omit=dev` reports zero vulnerabilities. `M12.P1-R7` is complete
+and Codex GO. Accepted R7 evidence remains focused `71/71`, in-suite
+`vercel-package-boundary` `70/70`, full suite `3495/3495` with
+`QUALITY-GATES OK`, and `npm audit --omit=dev` at zero vulnerabilities; the
+`3492/3492` and `3494/3494` candidates are historical/superseded. Expanded
+D7 is complete and Codex GO. Accepted D7 evidence remains the fresh-context
+role-isolation run with separate browser contexts, full suite `3511/3511`
+with `QUALITY-GATES OK`, audit zero, and postconditions
+`24/24 -> 18/18 -> 46/46` with the frozen aggregate fingerprint unchanged.
+
+Production is `https://campusphere-cspc.vercel.app` on deployed runtime
+baseline `d422b54393f659125912ec5c84ae7927c2533288`. The read-only SEC-51
+production smoke for that exact baseline is independently Codex-accepted.
+Repository HEAD is the later documentation-only commit
+`db034e5581e6f409083a43dcb80fb82b473e0127`; it is not the deployed runtime.
+The opening worktree intentionally contained only uncommitted changes in
+`docs/security-checklist.md`, `docs/test-evidence.md`, and
+`scripts/quality-gates.js`. The current local correction also adds the bounded
+`services/auditService.js` schedule-action allowlist repair and synchronized
+authority-document changes. These bytes remain uncommitted and unaccepted.
+
+The latest independently verified database truth is GREEN: credential/session
+safety is `24/24`, canonical session residue is `18/18`, and BE.6 is `46/46`.
+The exact leaked Supabase hotspot and sibling schedule are absent; all four
+canonical Supabase identities have zero unexpired sessions, and MySQL is clean.
+Both backends and the frozen baseline have 51 selected-source hotspots, all 26
+selected scenes match, and the selected-VR fingerprint is
+`ec66f04bf827bc9c8494a9007ff2e89d7990dd77cc7c5a9d629977ec583f6c6b`.
+Before the separately owner-authorized 2026-07-30 restoration, the historical
+state was `22/24 -> 16/18 -> 41/46`: one canonical administrator session, one
+canonical student session, the exact CCS hotspot on
+`scene-general-road-38-5`, and its `2099-04-10` `M11_DOOR_PROBE_%` sibling
+schedule remained in Supabase. That former state is superseded incident
+evidence, not current database truth.
+
+The frozen aggregate fingerprint remains
+`a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d`.
+The current local-candidate package boundary is 158 files, 6,201,747 bytes,
+aggregate SHA-256
+`acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`.
+Before the schedule-audit runtime repair, the prior local candidate was 158
+files, 6,201,603 bytes with aggregate SHA-256
+`28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636`.
+Supabase migrations remain exactly `0001` through `0019`; no `0020` exists.
+The owner-created Google Form is READY external evidence, but its responder URL
+must remain outside Git and must not be copied into authority documents.
+
+The `3752/3752`, `3755/3755`, `3760/3760`, and `3763/3763` suite candidates are
+historical/superseded or rejected and are not current R8 acceptance evidence.
+The first authority/audit/total-consistency execution remains rejected: it
+finished with 3,742 passes and 30 static-contract failures out of 3,772 checks,
+without `QUALITY-GATES OK`. The later 3,774/3,777 frozen-candidate execution
+also remains rejected after three `docs-current` failures, exit 1, and no
+`QUALITY-GATES OK`; its `75/75` logout result and clean embedded checks do not
+promote that red run. An earlier frozen 12-file matrix was recorded as green
+`3777/3777`; that record is superseded and rejected. A fresh execution against
+those exact frozen bytes exited 1 at `3776/3777` with one static failure,
+`cloudinary-docs :: docs contain no JWT/PEM/AWS/long-hex secret values`, raised
+by an unlabeled 40-hex Repository HEAD value in `docs/deployment.md`.
+
+A bounded documentation-only correction labelled that value as `Repository HEAD`
+and preserved the truthful claim that
+`db034e5581e6f409083a43dcb80fb82b473e0127` is a documentation-only commit and
+gate-work candidate, not a runtime deployment. `scripts/quality-gates.js` was
+not changed by that docs-secret-label correction, and the exact frozen 12-file
+manifest is pinned in `docs/test-evidence.md`. A byte-consistent matrix was then
+executed once against the corrected manifest: preflight and postflight matched
+12/12 hashes with Git, migration, and process state unchanged; both
+`node --check` runs and `git diff --check` exited 0 with only LF/CRLF
+advisories; the logout probe passed `75/75` at exit 0 with zero FAIL/ERROR/SKIP
+and zero escaped or literal logout-error lines; `npm test` exited 0 at
+`3777/3777` with `QUALITY-GATES OK` present and `QUALITY-GATES FAILED` absent;
+`npm run qa` exited 0 with exactly 3,777 contract PASS lines before
+`QUALITY-GATES OK` and all five green markers exactly once; and final ordered
+postconditions were `24/24 -> 18/18 -> 46/46` at exit 0 each.
+
+The `3777` total is a transcript-wide PASS-line reconciliation across parent
+quality-gate output plus inherited spawned-probe stdout. It is not an in-process
+`makeRecorder` counter, and no new counter is claimed or introduced.
+Wrapper-only interruptions were disclosed for both matrices and changed no
+application result and caused no retry: on the earlier run the enclosing runner
+incorrectly required numeric logout wording and a whole-line
+`QUALITY-GATES OK`; on the byte-consistent run the detached wrapper reported the
+status of its own trailing command, so every stage was scored on the exit code
+captured inside each transcript.
+
+This is unaccepted candidate verification evidence pending independent
+read-only review; the rejected and fail-open histories remain rejected.
+
+Historical restoration disclosure is corrected: at execution time the schedule
+delete audit request was refused because `admin.schedule.delete` was absent from
+the allowlist, and `POST /logout` emitted no audit-service event. The allowlist
+repair creates no retroactive audit row and adds no logout-audit contract. The
+restoration executor also exceeded its stated one-run evidence boundary through
+extra read-only probe executions and a persistent Claude-memory write outside
+the repository; those deviations did not alter the restored repository or data
+postconditions and are retained rather than erased.
+
+The separately authorized restoration and bounded candidate verification are
+complete. `M12.P1-R8` is the next potential section. R8 is read-only and is not
+authorized by this synchronization; it requires a separate independent review
+of the exact final file set. Never run
+`syncSelectedCasVrSupabaseToMysql.js --apply` for this incident, never use
+direct SQL or direct session-row deletion, and never create migration `0020`.
+
+`M12.P1` remains NO-GO for deployment and pilot readiness. Deployment is not
+authorized and requires a separate owner decision after R8. Milestone 12
+remains NO-GO. No staging, commit, push, Vercel action, or pilot activity is
+authorized by this continuity snapshot.
+<!-- M12.P1 CURRENT STATUS END -->
+<!-- M12.P1 PRIOR STATUS START -->
 > **CURRENT STATUS (authoritative).** Milestones 8, 9, 10, and 11 are
 > complete and Codex GO. RF.1 through RF.6 road-following destination routing
 > is complete and Codex GO. BE.1, BE.2, and BE.3 are complete and Codex GO.
@@ -115,13 +236,16 @@ Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 > production login, so the accepted `R2` and `R3` session-store and bootstrap
 > evidence stands unchanged.
 >
-> Historical/superseded: the earlier accepted production baseline was
-> `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`, and `SEC-51` was originally
-> deferred.
+> Historical/superseded: before the current deployment, the earlier accepted
+> production baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`, and
+> `SEC-51` was originally deferred.
 >
-> The `SEC-51` evidence and quality-gate synchronization is a documentation and
-> quality-gate change only. It is not a runtime deployment, it does not change
-> production, and it awaits an independent read-only review.
+> The subsequent `SEC-51` evidence and quality-gate synchronization at
+> `db034e5581e6f409083a43dcb80fb82b473e0127` is documentation-and-gate work
+> only; it is not a runtime deployment, does not change production, and remains
+> unaccepted pending independent read-only review. It is LATER than the
+> deployed runtime baseline, not earlier. The present local candidate
+> additionally repairs the schedule-audit allowlist and is likewise unaccepted.
 >
 > `M12.P1-R8` is the next potential section. R8 is read-only and is not
 > authorized by this synchronization. Even a future R8 GO authorizes only a
@@ -132,7 +256,7 @@ Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 > Milestone 10 Cloudinary Media Support is complete and Codex GO; Section 10.8
 > passed its final end-to-end GO/NO-GO. Milestone 11: Room Scheduling is
 > complete and Codex GO; Section 11.8 passed its final GO/NO-GO.
-<!-- M12.P1 CURRENT STATUS END -->
+<!-- M12.P1 PRIOR STATUS END -->
 
 > **CURRENT VERIFICATION BASELINE.** The former post-R5/pre-R6 synchronization
 > run that ended RED with safety `22/24`, residue RED, and no established BE.6
@@ -143,7 +267,11 @@ Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 > closeout is focused `230/230`, full suite `3415/3415` with
 > `QUALITY-GATES OK`, and independent browser verification green.
 
-## Current Truth
+## Prior Architectural Truth
+
+This section preserves accepted architectural and earlier clean-baseline
+context. The 2026-07-30 `M12.P1 CURRENT STATUS` block above overrides any
+statement below that describes the live session or BE.6 state as clean.
 
 - Supabase migrations are exactly `0001` through `0019`; migrations `0014`
   through `0019` are owner-applied and verified. No `0020` exists.
@@ -171,7 +299,12 @@ Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
   runtime source. They are not enrollment, assigned-class, SIS, or
   instructor-load simulation.
 
-## Current Stop Point
+## Prior Stop Point
+
+This section is historical continuity only. Before the 2026-07-30 restoration,
+the stop point was the RED `22/24 -> 16/18 -> 41/46` precondition and bounded
+restoration sequence. The current status block above records the restored green
+postconditions and the still-unaccepted correction candidate.
 
 1. `M12.P1-R5`, both R5 follow-ups, dependency-security remediation, R6, R7,
    both R7 source-auditability corrections, and expanded D7 are complete and
@@ -398,6 +531,10 @@ deployment finalization path.
   or third-party routing.
 
 ## Required Grounding Read Order
+
+For a fresh thread, use the sole current Claude Code prompt in
+`docs/new-session-grounding-prompts.md`. The list below remains a repository
+map and does not override that prompt's read-only stop conditions.
 
 1. `CODEX_HANDOFF.md`
 2. `CLAUDE_HANDOFF.md`

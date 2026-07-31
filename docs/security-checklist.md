@@ -3,6 +3,74 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
+## 2026-07-30 R8 Review Status
+
+This note overrides lower rows that still use the word "current" for an older
+uncommitted SEC-51 gate candidate. The `3752`, `3755`, `3760`, and `3763` runs
+are historical/superseded or rejected and are not accepted R8 evidence. The
+deployed SEC-51 production result for
+`d422b54393f659125912ec5c84ae7927c2533288` remains accepted. Independently
+verified database postconditions are now `24/24 -> 18/18 -> 46/46`: the leaked
+hotspot and schedule are absent, all canonical Supabase sessions are clean,
+MySQL is clean, and the frozen fingerprints are restored. Before the separately
+authorized 2026-07-30 restoration, the historical state was
+`22/24 -> 16/18 -> 41/46`; that superseded incident is not current truth. The
+first 3,772-check authority/audit/total-consistency execution is rejected:
+3,742 checks passed, 30 static contracts failed, exit code was 1, and no
+`QUALITY-GATES OK` marker was produced. The later 3,774/3,777 frozen-candidate
+matrix also remains rejected after three `docs-current` failures, exit 1, and
+no `QUALITY-GATES OK`. An earlier frozen 12-file matrix was recorded as green
+`3777/3777`; that record is superseded and rejected, because a fresh execution
+against those exact frozen bytes exited 1 at `3776/3777` with one static
+failure, `cloudinary-docs :: docs contain no JWT/PEM/AWS/long-hex secret
+values`, raised by an unlabeled 40-hex Repository HEAD value in the then-current
+`docs/deployment.md`.
+
+A bounded documentation-only correction labelled that value as `Repository HEAD`
+and preserved the truthful claim that
+`db034e5581e6f409083a43dcb80fb82b473e0127` is a documentation-only commit and
+gate-work candidate, not a runtime deployment. `scripts/quality-gates.js` was
+not changed by that correction, and the exact frozen 12-file manifest is pinned
+in `docs/test-evidence.md`. A byte-consistent matrix was then executed once
+against the corrected manifest: preflight and postflight matched 12/12 hashes
+with Git, migration, and process state unchanged; `node --check` exited 0 for
+both audited sources and `git diff --check` exited 0 with only LF/CRLF
+advisories; the logout probe passed `75/75` at exit 0 with zero FAIL/ERROR/SKIP
+and zero escaped or literal logout-error lines; `npm test` exited 0 at
+`3777/3777` with `QUALITY-GATES OK` present and `QUALITY-GATES FAILED` absent;
+`npm run qa` exited 0 with exactly 3,777 contract PASS lines before
+`QUALITY-GATES OK` and all five green markers exactly once; and the final
+ordered postconditions were `24/24 -> 18/18 -> 46/46` at exit 0 each. The two
+wrapper-only overmatches caused no application failure or retry. That `3777`
+figure is a transcript-wide PASS-line reconciliation across parent and inherited
+spawned-probe stdout, not an in-process `makeRecorder` counter.
+
+This byte-consistent result is current candidate evidence only and remains
+unaccepted; independent read-only review remains required. No R8, SEC-51,
+deployment, pilot, or Milestone 12 GO is current.
+
+Accepted readiness evidence remains explicit. The dependency-security
+remediation is complete and Codex GO: a subsequent 2026-07-26 advisory drift
+was remediated, production pins `ejs@6.0.1`, the
+`jake/filelist/minimatch/brace-expansion` chain is absent, and
+`npm audit --omit=dev` reports zero vulnerabilities. M12.P1-R7 is complete and
+Codex GO; accepted R7 evidence is focused `71/71`, in-suite
+`vercel-package-boundary` `70/70`, full suite `3495/3495` with
+`QUALITY-GATES OK`, and audit zero, while `3492/3492` and `3494/3494` are
+historical/superseded. Expanded D7 is complete and Codex GO; accepted D7
+evidence is the fresh-context role-isolation run with separate browser
+contexts, `3511/3511` with `QUALITY-GATES OK`, audit zero, and
+`24/24 -> 18/18 -> 46/46` with the frozen fingerprint unchanged.
+
+**Restoration audit disclosure.** The historical restoration report overstated
+append-only audit effects. At execution time, `admin.schedule.delete` was not
+allowlisted and its audit request was refused; `POST /logout` records no
+audit-service event. The present three-action allowlist repair is prospective
+only. No retroactive audit row or new logout-audit contract is claimed. Extra
+read-only probe passes and a persistent Claude-memory write are retained as
+execution-boundary disclosures rather than presented as strict one-run
+adherence.
+
 ## Redaction Rules
 
 - Never store real cookies, session IDs, OAuth codes, service-role keys, OAuth
@@ -94,15 +162,21 @@ deferred and has now been executed externally with the proven facts recorded in
 its row. SEC-51 (actual Vercel production smoke) was previously deferred, was
 then executed externally, and has now been re-executed read-only by Codex
 against the corrected baseline `d422b54393f659125912ec5c84ae7927c2533288` and
-independently accepted. Both the original `DEFERRED` disposition and the earlier
-`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` baseline are retained in its row as
-history rather than erased.
+independently accepted. Historical/superseded: before the corrected baseline
+was deployed, the earlier
+`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` baseline and original `DEFERRED`
+disposition applied; both are retained in that row as history rather than erased.
 
-**Deployed runtime versus documentation.** The deployed runtime baseline is
-`d422b54393f659125912ec5c84ae7927c2533288`. The evidence/gate synchronization
-recorded here is a documentation and quality-gate commit only; it is **not a
-runtime deployment**, and it awaits an independent read-only review. Production
-is unchanged by it.
+**Deployed runtime versus local correction.** Production at
+`https://campusphere-cspc.vercel.app` is on deployed runtime baseline
+`d422b54393f659125912ec5c84ae7927c2533288`. The subsequent evidence/gate
+synchronization at `db034e5581e6f409083a43dcb80fb82b473e0127` is documentation
+and quality-gate work only; it is **not a runtime deployment**, does not change
+production, and remains unaccepted pending independent read-only review. That
+synchronization commit is LATER than the deployed runtime baseline, not earlier:
+it is the child of `d422b543`. The present local candidate additionally repairs
+the schedule-audit allowlist; production remains on the exact deployed baseline,
+and the complete candidate still requires independent review.
 
 **SEC-52 — pilot-surface correction (deployed and independently accepted under
 SEC-51).** Three findings were raised against the pilot surface and
@@ -129,7 +203,7 @@ unchanged. No Milestone 12 GO is claimed.
 
 | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- |
-| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **PASS (automated)** | **Current M12.P1 SEC-51 evidence-synchronization candidate: `3752/3752` with `QUALITY-GATES OK`, zero `[FAIL]`, zero escaped `Logout error:` lines** (`+24`: `+14` live `docs-current` SEC-51 synchronization assertions and `+10` accepting/rejecting fixtures). The preceding `3728/3728`, `3704/3704`, and `3685/3685` candidate runs are historical/superseded — each superseded by additive assertions rather than invalidated. Historical, unchanged: `3511/3511`, `QUALITY-GATES OK` — accepted M12.P1-D7 Codex GO evidence. Additive post-D7 logout-output hygiene evidence is `3529/3529` with `QUALITY-GATES OK`, zero escaped logout-error lines, and does not supersede D7. Accepted M12.P1-R7 evidence remains `3495/3495` with focused R7 `71/71` and in-suite `70/70`; the historical/superseded literal-NUL remediation candidate was `3494/3494`; the historical/superseded initial R7 candidate was `3492/3492`; accepted R6 Codex GO evidence was `3415/3415`; accepted R5 closeout was `3234/3234`; superseded pre-R5 authority sync was `3050/3050`; accepted R4 closeout was `3040/3040` |
+| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **3777/3777 PASS — correction candidate; independent review required** | Current frozen-matrix candidate evidence: exit 0, zero `[FAIL]`, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines; the unchanged nonnumeric success logger was reconciled to the independently established 3,777-check inventory. The `+14` versus `3763` is three live total/schedule assertions, five total/schedule fixtures, one inverse-order neighbouring wrong-baseline fixture, and five named labelled-integrity/secret-rejection checks. The first 3,742/3,772 execution and later 3,774/3,777 execution remain historical/rejected. Historical candidate totals `3752`, `3755`, `3760`, and `3763` remain unaccepted. Accepted history is unchanged: D7 `3511/3511`, additive logout hygiene `3529/3529`, R7 `3495/3495`, R6 `3415/3415`, R5 `3234/3234`, and R4 `3040/3040`. Re-executed byte-consistently after the bounded docs-secret-label correction against the manifest pinned in `docs/test-evidence.md`; the prior `3776/3777` execution against the pre-correction bytes is rejected/historical, `scripts/quality-gates.js` was not changed by that correction, and preflight/postflight matched 12/12 hashes with Git, migration, and process state unchanged. The total is a transcript-wide PASS-line reconciliation across parent and inherited spawned-probe stdout, not an in-process `makeRecorder` counter. Current candidate evidence only; unaccepted pending independent read-only review |
 | `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **71/71** (was **70/70** before the literal-NUL remediation) — standalone (M12.P1-R7), never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
 | Local authenticated exposure matrix (clean bounded re-execution) | Browser-driven in both runtime modes, one bounded server per backend on its own free port | Every scenario in SEC-49 passes with a separate fresh browser context per role and no unsupported cleanup | **126/126 PASS — MySQL 34/34 + 14/14 supplement; Supabase 64/64 + 14/14 supplement; zero failures** | Each role context proved zero carried-over cookies and zero carried-over web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once via `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429`; no retried logout; `services/sessionRevocation.js` never imported or called; no direct session-row deletion and no database cleanup. Final ordered postconditions `24/24 -> 18/18 -> 46/46` |
 | Local authenticated exposure matrix, first execution — historical/superseded | Browser-driven in both runtime modes | Same scenario set | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Retained so the defect is not erased. Repeated runs exhausted the in-memory `preParseAuthLimiter` budget; the run started receiving `429` with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY rather than through the supported logout interface. Direct revocation falls outside the supported-interface rule this evidence class depends on, so the run is not accepted on its numbers. Superseded by the clean bounded re-execution above |
@@ -138,4 +212,4 @@ unchanged. No Milestone 12 GO is claimed.
 | `node scripts/boundedAnonymousAccessDenial-probe.js` | Zero audit rows from anonymous denials (authoritative global total AND filtered count both flat); exactly one authenticated role-denial row; exactly one login-failure row, in both backends | PASS | **90/90** — standalone (M12.P1-R5), never counted in the `npm test` total; accepted Codex GO |
 | `npm run qa:identity` | Identity/profile uniqueness enforced | PASS | `IDENTITY-CONSTRAINTS OK`, exit 0: no duplicate non-null `(oauth_provider, oauth_subject)` groups, and duplicate `student_profiles` / `instructor_profiles` / `guest_profiles` `user_id` rows are rejected |
 | `npm run qa:audit` | 0 production dependency vulnerabilities | PASS | Accepted compatible remediation, 2026-07-22; subsequent 2026-07-26 advisory drift remediated with exact `ejs@6.0.1` and the `jake/filelist/minimatch/brace-expansion` chain absent |
-| `npm run qa` | Aggregate security and smoke gates pass | **PASS (automated)** | M12.P1 SEC-51 evidence synchronization: all five stages green in one `npm run qa` run, exit 0 — `QUALITY-GATES OK` (`3752/3752`, zero `[FAIL]`, zero escaped `Logout error:` lines; the earlier `3728/3728`, `3704/3704`, and `3685/3685` runs are historical/superseded), `DB-PERF-GATE OK` (live `route_edges` 48/48 geometry across 24 forward/reverse pairs), `[supabase-smoke] PASS` with `app_sessions` reachable, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities` |
+| `npm run qa` | Aggregate security and smoke gates pass | **3777/3777 PASS — all five stages green, exit 0; independent review required** | Current frozen-matrix candidate evidence: exactly 3,777 contract PASS lines, zero `[FAIL]`, zero escaped `Logout error:` lines, `QUALITY-GATES OK`, `DB-PERF-GATE OK` with live `route_edges` 48/48 geometry across 24 forward/reverse pairs, `[supabase-smoke] PASS` with `app_sessions` reachable, `IDENTITY-CONSTRAINTS OK`, `found 0 vulnerabilities`, and exit 0. Earlier red and superseded QA attempts remain preserved in `docs/test-evidence.md`. Re-executed byte-consistently after the bounded docs-secret-label correction against the manifest pinned in `docs/test-evidence.md`: exactly 3,777 contract PASS lines preceded `QUALITY-GATES OK`, all five green markers appeared exactly once, and preflight/postflight matched 12/12 hashes with Git, migration, and process state unchanged. The total is a transcript-wide PASS-line reconciliation across parent and inherited spawned-probe stdout, not an in-process `makeRecorder` counter. Current candidate evidence only; unaccepted pending independent read-only review |

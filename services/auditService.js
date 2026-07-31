@@ -80,6 +80,10 @@ const ACTIONS = Object.freeze([
   'admin.building.create',
   'admin.building.update',
   'admin.building.delete',
+  // Room schedule administration (Milestone 11, Section 11.4)
+  'admin.schedule.create',
+  'admin.schedule.update',
+  'admin.schedule.delete',
   'admin.settings.update',
   // VR scene/hotspot administration (Milestone 7, Section 7.8)
   'admin.vr.scene.create',

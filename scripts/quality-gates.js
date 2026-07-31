@@ -2076,6 +2076,25 @@ function runAdminVrScheduleUxGate() {
 // Section 10.7: keep .env.example / README.md / docs/deployment.md aligned with
 // the live 10.4-10.6 Cloudinary implementation, free of stale "future-only"
 // wording, and free of real secret values.
+function containsLikelyDocumentationSecret(value) {
+  const text = String(value == null ? '' : value);
+  const withoutLabeledNonSecrets = text
+    // Integrity evidence is safe only when its algorithm and exact 64-hex
+    // shape are explicit. The label may wrap onto the preceding line.
+    .replace(/\b(?:aggregate\s+)?SHA-256\s*(?:\r?\n[ \t]*)?`[0-9a-f]{64}`/gi,
+      'SHA-256 `[recognized-integrity-digest]`')
+    // Production Git evidence is safe only when the 40-hex value is bound to
+    // an explicit deployed/runtime baseline label.
+    .replace(/\b(?:SEC-51\s+runtime|deployed(?:\s+(?:runtime|production))?|production\s+runtime)\s+baseline\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
+      'deployed runtime baseline `[recognized-git-commit]`')
+    // A repository identifier is safe only when the same claim identifies it
+    // as the later documentation-only commit.
+    .replace(/\bRepository HEAD\s+`[0-9a-f]{40}`(?=[^.]{0,160}\bdocumentation-only commit\b)/gi,
+      'Repository HEAD `[recognized-documentation-commit]`');
+
+  return /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|-----BEGIN [A-Z]|AKIA[0-9A-Z]{16}|[0-9a-f]{40,}/i.test(withoutLabeledNonSecrets);
+}
+
 function runCloudinaryDocsGate() {
   const rec = makeRecorder('cloudinary-docs');
   const { ok } = rec;
@@ -2112,7 +2131,21 @@ function runCloudinaryDocsGate() {
 
   // (e) Docs carry no likely real secret VALUES (JWT/PEM/AWS/long hex).
   ok('docs contain no JWT/PEM/AWS/long-hex secret values',
-    !/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|-----BEGIN [A-Z]|AKIA[0-9A-Z]{16}|[0-9a-f]{40,}/.test(all));
+    !containsLikelyDocumentationSecret(all));
+  ok('fixture: explicitly labeled Git commits and SHA-256 integrity digests are accepted',
+    !containsLikelyDocumentationSecret(
+      'Production is on deployed runtime baseline `0123456789abcdef0123456789abcdef01234567`.\n' +
+      'Repository HEAD `89abcdef0123456789abcdef0123456789abcdef` is a later documentation-only commit.\n' +
+      'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.'));
+  ok('fixture: an unlabeled long-hex value is rejected',
+    containsLikelyDocumentationSecret('value `0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`') &&
+    containsLikelyDocumentationSecret('value `ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789`'));
+  ok('fixture: a JWT-shaped value is rejected',
+    containsLikelyDocumentationSecret('eyJabcdefghijklmnopqrstuv.abcdefghijklmnopqrstuvwxyz012345.abcdefghijklmno'));
+  ok('fixture: a PEM marker is rejected',
+    containsLikelyDocumentationSecret('-----BEGIN PRIVATE KEY-----'));
+  ok('fixture: an AWS access-key-shaped value is rejected',
+    containsLikelyDocumentationSecret('AKIAABCDEFGHIJKLMNOP'));
 
   return rec.failures;
 }
@@ -3934,7 +3967,12 @@ function reusablePromptIsCurrent(body) {
     /\bM12\.P1\b[\s\S]{0,220}\bNO-GO\b/i.test(t) &&
     /\bdeployment is not authorized\b/i.test(t);
 
-  return carriesCurrentAuthority && !declaresStaleOrPrematureAuthority(t);
+  /* A reusable prompt is a live authority surface: it seeds a new session with
+     continuity claims. Requiring the deployed-baseline analyzer here closes the
+     gap where a prompt body could assert a stale or conflicting production
+     baseline that every other authority document is already checked against. */
+  return carriesCurrentAuthority && !declaresStaleOrPrematureAuthority(t) &&
+    deploymentDocumentClaimsAreCurrent(t);
 }
 
 /** PURE: both reusable prompts extract cleanly AND are independently current. */
@@ -4175,9 +4213,14 @@ function analyzeProvenanceRemediationRow(md) {
    what "current" means. */
 const EXPECTED_R8_PACKAGE_INVENTORY = Object.freeze({
   files: 158,
-  bytes: '6,201,603',
-  sha256: '28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636',
+  bytes: '6,201,747',
+  sha256: 'acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1',
 });
+
+/* The exact current candidate total is pinned independently of both evidence
+   documents. Adding a check without synchronizing both current npm-test and QA
+   dispositions must fail closed instead of leaving neighbouring stale totals. */
+const EXPECTED_SEC51_CURRENT_QUALITY_TOTAL = 3777;
 
 /** PURE: the STATUS cell of an evidence row (always second-to-last column). */
 function evidenceStatusCell(cells) {
@@ -4289,6 +4332,225 @@ const EXPECTED_SEC51_DEPLOYED_BASELINE = 'd422b54393f659125912ec5c84ae7927c25332
    must never be presented as the current deployed baseline. */
 const EXPECTED_SEC51_SUPERSEDED_BASELINE = '78d9053c8ce5c2cc7a9ede80326950cfd29a3a53';
 
+/* ---- claim-scoped SEC-51 analysis ------------------------------------------
+   A row-wide or paragraph-wide "historical/superseded" test is FAIL-OPEN: one
+   marker anywhere licenses every other statement in the same scope. That let a
+   semantic swap through — the OLD SHA presented as the current deployed
+   baseline while the NEW SHA carried the historical label, with both SHAs and
+   the host present so every substring check was satisfied.
+
+   Everything below therefore reasons over INDEPENDENT CLAIMS. A marker only
+   ever applies to the claim it actually sits in. Pure, deterministic, and
+   database/network free. */
+
+/**
+ * PURE: split text into independent EVIDENCE SCOPES. A markdown table row is one
+ * scope; a prose paragraph is one scope. Topic detection (SEC-51 / SEC-52 /
+ * pilot-surface) applies to the whole scope, so a following claim cannot escape
+ * merely by not repeating the topic — but topic context never crosses into
+ * another row or paragraph.
+ * @returns {string[]}
+ */
+/* Blockquote markers are markdown syntax, not content. The handoff documents
+   wrap their status block in `> `, and leaving those markers in place split a
+   perfectly bound "deployed baseline <SHA>" phrase across a stray `>`. */
+function stripQuoteMarker(line) {
+  return String(line == null ? '' : line).replace(/^\s*(?:>\s?)+/, '');
+}
+
+function splitEvidenceScopes(text) {
+  if (typeof text !== 'string' || text === '') return [];
+  const scopes = [];
+  let buf = [];
+  const flush = () => {
+    const s = buf.join('\n').trim();
+    if (s !== '') scopes.push(s);
+    buf = [];
+  };
+  for (const raw of text.split(/\r?\n/)) {
+    const line = stripQuoteMarker(raw);
+    const t = line.trim();
+    if (t.startsWith('|')) { flush(); scopes.push(t); continue; } // one row = one scope
+    if (t === '') { flush(); continue; }                          // paragraph boundary
+    buf.push(line);
+  }
+  flush();
+  return scopes;
+}
+
+/**
+ * PURE: does this claim bind `expectedSha` to the deployed production baseline?
+ * Co-occurrence is deliberately NOT enough — a deployment phrase naming some
+ * other SHA plus an unrelated mention of the expected SHA must fail, which is
+ * exactly the comparison attack this closes.
+ * @returns {boolean}
+ */
+function claimBindsShaToDeployedBaseline(claim, expectedSha) {
+  if (typeof claim !== 'string' || claim === '') return false;
+  if (typeof expectedSha !== 'string' || !/^[0-9a-f]{40}$/i.test(expectedSha)) return false;
+  if (CLAIM_HISTORY_RE.test(claim)) return false;
+  // Exactly one full SHA: a claim juggling two SHAs can never be the current
+  // binding claim, however it is phrased.
+  const shas = claim.match(/\b[0-9a-f]{40}\b/gi) || [];
+  if (shas.length !== 1) return false;
+  if (shas[0].toLowerCase() !== expectedSha.toLowerCase()) return false;
+  // Grammatical attachment to the deployed production baseline.
+  const S = '[`\'"(\\s]*' + expectedSha;
+  const patterns = [
+    new RegExp('(?:deployed|current(?:ly)?[- ]deployed|production(?:\\s+runtime)?|deployed\\s+runtime)\\s+baseline(?:\\s+(?:is|was|of))?\\s*:?' + S, 'i'),
+    new RegExp('production\\s+(?:currently\\s+)?serves' + S, 'i'),
+    new RegExp('deployed\\s+(?:on|at)' + S, 'i'),
+    new RegExp(expectedSha + '[`\'")\\s]*(?:is|as)\\s+the\\s+(?:current(?:ly)?\\s+)?(?:deployed|production)(?:\\s+runtime)?\\s+baseline', 'i'),
+  ];
+  return patterns.some((re) => re.test(claim));
+}
+
+/**
+ * PURE: audit EVERY deployment-bearing claim in ONE scope for a contradictory
+ * deployed SHA. Requiring merely that *some* claim binds the expected SHA is
+ * fail-open: a neighbouring sentence, semicolon clause, or table cell could
+ * still say production serves a different SHA, and the scope was accepted. One
+ * valid claim must never neutralize a contradictory one beside it.
+ *
+ * A historical deployed-SHA claim is exempt only when that SAME claim carries
+ * history framing, is explicitly past-bounded, and uses no present-tense
+ * deployment semantics.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function conflictingDeployedShaProblems(scopeText) {
+  if (typeof scopeText !== 'string' || scopeText === '') return [];
+  const problems = [];
+  for (const c of splitEvidenceClaims(scopeText)) {
+    const shas = c.match(/\b[0-9a-f]{40}\b/gi) || [];
+    if (shas.length === 0) continue;
+
+    const historical = CLAIM_HISTORY_RE.test(c);
+    const pastBound = CLAIM_PAST_BOUND_RE.test(c);
+    const presentDeployed = CLAIM_PRESENT_DEPLOYED_RE.test(c);
+
+    // Properly framed history is exempt.
+    if (historical && pastBound && !presentDeployed) continue;
+
+    // Only claims that actually assert current/deployed production state are
+    // in scope; a bare mention of a SHA is not a deployment claim.
+    if (!presentDeployed && !CLAIM_DEPLOYED_BINDING_RE.test(c)) continue;
+
+    /* The former secondary exemption (`historical && !presentDeployed`) is
+       DELIBERATELY GONE. It let any claim that merely LOOKED historical bind a
+       wrong SHA to the deployed baseline without ever stating when that was
+       true — e.g. "the historical deployed baseline <other SHA> is recorded
+       here" passed while asserting a false deployment fact. History is exempt
+       only through the single test above, which requires history framing AND an
+       explicit past boundary AND no present-tense deployment semantics in the
+       SAME claim. */
+
+    if (shas.length > 1) {
+      problems.push('a current deployment claim names multiple full SHAs');
+      continue;
+    }
+    if (shas[0].toLowerCase() !== EXPECTED_SEC51_DEPLOYED_BASELINE.toLowerCase()) {
+      problems.push('a current deployment claim names a SHA other than the expected deployed baseline');
+      continue;
+    }
+    if (!claimBindsShaToDeployedBaseline(c, EXPECTED_SEC51_DEPLOYED_BASELINE)) {
+      problems.push('the expected SHA appears in a deployment claim without being grammatically bound to the deployed production baseline');
+    }
+  }
+  return problems;
+}
+
+/**
+ * PURE: run the scope-level conflict audit across EVERY scope of a document.
+ *
+ * The former SEC-51/SEC-52/pilot-surface topic filter was fail-open: a false
+ * deployment claim only had to omit those words — for example by sitting in its
+ * own blank-line-separated paragraph — and the whole scope was skipped without
+ * ever being audited. A claim asserting what production currently serves is
+ * wrong wherever it appears, so topic is no longer a precondition here.
+ *
+ * Selectivity is preserved at the CLAIM level instead: bare SHAs, integrity
+ * digests, repository HEAD references, and any other SHA mention that does not
+ * assert deployed/current production state are still ignored by
+ * conflictingDeployedShaProblems().
+ * @returns {string[]} problems (empty = compliant)
+ */
+function documentConflictingDeployedShaProblems(text) {
+  if (typeof text !== 'string' || text === '') return [];
+  const problems = [];
+  for (const scope of splitEvidenceScopes(text)) {
+    for (const p of conflictingDeployedShaProblems(scope)) problems.push(p);
+  }
+  return problems;
+}
+
+/** PURE: split text into independent claims at cell, line, sentence, and
+ *  semicolon boundaries, with whitespace normalized.
+ *  @returns {string[]} */
+function splitEvidenceClaims(text) {
+  if (typeof text !== 'string' || text === '') return [];
+  return text
+    /* Blank lines end a paragraph. A SOFT WRAP does not end a claim — markdown
+       prose wraps mid-sentence, so treating every newline as a boundary would
+       strand a history marker on the line above its SHA and reject truthful
+       text. Table rows still separate correctly because every cell boundary is
+       a pipe, which is split below. */
+    .split(/\n\s*\n/)
+    .flatMap((para) => para
+      .split(/\r?\n/).map(stripQuoteMarker).join('\n')
+      .replace(/\s*\r?\n\s*/g, ' ')
+      .split(/\||(?<=[.!?])\s+|;/))
+    .map((s) => s.replace(/\s+/g, ' ').trim())
+    .filter((s) => s !== '');
+}
+
+/** History framing, evaluated per claim. */
+const CLAIM_HISTORY_RE =
+  /\bhistorical\b|\bsuperseded\b|\bearlier\b|\bprevious(?:ly)?\b|\bfirst[- ]accepted\b|\bformer(?:ly)?\b|\bprior\b/i;
+/** Explicit past-bounding, required before a stale claim counts as history. */
+const CLAIM_PAST_BOUND_RE =
+  /\bat that time\b|\bat the time\b|\bpreviously\b|\bthen\b|\bbefore\b|\bprior to\b|\bformerly\b|\bused to\b|\bfirst[- ]accepted\b|\bearlier accepted\b/i;
+/** Present-tense deployment semantics: what the OLD SHA must never carry. */
+const CLAIM_PRESENT_DEPLOYED_RE =
+  /\bcurrent(?:ly)?[- ]deployed\b|\bcurrent deployed baseline\b|\bproduction (?:currently )?serves\b|\bnow serves\b|\bright now\b|\bis live\b|\b(?:is|are|remains?)\b[^]{0,40}\b(?:deployed|currently served|live)\b/i;
+/** A claim that actually binds a SHA to the deployed production baseline. */
+const CLAIM_DEPLOYED_BINDING_RE =
+  /\bdeployed baseline\b|\bcurrent(?:ly)?[- ]deployed\b|\bdeployed\b[^]{0,40}\bbaseline\b|\bbaseline\b[^]{0,40}\bdeployed\b|\bproduction (?:currently )?serves\b|\bdeployed (?:on|at)\b/i;
+
+/**
+ * PURE: claims that bind the CURRENT deployed SHA to the production baseline
+ * without being framed as history. The SHA merely appearing somewhere in the
+ * text is deliberately insufficient.
+ * @returns {string[]} the qualifying claims
+ */
+function claimsBindingCurrentDeployedBaseline(text) {
+  return splitEvidenceClaims(text).filter((c) =>
+    claimBindsShaToDeployedBaseline(c, EXPECTED_SEC51_DEPLOYED_BASELINE));
+}
+
+/**
+ * PURE: audit every claim that cites the superseded baseline. Each such claim
+ * must carry history framing IN THAT SAME CLAIM and must not attach present
+ * deployment semantics to the old SHA.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function supersededBaselineClaimProblems(text) {
+  if (typeof text !== 'string') return ['superseded-baseline input is not text'];
+  const problems = [];
+  for (const c of splitEvidenceClaims(text)) {
+    if (!c.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !/\b78d9053\b/.test(c)) continue;
+    if (!CLAIM_HISTORY_RE.test(c)) {
+      problems.push('a claim cites the superseded baseline without history framing in that same claim');
+    }
+    if (!CLAIM_PAST_BOUND_RE.test(c)) {
+      problems.push('a claim cites the superseded baseline without an explicit past boundary in that same claim');
+    }
+    if (CLAIM_PRESENT_DEPLOYED_RE.test(c)) {
+      problems.push('a claim presents the superseded baseline as current/deployed');
+    }
+  }
+  return problems;
+}
+
 function analyzeDeploymentSmokeRow(md) {
   const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
   const rows = markdownTableRows(section).filter((r) => /deployment smoke/i.test(r.cells[0] || ''));
@@ -4307,9 +4569,18 @@ function analyzeDeploymentSmokeRow(md) {
   if (!raw.includes(EXPECTED_SEC51_DEPLOYED_BASELINE)) {
     problems.push('deployment smoke row does not name the exact deployed baseline');
   }
-  if (raw.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !evidenceRowIsHistorical(raw)) {
-    problems.push('deployment smoke row cites the superseded baseline without a historical marker');
+  /* Claim-scoped: the current SHA must be BOUND to the deployed baseline by a
+     non-historical claim that also names the host. A swap that labels the
+     current SHA historical and the old SHA current fails here. */
+  const bound = claimsBindingCurrentDeployedBaseline(raw);
+  if (bound.length === 0) {
+    problems.push('no non-historical claim binds the current SHA to the deployed production baseline');
+  } else if (!bound.some((c) => c.includes(EXPECTED_SEC51_PRODUCTION_HOST))) {
+    problems.push('no claim binds the production host to the current deployed baseline');
   }
+  for (const p of supersededBaselineClaimProblems(raw)) problems.push('deployment smoke row: ' + p);
+  /* The row is one scope: EVERY deployment claim in it must agree. */
+  for (const p of conflictingDeployedShaProblems(raw)) problems.push('deployment smoke row: ' + p);
   return problems;
 }
 
@@ -4332,9 +4603,14 @@ function analyzeSec51ChecklistRow(md) {
   if (!raw.includes(EXPECTED_SEC51_DEPLOYED_BASELINE)) {
     problems.push('SEC-51 row omits the exact deployed baseline');
   }
-  if (raw.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !evidenceRowIsHistorical(raw)) {
-    problems.push('SEC-51 row cites the superseded baseline without marking it historical');
+  const bound = claimsBindingCurrentDeployedBaseline(raw);
+  if (bound.length === 0) {
+    problems.push('no non-historical claim binds the current SHA to the deployed production baseline');
+  } else if (!bound.some((c) => c.includes(EXPECTED_SEC51_PRODUCTION_HOST))) {
+    problems.push('no claim binds the production host to the current deployed baseline');
   }
+  for (const p of supersededBaselineClaimProblems(raw)) problems.push('SEC-51 row: ' + p);
+  for (const p of conflictingDeployedShaProblems(raw)) problems.push('SEC-51 row: ' + p);
   return problems;
 }
 
@@ -4349,16 +4625,50 @@ function analyzeSec51ChecklistRow(md) {
  */
 function declaresStalePilotSurfaceDeploymentClaim(text) {
   if (typeof text !== 'string' || text === '') return false;
-  for (const para of text.split(/\n\s*\n/)) {
-    const t = para.replace(/\s+/g, ' ');
-    if (/\bhistorical\b|\bsuperseded\b/i.test(t)) continue;
-    if (!/pilot[- ]surface|SEC-5[12]/i.test(t)) continue;
-    if (/\b(?:is|are|were|was)\s+not\s+deployed\b/i.test(t)) return true;
-    if (/\bNOT\s+deployed\b/.test(para)) return true;
-    if (/production\s+(?:still\s+)?continues?\s+to\s+serve\s+the\s+(?:accepted|older|previous)\s+baseline/i.test(t)) return true;
-    if (/production\s+still\s+serves\s+the\s+(?:accepted|older|previous|old)\s+baseline/i.test(t)) return true;
-    if (/correction candidate[^.]{0,160}\bawait/i.test(t)) return true;
-    if (/\bawait[^.]{0,80}\bcorrection[- ]candidate\b/i.test(t)) return true;
+  /* Topic is detected on the containing SCOPE (one table row, or one prose
+     paragraph), so a stale claim cannot escape by sitting after a semicolon or
+     in the next sentence without repeating the topic. Scope boundaries stop the
+     context spreading into unrelated rows/paragraphs, which is what keeps
+     archived R5/R6/R7 "awaiting independent Codex review" prose out of range. */
+  for (const scope of splitEvidenceScopes(text)) {
+    if (!/pilot[- ]surface|SEC-5[12]/i.test(scope)) continue;
+    if (scopeDeclaresStaleClaim(scope)) return true;
+    /* A contradictory deployed SHA inside the scope is itself a false current
+       deployment claim, so it fails the same check across every audited
+       document. */
+    if (conflictingDeployedShaProblems(scope).length > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * PURE: one live authority/deployment document is acceptable only when it has
+ * neither a stale pilot-surface claim nor a conflicting current/deployed SHA in
+ * ANY evidence scope. Keeping this composition in one predicate prevents a
+ * live-document caller from accidentally retaining the old topic-filtered gap.
+ * @returns {boolean}
+ */
+function deploymentDocumentClaimsAreCurrent(text) {
+  return typeof text === 'string' && text !== '' &&
+    !declaresStalePilotSurfaceDeploymentClaim(text) &&
+    documentConflictingDeployedShaProblems(text).length === 0;
+}
+
+/** PURE: per-claim staleness inside one already-topic-matched scope. */
+function scopeDeclaresStaleClaim(scope) {
+  for (const c of splitEvidenceClaims(scope)) {
+    const stale =
+      /\b(?:is|are|were|was)\s+not\s+deployed\b/i.test(c) ||
+      /\bNOT\s+deployed\b/.test(c) ||
+      /production\s+(?:still\s+)?(?:continues?\s+to\s+)?serves?\s+the\s+(?:accepted|older|old|previous)\s+baseline/i.test(c) ||
+      /correction candidate[^]{0,160}\bawait/i.test(c) ||
+      /\bawait[^]{0,80}\bcorrection[- ]candidate\b/i.test(c);
+    if (!stale) continue;
+    /* A stale claim survives ONLY as history, and only when THIS claim is both
+       marked historical and explicitly past-bounded. A marker on a neighbouring
+       sentence no longer licenses it. */
+    if (CLAIM_HISTORY_RE.test(c) && CLAIM_PAST_BOUND_RE.test(c)) continue;
+    return true;
   }
   return false;
 }
@@ -4370,14 +4680,58 @@ function declaresStalePilotSurfaceDeploymentClaim(text) {
  */
 function supersededBaselineAlwaysMarkedHistorical(text) {
   if (typeof text !== 'string') return false;
-  for (const para of text.split(/\n\s*\n/)) {
-    if (!para.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) &&
-      !/\b78d9053\b/.test(para)) continue;
-    if (!/\bhistorical\b|\bsuperseded\b|\bearlier\b|\bfirst accepted\b|\bprevious\b/i.test(para)) {
-      return false;
-    }
-  }
-  return true;
+  return supersededBaselineClaimProblems(text).length === 0;
+}
+
+/* The LOCAL documentation-and-gate candidate commit, pinned here independently
+   of every document. It is the CHILD of the deployed baseline
+   (`git rev-parse HEAD^` resolves to EXPECTED_SEC51_DEPLOYED_BASELINE), so it is
+   LATER than production and can never truthfully be described as work that
+   happened "before the current deployment". */
+const EXPECTED_SEC51_DOC_COMMIT = 'db034e5581e6f409083a43dcb80fb82b473e0127';
+
+/** Explicit non-runtime / non-deployed disclaimer wording, evaluated PER CLAIM. */
+const CLAIM_NON_RUNTIME_RE =
+  /\bnot a runtime deployment\b|\bnot the deployed runtime\b|\bis not deployed\b|\bdoes not change production\b/i;
+
+/**
+ * PURE: does ONE scope carry a CLAIM-SCOPED documentation-only-commit
+ * disclaimer?
+ *
+ * The former test was a whole-document regex for "not a runtime deployment".
+ * That was FAIL-OPEN in exactly the way the rest of this analyzer family was
+ * rewritten to prevent: a purely HISTORICAL sentence about some earlier
+ * synchronization satisfied it, so a document could drop every current
+ * disclaimer — or never name the documentation commit at all — and still be
+ * credited with distinguishing the deployed runtime from it.
+ *
+ * Two independent requirements now apply. The scope must NAME the
+ * documentation/gate candidate commit, and the disclaimer must sit in a claim of
+ * THAT SAME scope which is neither history-framed nor past-bounded. A disclaimer
+ * stranded in another paragraph or table row no longer counts, and neither does
+ * one written as "was not a runtime deployment at that time".
+ * @returns {boolean}
+ */
+function scopeMarksDocCommit(scope) {
+  if (typeof scope !== 'string' || scope === '') return false;
+  /* Identity is mandatory: a floating "not a runtime deployment" in a document
+     that never names the documentation commit proves nothing about it. */
+  const namesDocCommit =
+    scope.includes(EXPECTED_SEC51_DOC_COMMIT) || /\bdb034e5\b/i.test(scope);
+  if (!namesDocCommit) return false;
+  return splitEvidenceClaims(scope).some((c) =>
+    CLAIM_NON_RUNTIME_RE.test(c) &&
+    !CLAIM_HISTORY_RE.test(c) &&
+    !CLAIM_PAST_BOUND_RE.test(c));
+}
+
+/**
+ * PURE: some scope of the document carries the claim-scoped disclaimer.
+ * @returns {boolean}
+ */
+function marksDocCommitClaimScoped(text) {
+  if (typeof text !== 'string' || text === '') return false;
+  return splitEvidenceScopes(text).some(scopeMarksDocCommit);
 }
 
 /**
@@ -4388,12 +4742,16 @@ function supersededBaselineAlwaysMarkedHistorical(text) {
  */
 function distinguishesDeployedRuntimeFromDocCommit(text) {
   if (typeof text !== 'string' || text === '') return false;
-  const t = text.replace(/\s+/g, ' ');
-  const namesDeployed = t.includes(EXPECTED_SEC51_DEPLOYED_BASELINE);
-  const marksDocCommit =
-    /\bnot a runtime deployment\b/i.test(t) ||
-    /(?:documentation|evidence)[^.]{0,100}(?:commit|synchronization)[^.]{0,140}\bis not deployed\b/i.test(t);
-  return namesDeployed && marksDocCommit;
+  /* Claim-scoped: the current SHA must be BOUND to the deployed result by a
+     non-historical claim. Naming it only inside a historical label — while the
+     old SHA is presented as current — no longer satisfies this. */
+  const bindsCurrent = claimsBindingCurrentDeployedBaseline(text).length > 0;
+  const marksDocCommit = marksDocCommitClaimScoped(text);
+  const oldStaysHistorical = supersededBaselineClaimProblems(text).length === 0;
+  /* A valid binding elsewhere must not excuse a contradictory deployment claim
+     in the same scope. */
+  const noConflict = documentConflictingDeployedShaProblems(text).length === 0;
+  return bindsCurrent && marksDocCommit && oldStaysHistorical && noConflict;
 }
 
 /**
@@ -4453,6 +4811,594 @@ function analyzeCurrentCandidateSuiteRow(md) {
   if (current.length > 1) problems.push('duplicate current full-suite candidate rows');
   for (const r of current) {
     if (/\bpending\b/i.test(evidenceStatusCell(r.cells))) problems.push('current full-suite candidate row is Pending');
+  }
+  return problems;
+}
+
+/** PURE: remove markdown code ticks from one command-label cell. */
+function normalizedEvidenceCommand(value) {
+  return String(value == null ? '' : value).replace(/`/g, '').trim().toLowerCase();
+}
+
+/** PURE: return the one exact N/N total carried by a STATUS cell. */
+function exactStatusTotal(status) {
+  const matches = String(status == null ? '' : status).match(/\b(\d{4})\/(\d{4})\b/g) || [];
+  if (matches.length !== 1) return null;
+  const parts = matches[0].split('/').map(Number);
+  if (parts.length !== 2 || parts[0] !== parts[1]) return null;
+  return parts[0];
+}
+
+/**
+ * PURE: the current suite and full-QA rows in BOTH evidence documents must put
+ * one identical exact total in their own STATUS cells. A number in a nearby
+ * row, evidence paragraph, or historical citation cannot satisfy this rule.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, expectedTotal) {
+  const specs = [
+    {
+      label: 'test-evidence current full contract suite',
+      md: testEvidenceMd,
+      match: (r) => /^full contract suite \(M12\.P1 SEC-51 authority\/audit\/total-consistency correction candidate\)$/i
+        .test(String(r.cells[0] || '').trim()),
+    },
+    {
+      label: 'test-evidence current Full QA aggregate',
+      md: testEvidenceMd,
+      match: (r) => /^full QA aggregate \(M12\.P1 SEC-51 authority\/audit\/total-consistency correction candidate\)$/i
+        .test(String(r.cells[0] || '').trim()),
+    },
+    {
+      label: 'security-checklist current npm test',
+      md: securityChecklistMd,
+      match: (r) => normalizedEvidenceCommand(r.cells[0]) === 'npm test',
+    },
+    {
+      label: 'security-checklist current npm run qa',
+      md: securityChecklistMd,
+      match: (r) => normalizedEvidenceCommand(r.cells[0]) === 'npm run qa',
+    },
+  ];
+  const problems = [];
+  if (!Number.isInteger(expectedTotal) || expectedTotal < 1000 || expectedTotal > 9999) {
+    return ['expected current quality total is not one four-digit integer'];
+  }
+  for (const spec of specs) {
+    const rows = markdownTableRows(spec.md).filter(spec.match);
+    const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
+    if (current.length === 0) {
+      problems.push(spec.label + ': no current row');
+      continue;
+    }
+    if (current.length > 1) {
+      problems.push(spec.label + ': duplicate current rows');
+      continue;
+    }
+    const row = current[0];
+    const total = exactStatusTotal(evidenceStatusCell(row.cells));
+    if (total == null) problems.push(spec.label + ': status does not carry one exact equal N/N total');
+    else if (total !== expectedTotal) problems.push(spec.label + ': status total does not match the pinned current total');
+    if (!/QUALITY-GATES OK/.test(row.raw)) problems.push(spec.label + ': row does not bind QUALITY-GATES OK to its current disposition');
+  }
+  return problems;
+}
+
+const REQUIRED_SCHEDULE_AUDIT_ACTIONS = Object.freeze([
+  'admin.schedule.create',
+  'admin.schedule.update',
+  'admin.schedule.delete',
+]);
+
+/* Handler -> (audit action, repository mutation) mapping, pinned HERE in the
+   gate rather than derived from the controller it audits. */
+const SCHEDULE_AUDIT_HANDLERS = Object.freeze([
+  Object.freeze({
+    handler: 'createSchedule', action: 'admin.schedule.create', repoMethod: 'createSchedule',
+    mutationPrefix: 'const schedule = await scheduleRepository.createSchedule(',
+    successPrefix: 'return res.status(201).json(',
+  }),
+  Object.freeze({
+    handler: 'updateSchedule', action: 'admin.schedule.update', repoMethod: 'updateSchedule',
+    mutationPrefix: 'const schedule = await scheduleRepository.updateSchedule(',
+    successPrefix: 'return res.json(',
+  }),
+  Object.freeze({
+    handler: 'deleteSchedule', action: 'admin.schedule.delete', repoMethod: 'deleteScheduleById',
+    mutationPrefix: 'const removed = await scheduleRepository.deleteScheduleById(',
+    successPrefix: 'return res.json(',
+  }),
+]);
+const SCHEDULE_AUDIT_STATEMENT_PREFIX = 'auditAdminMutation(';
+const SCHEDULE_AUDIT_TARGET_TYPE = 'room_schedule';
+
+/**
+ * PURE lexical pass. Returns a SAME-LENGTH copy of `src` in which every line
+ * comment, block comment, and string/template literal (delimiters included) is
+ * blanked to spaces, plus the offsets and decoded values of the single- and
+ * double-quoted string literals.
+ *
+ * Blanking preserves offsets and newlines, so any match against `.code` points
+ * at REAL executable source. This is what stops a comment, a documentation
+ * sentence, or a string payload from satisfying a structural contract — the
+ * exact fail-open class this replaces.
+ *
+ * Regex literals are deliberately NOT modelled: the two audited files contain a
+ * single quote-free regex. A future quote-bearing regex would desync the scan,
+ * which surfaces as `ok:false` and FAILS THE GATE CLOSED rather than silently
+ * passing.
+ * @returns {{code: string, strings: Array<{start:number,end:number,value:string}>, ok: boolean}}
+ */
+function lexJsSource(src) {
+  const s = typeof src === 'string' ? src : '';
+  const out = s.split('');
+  const strings = [];
+  const templates = [];
+  const blank = (a, b) => {
+    for (let k = a; k < b && k < out.length; k++) {
+      if (out[k] !== '\n' && out[k] !== '\r') out[k] = ' ';
+    }
+  };
+  let i = 0;
+  let ok = true;
+  while (i < s.length) {
+    const c = s[i];
+    const d = s[i + 1];
+    if (c === '/' && d === '/') {
+      let j = i;
+      while (j < s.length && s[j] !== '\n') j++;
+      blank(i, j);
+      i = j;
+      continue;
+    }
+    if (c === '/' && d === '*') {
+      const j = s.indexOf('*/', i + 2);
+      if (j < 0) { ok = false; blank(i, s.length); break; }
+      blank(i, j + 2);
+      i = j + 2;
+      continue;
+    }
+    if (c === '\'' || c === '"') {
+      let j = i + 1;
+      let value = '';
+      let closed = false;
+      while (j < s.length) {
+        if (s[j] === '\\') { value += s[j + 1] === undefined ? '' : s[j + 1]; j += 2; continue; }
+        if (s[j] === c) { closed = true; break; }
+        if (s[j] === '\n') break; // unterminated literal
+        value += s[j];
+        j++;
+      }
+      if (!closed) { ok = false; blank(i, s.length); break; }
+      strings.push({ start: i, end: j + 1, value });
+      blank(i, j + 1);
+      i = j + 1;
+      continue;
+    }
+    if (c === '`') {
+      let j = i + 1;
+      let closed = false;
+      while (j < s.length) {
+        if (s[j] === '\\') { j += 2; continue; }
+        if (s[j] === '`') { closed = true; break; }
+        j++;
+      }
+      if (!closed) { ok = false; blank(i, s.length); break; }
+      /* A template literal can never be an accepted action/target literal, but
+         its span is recorded so an element or argument made of one is REJECTED
+         rather than mistaken for blank filler. */
+      templates.push({ start: i, end: j + 1 });
+      blank(i, j + 1);
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  return { code: out.join(''), strings, templates, ok };
+}
+
+/** PURE: net depth of one bracket pair across `code[from..to)`. */
+function netBracketDepth(code, from, to, openCh, closeCh) {
+  let d = 0;
+  for (let k = from; k < to && k < code.length; k++) {
+    if (code[k] === openCh) d++;
+    else if (code[k] === closeCh) d--;
+  }
+  return d;
+}
+
+/** PURE: index of the bracket closing the one at `open`, or -1 when unbalanced. */
+function matchBracketIndex(code, open, openCh, closeCh) {
+  let d = 0;
+  for (let k = open; k < code.length; k++) {
+    if (code[k] === openCh) d++;
+    else if (code[k] === closeCh) { d--; if (d === 0) return k; }
+  }
+  return -1;
+}
+
+/**
+ * PURE: split the interior of an array/argument list into TOP-LEVEL
+ * comma-delimited spans, tracking `()`, `[]`, and `{}` relative depth.
+ * Returns null on a negative, mismatched, or unbalanced delimiter.
+ * @returns {Array<{start:number,end:number}>|null}
+ */
+function topLevelCommaSpans(code, interiorStart, interiorEnd) {
+  const spans = [];
+  let paren = 0;
+  let square = 0;
+  let curly = 0;
+  let start = interiorStart;
+  for (let k = interiorStart; k < interiorEnd; k++) {
+    const ch = code[k];
+    if (ch === '(') paren++;
+    else if (ch === ')') paren--;
+    else if (ch === '[') square++;
+    else if (ch === ']') square--;
+    else if (ch === '{') curly++;
+    else if (ch === '}') curly--;
+    else if (ch === ',' && paren === 0 && square === 0 && curly === 0) {
+      spans.push({ start, end: k });
+      start = k + 1;
+      continue;
+    }
+    if (paren < 0 || square < 0 || curly < 0) return null;
+  }
+  if (paren !== 0 || square !== 0 || curly !== 0) return null;
+  spans.push({ start, end: interiorEnd });
+  return spans;
+}
+
+/**
+ * PURE: does `span` consist of EXACTLY ONE direct single- or double-quoted
+ * string literal and nothing else executable?
+ *
+ * Returns { kind: 'literal', value } for a direct literal, { kind: 'empty' }
+ * for a span that is only whitespace and comments (a legal trailing comma or
+ * blank filler), or { kind: 'invalid' } for anything else — concatenation, a
+ * call wrapper, a ternary, an object/array wrapper, a template literal, or
+ * multiple literals.
+ * @returns {{kind: string, value?: string}}
+ */
+function directStringSpan(code, lex, span) {
+  const masked = code.slice(span.start, span.end);
+  const inside = lex.strings.filter((st) => st.start >= span.start && st.end <= span.end);
+  const tpl = (lex.templates || []).filter((t) => t.start >= span.start && t.end <= span.end);
+  const maskedClean = !/\S/.test(masked);
+  if (inside.length === 0) {
+    // A template literal is NOT blank filler: it must fail, not be skipped.
+    if (tpl.length > 0 || !maskedClean) return { kind: 'invalid' };
+    return { kind: 'empty' };
+  }
+  if (inside.length !== 1 || tpl.length > 0 || !maskedClean) return { kind: 'invalid' };
+  return { kind: 'literal', value: inside[0].value };
+}
+
+/**
+ * PURE: the DIRECT string elements of the ONE executable
+ * `const ACTIONS = Object.freeze([ ... ]);` declaration.
+ *
+ * Every nonempty top-level element span must be EXACTLY ONE literal. A string
+ * that merely appears inside an element expression is not that element's
+ * runtime value, so `prefix + 'x'`, `'x' + suffix`, `choose('x')`,
+ * `cond ? 'x' : other`, `{ action: 'x' }`, and `['x']` all fail closed.
+ * Comments around a direct literal stay legal because comments are masked.
+ * @returns {string[]|null}
+ */
+function frozenActionsArrayElements(serviceSrc) {
+  const lex = lexJsSource(serviceSrc);
+  if (!lex.ok) return null;
+  const re = /\bconst\s+ACTIONS\s*=\s*Object\s*\.\s*freeze\s*\(\s*\[/g;
+  const declarations = [];
+  let m;
+  while ((m = re.exec(lex.code)) !== null) {
+    declarations.push({ start: m.index, open: m.index + m[0].length - 1 });
+  }
+  if (declarations.length !== 1) return null;
+  const declaration = declarations[0];
+  // The real audit taxonomy is a module-level constant. A declaration that
+  // exists only in a dead/nested block is not the runtime allowlist.
+  if (netBracketDepth(lex.code, 0, declaration.start, '{', '}') !== 0) return null;
+  const open = declaration.open;
+  const close = matchBracketIndex(lex.code, open, '[', ']');
+  if (close < 0) return null;
+  // The frozen array must actually terminate the declaration.
+  if (!/^\s*\)\s*;/.test(lex.code.slice(close + 1))) return null;
+  const spans = topLevelCommaSpans(lex.code, open + 1, close);
+  if (spans === null) return null;
+  const elements = [];
+  for (let i = 0; i < spans.length; i++) {
+    const span = spans[i];
+    const verdict = directStringSpan(lex.code, lex, span);
+    if (verdict.kind === 'empty') {
+      // Only the final empty span created by a legal trailing comma is filler.
+      // An interior empty span is an array hole and fails the taxonomy closed.
+      if (i !== spans.length - 1 || spans.length === 1) return null;
+      continue;
+    }
+    if (verdict.kind !== 'literal') return null;
+    elements.push(verdict.value);
+  }
+  return elements;
+}
+
+/**
+ * PURE: the sole `exports.<name> = async (req, res) => { ... }` body, which
+ * must be the ONE executable declaration for that handler AND be its own
+ * module-level assignment statement. Merely sitting at curly-brace depth zero
+ * is insufficient: brace-less `if`, short-circuit, ternary, parenthesized,
+ * labelled, or assignment-wrapped exports must fail closed too.
+ * @returns {{lex: object, open: number, close: number}|null}
+ */
+function soleExportedHandler(controllerSrc, name) {
+  const lex = lexJsSource(controllerSrc);
+  if (!lex.ok) return null;
+  const re = new RegExp('\\bexports\\s*\\.\\s*' + name +
+    '\\s*=\\s*async\\s*\\(\\s*req\\s*,\\s*res\\s*\\)\\s*=>\\s*\\{', 'g');
+  const decls = [];
+  let m;
+  while ((m = re.exec(lex.code)) !== null) {
+    decls.push({ declStart: m.index, brace: m.index + m[0].length - 1 });
+  }
+  if (decls.length !== 1) return null;
+  const decl = decls[0];
+  const close = matchBracketIndex(lex.code, decl.brace, '{', '}');
+  if (close < 0) return null;
+
+  /* Prove the assignment starts a standalone module statement. The lexer has
+     already blanked comments and strings while preserving offsets, so only
+     executable tokens remain visible here. Track all delimiter families: a
+     short-circuit `(exports.x = async ...)` is at curly depth zero but paren
+     depth one and must not count. */
+  let paren = 0;
+  let square = 0;
+  let curly = 0;
+  let boundary = 0;
+  for (let k = 0; k < decl.declStart; k++) {
+    const ch = lex.code[k];
+    if (ch === '(') paren++;
+    else if (ch === ')') paren--;
+    else if (ch === '[') square++;
+    else if (ch === ']') square--;
+    else if (ch === '{') curly++;
+    else if (ch === '}') curly--;
+    if (paren < 0 || square < 0 || curly < 0) return null;
+    if (paren === 0 && square === 0 && curly === 0 && (ch === ';' || ch === '}')) {
+      boundary = k + 1;
+    }
+  }
+  if (paren !== 0 || square !== 0 || curly !== 0) return null;
+  if (/\S/.test(lex.code.slice(boundary, decl.declStart))) return null;
+
+  // The completed async-function assignment must end directly in its own `;`.
+  let statementEnd = close + 1;
+  while (statementEnd < lex.code.length && /\s/.test(lex.code[statementEnd])) statementEnd++;
+  if (lex.code[statementEnd] !== ';') return null;
+  return { lex, open: decl.brace, close };
+}
+
+/** PURE: top-level argument spans of the call whose '(' sits at `openParen`. */
+function callArgumentSpans(code, openParen) {
+  const close = matchBracketIndex(code, openParen, '(', ')');
+  if (close < 0) return null;
+  return topLevelCommaSpans(code, openParen + 1, close);
+}
+
+/**
+ * PURE: the value of the argument that IS exactly one direct single- or
+ * double-quoted string literal, else null.
+ *
+ * Containing a matching literal is not enough — the whole argument span must be
+ * that literal, so `resolve('x')`, `'x' + suffix`, `cond ? 'x' : fallback`,
+ * `'room_' + 'schedule'`, and a template literal all return null.
+ * @returns {string|null}
+ */
+function soleDirectStringArgument(code, lex, span) {
+  const verdict = directStringSpan(code, lex, span);
+  return verdict.kind === 'literal' ? verdict.value : null;
+}
+
+/** PURE: does one argument consist only of the expected executable identifier? */
+function isSoleDirectIdentifierArgument(code, lex, span, expected) {
+  const strings = lex.strings.filter((st) => st.start >= span.start && st.end <= span.end);
+  const templates = (lex.templates || []).filter((t) => t.start >= span.start && t.end <= span.end);
+  if (strings.length > 0 || templates.length > 0) return false;
+  return code.slice(span.start, span.end).trim() === expected;
+}
+
+/**
+ * PURE: complete statement spans at the TOP executable level of one block.
+ *
+ * `end` is exclusive. `terminated` records whether the statement ended with its
+ * OWN semicolon at that level; a statement closed by a brace (a nested block, a
+ * control statement, or the enclosing block) is reported unterminated so a
+ * brace-less decoy can never be mistaken for a standalone call statement.
+ * Statements inside a nested block are deliberately NOT enumerated.
+ * Returns null on unbalanced delimiters.
+ * @returns {Array<{start:number,end:number,terminated:boolean}>|null}
+ */
+function blockStatementSpans(code, blockOpen, blockClose) {
+  const spans = [];
+  let paren = 0;
+  let square = 0;
+  let curly = 0;
+  let start = -1;
+  for (let k = blockOpen + 1; k < blockClose; k++) {
+    const ch = code[k];
+    if (ch === '(') { if (start < 0) start = k; paren++; continue; }
+    if (ch === ')') { paren--; if (paren < 0) return null; continue; }
+    if (ch === '[') { if (start < 0) start = k; square++; continue; }
+    if (ch === ']') { square--; if (square < 0) return null; continue; }
+    if (ch === '{') { if (start < 0) start = k; curly++; continue; }
+    if (ch === '}') {
+      curly--;
+      if (curly < 0) return null;
+      if (curly === 0 && paren === 0 && square === 0 && start >= 0) {
+        spans.push({ start, end: k + 1, terminated: false });
+        start = -1;
+      }
+      continue;
+    }
+    if (ch === ';' && paren === 0 && square === 0 && curly === 0) {
+      if (start >= 0) spans.push({ start, end: k + 1, terminated: true });
+      start = -1;
+      continue;
+    }
+    if (/\S/.test(ch) && start < 0) start = k;
+  }
+  if (paren !== 0 || square !== 0 || curly !== 0) return null;
+  if (start >= 0) spans.push({ start, end: blockClose, terminated: false });
+  return spans;
+}
+
+/**
+ * PURE: structural proof that ONE controller handler performs its repository
+ * mutation, then EXACTLY ONE matching auditAdminMutation() call, then its
+ * success response — all at the same executable depth of the handler's
+ * successful try path, in that order.
+ *
+ * Rejects an audit call that exists only in a comment, only inside an ordinary
+ * or template string, in another handler, inside a nested decoy block such as
+ * `if (false) { ... }`, before the mutation, after the success return, or more
+ * than once.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function scheduleHandlerAuditProblems(controllerSrc, spec) {
+  const label = spec.handler;
+  const h = soleExportedHandler(controllerSrc, label);
+  if (h === null) {
+    return [label + ': exactly one exported async (req, res) handler body must be resolvable'];
+  }
+  const code = h.lex.code;
+  const problems = [];
+
+  // The single `try {` directly inside the handler body.
+  const tryOpens = [];
+  const tryRe = /\btry\s*\{/g;
+  let m;
+  while ((m = tryRe.exec(code)) !== null) {
+    const abs = m.index + m[0].length - 1;
+    if (abs < h.open || abs > h.close) continue;
+    if (netBracketDepth(code, h.open, abs, '{', '}') === 1) tryOpens.push(abs);
+  }
+  if (tryOpens.length !== 1) {
+    return [label + ': exactly one top-level try block must be resolvable in the handler'];
+  }
+  const tryOpen = tryOpens[0];
+  const tryClose = matchBracketIndex(code, tryOpen, '{', '}');
+  if (tryClose < 0) return [label + ': the handler try block is unbalanced'];
+
+  /* Statement-level, not merely depth-level. Each accepted step must be a
+     COMPLETE standalone statement of the try path whose FIRST executable token
+     is the expected prefix and which ends with its own semicolon — so a
+     brace-less `if (false) x();`, a `false && x()` short circuit, a ternary, an
+     assignment, a `return`-wrapped call, or a nested block can never qualify. */
+  const stmts = blockStatementSpans(code, tryOpen, tryClose);
+  if (stmts === null) return [label + ': the handler try-path statements are unbalanced'];
+  const norm = (sp) => code.slice(sp.start, sp.end).replace(/\s+/g, ' ').trim();
+  const pick = (prefix) => stmts.filter((sp) => sp.terminated === true && norm(sp).startsWith(prefix));
+
+  // 1. the repository mutation, as its own complete try-path statement
+  const mutStmts = pick(spec.mutationPrefix);
+  if (mutStmts.length !== 1) {
+    problems.push(label + ': exactly one standalone try-path statement beginning "' +
+      spec.mutationPrefix + '" is required');
+  }
+
+  // 2. exactly one auditAdminMutation() token in the handler, and it must BE the
+  //    one complete try-path audit statement.
+  const auditTokens = [];
+  const auditRe = /\bauditAdminMutation\s*\(/g;
+  let a;
+  while ((a = auditRe.exec(code)) !== null) {
+    if (a.index >= h.open && a.index <= h.close) auditTokens.push(a.index);
+  }
+  const auditStmts = pick(SCHEDULE_AUDIT_STATEMENT_PREFIX);
+  let auditIdx = -1;
+  if (auditTokens.length !== 1 || auditStmts.length !== 1) {
+    problems.push(label + ': exactly one standalone try-path auditAdminMutation() statement is required in the handler');
+  } else {
+    const sp = auditStmts[0];
+    auditIdx = sp.start;
+    const openParen = code.indexOf('(', sp.start);
+    const closeParen = openParen < 0 ? -1 : matchBracketIndex(code, openParen, '(', ')');
+    if (closeParen < 0) {
+      problems.push(label + ': the auditAdminMutation() call is unbalanced');
+    } else {
+      // Nothing but the terminating semicolon may follow the completed call.
+      if (/\S/.test(code.slice(closeParen + 1, sp.end - 1))) {
+        problems.push(label + ': no executable token may follow the completed auditAdminMutation() call before its semicolon');
+      }
+      const spans = callArgumentSpans(code, openParen);
+      if (spans === null || spans.length < 3) {
+        problems.push(label + ': auditAdminMutation() must pass req, the action, and the target type');
+      } else {
+        if (!isSoleDirectIdentifierArgument(code, h.lex, spans[0], 'req')) {
+          problems.push(label + ': auditAdminMutation() must receive req as its direct first argument');
+        }
+        if (soleDirectStringArgument(code, h.lex, spans[1]) !== spec.action) {
+          problems.push(label + ': must audit exactly the ' + spec.action + ' action as a direct string argument');
+        }
+        if (soleDirectStringArgument(code, h.lex, spans[2]) !== SCHEDULE_AUDIT_TARGET_TYPE) {
+          problems.push(label + ': must record target type ' + SCHEDULE_AUDIT_TARGET_TYPE + ' as a direct string argument');
+        }
+      }
+    }
+  }
+
+  // 3. the successful response, as its own complete try-path statement
+  const successStmts = pick(spec.successPrefix)
+    .filter((sp) => /success\s*:\s*true/.test(code.slice(sp.start, sp.end)));
+  if (successStmts.length !== 1) {
+    problems.push(label + ': exactly one standalone try-path statement beginning "' +
+      spec.successPrefix + '" with success: true is required');
+  }
+
+  /* A syntactically present sequence is not evidence when a direct top-level
+     `return` or `throw` has already made it unreachable. Conditional guard
+     blocks begin with `if` and remain valid; only unconditional terminating
+     statements at the try path's executable level are rejected here. */
+  if (successStmts.length === 1) {
+    const successStart = successStmts[0].start;
+    const prematureTerminator = stmts.some((sp) =>
+      sp.terminated === true && sp.start < successStart &&
+      /^(?:return|throw)\b/.test(norm(sp)));
+    if (prematureTerminator) {
+      problems.push(label + ': the mutation/audit/success sequence must not follow an unconditional return or throw');
+    }
+  }
+
+  // 4. mutation -> audit -> success, in that order
+  if (mutStmts.length === 1 && auditIdx >= 0 && successStmts.length === 1) {
+    if (!(mutStmts[0].start < auditIdx && auditIdx < successStmts[0].start)) {
+      problems.push(label + ': the order must be repository mutation, then the audit call, then the success response');
+    }
+  }
+  return problems;
+}
+
+/**
+ * PURE: validate the fixed schedule-audit allowlist and controller mapping by
+ * STRUCTURE. Literal occurrences anywhere in the file are deliberately not
+ * evidence: only direct elements of the frozen ACTIONS array and statement-level
+ * calls inside the expected handler count.
+ * @returns {{allowlist: string[], controller: string[]}}
+ */
+function analyzeScheduleAuditContract(serviceSrc, controllerSrc) {
+  const problems = { allowlist: [], controller: [] };
+  const elements = frozenActionsArrayElements(serviceSrc);
+  if (elements === null) {
+    problems.allowlist.push('exactly one balanced executable const ACTIONS = Object.freeze([...]) declaration is required');
+  } else {
+    for (const action of REQUIRED_SCHEDULE_AUDIT_ACTIONS) {
+      const n = elements.filter((v) => v === action).length;
+      if (n !== 1) {
+        problems.allowlist.push(action + ' must occur exactly once as a direct string element of the audit allowlist array');
+      }
+    }
+  }
+  for (const spec of SCHEDULE_AUDIT_HANDLERS) {
+    for (const p of scheduleHandlerAuditProblems(controllerSrc, spec)) problems.controller.push(p);
   }
   return problems;
 }
@@ -5392,7 +6338,9 @@ function runDocsCurrentGate() {
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
       'M12.P1-R8 is the next potential section and is read-only, but this context-only prompt does not authorize R8 execution. Even R8 GO authorizes only a separate owner deployment decision. ' +
       'The sequence is R8 read-only review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. ' +
-      'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized.';
+      'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized. ' +
+      'Production at https://campusphere-cspc.vercel.app is on deployed runtime baseline d422b54393f659125912ec5c84ae7927c2533288. ' +
+      'Repository HEAD is the later documentation-only commit db034e5581e6f409083a43dcb80fb82b473e0127; it is not the deployed runtime.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
       'M12.P1-R6 is complete and Codex GO.',
@@ -5419,6 +6367,15 @@ function runDocsCurrentGate() {
       'M12.P1-D7 is complete and Codex GO.',
       'M12.P1-D7 is implemented and awaiting independent Codex review; no D7 GO is claimed.');
 
+    /* A SYNTHETIC deployed-baseline SHA, written as a literal here so no live
+       file can supply it. It is neither the accepted production baseline nor
+       the superseded one, so substituting it for the deployed-runtime SHA turns
+       a truthful body into a false current deployment claim. Only that SHA is
+       replaced; the repository-HEAD SHA is left intact. */
+    const FAKE_DEPLOYED_SHA = '0f1e2d3c4b5a69788796a5b4c3d2e1f009182736';
+    const WRONG_BASELINE_BODY = CURRENT_BODY.split(
+      'd422b54393f659125912ec5c84ae7927c2533288').join(FAKE_DEPLOYED_SHA);
+
     // kind: 'ok' | 'missing-heading' | 'duplicate-heading' | 'no-fence' |
     //       'unclosed' | 'duplicate-block' | 'empty' | 'bare-open' | 'js-open' |
     //       'json-open'
@@ -5442,11 +6399,17 @@ function runDocsCurrentGate() {
       section(H.codex, codexBody, codexKind || 'ok') + '\n\n' +
       section(H.claude, claudeBody, claudeKind || 'ok') + '\n';
 
-    ok('fixture: two current reusable prompts pass, including the R8-read-only dependency sequence',
+    ok('fixture: two current reusable prompts pass, including the R8-read-only dependency sequence and the deployed-baseline binding',
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, CURRENT_BODY)) === true &&
       /sequence is R8 read-only review -> separate owner deployment decision/.test(CURRENT_BODY) &&
       reusablePromptIsCurrent(CURRENT_BODY) === true &&
-      declaresStaleOrPrematureAuthority(CURRENT_BODY) === false);
+      declaresStaleOrPrematureAuthority(CURRENT_BODY) === false &&
+      deploymentDocumentClaimsAreCurrent(CURRENT_BODY.replace(/\s+/g, ' ').trim()) === true &&
+      FAKE_DEPLOYED_SHA !== EXPECTED_SEC51_DEPLOYED_BASELINE &&
+      FAKE_DEPLOYED_SHA !== EXPECTED_SEC51_SUPERSEDED_BASELINE &&
+      reusablePromptIsCurrent(WRONG_BASELINE_BODY) === false &&
+      reusablePromptsAreCurrent(buildDoc(WRONG_BASELINE_BODY, CURRENT_BODY)) === false &&
+      reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, WRONG_BASELINE_BODY)) === false);
     ok('fixture: a stale Codex prompt body fails (direct + inverse + qualified R5-next)',
       reusablePromptsAreCurrent(buildDoc(STALE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY + ' The next implementation section is R5.', CURRENT_BODY)) === false &&
@@ -5602,6 +6565,16 @@ function runDocsCurrentGate() {
       analyzeCurrentPackageInventoryRow(te, EXPECTED_R8_PACKAGE_INVENTORY).length === 0);
     ok('docs/test-evidence.md exposes exactly one current full-suite correction-candidate row',
       analyzeCurrentCandidateSuiteRow(te).length === 0);
+    ok('current npm-test and full-QA dispositions bind one exact pinned total across both evidence documents',
+      analyzeExactCurrentQualityTotals(te, sc, EXPECTED_SEC51_CURRENT_QUALITY_TOTAL).length === 0);
+
+    const scheduleAuditService = readIf(path.join('services', 'auditService.js'));
+    const scheduleAuditController = readIf(path.join('controllers', 'adminScheduleController.js'));
+    const liveScheduleAudit = analyzeScheduleAuditContract(scheduleAuditService, scheduleAuditController);
+    ok('auditService allowlists exactly the three contracted schedule mutation actions',
+      liveScheduleAudit.allowlist.length === 0);
+    ok('adminScheduleController maps create, update, and delete to the exact schedule audit actions',
+      liveScheduleAudit.controller.length === 0);
 
     /* ---- fixtures for the R8 evidence-consistency rules, pinned independently
        of the live documents. Each rule gets an accepting AND a rejecting case. ---- */
@@ -5609,7 +6582,7 @@ function runDocsCurrentGate() {
     const M_HDR = '## Manual Black-Box Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- | --- | --- |\n';
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
-    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **3777/3777 PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
@@ -5617,7 +6590,7 @@ function runDocsCurrentGate() {
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
     const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
-    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded earlier baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: before that deployment, the earlier baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
     const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
     const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
@@ -5627,10 +6600,165 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1 SEC-51 pilot-surface package inventory (correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,201,603 bytes, aggregate SHA-256 `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636`; focused probe `71/71`** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1 SEC-51 pilot-surface package inventory (correction candidate) | `x` | recomputed | **158 files, 6,201,603 bytes, aggregate SHA-256 `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636`** | +1 file versus the previous candidate (157 files, 6,192,992 bytes, aggregate `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`) |';
+    const INV_CURRENT = '| M12.P1 SEC-51 schedule-audit correction package inventory (correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,201,747 bytes, aggregate SHA-256 `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`; focused probe `71/71`** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1 SEC-51 schedule-audit correction package inventory (correction candidate) | `x` | recomputed | **158 files, 6,201,747 bytes, aggregate SHA-256 `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`** | before this runtime correction, the previous candidate was 158 files, 6,201,603 bytes, aggregate `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
+
+    const EXACT_SUITE_OK = '| Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm test` | zero fail | **3777/3777 PASS - correction candidate** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm run qa` | all green | **3777/3777 PASS - exit 0** | `QUALITY-GATES OK` |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm run qa` | all green | **3776/3776 PASS - exit 0** | `QUALITY-GATES OK`; 3777/3777 appears only in neighbouring prose |';
+    const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **3777/3777 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **3777/3777 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 3777/3777 |';
+
+    /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
+       now structural. Each rejecting fixture below keeps every required action
+       literal present exactly once SOMEWHERE in the file, so the superseded
+       literal-counting analyzer accepted it — only structure separates them. */
+    const S_ACTIONS = (rows) => ['const ACTIONS = Object.freeze([', "  'login.local',"]
+      .concat(rows).concat([']);']).join('\n');
+    const SCHEDULE_SERVICE_OK = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  'admin.schedule.delete',",
+    ]);
+    // delete dropped from the array, still present once as an unrelated constant
+    const SCHEDULE_SERVICE_MISSING = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+    ]) + "\nconst DOC_ONLY = 'admin.schedule.delete';";
+    // delete present once, but only inside a comment
+    const SCHEDULE_SERVICE_COMMENT_ONLY = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  // 'admin.schedule.delete',",
+    ]);
+    const SCHEDULE_SERVICE_DUPLICATE = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  'admin.schedule.delete',",
+      "  'admin.schedule.delete',",
+    ]);
+    const SCHEDULE_SERVICE_TWO_DECLS = SCHEDULE_SERVICE_OK + '\n' + SCHEDULE_SERVICE_OK;
+    // the literal is present, but it is not the element's runtime value
+    const SCHEDULE_SERVICE_CONCAT = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  prefix + 'admin.schedule.delete',",
+    ]);
+    const SCHEDULE_SERVICE_CALL = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  choose('admin.schedule.delete'),",
+    ]);
+    const SCHEDULE_SERVICE_TERNARY = S_ACTIONS([
+      "  'admin.schedule.create',",
+      "  'admin.schedule.update',",
+      "  flag ? 'admin.schedule.delete' : other,",
+    ]);
+    // a syntactically real declaration that never establishes the module allowlist
+    const SCHEDULE_SERVICE_NESTED_DECL = 'if (false) {\n' + SCHEDULE_SERVICE_OK + '\n}';
+    // every required literal is direct, but the interior comma creates an array hole
+    const SCHEDULE_SERVICE_INTERIOR_HOLE = S_ACTIONS([
+      "  'admin.schedule.create',",
+      '  ,',
+      "  'admin.schedule.update',",
+      "  'admin.schedule.delete',",
+    ]);
+
+    const A_CREATE = "    auditAdminMutation(req, 'admin.schedule.create', 'room_schedule', schedule.id, 'created');";
+    const A_UPDATE = "    auditAdminMutation(req, 'admin.schedule.update', 'room_schedule', schedule.id, 'updated');";
+    const A_DELETE = "    auditAdminMutation(req, 'admin.schedule.delete', 'room_schedule', removed.id, 'deleted');";
+    const A_DELETE_BARE = A_DELETE.trim().replace(/;$/, '');
+    /* Fixture handlers reproduce the EXACT pinned statement prefixes, so a decoy
+       differs from the real thing only in statement structure. */
+    const MUT_OF = {
+      createSchedule: '    const schedule = await scheduleRepository.createSchedule(req.body);',
+      updateSchedule: '    const schedule = await scheduleRepository.updateSchedule(req.body);',
+      deleteSchedule: '    const removed = await scheduleRepository.deleteScheduleById(req.body);',
+    };
+    const AUD_OF = { createSchedule: A_CREATE, updateSchedule: A_UPDATE, deleteSchedule: A_DELETE };
+    const OK_OF = {
+      createSchedule: "    return res.status(201).json({ success: true, message: 'ok' });",
+      updateSchedule: "    return res.json({ success: true, message: 'ok' });",
+      deleteSchedule: "    return res.json({ success: true, message: 'ok' });",
+    };
+    const mkHandler = (name, over) => {
+      const o = over || {};
+      return [
+        'exports.' + name + ' = async (req, res) => {',
+        '  try {',
+        o.mutation === undefined ? MUT_OF[name] : o.mutation,
+        o.audit === undefined ? AUD_OF[name] : o.audit,
+        o.success === undefined ? OK_OF[name] : o.success,
+        '  } catch (error) {',
+        "    return res.status(500).json({ success: false, message: 'Server error.' });",
+        '  }',
+        '};',
+      ].filter((line) => line !== '').join('\n');
+    };
+    const mkController = (over) => {
+      const o = over || {};
+      return ['createSchedule', 'updateSchedule', 'deleteSchedule']
+        .map((n) => (o[n] && o[n].raw !== undefined ? o[n].raw : mkHandler(n, o[n])))
+        .join('\n\n');
+    };
+
+    const SCHEDULE_CONTROLLER_OK = mkController();
+    const SCHEDULE_CONTROLLER_COMMENTED = mkController({ deleteSchedule: { audit: '    // ' + A_DELETE.trim() } });
+    const SCHEDULE_CONTROLLER_STRING_ONLY = mkController({
+      deleteSchedule: { audit: '    const doc = "' + A_DELETE.trim() + '";' } });
+    const SCHEDULE_CONTROLLER_NESTED = mkController({
+      deleteSchedule: { audit: '    if (false) {\n  ' + A_DELETE + '\n    }' } });
+    // every literal still appears once, but delete/update are audited by the wrong handler
+    const SCHEDULE_CONTROLLER_WRONG = mkController({
+      updateSchedule: { audit: A_DELETE }, deleteSchedule: { audit: A_UPDATE } });
+    const SCHEDULE_CONTROLLER_DUPLICATE = mkController({
+      deleteSchedule: { audit: A_DELETE + '\n' + A_DELETE } });
+    const SCHEDULE_CONTROLLER_ORDER = mkController({
+      deleteSchedule: { raw: mkHandler('deleteSchedule', { mutation: A_DELETE, audit: MUT_OF.deleteSchedule }) } });
+    // argument wrappers: the literal is present but is not the argument itself
+    const SCHEDULE_CONTROLLER_ACTION_CALL = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(req, resolve('admin.schedule.delete'), 'room_schedule', removed.id, 'deleted');" } });
+    const SCHEDULE_CONTROLLER_TARGET_CALL = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(req, 'admin.schedule.delete', targetType('room_schedule'), removed.id, 'deleted');" } });
+    const SCHEDULE_CONTROLLER_TARGET_CONCAT = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(req, 'admin.schedule.delete', 'room_' + 'schedule', removed.id, 'deleted');" } });
+    // the action and target are correct, but the actor request argument is not
+    const SCHEDULE_CONTROLLER_REQ_CALL = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(resolveReq(), 'admin.schedule.delete', 'room_schedule', removed.id, 'deleted');" } });
+    const SCHEDULE_CONTROLLER_REQ_NULL = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(null, 'admin.schedule.delete', 'room_schedule', removed.id, 'deleted');" } });
+    const SCHEDULE_CONTROLLER_REQ_OTHER = mkController({
+      deleteSchedule: { audit: "    auditAdminMutation(otherReq, 'admin.schedule.delete', 'room_schedule', removed.id, 'deleted');" } });
+    // the handler is exported only inside a dead block, so it is not module top level
+    const SCHEDULE_CONTROLLER_NESTED_EXPORT = mkController({
+      deleteSchedule: { raw: 'if (false) {\n' + mkHandler('deleteSchedule') + '\n}' } });
+    const SCHEDULE_CONTROLLER_BRACELESS_EXPORT = mkController({
+      deleteSchedule: { raw: 'if (false) ' + mkHandler('deleteSchedule') } });
+    const SCHEDULE_CONTROLLER_SHORTCIRCUIT_EXPORT = mkController({
+      deleteSchedule: { raw: 'false && (' + mkHandler('deleteSchedule').replace(/;\s*$/, '') + ');' } });
+    // expression-level decoys that carry no braces at all
+    const SCHEDULE_CONTROLLER_BRACELESS_IF = mkController({
+      deleteSchedule: { audit: '    if (false) ' + A_DELETE.trim() } });
+    const SCHEDULE_CONTROLLER_SHORTCIRCUIT = mkController({
+      deleteSchedule: { audit: '    false && ' + A_DELETE.trim() } });
+    const SCHEDULE_CONTROLLER_TERNARY = mkController({
+      deleteSchedule: { audit: '    req.body ? ' + A_DELETE_BARE + ' : null;' } });
+    const SCHEDULE_CONTROLLER_ASSIGNED = mkController({
+      deleteSchedule: { audit: '    const logged = ' + A_DELETE.trim() } });
+    const SCHEDULE_CONTROLLER_TRAILING_TOKEN = mkController({
+      deleteSchedule: { audit: '    ' + A_DELETE_BARE + ' || fallback();' } });
+    const SCHEDULE_CONTROLLER_MUT_SHORTCIRCUIT = mkController({
+      deleteSchedule: { mutation: '    false && await scheduleRepository.deleteScheduleById(req.body);' } });
+    const SCHEDULE_CONTROLLER_AUDIT_AFTER_RETURN = mkController({
+      deleteSchedule: { raw: mkHandler('deleteSchedule', { audit: OK_OF.deleteSchedule, success: A_DELETE }) } });
+    const SCHEDULE_CONTROLLER_REQUIRED_AFTER_RETURN = mkController({
+      deleteSchedule: { mutation: "    return res.status(409).json({ success: false, message: 'stop' });\n" + MUT_OF.deleteSchedule } });
+    const SCHEDULE_CONTROLLER_REQUIRED_AFTER_THROW = mkController({
+      deleteSchedule: { mutation: "    throw new Error('stop');\n" + MUT_OF.deleteSchedule } });
 
     ok('fixture: one current Full QA aggregate row plus a historical placeholder is accepted',
       analyzeFullQaAggregateRows(Q_HDR + Q_QA_CURRENT + '\n' + Q_QA_HISTORICAL).length === 0);
@@ -5682,6 +6810,64 @@ function runDocsCurrentGate() {
       analyzeCurrentCandidateSuiteRow(Q_HDR + SUITE_CURRENT + '\n' + SUITE_STALE_CURRENT).length > 0 &&
       analyzeCurrentCandidateSuiteRow(Q_HDR + Q_QA_CURRENT).length > 0);
 
+    ok('fixture: one exact current suite/QA total in every required status cell is accepted',
+      analyzeExactCurrentQualityTotals(
+        Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK,
+        SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
+        3777).length === 0);
+    ok('fixture: a mismatched QA total or a total appearing only in neighbouring evidence is rejected',
+      analyzeExactCurrentQualityTotals(
+        Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_MISMATCH,
+        SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_BARE,
+        3777).length > 0);
+    ok('fixture: missing, duplicated, or historical-only current total rows fail closed',
+      analyzeExactCurrentQualityTotals(
+        Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK + '\n' + EXACT_QA_OK,
+        SEC_COMMAND_HDR + SEC_NPM_TEST_OK,
+        3777).length > 0 &&
+      analyzeExactCurrentQualityTotals(
+        Q_HDR + EXACT_SUITE_OK + '\n' + Q_QA_HISTORICAL,
+        SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
+        3777).length > 0);
+
+    ok('fixture: the exact three-action schedule audit contract is accepted only from a real frozen allowlist array and real handler structure',
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_OK).allowlist.length === 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_OK).controller.length === 0);
+    ok('fixture: every structural decoy is rejected even though the required literal is still present — including braced, brace-less, and short-circuit dead exports; wrapped audit calls; unreachable required sequences after return or throw; and the retained allowlist, argument, mapping, ordering, and statement-shape attacks',
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_MISSING, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_COMMENT_ONLY, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_DUPLICATE, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_TWO_DECLS, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_CONCAT, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_CALL, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_TERNARY, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_NESTED_DECL, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_INTERIOR_HOLE, SCHEDULE_CONTROLLER_OK).allowlist.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_COMMENTED).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_STRING_ONLY).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_NESTED).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_NESTED_EXPORT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_BRACELESS_EXPORT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_SHORTCIRCUIT_EXPORT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_WRONG).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_DUPLICATE).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_ORDER).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_ACTION_CALL).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_TARGET_CALL).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_TARGET_CONCAT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_REQ_CALL).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_REQ_NULL).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_REQ_OTHER).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_BRACELESS_IF).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_SHORTCIRCUIT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_TERNARY).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_ASSIGNED).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_TRAILING_TOKEN).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_MUT_SHORTCIRCUIT).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_AUDIT_AFTER_RETURN).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_REQUIRED_AFTER_RETURN).controller.length > 0 &&
+      analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_REQUIRED_AFTER_THROW).controller.length > 0);
+
     /* ---- SEC-51 deployed-evidence synchronization (live documents) ---- */
     const deployDocText = docs['docs/deployment.md'];
     ok('docs/security-checklist.md SEC-51 row records the accepted production result with host and deployed baseline',
@@ -5698,18 +6884,18 @@ function runDocsCurrentGate() {
       !declaresStalePilotSurfaceDeploymentClaim(te));
     ok('docs/security-checklist.md makes no stale undeployed pilot-surface claim',
       !declaresStalePilotSurfaceDeploymentClaim(sc));
-    ok('docs/deployment.md makes no stale undeployed pilot-surface claim',
-      !declaresStalePilotSurfaceDeploymentClaim(deployDocText));
+    ok('docs/deployment.md makes no stale or conflicting current deployment claim',
+      deploymentDocumentClaimsAreCurrent(deployDocText));
     for (const authorityDoc of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md',
       'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
-      ok(`${authorityDoc} makes no stale undeployed pilot-surface claim`,
-        !declaresStalePilotSurfaceDeploymentClaim(docs[authorityDoc]));
+      ok(`${authorityDoc} makes no stale or conflicting current deployment claim`,
+        deploymentDocumentClaimsAreCurrent(docs[authorityDoc]));
     }
 
     /* ---- fixtures: pinned independently of the live documents ---- */
     const SEC51_HDR = '| Case | Title | Steps | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
-    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; the historical/superseded first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: before that deployment, the first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
     const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
     const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
     const SEC51_NO_SHA = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app |';
@@ -5727,19 +6913,53 @@ function runDocsCurrentGate() {
       analyzeSec51ChecklistRow(SEC51_HDR + SEC51_OK + '\n' + SEC51_OK).length > 0 &&
       analyzeSec51ChecklistRow(SEC51_HDR).length > 0);
 
-    const PROSE_OK = 'The SEC-51 production smoke against d422b54393f659125912ec5c84ae7927c2533288 is Codex-accepted and the three pilot-surface corrections are deployed. This evidence synchronization is not a runtime deployment.';
-    const PROSE_HISTORICAL_OLD = 'Historical/superseded: the first accepted SEC-51 production baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.';
-    ok('fixture: the superseded baseline is accepted when framed as history, and rejected when framed as current',
+    /* Claim-scoped: the binding claim must tie the SHA to the DEPLOYED BASELINE,
+       not merely mention it beside the word "deployed". */
+    const PROSE_OK = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. The subsequent evidence and quality-gate synchronization at db034e5581e6f409083a43dcb80fb82b473e0127 is documentation-and-gate work only; it is not a runtime deployment and remains unaccepted pending independent read-only review.';
+    /* Forward-chronology doc-commit discriminator fixtures. The documentation/
+       gate commit is the CHILD of the deployed baseline, so a truthful
+       disclaimer is PRESENT tense and names that commit in the same scope.
+       DOC_COMMIT_UNNAMED is the OLD accepted PROSE_OK verbatim: it satisfied the
+       former whole-document regex while never identifying the commit it claimed
+       to distinguish. */
+    const DOC_COMMIT_UNNAMED = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. This evidence synchronization is not a runtime deployment.';
+    const DOC_COMMIT_HISTORY_ONLY = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. Historical/superseded: before the current deployment, the earlier synchronization at db034e5581e6f409083a43dcb80fb82b473e0127 was not a runtime deployment at that time.';
+    const DOC_COMMIT_SPLIT_SCOPE =
+      'The local documentation and gate candidate is db034e5581e6f409083a43dcb80fb82b473e0127.' +
+      '\n\nThis evidence synchronization is not a runtime deployment.';
+    const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the first accepted SEC-51 production baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.';
+    ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',
       supersededBaselineAlwaysMarkedHistorical(PROSE_HISTORICAL_OLD) === true &&
+      supersededBaselineAlwaysMarkedHistorical(
+        'Historical/superseded: production baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.') === false &&
       supersededBaselineAlwaysMarkedHistorical(
         'Production serves 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 right now.') === false);
     ok('fixture: prose naming the deployed baseline and separating the documentation commit is accepted',
       distinguishesDeployedRuntimeFromDocCommit(PROSE_OK) === true);
-    ok('fixture: prose that omits the deployed SHA or fails to separate the documentation commit is rejected',
+    ok('fixture: prose that omits the deployed SHA, never names the documentation commit, strands the disclaimer in another scope, or frames it as history is rejected',
       distinguishesDeployedRuntimeFromDocCommit(
         'The corrections are deployed. This evidence synchronization is not a runtime deployment.') === false &&
       distinguishesDeployedRuntimeFromDocCommit(
-        'SEC-51 passed against d422b54393f659125912ec5c84ae7927c2533288.') === false);
+        'SEC-51 passed against d422b54393f659125912ec5c84ae7927c2533288.') === false &&
+      /* (2) the deployed baseline is named and a disclaimer is present, but no
+         scope ever identifies the documentation commit. This string is the OLD
+         accepted fixture, so it also proves the fail-open closed. */
+      distinguishesDeployedRuntimeFromDocCommit(DOC_COMMIT_UNNAMED) === false &&
+      marksDocCommitClaimScoped(DOC_COMMIT_UNNAMED) === false &&
+      /* (1) the same scope names the documentation commit AND carries the
+         disclaimer, but only as past-bounded history — precisely the sentence
+         that used to satisfy this check. */
+      distinguishesDeployedRuntimeFromDocCommit(DOC_COMMIT_HISTORY_ONLY) === false &&
+      marksDocCommitClaimScoped(DOC_COMMIT_HISTORY_ONLY) === false &&
+      /* the identity and the disclaimer sit in different paragraphs */
+      marksDocCommitClaimScoped(DOC_COMMIT_SPLIT_SCOPE) === false &&
+      scopeMarksDocCommit('') === false &&
+      marksDocCommitClaimScoped(null) === false &&
+      /* (3) the truthful forward-chronology current-candidate disclaimer is
+         accepted, and the pinned documentation commit is NOT either baseline. */
+      marksDocCommitClaimScoped(PROSE_OK) === true &&
+      EXPECTED_SEC51_DOC_COMMIT !== EXPECTED_SEC51_DEPLOYED_BASELINE &&
+      EXPECTED_SEC51_DOC_COMMIT !== EXPECTED_SEC51_SUPERSEDED_BASELINE);
     ok('fixture: each stale undeployed pilot-surface claim is rejected',
       declaresStalePilotSurfaceDeploymentClaim(
         'The SEC-51 pilot-surface correction is not deployed.') === true &&
@@ -5758,6 +6978,84 @@ function runDocsCurrentGate() {
         'M12.P1-R6 is implemented and awaiting independent Codex review. No GO is claimed.') === false &&
       declaresStalePilotSurfaceDeploymentClaim(
         'R7 becomes implemented and awaiting independent Codex review.') === false);
+    /* ---- adversarial: a history marker must never license a FALSE current
+       deployment claim elsewhere in the same row or paragraph. Each case below
+       satisfies every substring check (both SHAs and the host are present) and
+       was accepted before the analyzers became claim-scoped. ---- */
+    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53; historical/superseded: d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53; historical/superseded: d422b54393f659125912ec5c84ae7927c2533288 |';
+    const MIXED_STALE_PARAGRAPH = 'Historical/superseded: the first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53. The SEC-51 pilot-surface correction is not deployed.';
+    const SWAP_PROSE = 'Production currently serves 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53. Historical/superseded: d422b54393f659125912ec5c84ae7927c2533288. The evidence synchronization is not a runtime deployment.';
+
+    ok('fixture: a semantic baseline swap inside a row is rejected even though both SHAs, the host, and a historical marker are present',
+      analyzeDeploymentSmokeRow(M_HDR + SWAP_SMOKE_ROW + M_TAIL).length > 0 &&
+      analyzeSec51ChecklistRow(SEC51_HDR + SWAP_SEC51_ROW).length > 0);
+    ok('fixture: a stale undeployed claim is rejected when a NEIGHBOURING sentence carries the historical marker',
+      declaresStalePilotSurfaceDeploymentClaim(MIXED_STALE_PARAGRAPH) === true);
+    ok('fixture: combined prose presenting the superseded baseline as current is rejected despite a historical label on the current SHA',
+      supersededBaselineAlwaysMarkedHistorical(SWAP_PROSE) === false &&
+      distinguishesDeployedRuntimeFromDocCommit(SWAP_PROSE) === false);
+
+    /* ---- five adversarial cases from the independent re-review. The first two
+       escaped topic detection by not repeating the topic after a semicolon or
+       sentence break; the last three defeated SHA co-occurrence by naming a
+       DIFFERENT SHA as the deployed baseline while mentioning the expected SHA
+       for comparison. Each is asserted separately. ---- */
+    const FAKE_SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
+    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with d422b54393f659125912ec5c84ae7927c2533288 for reference |';
+    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with d422b54393f659125912ec5c84ae7927c2533288 for reference |';
+    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than d422b54393f659125912ec5c84ae7927c2533288. The evidence synchronization is not a runtime deployment.';
+
+    ok('fixture: a stale claim after a semicolon is rejected even though only the FIRST clause names the topic',
+      declaresStalePilotSurfaceDeploymentClaim(
+        'SEC-51 stands; production continues to serve the accepted baseline.') === true);
+    ok('fixture: a stale candidate claim in the NEXT sentence is rejected even though only the first sentence names the topic',
+      declaresStalePilotSurfaceDeploymentClaim(
+        'SEC-51 pilot-surface correction status follows. The correction candidate awaits independent Codex review.') === true);
+    ok('fixture: a SEC-51 row naming a DIFFERENT SHA as the deployed baseline is rejected despite mentioning the expected SHA for comparison',
+      analyzeSec51ChecklistRow(SEC51_HDR + CMP_SEC51_ROW).length > 0);
+    ok('fixture: a deployment-smoke row naming a DIFFERENT SHA as the deployed baseline is rejected despite mentioning the expected SHA for comparison',
+      analyzeDeploymentSmokeRow(M_HDR + CMP_SMOKE_ROW + M_TAIL).length > 0);
+    ok('fixture: prose stating production serves a DIFFERENT SHA is rejected despite an unrelated mention of the expected SHA and a truthful documentation-commit disclaimer',
+      distinguishesDeployedRuntimeFromDocCommit(CMP_PROSE) === false);
+
+    /* ---- contradictory-deployed-SHA scope attacks. Each scope contains a
+       PERFECTLY VALID binding claim for the expected SHA, alongside a
+       neighbouring claim asserting production serves a different SHA. Requiring
+       only "at least one valid binding" accepted all three. ---- */
+    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288. Production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline d422b54393f659125912ec5c84ae7927c2533288. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
+    /* Scope-skipping attack: the contradictory claim sits in its OWN paragraph
+       with no SEC-51 / pilot-surface wording, so a topic-gated document scan
+       never audited it. Every scope is audited now. */
+    const CONFLICT_SEPARATE_PARAGRAPH =
+      'SEC-51 ran against deployed baseline d422b54393f659125912ec5c84ae7927c2533288. This evidence synchronization is not a runtime deployment.' +
+      '\n\nProduction currently serves ' + FAKE_SHA + '.';
+    /* History framing WITHOUT an explicit past boundary must not license a
+       wrong deployed SHA; the same claim, properly past-bounded, still may. */
+    const HIST_DEPLOYED_NO_PAST_BOUND = 'The historical deployed baseline ' + FAKE_SHA + ' is recorded for provenance.';
+    const HIST_DEPLOYED_PAST_BOUNDED = 'Previously, at that time, the superseded deployed baseline was ' + FAKE_SHA + '.';
+    const UNRELATED_BARE_SHA = 'A local commit 0f1e2d3c4b5a69788796a5b4c3d2e1f001234567 is referenced here for provenance only.';
+
+    ok('fixture: a SEC-51 row is rejected when a neighbouring claim says production serves a different SHA, despite a valid expected-SHA binding in the same row',
+      analyzeSec51ChecklistRow(SEC51_HDR + CONFLICT_SEC51_ROW).length > 0);
+    ok('fixture: a deployment-smoke row is rejected when a neighbouring claim says production serves a different SHA, despite a valid expected-SHA binding in the same row',
+      analyzeDeploymentSmokeRow(M_HDR + CONFLICT_SMOKE_ROW + M_TAIL).length > 0);
+    ok('fixture: prose is rejected when a contradictory current-serves claim follows a valid expected-SHA binding, including when it sits in its own paragraph carrying no SEC-51 or pilot-surface wording',
+      distinguishesDeployedRuntimeFromDocCommit(CONFLICT_PROSE) === false &&
+      declaresStalePilotSurfaceDeploymentClaim(CONFLICT_PROSE) === true &&
+      documentConflictingDeployedShaProblems(CONFLICT_SEPARATE_PARAGRAPH).length > 0 &&
+      deploymentDocumentClaimsAreCurrent(CONFLICT_SEPARATE_PARAGRAPH) === false &&
+      distinguishesDeployedRuntimeFromDocCommit(CONFLICT_SEPARATE_PARAGRAPH) === false);
+    ok('fixture: a neighbouring wrong-baseline claim is rejected in the inverse order, a history-framed deployed SHA without an explicit same-claim past boundary is rejected, the past-bounded equivalent is accepted, and an unrelated bare commit SHA stays accepted',
+      distinguishesDeployedRuntimeFromDocCommit(
+        'SEC-51 status: production currently serves ' + FAKE_SHA + '. The deployed baseline is d422b54393f659125912ec5c84ae7927c2533288. This evidence synchronization is not a runtime deployment.') === false &&
+      documentConflictingDeployedShaProblems(HIST_DEPLOYED_NO_PAST_BOUND).length > 0 &&
+      documentConflictingDeployedShaProblems(HIST_DEPLOYED_PAST_BOUNDED).length === 0 &&
+      deploymentDocumentClaimsAreCurrent(PROSE_OK) === true &&
+      documentConflictingDeployedShaProblems(UNRELATED_BARE_SHA).length === 0);
+
     ok('fixture: empty / non-string input fails every SEC-51 synchronization check closed',
       declaresStalePilotSurfaceDeploymentClaim('') === false &&
       declaresStalePilotSurfaceDeploymentClaim(null) === false &&
