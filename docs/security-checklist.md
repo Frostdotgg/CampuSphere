@@ -3,12 +3,60 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## 2026-07-30 R8 Review Status
+## 2026-08-01 Current Security And Pilot Status
+
+- Production and Git are synchronized at
+  `0627bf78228148e3f989275810c333c16a1f3356`; the owner verified the Vercel
+  Production alias. The current additive candidate is intentionally dirty,
+  unstaged, uncommitted, unpushed, and undeployed.
+- The deployed modal correction passed desktop and mobile focus containment,
+  outside-focus recapture, Escape close, focus restoration, reduced-motion,
+  hidden-overlay pointer safety, and the accepted single-navigation-owner
+  contract. The five-file matrix was green at `75/75`, `3777/3777` with
+  `QUALITY-GATES OK`, all five QA stages, and `24/24 -> 18/18 -> 46/46`.
+- Anonymous production smoke passed `31/31`. `GET /auth` may intentionally
+  initialize an anonymous identity-free session; canonical session hygiene is
+  still green and must be rechecked after any future authenticated exercise.
+- The isolated automated rehearsal PASSed for one temporary CSPC student and
+  one temporary Gmail guest. Both were deleted through the supported admin UI,
+  all three role sessions were logged out, the seven-user baseline returned,
+  and postconditions stayed green. This is not human-pilot evidence.
+- Retained execution deviations are security evidence, not erased history: an
+  over-broad browser evaluation printed pilot PII to the executor transcript;
+  three temporary repository files were created and removed; one read-only
+  navigation misclick was corrected; and human sign-in sequencing interrupted
+  the automated flow. Do not copy those values into Git or future prompts.
+- The one-writer backup and additive reconciliation completed through
+  supported interfaces. Isolated Supabase and MySQL restores passed; the
+  external backup manifest verifies 109/109 files; and all 86 referenced
+  Cloudinary delivery assets were downloaded and hashed. This is not a
+  Cloudinary management/original-account export. No selected entity was
+  deleted, no direct SQL was used, and migrations remain `0001-0019`.
+- Cross-backend freeze truth is 21 nodes / 50 edges / 25 exact reverse pairs /
+  50 valid geometries / 13 destinations, with 92 scenes, 80 hotspots, 28
+  selected scenes, and 57 selected-source hotspots. Ordered credential,
+  residue, and BE.6 postconditions are green at `24/24 -> 18/18 -> 46/46`.
+- The package candidate is 158 files / 6,212,545 bytes / SHA-256
+  `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`;
+  the focused boundary probe passed `71/71`, and the independent gate pin is
+  synchronized. The full matrix is green at `3792/3792`, all five QA stages,
+  and `24/24 -> 18/18 -> 46/46`; independent read-only review remains open.
+- Never share service-role, DB, OAuth, session, or Cloudinary secrets with
+  editors; never use direct SQL or blanket deletion for operational
+  convenience.
+
+OFF.2-OFF.6, real participant feedback, and final Milestone 12 acceptance are
+still open. This checklist records evidence only and authorizes no mutation.
+
+## Historical/Superseded — 2026-07-30 R8 Review Status
+
+The following note is retained as historical evidence and must not be read as
+the current deployment, Git, database, or R8 disposition.
 
 This note overrides lower rows that still use the word "current" for an older
 uncommitted SEC-51 gate candidate. The `3752`, `3755`, `3760`, and `3763` runs
 are historical/superseded or rejected and are not accepted R8 evidence. The
-deployed SEC-51 production result for
+historical SEC-51 production result for the earlier accepted runtime baseline
 `d422b54393f659125912ec5c84ae7927c2533288` remains accepted. Independently
 verified database postconditions are now `24/24 -> 18/18 -> 46/46`: the leaked
 hotspot and schedule are absent, all canonical Supabase sessions are clean,
@@ -137,7 +185,7 @@ adherence.
 
 | SEC-49 | Local authenticated exposure matrix | Drive the full authenticated surface in BOTH runtime modes with a separate fresh browser context per role | For administrator, student, instructor, and guest: each context starts with zero carried-over cookies and zero carried-over web storage; sign-in works through the real form; role denial is correct (`/admin` 403 HTML and `/admin/api/*` 403 JSON for non-admins, 200 for the administrator; 302/401 for anonymous); registration trust refuses `admin`/`instructor`/`student-cspc` escalation; the participant dashboard, building roster, destination routing, and Free Roam VR all respond truthfully; guided VR claims arrival only where coverage exists; admin CRUD completes create -> read-back -> edit -> delete with a real list read proving zero residue; logout returns 200 and the post-logout request is denied; and `/dashboard`, `/map`, and `/admin` show no horizontal overflow, zero CSP violations, and zero console errors at 1440x900 and 390x844 | **PASS (clean bounded re-execution)** | M12.P1-R8. **MySQL 34/34, Supabase 64/64**, plus a **14/14 supplement per backend** covering SEC-08/09/10/11 — **126 checks, zero failures**. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once through `terminateAll()` and the real CSRF-protected `POST /logout`. No `429` occurred; no failed logout was retried; `services/sessionRevocation.js` was never imported or called; no session row was deleted directly and no database cleanup was performed. MySQL exercises administrator and student (the only deterministic local fixtures); instructor and guest are exercised in Supabase, where all four regression identities exist. Every fixture was deleted through the same admin API that created it. Final ordered postconditions were `24/24 -> 18/18 -> 46/46`. The earlier first execution of this matrix is historical/superseded and is NOT accepted — see the evidence row below |
 | SEC-50 | Pilot feedback form readiness | Fetch the owner-supplied responder form anonymously and inspect it WITHOUT submitting | The form is reachable, is a responder (not editor) URL, is accepting responses, does not request an email address, and carries the minimum `docs/usability-survey.md` questionnaire | **PASS (external owner evidence: READY)** | M12.P1-R8. Opened anonymously; the page served was the **responder page, not the editor UI**; it was **accepting responses** and requested **no email address**. Matched **10/10 SUS-style statements, 8/8 user-satisfaction questions, and 4/4 open-feedback prompts**. **Nothing was submitted and no response row was created.** The responder URL is deliberately NOT recorded in this repository — only its readiness is |
-| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the corrected baseline; dynamic surfaces carry the expected CSP and indexing headers; anonymous denial holds; the OAuth start is correctly formed; the corrected pilot surface behaves as locally verified | **PASS (externally executed, independently Codex-accepted)** | Codex independently completed the read-only production smoke against `https://campusphere-cspc.vercel.app` on deployed baseline `d422b54393f659125912ec5c84ae7927c2533288` and issued SEC-51 CODEX GO. Established: production serves that correction baseline on the exact hostname; dynamic surfaces returned the expected CSP and `X-Robots-Tag: noindex, nofollow, noarchive`; `/robots.txt` and `/offline.html` retained their contracts; anonymous `/dashboard`, `/map`, `/buildings`, and `/admin` were denied through the expected redirect contract; the Google OAuth start used `accounts.google.com` with `response_type=code`, scopes `openid email profile`, and the exact callback `https://campusphere-cspc.vercel.app/auth/callback`; at 1440x900 and 390x844 the corrected landing role copy was truthful, the shared anonymous navbar updated `aria-expanded` through the click, keyboard, Escape, outside-pointer, navigation, and responsive closure paths, and the auth theme control did not overlap the registration/privacy/navigation controls; production `public/js/public-nav.js` and `public/css/styles.css` were byte-identical to `d422b543`; and browser verification found zero CSP violations, console errors, page errors, failed requests, or horizontal overflow. Final ordered postconditions were `24/24 -> 18/18 -> 46/46` with the frozen BE.6 fingerprint unchanged. The smoke was READ-ONLY: **no authenticated production login was executed**, so the previously accepted M12.P1-R2 `119/119` and M12.P1-R3 `86/86` session-store/bootstrap evidence stands unchanged and is not restated as new. The correction changed no session-store or bootstrap implementation. **Historical/superseded:** the first accepted production baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`, and the original `DEFERRED — separate owner deployment decision` disposition preceded both; each is retained here as history, not as a current claim |
+| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets carry the expected CSP, indexing, and crawl-denial contracts | **PASS (automated anonymous production smoke; owner-observed deployment identity)** | The `31/31` anonymous smoke ran against `https://campusphere-cspc.vercel.app` on deployed baseline `0627bf78228148e3f989275810c333c16a1f3356`. It covered scoped public pages/static assets, CSP nonce behaviour, `X-Robots-Tag`, crawl-denial intent, and zero scoped 4xx/5xx responses. It did not perform an authenticated login or exercise schedule auditing. Historical/superseded: before this deployment, the detailed independent browser smoke ran against `d422b54393f659125912ec5c84ae7927c2533288`; the still earlier baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` |
 
 **Status labelling.** Every row above states HOW it was proven.
 `PASS (clean bounded re-execution)` means the exact scenario was executed in the
@@ -160,23 +208,20 @@ through SEC-22 are recorded against the specific automated gate or probe that
 covers each one, labelled as automated rather than manual. SEC-05 was previously
 deferred and has now been executed externally with the proven facts recorded in
 its row. SEC-51 (actual Vercel production smoke) was previously deferred, was
-then executed externally, and has now been re-executed read-only by Codex
-against the corrected baseline `d422b54393f659125912ec5c84ae7927c2533288` and
-independently accepted. Historical/superseded: before the corrected baseline
-was deployed, the earlier
+then executed externally, and most recently passed an automated anonymous
+`31/31` smoke against deployed baseline
+`0627bf78228148e3f989275810c333c16a1f3356`; deployment identity remains
+owner-observed. Historical/superseded: before this deployment, the accepted
+baseline was `d422b54393f659125912ec5c84ae7927c2533288`; the still earlier
 `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` baseline and original `DEFERRED`
-disposition applied; both are retained in that row as history rather than erased.
+disposition are retained as history.
 
-**Deployed runtime versus local correction.** Production at
+**Deployed runtime versus local candidate.** Production at
 `https://campusphere-cspc.vercel.app` is on deployed runtime baseline
-`d422b54393f659125912ec5c84ae7927c2533288`. The subsequent evidence/gate
-synchronization at `db034e5581e6f409083a43dcb80fb82b473e0127` is documentation
-and quality-gate work only; it is **not a runtime deployment**, does not change
-production, and remains unaccepted pending independent read-only review. That
-synchronization commit is LATER than the deployed runtime baseline, not earlier:
-it is the child of `d422b543`. The present local candidate additionally repairs
-the schedule-audit allowlist; production remains on the exact deployed baseline,
-and the complete candidate still requires independent review.
+`0627bf78228148e3f989275810c333c16a1f3356`. The preceding evidence
+synchronization at `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed
+runtime. The present additive CCS candidate is uncommitted, unpushed, and
+undeployed; it does not change production and still requires review.
 
 **SEC-52 — pilot-surface correction (deployed and independently accepted under
 SEC-51).** Three findings were raised against the pilot surface and
@@ -192,18 +237,21 @@ theme-toggle overlapped the auth card's privacy notice and Back-to-Home link —
 it is now rendered inside the card and pinned to its top-right by one
 auth-scoped rule, still 44x44 and never hidden, with global placement
 unchanged. Each contract is asserted in the `pilot-readiness` gate with
-mutated-source rejecting fixtures. **All three are live on the deployed baseline
-`d422b54393f659125912ec5c84ae7927c2533288` and were independently verified in
-the SEC-51 production smoke above**, which confirmed production
+mutated-source rejecting fixtures. **All three remain live on deployed baseline
+`0627bf78228148e3f989275810c333c16a1f3356`.**
+
+Historical/superseded: before this deployment they were independently verified
+in the detailed SEC-51 smoke on
+`d422b54393f659125912ec5c84ae7927c2533288`, which confirmed production
 `public/js/public-nav.js` and `public/css/styles.css` byte-identical to that
-baseline. The implementation and local verification history above is retained
+earlier baseline. The implementation and local verification history above is retained
 unchanged. No Milestone 12 GO is claimed.
 
 ## Automated Security Evidence
 
 | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- |
-| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **3777/3777 PASS — correction candidate; independent review required** | Current frozen-matrix candidate evidence: exit 0, zero `[FAIL]`, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines; the unchanged nonnumeric success logger was reconciled to the independently established 3,777-check inventory. The `+14` versus `3763` is three live total/schedule assertions, five total/schedule fixtures, one inverse-order neighbouring wrong-baseline fixture, and five named labelled-integrity/secret-rejection checks. The first 3,742/3,772 execution and later 3,774/3,777 execution remain historical/rejected. Historical candidate totals `3752`, `3755`, `3760`, and `3763` remain unaccepted. Accepted history is unchanged: D7 `3511/3511`, additive logout hygiene `3529/3529`, R7 `3495/3495`, R6 `3415/3415`, R5 `3234/3234`, and R4 `3040/3040`. Re-executed byte-consistently after the bounded docs-secret-label correction against the manifest pinned in `docs/test-evidence.md`; the prior `3776/3777` execution against the pre-correction bytes is rejected/historical, `scripts/quality-gates.js` was not changed by that correction, and preflight/postflight matched 12/12 hashes with Git, migration, and process state unchanged. The total is a transcript-wide PASS-line reconciliation across parent and inherited spawned-probe stdout, not an in-process `makeRecorder` counter. Current candidate evidence only; unaccepted pending independent read-only review |
+| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **3792/3792 PASS — additive CCS candidate; independent review required** | Exit 0, exactly 3,792 transcript-wide PASS lines, zero `[FAIL]`, one `QUALITY-GATES OK`, no failed marker, and zero escaped logout-destroy error lines. The exact `+15` over the deployed five-file `3777` suite is `+3` pure guided-VR policy/chain assertions and `+12` CCS runtime assertions across four source combinations. Earlier totals remain historical |
 | `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **71/71** (was **70/70** before the literal-NUL remediation) — standalone (M12.P1-R7), never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
 | Local authenticated exposure matrix (clean bounded re-execution) | Browser-driven in both runtime modes, one bounded server per backend on its own free port | Every scenario in SEC-49 passes with a separate fresh browser context per role and no unsupported cleanup | **126/126 PASS — MySQL 34/34 + 14/14 supplement; Supabase 64/64 + 14/14 supplement; zero failures** | Each role context proved zero carried-over cookies and zero carried-over web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once via `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429`; no retried logout; `services/sessionRevocation.js` never imported or called; no direct session-row deletion and no database cleanup. Final ordered postconditions `24/24 -> 18/18 -> 46/46` |
 | Local authenticated exposure matrix, first execution — historical/superseded | Browser-driven in both runtime modes | Same scenario set | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Retained so the defect is not erased. Repeated runs exhausted the in-memory `preParseAuthLimiter` budget; the run started receiving `429` with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY rather than through the supported logout interface. Direct revocation falls outside the supported-interface rule this evidence class depends on, so the run is not accepted on its numbers. Superseded by the clean bounded re-execution above |
@@ -212,4 +260,4 @@ unchanged. No Milestone 12 GO is claimed.
 | `node scripts/boundedAnonymousAccessDenial-probe.js` | Zero audit rows from anonymous denials (authoritative global total AND filtered count both flat); exactly one authenticated role-denial row; exactly one login-failure row, in both backends | PASS | **90/90** — standalone (M12.P1-R5), never counted in the `npm test` total; accepted Codex GO |
 | `npm run qa:identity` | Identity/profile uniqueness enforced | PASS | `IDENTITY-CONSTRAINTS OK`, exit 0: no duplicate non-null `(oauth_provider, oauth_subject)` groups, and duplicate `student_profiles` / `instructor_profiles` / `guest_profiles` `user_id` rows are rejected |
 | `npm run qa:audit` | 0 production dependency vulnerabilities | PASS | Accepted compatible remediation, 2026-07-22; subsequent 2026-07-26 advisory drift remediated with exact `ejs@6.0.1` and the `jake/filelist/minimatch/brace-expansion` chain absent |
-| `npm run qa` | Aggregate security and smoke gates pass | **3777/3777 PASS — all five stages green, exit 0; independent review required** | Current frozen-matrix candidate evidence: exactly 3,777 contract PASS lines, zero `[FAIL]`, zero escaped `Logout error:` lines, `QUALITY-GATES OK`, `DB-PERF-GATE OK` with live `route_edges` 48/48 geometry across 24 forward/reverse pairs, `[supabase-smoke] PASS` with `app_sessions` reachable, `IDENTITY-CONSTRAINTS OK`, `found 0 vulnerabilities`, and exit 0. Earlier red and superseded QA attempts remain preserved in `docs/test-evidence.md`. Re-executed byte-consistently after the bounded docs-secret-label correction against the manifest pinned in `docs/test-evidence.md`: exactly 3,777 contract PASS lines preceded `QUALITY-GATES OK`, all five green markers appeared exactly once, and preflight/postflight matched 12/12 hashes with Git, migration, and process state unchanged. The total is a transcript-wide PASS-line reconciliation across parent and inherited spawned-probe stdout, not an in-process `makeRecorder` counter. Current candidate evidence only; unaccepted pending independent read-only review |
+| `npm run qa` | Aggregate security and smoke gates pass | **3792/3792 PASS — all five stages green, exit 0; independent review required** | Exactly 3,792 contract PASS lines, zero `[FAIL]`, zero escaped logout-destroy error lines, `QUALITY-GATES OK`, `DB-PERF-GATE OK` with live route geometry at 50/50 across 25 reverse pairs, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`. Candidate evidence only; no deployment or Milestone 12 GO |

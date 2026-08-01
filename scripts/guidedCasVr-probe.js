@@ -1,7 +1,7 @@
 'use strict';
 
 /* ========================================
-   CampuSphere - CAS-only selected-demo VR probe (BE.4 acceptance)
+   CampuSphere - active selected-demo guided VR probe (BE.4 acceptance)
 
    Boots through scripts/with-server.js (never a foreground server) and asserts
    the COMPLETED BE.4 Guard House -> College of Arts and Sciences guided VR state
@@ -20,7 +20,8 @@
      - destination_reached === true only at the final scene, no coverage message;
      - step 24 exposes the Road 39 Previous link AND the CAS interior explore link;
      - the CAS 101 / room / First Floor schedule hotspot in BOTH VR backends;
-     - CCS remains route-ready but returns the fixed truthful deferred-VR state;
+     - CCS uses the exact configured 23-scene route through Road 94 and reaches
+       scene-ccs-1st-floor truthfully only on the final step;
      - natural-key source separation (route-source CAS/CCS ids resolved per mode
        by normalized name; never reused across backends) and sanitized output.
 
@@ -54,13 +55,13 @@ const { getRegressionCredentials } = require('./regressionCredentials');
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 
 const CAS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'cas');
+const CCS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'ccs');
 const CAS_NORM = 'college of arts and sciences';
 const CCS_NORM = 'college of computer studies ccs';
 const SEQ = CAS ? CAS.scene_keys : [];
+const CCS_SEQ = CCS ? CCS.scene_keys : [];
 const CAS_EXACT_PATH = ['main-gate', 'flagpole', 'mid-campus', 'east-walk', 'cas'];
 const CCS_EXACT_PATH = ['main-gate', 'flagpole', 'mid-campus', 'east-walk', 'ccs'];
-const CCS_UNAVAILABLE_MESSAGE =
-  '360-degree guided VR for College of Computer Studies (CCS) is not available yet. Campus map directions remain available.';
 const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
 
 const ARRIVAL_MARKERS = ['Route complete', 'You have arrived'];
@@ -111,7 +112,7 @@ const LEAK_PATTERNS = [
   ['cloudinary_public_id leak', /cloudinary_public_id/i],
 ];
 
-// Every configuration asserts the SAME CAS-only selected-demo acceptance target.
+// Every configuration asserts the SAME active selected-demo acceptance target.
 async function runMode(scope, base, authSource) {
   // M12.P1-R1: the mixed combos override only VR_DATA_SOURCE, so the withServer
   // BASE mode (passed explicitly as authSource) is this leg's AUTH_DATA_SOURCE.
@@ -253,29 +254,48 @@ async function runMode(scope, base, authSource) {
     r.text.includes('data-schedule-location-type="room"') &&
     r.text.includes('data-schedule-floor-label="First Floor"'));
 
-  // ---- CCS remains map-routable while guided VR is explicitly deferred ----
+  // ---- guided CCS destination API: exact 23-scene active route ----
   r = await jfetch('/api/vr/to/' + ccsRouteId, { headers: H });
   const ccs = r.json || {};
   const ccsScenes = Array.isArray(ccs.scenes) ? ccs.scenes : [];
-  check(scope, 'CCS deferred API -> 200 success', r.status === 200 && ccs.success === true);
+  const ccsSceneKeys = ccsScenes.map((scene) => scene.scene_key);
+  check(scope, 'CCS /api/vr/to -> 200 success', r.status === 200 && ccs.success === true);
   check(scope, 'CCS keeps the exact route-source path and metrics',
     Array.isArray(ccs.path) && ccs.path.length === CCS_EXACT_PATH.length &&
     ccs.path.every((k, i) => k === CCS_EXACT_PATH[i]) &&
     Number(ccs.route && ccs.route.distance_meters) > 0 &&
     Number(ccs.route && ccs.route.walk_time_seconds) > 0);
-  check(scope, 'CCS guided VR stays empty and never claims arrival',
-    ccsScenes.length === 0 && ccs.destination_reached === false);
-  check(scope, 'CCS API carries the fixed unavailable message',
-    ccs.message === CCS_UNAVAILABLE_MESSAGE);
+  check(scope, 'CCS has the exact configured 23-scene sequence through Road 94',
+    ccsSceneKeys.length === CCS_SEQ.length &&
+    ccsSceneKeys.every((key, index) => key === CCS_SEQ[index]) &&
+    ccsSceneKeys[0] === 'scene-guard-house' &&
+    ccsSceneKeys[ccsSceneKeys.length - 2] === 'scene-general-road-94' &&
+    ccsSceneKeys[ccsSceneKeys.length - 1] === 'scene-ccs-1st-floor');
+  check(scope, 'CCS first scene maps to main-gate and final scene maps to ccs',
+    ccsScenes.length === CCS_SEQ.length && ccsScenes[0].node_key === 'main-gate' &&
+    ccsScenes[ccsScenes.length - 1].node_key === 'ccs');
+  check(scope, 'every CCS guided scene has an approved Cloudinary delivery URL',
+    ccsScenes.length === CCS_SEQ.length &&
+    ccsScenes.every((scene) => typeof scene.image_url === 'string' &&
+      scene.image_url.indexOf(CLOUDINARY_PREFIX) === 0));
+  check(scope, 'CCS destination_reached === true with no coverage-ended message',
+    ccs.destination_reached === true &&
+    !(typeof ccs.message === 'string' && /VR coverage ends/.test(ccs.message)));
 
-  r = await jfetch('/vr/to/' + ccsRouteId, { headers: HTMLH });
-  const ccsHtml = r.text || '';
-  check(scope, 'CCS HTML -> 200 with the fixed unavailable notice',
-    r.status === 200 && ccsHtml.includes(CCS_UNAVAILABLE_MESSAGE));
-  check(scope, 'CCS HTML has no arrival, guided navigation, or panorama request',
-    ARRIVAL_MARKERS.every((m) => !ccsHtml.includes(m)) &&
-    !ccsHtml.includes(`href="/vr/to/${ccsRouteId}?step=`) &&
-    !ccsHtml.includes('res.cloudinary.com') && !ccsHtml.includes('/img/vr/'));
+  r = await jfetch(`/vr/to/${ccsRouteId}?step=${CCS_SEQ.length}`, { headers: HTMLH });
+  const ccsLastHtml = r.text || '';
+  check(scope, 'CCS final step declares arrival with Road 94 Previous navigation',
+    r.status === 200 && ARRIVAL_MARKERS.every((marker) => ccsLastHtml.includes(marker)) &&
+    ccsLastHtml.includes(`href="/vr/to/${ccsRouteId}?step=${CCS_SEQ.length - 1}"`));
+  check(scope, 'CCS final step has no coverage notice or Next link past arrival',
+    !ccsLastHtml.includes(COVERAGE_MARKER) &&
+    !ccsLastHtml.includes(`href="/vr/to/${ccsRouteId}?step=${CCS_SEQ.length + 1}"`));
+
+  r = await jfetch(`/vr/to/${ccsRouteId}?step=${CCS_SEQ.length - 1}`, { headers: HTMLH });
+  const ccsRoad94Html = r.text || '';
+  check(scope, 'CCS Road 94 step is not arrival and links forward to the CCS scene',
+    r.status === 200 && ARRIVAL_MARKERS.every((marker) => !ccsRoad94Html.includes(marker)) &&
+    ccsRoad94Html.includes(`href="/vr/to/${ccsRouteId}?step=${CCS_SEQ.length}"`));
 
   } finally {
     await sessions.terminateAll();
@@ -292,9 +312,9 @@ function leakScan(scope, bodies) {
 }
 
 (async () => {
-  console.log('=== CampuSphere CAS-only selected-demo VR probe (BE.4 acceptance) ===');
-  if (!CAS || SEQ.length !== 24) {
-    console.error('GUIDED-CAS-VR-PROBE FAILED: guided catalog does not define the 24-scene CAS sequence.');
+  console.log('=== CampuSphere active selected-demo guided VR probe (BE.4 acceptance) ===');
+  if (!CAS || SEQ.length !== 24 || !CCS || CCS_SEQ.length !== 23) {
+    console.error('GUIDED-CAS-VR-PROBE FAILED: guided catalog does not define the 24-scene CAS and 23-scene CCS sequences.');
     process.exitCode = 1;
     return;
   }
@@ -333,7 +353,7 @@ function leakScan(scope, bodies) {
   console.log('');
   console.log('NOTE read-only probe: no rows were created or mutated, so no cleanup is required.');
   if (failures.length === 0) {
-    console.log('GUIDED-CAS-VR-PROBE OK: CAS complete and deferred CCS contracts passed.');
+    console.log('GUIDED-CAS-VR-PROBE OK: active CAS and CCS guided contracts passed.');
     process.exitCode = 0;
   } else {
     console.error(`GUIDED-CAS-VR-PROBE FAILED: ${failures.length} check(s) did not pass (expected until both data applies are authorized):`);

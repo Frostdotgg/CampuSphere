@@ -42,8 +42,8 @@ const note = (label) => console.log('  NOTE ' + label);
 // 26-pair graph; 0017 retired the seven transit pairs and added the eastern
 // terminal spurs + the building-free central spine. These counts are
 // fail-closed: the obsolete 52-row state must NOT pass.
-const EXPECTED_ROUTE_EDGES = 48;
-const EXPECTED_ROUTE_PAIRS = 24;
+const EXPECTED_ROUTE_EDGES = 50;
+const EXPECTED_ROUTE_PAIRS = 25;
 
 /* ---------------- MySQL helpers ---------------- */
 async function tableIndexes(table) {
@@ -255,9 +255,9 @@ async function verifySupabase() {
   //       52-directed-edge / 26-pair graph. Migration 0017 (Guard House start +
   //       eastern terminal topology) is ALSO OWNER-APPLIED and supersedes that
   //       topology, retiring the seven transit pairs and adding the eastern
-  //       spurs + central spine -> the live graph is now 48 directed edges /
-  //       24 forward-reverse pairs. Static declarations here; the live
-  //       path_geometry read + 48/48 coverage + 24-pair checks fail closed in
+  //       spurs + central spine + additive Lugaw link -> 50 directed edges /
+  //       25 forward-reverse pairs. Static declarations here; the live
+  //       path_geometry read + 50/50 coverage + 25-pair checks fail closed in
   //       the query-path probes below.
   critical(/ON\s+CONFLICT\s+\(node_key\)\s+DO\s+UPDATE/i.test(sbSql) && /east-walk/.test(sbSql),
     'Supabase declares the 0014 route graph accuracy upserts (nodes by node_key incl. east-walk)');
@@ -272,7 +272,7 @@ async function verifySupabase() {
     'Supabase declares the 0017 topology repair (transit-pair retirement + repaired-pair upserts)');
   note('0014 route_graph_accuracy is DECLARED and is an IMMUTABLE OWNER-APPLIED PREDECESSOR (it shipped the pre-repair 20-node / 52-edge graph).');
   note('0015 route_edge_path_geometry is DECLARED and is an IMMUTABLE OWNER-APPLIED PREDECESSOR (it shipped path_geometry and the pre-repair 26-pair dataset).');
-  note('0017 route_topology_guard_house is DECLARED and has been OWNER-APPLIED; it supersedes the 0014/0015 topology and is responsible for the live 48-directed-edge / 24-pair graph. The coverage checks below fail closed and REJECT the obsolete 52-row state.');
+  note('0017 route_topology_guard_house is DECLARED and has been OWNER-APPLIED; the later supported-interface additive Lugaw link brings the live graph to 50 directed edges / 25 pairs. The coverage checks below fail closed.');
 
   // (b) practical query-path probe: each critical read returns without error.
   const sb = getSupabaseClient();
@@ -298,8 +298,8 @@ async function verifySupabase() {
   // Route edge drawing geometry: the column must be readable and EVERY one of
   // the post-0017 directed edges must carry a valid stored array shape. This
   // fails CLOSED and deliberately REJECTS the obsolete pre-0017 52-row count:
-  // after the owner applied 0017 the live graph is 48 directed edges forming
-  // 24 forward/reverse pairs.
+  // after 0017 plus the additive Lugaw link the live graph is 50 directed
+  // edges forming 25 forward/reverse pairs.
   await probe('route_edges path_geometry read (0015 column / 0017 topology)', () => sb.from('route_edges').select('id, path_geometry').limit(1));
   try {
     const { data, error } = await sb
@@ -315,7 +315,7 @@ async function verifySupabase() {
       `Supabase route_edges path_geometry coverage is ${EXPECTED_ROUTE_EDGES}/${EXPECTED_ROUTE_EDGES} valid arrays with >= 2 points (valid ${geomOk})`);
 
     // Forward/reverse pair count: every directed row must have its mirror row,
-    // yielding exactly 24 undirected pairs. (Exact geometry-reversal parity is
+    // yielding exactly 25 undirected pairs. (Exact geometry-reversal parity is
     // owned by routeTopology-probe.js / routeGeometryData-probe.js; this gate
     // asserts the structural pairing.)
     const directed = new Set(rows.map((r) => `${r.from_node_id}|${r.to_node_id}`));

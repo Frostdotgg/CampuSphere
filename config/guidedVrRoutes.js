@@ -66,15 +66,40 @@ const GUIDED_VR_ROUTES = Object.freeze([
       'scene-general-road-39',
       'scene-cas-1st-floor'
     ])
+  }),
+  Object.freeze({
+    destination_name: 'College of Computer Studies (CCS)',
+    destination_node_key: 'ccs',
+    arrival_scene_key: 'scene-ccs-1st-floor',
+    scene_keys: Object.freeze([
+      'scene-guard-house',
+      'scene-general-road-10',
+      'scene-general-road-11',
+      'scene-general-road-12',
+      'scene-general-road-13',
+      'scene-general-road-14',
+      'scene-general-road-15',
+      'scene-general-road-19',
+      'scene-general-road-20',
+      'scene-general-road-21',
+      'scene-general-road-22',
+      'scene-general-road-23',
+      'scene-general-road-27',
+      'scene-general-road-28',
+      'scene-general-road-29',
+      'scene-general-road-30',
+      'scene-general-road-31',
+      'scene-general-road-32',
+      'scene-general-road-33',
+      'scene-general-road-37',
+      'scene-general-road-38',
+      'scene-general-road-94',
+      'scene-ccs-1st-floor'
+    ])
   })
 ]);
 
-const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([
-  Object.freeze({
-    destination_name: 'College of Computer Studies (CCS)',
-    destination_node_key: 'ccs'
-  })
-]);
+const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
 
 module.exports = {
   GUIDED_VR_ROUTES,

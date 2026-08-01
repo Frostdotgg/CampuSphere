@@ -33,10 +33,10 @@
          "You have arrived"
        * there is NO active Next link past the last available scene
 
-     DEFERRED case — College of Computer Studies (CCS):
+     ACTIVE case — College of Computer Studies (CCS):
        * campus-map pathfinding remains available through the `ccs` node
-       * guided VR returns zero scenes and destination_reached === false
-       * HTML/API show the fixed unavailable notice and never claim arrival
+       * guided VR returns the exact 23-scene route through Road 94
+       * HTML/API claim arrival only at the final mapped CCS scene
 
    Buildings are resolved PER MODE by NORMALIZED NAME via /api/search — never
    by reusing a numeric id across backends (MySQL and Supabase ids need not
@@ -53,6 +53,7 @@ require('dotenv').config();
 
 const { withServer } = require('./with-server');
 const { hasSupabaseConfig } = require('../config/supabase');
+const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
 
 // M12.P1-R1: regression identities come from the shared TEST-ONLY loader —
 // deterministic local fixtures for the MySQL leg, SUPABASE_REGRESSION_* env
@@ -67,11 +68,12 @@ const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 // Deterministic RF.6 fixtures, addressed by normalized name (never by id).
 // PARTIAL: no VR scene is mapped to the Engineering destination node.
 const ENGINEERING = { query: 'Engineering', norm: 'engineering building' };
-// DEFERRED: CCS remains route-ready but has no owner-approved panorama set.
 const CCS = { query: 'Computer Studies', norm: 'college of computer studies ccs' };
 const CCS_DEST_NODE_KEY = 'ccs';
-const CCS_UNAVAILABLE_MESSAGE =
-  '360-degree guided VR for College of Computer Studies (CCS) is not available yet. Campus map directions remain available.';
+const CCS_GUIDED_ROUTE = GUIDED_VR_ROUTES.find((route) => route.destination_node_key === CCS_DEST_NODE_KEY);
+const CCS_SCENE_KEYS = CCS_GUIDED_ROUTE ? CCS_GUIDED_ROUTE.scene_keys : [];
+const CCS_EXACT_PATH = ['main-gate', 'flagpole', 'mid-campus', 'east-walk', 'ccs'];
+const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
 
 const failures = [];
 function check(scope, label, ok) {
@@ -265,32 +267,42 @@ async function runMode(mode, base) {
     !engHtml.includes(`href="/vr/to/${engId}?step=${engScenes.length + 1}"`));
 
   /* =====================================================================
-     CAS-only selected demo: CCS remains a valid map destination, but guided
-     VR is deliberately deferred until genuine owner-approved panoramas exist.
+     Active selected demo: CCS is a valid map and Guided VR destination.
   ===================================================================== */
   r = await jfetch('/api/vr/to/' + ccsId, { headers: H });
   const ccsJson = r.json || {};
   const ccsScenes = Array.isArray(ccsJson.scenes) ? ccsJson.scenes : [];
-  check(mode, 'CCS deferred: API -> 200 success', r.status === 200 && ccsJson.success === true);
-  check(mode, 'CCS deferred: real route path still reaches ccs',
-    Array.isArray(ccsJson.path) && ccsJson.path.length >= 2 &&
-    ccsJson.path[0] === 'main-gate' && ccsJson.path[ccsJson.path.length - 1] === CCS_DEST_NODE_KEY &&
+  const ccsSceneKeys = ccsScenes.map((scene) => scene.scene_key);
+  check(mode, 'CCS active: API -> 200 success', r.status === 200 && ccsJson.success === true);
+  check(mode, 'CCS active: real route path reaches ccs through the exact route-source path',
+    Array.isArray(ccsJson.path) && ccsJson.path.length === CCS_EXACT_PATH.length &&
+    ccsJson.path.every((key, index) => key === CCS_EXACT_PATH[index]) &&
     Number(ccsJson.route && ccsJson.route.distance_meters) > 0 &&
     Number(ccsJson.route && ccsJson.route.walk_time_seconds) > 0);
-  check(mode, 'CCS deferred: zero guided scenes and destination_reached === false',
-    ccsScenes.length === 0 && ccsJson.destination_reached === false);
-  check(mode, 'CCS deferred: API carries the fixed sanitized unavailable message',
-    ccsJson.message === CCS_UNAVAILABLE_MESSAGE);
+  check(mode, 'CCS active: exact 23-scene sequence includes Road 94 and the CCS arrival scene',
+    ccsSceneKeys.length === 23 && ccsSceneKeys.length === CCS_SCENE_KEYS.length &&
+    ccsSceneKeys.every((key, index) => key === CCS_SCENE_KEYS[index]) &&
+    ccsSceneKeys[ccsSceneKeys.length - 2] === 'scene-general-road-94' &&
+    ccsSceneKeys[ccsSceneKeys.length - 1] === 'scene-ccs-1st-floor');
+  check(mode, 'CCS active: first and final scenes map to main-gate and ccs',
+    ccsScenes.length === CCS_SCENE_KEYS.length && ccsScenes[0].node_key === 'main-gate' &&
+    ccsScenes[ccsScenes.length - 1].node_key === CCS_DEST_NODE_KEY);
+  check(mode, 'CCS active: every guided scene uses an approved Cloudinary delivery URL',
+    ccsScenes.length === CCS_SCENE_KEYS.length &&
+    ccsScenes.every((scene) => typeof scene.image_url === 'string' &&
+      scene.image_url.indexOf(CLOUDINARY_PREFIX) === 0));
+  check(mode, 'CCS active: destination_reached === true with no coverage-ended message',
+    ccsJson.destination_reached === true &&
+    !(typeof ccsJson.message === 'string' && /VR coverage ends/.test(ccsJson.message)));
 
-  r = await jfetch(`/vr/to/${ccsId}`, { headers: HTMLH });
+  r = await jfetch(`/vr/to/${ccsId}?step=${CCS_SCENE_KEYS.length}`, { headers: HTMLH });
   const ccsHtml = r.text || '';
-  check(mode, 'CCS deferred: HTML -> 200 with the unavailable notice',
-    r.status === 200 && ccsHtml.includes(CCS_UNAVAILABLE_MESSAGE));
-  check(mode, 'CCS deferred: HTML never claims arrival or route completion',
-    ARRIVAL_MARKERS.every((m) => !ccsHtml.includes(m)));
-  check(mode, 'CCS deferred: HTML has no guided step links or panorama request',
-    !ccsHtml.includes(`href="/vr/to/${ccsId}?step=`) &&
-    !ccsHtml.includes('res.cloudinary.com') && !ccsHtml.includes('/img/vr/'));
+  check(mode, 'CCS active: final HTML step declares arrival and links back to Road 94',
+    r.status === 200 && ARRIVAL_MARKERS.every((marker) => ccsHtml.includes(marker)) &&
+    ccsHtml.includes(`href="/vr/to/${ccsId}?step=${CCS_SCENE_KEYS.length - 1}"`));
+  check(mode, 'CCS active: final HTML step has no coverage notice or link past arrival',
+    !ccsHtml.includes(COVERAGE_MARKER) &&
+    !ccsHtml.includes(`href="/vr/to/${ccsId}?step=${CCS_SCENE_KEYS.length + 1}"`));
 
   /* ---- zero-scene contract (guarded) ----
      No real building can currently yield an EMPTY scene list: every graph path

@@ -18,7 +18,7 @@ function deepFreeze(value) {
 
 const SELECTED_DEMO_FREEZE = deepFreeze({
   schema_version: 1,
-  frozen_on: '2026-07-18',
+  frozen_on: '2026-08-01',
   migrations: [
     ['0001_initial_schema.sql', '4a3b751758caaf47795d35ff479ffbba5127b248e950d78db0afcdd811840e3e'],
     ['0002_seed_data.sql', '90b7635cd22cf011b018c6ae63e5c11877d5565cdea37886808cf369761bd9a0'],
@@ -42,17 +42,17 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
   ],
   counts: {
     buildings: 13,
-    route_nodes: 20,
-    route_edges: 48,
-    reverse_pairs: 24,
-    valid_geometries: 48,
-    exact_reverse_geometries: 24,
+    route_nodes: 21,
+    route_edges: 50,
+    reverse_pairs: 25,
+    valid_geometries: 50,
+    exact_reverse_geometries: 25,
     routable_destinations: 13,
-    total_vr_scenes: 85,
-    total_vr_hotspots: 66,
-    selected_vr_scenes: 26,
-    selected_source_hotspots: 51,
-    guided_scenes: 24,
+    total_vr_scenes: 92,
+    total_vr_hotspots: 80,
+    selected_vr_scenes: 28,
+    selected_source_hotspots: 57,
+    guided_scenes: 47,
     interior_scenes: 2,
     cas_schedule_targets: 1
   },
@@ -102,11 +102,37 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         'scene-general-road-39',
         'scene-cas-1st-floor'
       ]
-    }],
-    deferred_destinations: [{
+    }, {
       destination_name: 'College of Computer Studies (CCS)',
-      destination_node_key: 'ccs'
+      destination_node_key: 'ccs',
+      arrival_scene_key: 'scene-ccs-1st-floor',
+      scene_keys: [
+        'scene-guard-house',
+        'scene-general-road-10',
+        'scene-general-road-11',
+        'scene-general-road-12',
+        'scene-general-road-13',
+        'scene-general-road-14',
+        'scene-general-road-15',
+        'scene-general-road-19',
+        'scene-general-road-20',
+        'scene-general-road-21',
+        'scene-general-road-22',
+        'scene-general-road-23',
+        'scene-general-road-27',
+        'scene-general-road-28',
+        'scene-general-road-29',
+        'scene-general-road-30',
+        'scene-general-road-31',
+        'scene-general-road-32',
+        'scene-general-road-33',
+        'scene-general-road-37',
+        'scene-general-road-38',
+        'scene-general-road-94',
+        'scene-ccs-1st-floor'
+      ]
     }],
+    deferred_destinations: [],
     interior_scene_keys: [
       'scene-cas-1st-floor-2',
       'scene-cas-1st-floor-3'
@@ -120,10 +146,10 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
   },
   fingerprints: {
     migrations: '2b916720838073de188a2df5c48d5bccfabc7b568939e2e668ae83843aa18172',
-    building_route: 'eaafc6244a56df1be2d3ca9dd44690675efcf4582e7c32d226167aa6b9820ba5',
-    selected_vr: 'ec66f04bf827bc9c8494a9007ff2e89d7990dd77cc7c5a9d629977ec583f6c6b',
-    guided_policy: '550faf217236d729b726fa3df1ab3f08586d8812f4d69b290edcac863ed3d008',
-    manifest: 'a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d'
+    building_route: '495583a16fba9d5cc160a7705b77fa9fa3cb74bfb470a63f96c0abe6bc6c1ed0',
+    selected_vr: 'd0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22',
+    guided_policy: 'a953d113ee368ff90fb8453b2d0f6436b64b3d2699fc8ebb6e93e0ef3b5915aa',
+    manifest: '71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7'
   }
 });
 

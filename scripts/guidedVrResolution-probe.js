@@ -35,24 +35,29 @@ function check(label, ok) {
 }
 
 const CAS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'cas');
+const CCS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'ccs');
 const KEYS = CAS ? CAS.scene_keys : [];
+const CCS_KEYS = CCS ? CCS.scene_keys : [];
 const ARRIVAL = CAS ? CAS.arrival_scene_key : 'scene-cas-1st-floor';
+const CCS_ARRIVAL = CCS ? CCS.arrival_scene_key : 'scene-ccs-1st-floor';
 const CLOUD = 'https://res.cloudinary.com/demo/image/upload/';
 
 // Build a fully-linked, Cloudinary-backed fixture for the whole configured
 // chain: one scene per key + exact forward/reverse scene links between
 // adjacent keys. Helpers below mutate copies to model each defect.
-function fullScenes() {
-  return KEYS.map((k, i) => ({ scene_key: k, image_url: CLOUD + k + '.jpg', id: i + 1 }));
+function fullScenesFor(keys) {
+  return keys.map((k, i) => ({ scene_key: k, image_url: CLOUD + k + '.jpg', id: i + 1 }));
 }
-function fullLinks() {
+function fullLinksFor(keys) {
   const links = [];
-  for (let i = 0; i < KEYS.length - 1; i++) {
-    links.push({ fromKey: KEYS[i], toKey: KEYS[i + 1] });
-    links.push({ fromKey: KEYS[i + 1], toKey: KEYS[i] });
+  for (let i = 0; i < keys.length - 1; i++) {
+    links.push({ fromKey: keys[i], toKey: keys[i + 1] });
+    links.push({ fromKey: keys[i + 1], toKey: keys[i] });
   }
   return links;
 }
+function fullScenes() { return fullScenesFor(KEYS); }
+function fullLinks() { return fullLinksFor(KEYS); }
 
 function canonicalize(value) {
   return String(value == null ? '' : value)
@@ -61,9 +66,9 @@ function canonicalize(value) {
     .trim();
 }
 
-/* ---- CAS-only selected-demo destination policy ---- */
-console.log('=== CAS-only selected-demo destination policy ===');
-check('CAS resolves as the one active guided route', (function () {
+/* ---- active selected-demo destination policy ---- */
+console.log('=== Active selected-demo destination policy ===');
+check('CAS resolves as an active guided route', (function () {
   const r = resolveGuidedDestinationPolicy({
     destinationName: 'College of Arts and Sciences',
     destinationNodeKey: 'cas',
@@ -73,7 +78,7 @@ check('CAS resolves as the one active guided route', (function () {
   });
   return r.kind === 'active' && r.route === CAS;
 })());
-check('CCS resolves as deferred by canonical name and node key', (function () {
+check('CCS resolves as an active guided route by canonical name and node key', (function () {
   const r = resolveGuidedDestinationPolicy({
     destinationName: 'College of Computer Studies (CCS)',
     destinationNodeKey: 'ccs',
@@ -81,9 +86,9 @@ check('CCS resolves as deferred by canonical name and node key', (function () {
     deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
     canonicalize
   });
-  return r.kind === 'deferred' && r.destination.destination_node_key === 'ccs';
+  return r.kind === 'active' && r.route === CCS;
 })());
-check('active/deferred overlap fails closed', (function () {
+check('duplicate active CCS identity fails closed', (function () {
   const overlap = GUIDED_VR_ROUTES.concat([{
     destination_name: 'College of Computer Studies CCS',
     destination_node_key: 'ccs',
@@ -95,6 +100,18 @@ check('active/deferred overlap fails closed', (function () {
     destinationNodeKey: 'ccs',
     activeRoutes: overlap,
     deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
+    canonicalize
+  }).kind === 'invalid';
+})());
+check('active/deferred CCS overlap fails closed', (function () {
+  return resolveGuidedDestinationPolicy({
+    destinationName: 'College of Computer Studies (CCS)',
+    destinationNodeKey: 'ccs',
+    activeRoutes: GUIDED_VR_ROUTES,
+    deferredDestinations: [{
+      destination_name: 'College of Computer Studies (CCS)',
+      destination_node_key: 'ccs'
+    }],
     canonicalize
   }).kind === 'invalid';
 })());
@@ -145,6 +162,32 @@ check('complete Cloudinary-backed 24-scene chain permits arrival', (function () 
   const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes: fullScenes(), links: fullLinks() });
   return r.complete === true && r.verifiedKeys.length === KEYS.length &&
     r.verifiedKeys[r.verifiedKeys.length - 1] === ARRIVAL;
+})());
+
+check('complete Cloudinary-backed 23-scene CCS chain permits arrival', (function () {
+  const r = verifyGuidedChain({
+    keys: CCS_KEYS,
+    arrivalKey: CCS_ARRIVAL,
+    scenes: fullScenesFor(CCS_KEYS),
+    links: fullLinksFor(CCS_KEYS)
+  });
+  return r.complete === true && r.verifiedKeys.length === CCS_KEYS.length &&
+    r.verifiedKeys[r.verifiedKeys.length - 1] === CCS_ARRIVAL;
+})());
+
+check('missing Road 94 -> CCS reverse link stops before the CCS arrival', (function () {
+  const road94 = CCS_KEYS[CCS_KEYS.length - 2];
+  const links = fullLinksFor(CCS_KEYS).filter(
+    (link) => !(link.fromKey === CCS_ARRIVAL && link.toKey === road94)
+  );
+  const r = verifyGuidedChain({
+    keys: CCS_KEYS,
+    arrivalKey: CCS_ARRIVAL,
+    scenes: fullScenesFor(CCS_KEYS),
+    links
+  });
+  return r.complete === false && r.stoppedBefore === CCS_ARRIVAL &&
+    r.verifiedKeys.length === CCS_KEYS.length - 1;
 })());
 
 check('a null panorama on scene 5 stops the prefix before it (no arrival)', (function () {

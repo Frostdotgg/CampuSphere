@@ -2090,7 +2090,10 @@ function containsLikelyDocumentationSecret(value) {
     // A repository identifier is safe only when the same claim identifies it
     // as the later documentation-only commit.
     .replace(/\bRepository HEAD\s+`[0-9a-f]{40}`(?=[^.]{0,160}\bdocumentation-only commit\b)/gi,
-      'Repository HEAD `[recognized-documentation-commit]`');
+      'Repository HEAD `[recognized-documentation-commit]`')
+    // Explicit Git SHA-1 evidence is a repository identifier, not a secret.
+    .replace(/\bGit commit SHA-1(?:\s+is)?\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
+      'Git commit SHA-1 `[recognized-git-commit]`');
 
   return /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|-----BEGIN [A-Z]|AKIA[0-9A-Z]{16}|[0-9a-f]{40,}/i.test(withoutLabeledNonSecrets);
 }
@@ -2136,6 +2139,7 @@ function runCloudinaryDocsGate() {
     !containsLikelyDocumentationSecret(
       'Production is on deployed runtime baseline `0123456789abcdef0123456789abcdef01234567`.\n' +
       'Repository HEAD `89abcdef0123456789abcdef0123456789abcdef` is a later documentation-only commit.\n' +
+      'Git commit SHA-1 `fedcba9876543210fedcba9876543210fedcba98`.\n' +
       'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.'));
   ok('fixture: an unlabeled long-hex value is rejected',
     containsLikelyDocumentationSecret('value `0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`') &&
@@ -4464,14 +4468,14 @@ function analyzeProvenanceRemediationRow(md) {
    what "current" means. */
 const EXPECTED_R8_PACKAGE_INVENTORY = Object.freeze({
   files: 158,
-  bytes: '6,201,747',
-  sha256: 'acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1',
+  bytes: '6,212,545',
+  sha256: 'c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999',
 });
 
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-const EXPECTED_SEC51_CURRENT_QUALITY_TOTAL = 3777;
+const EXPECTED_SEC51_CURRENT_QUALITY_TOTAL = 3792;
 
 /** PURE: the STATUS cell of an evidence row (always second-to-last column). */
 function evidenceStatusCell(cells) {
@@ -4578,10 +4582,10 @@ function analyzeManualBlackBoxRows(md) {
 const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
 /* The CURRENT deployed and independently accepted production baseline. The
    pilot-surface correction is live on this SHA. */
-const EXPECTED_SEC51_DEPLOYED_BASELINE = 'd422b54393f659125912ec5c84ae7927c2533288';
+const EXPECTED_SEC51_DEPLOYED_BASELINE = '0627bf78228148e3f989275810c333c16a1f3356';
 /* The FIRST accepted production baseline. It remains legitimate history, but it
    must never be presented as the current deployed baseline. */
-const EXPECTED_SEC51_SUPERSEDED_BASELINE = '78d9053c8ce5c2cc7a9ede80326950cfd29a3a53';
+const EXPECTED_SEC51_SUPERSEDED_BASELINE = 'd422b54393f659125912ec5c84ae7927c2533288';
 
 /* ---- claim-scoped SEC-51 analysis ------------------------------------------
    A row-wide or paragraph-wide "historical/superseded" test is FAIL-OPEN: one
@@ -4674,6 +4678,14 @@ function conflictingDeployedShaProblems(scopeText) {
   for (const c of splitEvidenceClaims(scopeText)) {
     const shas = c.match(/\b[0-9a-f]{40}\b/gi) || [];
     if (shas.length === 0) continue;
+
+    // A claim-scoped disclaimer for the independently pinned preceding
+    // evidence commit is not a competing production-baseline assertion.
+    if (shas.length === 1 &&
+        shas[0].toLowerCase() === EXPECTED_SEC51_DOC_COMMIT.toLowerCase() &&
+        CLAIM_NON_RUNTIME_RE.test(c)) {
+      continue;
+    }
 
     const historical = CLAIM_HISTORY_RE.test(c);
     const pastBound = CLAIM_PAST_BOUND_RE.test(c);
@@ -4788,7 +4800,7 @@ function supersededBaselineClaimProblems(text) {
   if (typeof text !== 'string') return ['superseded-baseline input is not text'];
   const problems = [];
   for (const c of splitEvidenceClaims(text)) {
-    if (!c.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !/\b78d9053\b/.test(c)) continue;
+    if (!c.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !/\bd422b54\b/.test(c)) continue;
     if (!CLAIM_HISTORY_RE.test(c)) {
       problems.push('a claim cites the superseded baseline without history framing in that same claim');
     }
@@ -4934,12 +4946,10 @@ function supersededBaselineAlwaysMarkedHistorical(text) {
   return supersededBaselineClaimProblems(text).length === 0;
 }
 
-/* The LOCAL documentation-and-gate candidate commit, pinned here independently
-   of every document. It is the CHILD of the deployed baseline
-   (`git rev-parse HEAD^` resolves to EXPECTED_SEC51_DEPLOYED_BASELINE), so it is
-   LATER than production and can never truthfully be described as work that
-   happened "before the current deployment". */
-const EXPECTED_SEC51_DOC_COMMIT = 'db034e5581e6f409083a43dcb80fb82b473e0127';
+/* The preceding SEC-51 evidence commit, pinned independently of every
+   document. The current deployed baseline is its child, so documents must not
+   mistake this evidence-only parent for the deployed runtime. */
+const EXPECTED_SEC51_DOC_COMMIT = 'bbb25d0dee5917e4704da35784421c840f825afb';
 
 /** Explicit non-runtime / non-deployed disclaimer wording, evaluated PER CLAIM. */
 const CLAIM_NON_RUNTIME_RE =
@@ -4968,7 +4978,7 @@ function scopeMarksDocCommit(scope) {
   /* Identity is mandatory: a floating "not a runtime deployment" in a document
      that never names the documentation commit proves nothing about it. */
   const namesDocCommit =
-    scope.includes(EXPECTED_SEC51_DOC_COMMIT) || /\bdb034e5\b/i.test(scope);
+    scope.includes(EXPECTED_SEC51_DOC_COMMIT) || /\bbbb25d0\b/i.test(scope);
   if (!namesDocCommit) return false;
   return splitEvidenceClaims(scope).some((c) =>
     CLAIM_NON_RUNTIME_RE.test(c) &&
@@ -5091,13 +5101,13 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     {
       label: 'test-evidence current full contract suite',
       md: testEvidenceMd,
-      match: (r) => /^full contract suite \(M12\.P1 SEC-51 authority\/audit\/total-consistency correction candidate\)$/i
+      match: (r) => /^full contract suite \(additive CCS\/Road-94 candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
       label: 'test-evidence current Full QA aggregate',
       md: testEvidenceMd,
-      match: (r) => /^full QA aggregate \(M12\.P1 SEC-51 authority\/audit\/total-consistency correction candidate\)$/i
+      match: (r) => /^full QA aggregate \(additive CCS\/Road-94 candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
@@ -5764,11 +5774,11 @@ function runDocsCurrentGate() {
 
   for (const name of architectureDocs) {
     const doc = docs[name].replace(/\s+/g, ' ');
-    ok(`${name} records the verified 20/48/24/48/13 route topology`,
-      /20.{0,60}(nodes|route nodes)/i.test(doc) &&
-      /48.{0,60}(directed edges|edges)/i.test(doc) &&
-      /24.{0,60}(reverse pairs|pairs)/i.test(doc) &&
-      /48.{0,80}geometr/i.test(doc) &&
+    ok(`${name} records the refreshed 21/50/25/50/13 route topology`,
+      /21.{0,60}(nodes|route nodes)/i.test(doc) &&
+      /50.{0,60}(directed edges|edges)/i.test(doc) &&
+      /25.{0,60}(reverse pairs|pairs)/i.test(doc) &&
+      /50.{0,80}geometr/i.test(doc) &&
       /13.{0,80}(routable|destinations|destination coverage)/i.test(doc));
     ok(`${name} states routing uses the campus graph and owner-managed geometry`,
       /(own|its own|internal).{0,40}campus graph/i.test(doc) &&
@@ -6590,8 +6600,8 @@ function runDocsCurrentGate() {
       'M12.P1-R8 is the next potential section and is read-only, but this context-only prompt does not authorize R8 execution. Even R8 GO authorizes only a separate owner deployment decision. ' +
       'The sequence is R8 read-only review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. ' +
       'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized. ' +
-      'Production at https://campusphere-cspc.vercel.app is on deployed runtime baseline d422b54393f659125912ec5c84ae7927c2533288. ' +
-      'Repository HEAD is the later documentation-only commit db034e5581e6f409083a43dcb80fb82b473e0127; it is not the deployed runtime.';
+      'Production at https://campusphere-cspc.vercel.app is on deployed runtime baseline 0627bf78228148e3f989275810c333c16a1f3356. ' +
+      'The preceding evidence commit bbb25d0dee5917e4704da35784421c840f825afb is not the deployed runtime.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
       'M12.P1-R6 is complete and Codex GO.',
@@ -6625,7 +6635,7 @@ function runDocsCurrentGate() {
        replaced; the repository-HEAD SHA is left intact. */
     const FAKE_DEPLOYED_SHA = '0f1e2d3c4b5a69788796a5b4c3d2e1f009182736';
     const WRONG_BASELINE_BODY = CURRENT_BODY.split(
-      'd422b54393f659125912ec5c84ae7927c2533288').join(FAKE_DEPLOYED_SHA);
+      '0627bf78228148e3f989275810c333c16a1f3356').join(FAKE_DEPLOYED_SHA);
 
     // kind: 'ok' | 'missing-heading' | 'duplicate-heading' | 'no-fence' |
     //       'unclosed' | 'duplicate-block' | 'empty' | 'bare-open' | 'js-open' |
@@ -6833,16 +6843,16 @@ function runDocsCurrentGate() {
     const M_HDR = '## Manual Black-Box Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- | --- | --- |\n';
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
-    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **3777/3777 PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **3792/3792 PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
-    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed, independently Codex-accepted)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: before that deployment, the earlier baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
-    const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
+    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; historical/superseded: before that deployment, the earlier baseline was d422b54393f659125912ec5c84ae7927c2533288 |';
+    const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
     const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
@@ -6851,18 +6861,18 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1 SEC-51 schedule-audit correction package inventory (correction candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,201,747 bytes, aggregate SHA-256 `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`; focused probe `71/71`** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1 SEC-51 schedule-audit correction package inventory (correction candidate) | `x` | recomputed | **158 files, 6,201,747 bytes, aggregate SHA-256 `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`** | before this runtime correction, the previous candidate was 158 files, 6,201,603 bytes, aggregate `28403afaca31b90849d8cc76c1ec0501f29444d138e865053337617b664d3636` |';
+    const INV_CURRENT = '| M12 additive CCS cutover package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,212,545 bytes, aggregate SHA-256 `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`; focused probe `71/71`** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12 additive CCS cutover package inventory (candidate) | `x` | recomputed | **158 files, 6,212,545 bytes, aggregate SHA-256 `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`** | before this runtime correction, the previous candidate was 158 files, 6,201,747 bytes, aggregate `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
 
-    const EXACT_SUITE_OK = '| Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm test` | zero fail | **3777/3777 PASS - correction candidate** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm run qa` | all green | **3777/3777 PASS - exit 0** | `QUALITY-GATES OK` |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1 SEC-51 authority/audit/total-consistency correction candidate) | `npm run qa` | all green | **3776/3776 PASS - exit 0** | `QUALITY-GATES OK`; 3777/3777 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (additive CCS/Road-94 candidate) | `npm test` | zero fail | **3792/3792 PASS - correction candidate** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (additive CCS/Road-94 candidate) | `npm run qa` | all green | **3792/3792 PASS - exit 0** | `QUALITY-GATES OK` |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (additive CCS/Road-94 candidate) | `npm run qa` | all green | **3791/3791 PASS - exit 0** | `QUALITY-GATES OK`; 3792/3792 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **3777/3777 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **3777/3777 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 3777/3777 |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **3792/3792 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **3792/3792 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 3792/3792 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
        now structural. Each rejecting fixture below keeps every required action
@@ -7065,21 +7075,21 @@ function runDocsCurrentGate() {
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        3777).length === 0);
+        3792).length === 0);
     ok('fixture: a mismatched QA total or a total appearing only in neighbouring evidence is rejected',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_MISMATCH,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_BARE,
-        3777).length > 0);
+        3792).length > 0);
     ok('fixture: missing, duplicated, or historical-only current total rows fail closed',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK,
-        3777).length > 0 &&
+        3792).length > 0 &&
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + Q_QA_HISTORICAL,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        3777).length > 0);
+        3792).length > 0);
 
     ok('fixture: the exact three-action schedule audit contract is accepted only from a real frozen allowlist array and real handler structure',
       analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_OK).allowlist.length === 0 &&
@@ -7145,10 +7155,10 @@ function runDocsCurrentGate() {
 
     /* ---- fixtures: pinned independently of the live documents ---- */
     const SEC51_HDR = '| Case | Title | Steps | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
-    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: before that deployment, the first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
-    const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed, independently accepted)** | against https://campusphere-cspc.vercel.app on deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 |';
-    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; historical/superseded: before that deployment, the earlier baseline was d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
     const SEC51_NO_SHA = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app |';
     const SEC51_DEFERRED = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **DEFERRED - separate owner deployment decision** | not executed |';
 
@@ -7166,32 +7176,32 @@ function runDocsCurrentGate() {
 
     /* Claim-scoped: the binding claim must tie the SHA to the DEPLOYED BASELINE,
        not merely mention it beside the word "deployed". */
-    const PROSE_OK = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. The subsequent evidence and quality-gate synchronization at db034e5581e6f409083a43dcb80fb82b473e0127 is documentation-and-gate work only; it is not a runtime deployment and remains unaccepted pending independent read-only review.';
+    const PROSE_OK = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. The preceding evidence synchronization at bbb25d0dee5917e4704da35784421c840f825afb is not the deployed runtime.';
     /* Forward-chronology doc-commit discriminator fixtures. The documentation/
        gate commit is the CHILD of the deployed baseline, so a truthful
        disclaimer is PRESENT tense and names that commit in the same scope.
        DOC_COMMIT_UNNAMED is the OLD accepted PROSE_OK verbatim: it satisfied the
        former whole-document regex while never identifying the commit it claimed
        to distinguish. */
-    const DOC_COMMIT_UNNAMED = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. This evidence synchronization is not a runtime deployment.';
-    const DOC_COMMIT_HISTORY_ONLY = 'The SEC-51 production smoke ran against the deployed baseline d422b54393f659125912ec5c84ae7927c2533288 and is Codex-accepted. Historical/superseded: before the current deployment, the earlier synchronization at db034e5581e6f409083a43dcb80fb82b473e0127 was not a runtime deployment at that time.';
+    const DOC_COMMIT_UNNAMED = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.';
+    const DOC_COMMIT_HISTORY_ONLY = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Historical/superseded: before the current deployment, the earlier synchronization at bbb25d0dee5917e4704da35784421c840f825afb was not a runtime deployment at that time.';
     const DOC_COMMIT_SPLIT_SCOPE =
-      'The local documentation and gate candidate is db034e5581e6f409083a43dcb80fb82b473e0127.' +
+      'The preceding evidence synchronization is bbb25d0dee5917e4704da35784421c840f825afb.' +
       '\n\nThis evidence synchronization is not a runtime deployment.';
-    const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the first accepted SEC-51 production baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.';
+    const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was d422b54393f659125912ec5c84ae7927c2533288.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',
       supersededBaselineAlwaysMarkedHistorical(PROSE_HISTORICAL_OLD) === true &&
       supersededBaselineAlwaysMarkedHistorical(
-        'Historical/superseded: production baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53.') === false &&
+        'Historical/superseded: production baseline d422b54393f659125912ec5c84ae7927c2533288.') === false &&
       supersededBaselineAlwaysMarkedHistorical(
-        'Production serves 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53 right now.') === false);
+        'Production serves d422b54393f659125912ec5c84ae7927c2533288 right now.') === false);
     ok('fixture: prose naming the deployed baseline and separating the documentation commit is accepted',
       distinguishesDeployedRuntimeFromDocCommit(PROSE_OK) === true);
     ok('fixture: prose that omits the deployed SHA, never names the documentation commit, strands the disclaimer in another scope, or frames it as history is rejected',
       distinguishesDeployedRuntimeFromDocCommit(
         'The corrections are deployed. This evidence synchronization is not a runtime deployment.') === false &&
       distinguishesDeployedRuntimeFromDocCommit(
-        'SEC-51 passed against d422b54393f659125912ec5c84ae7927c2533288.') === false &&
+        'SEC-51 passed against 0627bf78228148e3f989275810c333c16a1f3356.') === false &&
       /* (2) the deployed baseline is named and a disclaimer is present, but no
          scope ever identifies the documentation commit. This string is the OLD
          accepted fixture, so it also proves the fail-open closed. */
@@ -7233,10 +7243,10 @@ function runDocsCurrentGate() {
        deployment claim elsewhere in the same row or paragraph. Each case below
        satisfies every substring check (both SHAs and the host are present) and
        was accepted before the analyzers became claim-scoped. ---- */
-    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53; historical/superseded: d422b54393f659125912ec5c84ae7927c2533288 |';
-    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53; historical/superseded: d422b54393f659125912ec5c84ae7927c2533288 |';
-    const MIXED_STALE_PARAGRAPH = 'Historical/superseded: the first accepted baseline was 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53. The SEC-51 pilot-surface correction is not deployed.';
-    const SWAP_PROSE = 'Production currently serves 78d9053c8ce5c2cc7a9ede80326950cfd29a3a53. Historical/superseded: d422b54393f659125912ec5c84ae7927c2533288. The evidence synchronization is not a runtime deployment.';
+    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const MIXED_STALE_PARAGRAPH = 'Historical/superseded: the earlier accepted baseline was d422b54393f659125912ec5c84ae7927c2533288. The SEC-51 pilot-surface correction is not deployed.';
+    const SWAP_PROSE = 'Production currently serves d422b54393f659125912ec5c84ae7927c2533288. Historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a semantic baseline swap inside a row is rejected even though both SHAs, the host, and a historical marker are present',
       analyzeDeploymentSmokeRow(M_HDR + SWAP_SMOKE_ROW + M_TAIL).length > 0 &&
@@ -7253,9 +7263,9 @@ function runDocsCurrentGate() {
        DIFFERENT SHA as the deployed baseline while mentioning the expected SHA
        for comparison. Each is asserted separately. ---- */
     const FAKE_SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
-    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with d422b54393f659125912ec5c84ae7927c2533288 for reference |';
-    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with d422b54393f659125912ec5c84ae7927c2533288 for reference |';
-    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than d422b54393f659125912ec5c84ae7927c2533288. The evidence synchronization is not a runtime deployment.';
+    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 0627bf78228148e3f989275810c333c16a1f3356 for reference |';
+    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 0627bf78228148e3f989275810c333c16a1f3356 for reference |';
+    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than 0627bf78228148e3f989275810c333c16a1f3356. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a stale claim after a semicolon is rejected even though only the FIRST clause names the topic',
       declaresStalePilotSurfaceDeploymentClaim(
@@ -7274,14 +7284,14 @@ function runDocsCurrentGate() {
        PERFECTLY VALID binding claim for the expected SHA, alongside a
        neighbouring claim asserting production serves a different SHA. Requiring
        only "at least one valid binding" accepted all three. ---- */
-    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288; production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288. Production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline d422b54393f659125912ec5c84ae7927c2533288. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
+    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
     /* Scope-skipping attack: the contradictory claim sits in its OWN paragraph
        with no SEC-51 / pilot-surface wording, so a topic-gated document scan
        never audited it. Every scope is audited now. */
     const CONFLICT_SEPARATE_PARAGRAPH =
-      'SEC-51 ran against deployed baseline d422b54393f659125912ec5c84ae7927c2533288. This evidence synchronization is not a runtime deployment.' +
+      'SEC-51 ran against deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.' +
       '\n\nProduction currently serves ' + FAKE_SHA + '.';
     /* History framing WITHOUT an explicit past boundary must not license a
        wrong deployed SHA; the same claim, properly past-bounded, still may. */
@@ -7301,7 +7311,7 @@ function runDocsCurrentGate() {
       distinguishesDeployedRuntimeFromDocCommit(CONFLICT_SEPARATE_PARAGRAPH) === false);
     ok('fixture: a neighbouring wrong-baseline claim is rejected in the inverse order, a history-framed deployed SHA without an explicit same-claim past boundary is rejected, the past-bounded equivalent is accepted, and an unrelated bare commit SHA stays accepted',
       distinguishesDeployedRuntimeFromDocCommit(
-        'SEC-51 status: production currently serves ' + FAKE_SHA + '. The deployed baseline is d422b54393f659125912ec5c84ae7927c2533288. This evidence synchronization is not a runtime deployment.') === false &&
+        'SEC-51 status: production currently serves ' + FAKE_SHA + '. The deployed baseline is 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.') === false &&
       documentConflictingDeployedShaProblems(HIST_DEPLOYED_NO_PAST_BOUND).length > 0 &&
       documentConflictingDeployedShaProblems(HIST_DEPLOYED_PAST_BOUNDED).length === 0 &&
       deploymentDocumentClaimsAreCurrent(PROSE_OK) === true &&

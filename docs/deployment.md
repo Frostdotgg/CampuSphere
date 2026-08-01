@@ -12,11 +12,108 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-07-30 R8 Continuity Status
+## 2026-08-01 Current Deployment And Data-Cutover Status
 
-- Production at `https://campusphere-cspc.vercel.app` uses the independently
-  Codex-accepted SEC-51 deployed runtime baseline
-  `d422b54393f659125912ec5c84ae7927c2533288`.
+- Git and production are synchronized at deployed production baseline
+  `0627bf78228148e3f989275810c333c16a1f3356`: `main`, `HEAD`,
+  `origin/main`, and the pushed remote match. That synchronization preflight
+  was clean; the current additive candidate worktree is intentionally dirty,
+  unstaged, uncommitted, unpushed, and undeployed. The owner verified that
+  Vercel marks the deployed commit Ready with the Production alias for
+  `https://campusphere-cspc.vercel.app`.
+- The preceding SEC-51/R8 Git commit SHA-1 is
+  `bbb25d0dee5917e4704da35784421c840f825afb`. The five-file deployed follow-up
+  changes only this document, `public/css/styles.css`,
+  `public/js/profile-script.js`, `scripts/quality-gates.js`, and `server.js`.
+  It fixes the narrow/mobile edit-profile overlay, full modal focus containment
+  and restoration, adversarial gate coverage, and pre-session favicon routing.
+- Fresh deployed-candidate verification passed logout `75/75`, `npm test`
+  `3777/3777` with `QUALITY-GATES OK`, all five `npm run qa` stages, and final
+  `24/24 -> 18/18 -> 46/46`, with byte-identical preflight/postflight files.
+  The five-file review returned GO with low/advisory findings and disclosed a
+  same-author/self-review limitation. A public anonymous smoke subsequently
+  passed `31/31`; it did not exercise authenticated schedule-audit behavior.
+- The automated frozen-data production rehearsal PASSed with isolated admin,
+  student, and guest Playwright MCP contexts. It created and removed exactly one
+  temporary student and guest through supported interfaces, restored the
+  seven-user baseline, closed the sessions, and finished at
+  `24/24 -> 18/18 -> 46/46`. It is automated rehearsal evidence only, not a
+  human pilot or Google Form response. Its PII/transcript, temporary-file,
+  misclick, and human sign-in sequencing deviations remain disclosed in the
+  authority handoffs and are not repeated with sensitive values here.
+- The additive CCS/data candidate is parity-matched in both backends at 13
+  buildings, 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid
+  geometries, 13 routable destinations, 92 VR scenes, and 80 hotspots. The
+  selected freeze covers 28 scenes and 57 selected-source hotspots. Its
+  selected-VR SHA-256
+  `d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22`
+  and aggregate SHA-256
+  `71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7`.
+  Migrations remain exactly `0001-0019`; no `0020` exists.
+- The separately authorized backup/cutover used one-writer control and
+  supported admin interfaces. Isolated Supabase and MySQL restores passed;
+  the external manifest verifies 109/109 files; and all 86 referenced
+  Cloudinary delivery URLs were exported and hashed. That delivery export is
+  not a Cloudinary management/original-account export. No selected entity was
+  deleted and no direct SQL or cleanup sync apply was used.
+- After an exact count preflight, one administrator and three student
+  Supabase session rows were revoked through one supported service call per
+  identity. Ordered postconditions are green at `24/24 -> 18/18 -> 46/46`.
+- The current Vercel allowlist candidate is 158 files, 6,212,545 bytes,
+  aggregate SHA-256
+  `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`;
+  the focused boundary probe passed `71/71`, and `scripts/quality-gates.js`
+  pins these candidate bytes. This is not deployment authorization.
+- Human pilot evidence, OFF.2-OFF.6, and final Milestone 12 GO remain open.
+  This status records deployment truth; it is not authority for another deploy,
+  database change, media operation, or destructive data replacement.
+
+### Required Backup And Additive Cutover Gate
+
+Before replacing the selected-demo routes, nodes, edges, buildings, panoramas,
+hotspots, or schedules with real campus data:
+
+1. Freeze writers: schedule a maintenance window, nominate one administrator,
+   and stop simultaneous admin edits for the cutover.
+2. Produce a timestamped Supabase backup using the provider-supported backup or
+   PostgreSQL dump path, covering schema, roles/permissions required for
+   restoration, and data. Record tool/version, source project identifier,
+   timestamp, object counts, size, and SHA-256 in owner-controlled evidence.
+3. Inventory and export Cloudinary assets separately. Database backups contain
+   only Cloudinary identifiers/URLs, not the image bytes. Record public IDs,
+   resource types, versions, dimensions/bytes, folder/tags, and checksums where
+   available; keep credentials and signed URLs outside Git.
+4. Restore the database backup into an isolated non-production target and prove
+   authentication-safe startup plus representative building, routing, schedule,
+   VR, and media reads. A backup is not accepted until restore is demonstrated.
+5. Capture a final pre-cutover database/media delta and stop if it differs from
+   the approved manifest.
+6. Apply an additive cutover through supported repositories/admin interfaces:
+   preserve or deliberately map stable building IDs; add buildings; add nodes;
+   add both directions of each edge with geometry; add/relink route steps;
+   add/relink scenes, hotspots, and schedules; verify participant behavior; then
+   remove superseded schedules/hotspots, edge pairs, unused nodes, and buildings
+   last. Never use blanket deletion as the first step.
+7. Recompute topology, routing, selected-VR, package/deployment, credential,
+   residue, and BE.6 evidence. Changes to selected content invalidate the old
+   freeze until `config/selectedDemoFreeze.js` is deliberately reviewed and
+   refreshed. A data backup does not back up source code; retain the Git commit
+   and deployment record separately.
+
+The backup, isolated restore proofs, and additive reconciliation described
+above have been performed. The full contract/QA matrix passed at `3792/3792`
+with all five QA stages green, and its ordered postcondition passed
+`24/24 -> 18/18 -> 46/46`. Independent read-only review, commit, push, and
+deployment remain separate and are not authorized by this documentation record.
+
+## Historical/Superseded — 2026-07-30 R8 Continuity Status
+
+The following section records what was known on July 30. It is retained for
+incident traceability and does not override the August 1 status above.
+
+- Historical/superseded: before the `0627bf7` deployment, production at
+  `https://campusphere-cspc.vercel.app` used the independently Codex-accepted
+  SEC-51 runtime baseline `d422b54393f659125912ec5c84ae7927c2533288`.
 - Repository HEAD `db034e5581e6f409083a43dcb80fb82b473e0127` is a later
   documentation-only commit whose bytes differ from the production runtime
   commit. The current local correction candidate is uncommitted and unaccepted;
@@ -483,11 +580,12 @@ owner-authorized supported cleanup/restoration was performed and independently
 reproduced, and the R6 session re-verified safety `24/24`, residue `18/18`, and
 BE.6 `46/46` before editing and again after its full-suite run.
 
-### M12.P1-R8 clean-snapshot candidate package inventory (current candidate record)
+### Historical/superseded M12.P1-R8 package inventory record
 
-This section records the CURRENT candidate inventory. It is additive: the
-accepted `M12.P1-R7` closeout values in the section above are unchanged
-historical evidence and are deliberately not overwritten.
+This section preserves the July R8 and schedule-audit candidate inventories as
+historical evidence. The 2026-08-01 current candidate inventory is recorded in
+the current-status section above; the accepted `M12.P1-R7` closeout values are
+unchanged historical evidence and are deliberately not overwritten.
 
 Aggregate hashes are abbreviated here, matching this file's existing
 convention; the full values are recorded in `docs/test-evidence.md`.
@@ -498,8 +596,8 @@ convention; the full values are recorded in `docs/test-evidence.md`.
 | R8 clean-snapshot candidate (reviewed; CANDIDATE NO-GO) | 155 | 6,172,845 | `d8830164…c2fe9e9f` |
 | R8 pilot-readiness correction candidate (superseded) | 157 | 6,192,992 | `0ae9f57d…ab999a1c` |
 | R8 re-review correction candidate (superseded) | 157 | 6,194,154 | `77e34105…e1a8551a` |
-| **Current deployed baseline `d422b54`** | **158** | **6,201,603** | **`28403afa…b664d3636`** |
-| **Current local schedule-audit correction candidate** | **158** | **6,201,747** | **`acfb1696…da42e8b1`** |
+| Historical/superseded deployed baseline `d422b54` before `0627bf7` | 158 | 6,201,603 | `28403afa…b664d3636` |
+| Local schedule-audit correction candidate — historical/superseded | 158 | 6,201,747 | `acfb1696…da42e8b1` |
 
 The deployed baseline adds one packaged file versus the superseded 157-file
 record — `public/js/public-nav.js`, the shared anonymous-navbar client — under a
@@ -507,9 +605,9 @@ directory the allowlist already re-includes, so no new packaged path class
 appears. Its remaining byte delta is confined to already-packaged files
 (`views/landing.ejs`, `views/partials/navbar.ejs`, `views/auth.ejs`,
 `views/complete-registration.ejs`, `public/css/styles.css`).
-The local candidate keeps the same 158-file set and adds 144 bytes only in the
-already-packaged `services/auditService.js`; its package record is not a
-deployment decision.
+That historical local candidate kept the same 158-file set and added 144 bytes
+only in the already-packaged `services/auditService.js`; its package record was
+not a deployment decision.
 
 The superseded 157-file record described a candidate that added two packaged
 files — `views/privacy.ejs`
@@ -674,8 +772,8 @@ All migrations are written to be idempotent/additive where practical
 > the authoritative Guard House topology, CAS baseline, and selected-demo
 > parity.
 
-The verified routing dataset contains 20 nodes, 48 directed edges, 24 exact
-forward/reverse pairs, 48 valid geometries, and 13 routable building
+The refreshed additive candidate routing dataset contains 21 nodes, 50 directed
+edges, 25 exact forward/reverse pairs, 50 valid geometries, and 13 routable building
 destinations in both backends. CampuSphere computes routes from its own campus
 graph and renders owner-managed road geometry. Google Maps, Google Earth,
 Strava, SIS, and external routing engines are not integrated.
@@ -993,40 +1091,35 @@ independently pinned gate.
 
 | Record | Baseline | Status |
 | --- | --- | --- |
-| First accepted production smoke (historical/superseded) | `78d9053` | Before the corrected baseline was deployed, this was externally executed and accepted; it is superseded by the baseline below |
-| **Current corrected production baseline** | **`d422b54`** | **Read-only smoke independently completed by Codex; SEC-51 CODEX GO** |
+| First accepted production smoke (historical/superseded) | `78d9053` | Before the later baselines were deployed, this was externally executed and accepted |
+| Detailed browser smoke (historical/superseded) | `d422b54` | Before `0627bf7`, this read-only smoke was independently completed and accepted |
+| **Current deployed baseline** | **`0627bf7`** | **Anonymous production smoke `31/31`; deployment identity owner-observed** |
 
-The current smoke established that the exact production hostname serves
-`d422b54`, that dynamic surfaces returned the expected CSP and
-`X-Robots-Tag: noindex, nofollow, noarchive`, that `/robots.txt` and
-`/offline.html` retained their contracts, that anonymous `/dashboard`, `/map`,
-`/buildings`, and `/admin` were denied through the expected redirect contract,
-that the Google OAuth start used `accounts.google.com` with `response_type=code`
-and scopes `openid email profile` against the exact production callback, and
-that at 1440x900 and 390x844 the corrected landing copy, navbar `aria-expanded`
-lifecycle, and non-overlapping auth theme control all behaved as locally
-verified — with zero CSP violations, console errors, page errors, failed
-requests, or horizontal overflow.
+The current `31/31` smoke established that the exact production hostname serves
+deployed runtime baseline `0627bf78228148e3f989275810c333c16a1f3356`; scoped
+public pages and static assets retained CSP nonce, indexing, and crawl-denial
+contracts with zero scoped 4xx/5xx responses. It did not perform an
+authenticated login or exercise schedule auditing. Historical/superseded:
+before this deployment, the detailed independent browser smoke on historical
+deployed runtime baseline `d422b54393f659125912ec5c84ae7927c2533288` covered the OAuth start and viewport
+interaction matrix.
 
 The three pilot-surface corrections — landing role-mapping copy, the shared
-accessible anonymous navbar, and the auth-scoped in-card theme control — are
-**deployed** on `d422b54`, with production `public/js/public-nav.js` and
-`public/css/styles.css` byte-identical to that baseline.
+accessible anonymous navbar, and the auth-scoped in-card theme control — remain
+deployed on deployed runtime baseline
+`0627bf78228148e3f989275810c333c16a1f3356`. Historical/superseded: before this
+deployment, their detailed independent browser acceptance ran against historical
+deployed runtime baseline `d422b54393f659125912ec5c84ae7927c2533288`.
 
 The smoke was **read-only**: no authenticated production login was performed, so
 the M12.P1-R2 and M12.P1-R3 session-store and bootstrap evidence stands
 unchanged and is not restated as new. The correction changed no session-store or
 bootstrap implementation.
 
-The subsequent SEC-51 evidence and quality-gate synchronization at
-Repository HEAD `db034e5581e6f409083a43dcb80fb82b473e0127` is a
-documentation-only commit and gate-work candidate; it is **not a runtime
-deployment**, does not change production, and remains unaccepted pending
-independent read-only review. That synchronization commit is
-LATER than the deployed runtime baseline, not earlier: it is the child of
-`d422b543`. The present local candidate additionally repairs the schedule-audit
-allowlist; production remains on `d422b54`, and independent review is still
-required.
+The preceding SEC-51 evidence synchronization at Git commit SHA-1
+`bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
+present additive CCS candidate is uncommitted, unpushed, and undeployed; it does
+not change production, and independent review is still required.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 
@@ -1284,7 +1377,7 @@ because inside the app container `localhost` is the container itself.
 | Google `redirect_uri_mismatch` | `GOOGLE_REDIRECT_URI` doesn't exactly match an Authorized redirect URI in Google Cloud. Register the exact scheme/host/port/path (§7). |
 | App can't reach MySQL in Docker (`ECONNREFUSED`/timeout) | `DB_HOST` points at `localhost` inside the container. In Compose use `DB_HOST=mysql` (the service name); standalone, point it at the reachable host. |
 | Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply migrations through `0019` in order; `0011` is required for Supabase sessions, `0012`-`0013` for scheduling/VR targets, and `0014`-`0019` for road-following routing, CAS baseline, selected-demo parity, and admin geometry. Verify with `npm run qa:smoke` and the focused probes. |
-| `npm run qa:db` fails on a missing index or route-geometry count | Apply the Supabase migrations through `0019` (§3) and run `node database/seed.js` for MySQL. The post-`0019` route truth is 20 nodes, 48 directed edges, 24 reverse pairs, and 48 valid geometries. |
+| `npm run qa:db` fails on a missing index or route-geometry count | Apply the Supabase migrations through `0019` (§3) and run `node database/seed.js` for MySQL. The refreshed additive candidate route truth is 21 nodes, 50 directed edges, 25 reverse pairs, and 50 valid geometries. |
 | `npm test` / `npm run qa` fails | Ensure MySQL is running and seeded; Supabase portions SKIP cleanly only when no Supabase runtime is selected. Selected Supabase runtimes fail closed when credentials or required migrations are missing. Re-run the named focused probe or gate for detail. |
 
 ---

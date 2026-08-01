@@ -4,10 +4,99 @@
 
 Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Destination Routing Repair (RF.1-RF.6) is also complete and Codex GO. BE.1 through BE.6 and OFF.1 are complete and Codex GO. Final Milestone 12 GO has not been issued.
 
-Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current BE.6 selected-demo baseline is green in both backends: 20 route nodes, 48 directed edges, 24 exact forward/reverse pairs, 48 valid road geometries, and 13 routable destinations. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate returned both backends to the frozen building/route and aggregate manifest fingerprints. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
+Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current additive BE.6 selected-demo candidate is green in both backends: 21 route nodes, 50 directed edges, 25 exact forward/reverse pairs, 50 valid road geometries, and 13 routable destinations. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-07-30 authoritative continuity snapshot).**
+**CURRENT STATUS (2026-08-01 additive CCS cutover candidate).**
+
+Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
+deferred until the limited human-pilot review, not cancelled, and remain
+mandatory before final Milestone 12 GO.
+
+Dependency-security remediation is complete and Codex GO. Following the
+accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
+drift remains remediated: production pins ejs@6.0.1, the
+jake/filelist/minimatch/brace-expansion chain is absent, and accepted audit
+evidence from npm audit --omit=dev records zero vulnerabilities. M12.P1-R7 is complete and
+Codex GO. Accepted R7 evidence is focused 71/71, in-suite
+vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and
+npm audit --omit=dev at zero vulnerabilities. The 3492/3492 and 3494/3494
+candidates remain historical/superseded. M12.P1-D7 is complete and Codex GO.
+Accepted D7 evidence remains the fresh-context role-isolation run with separate
+Playwright BrowserContext objects, clean supported-interface teardown, npm test
+3511/3511 with QUALITY-GATES OK, audit zero, and postconditions
+24/24 -> 18/18 -> 46/46 with aggregate fingerprint
+a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d
+unchanged at that accepted historical baseline.
+
+Production and pushed Git history remain at
+0627bf78228148e3f989275810c333c16a1f3356 on main; local HEAD and origin/main
+also remain there. The owner-observed Vercel Production alias remains
+https://campusphere-cspc.vercel.app. The current worktree is intentionally
+dirty with an uncommitted additive CCS/data-contract candidate. Nothing from
+this candidate has been staged, committed, pushed, linked, or deployed. The
+accepted 0627bf7 five-file verification, anonymous production smoke 31/31, and
+automated frozen-data rehearsal remain historical evidence and do not verify
+this new candidate.
+
+The separately authorized backup and additive reconciliation have been
+performed. The owner maintained one-writer control. The external backup set
+contains provider-supported Supabase roles/schema/public-data dumps, pre- and
+post-cutover restore bundles, separate MySQL dumps, and a referenced-delivery
+Cloudinary export. All 86 referenced Cloudinary delivery URLs downloaded and
+were hashed; this is not a Cloudinary management/original-account export.
+Isolated Supabase and MySQL restores passed. The external manifest currently
+verifies 109/109 files with zero checksum mismatches. Secrets, signed URLs,
+database identifiers, and backup paths remain outside Git.
+
+The data reconciliation used supported administrator interfaces only. It did
+not use direct SQL, blanket deletion, syncSelectedCasVrSupabaseToMysql.js
+--apply, or migration 0020. Supabase added one reverse edge, one atomic
+forward/reverse geometry pair, the legacy scene-ccs scene, and three legacy
+hotspots. MySQL additively received the Lugaw node and edge pair plus the seven
+new scenes and fourteen hotspots already present in Supabase. The
+lugaw-pilipinas node is consistently classified as a building-free walkway.
+No building, schedule, route, scene, hotspot, or user was removed.
+
+Current dual-backend truth is 13 buildings, 21 route nodes, 50 directed edges,
+25 exact reverse pairs, 50 valid endpoint-continuous geometries, and 13
+routable destinations. Both backends contain 92 VR scenes and 80 hotspots. The
+selected freeze covers 28 scenes and 57 selected-source hotspots. Active Guided
+VR is CAS at 24 scenes plus CCS at 23 scenes, with Road 94 immediately before
+scene-ccs-1st-floor. Selected-VR fingerprint is
+d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22;
+aggregate fingerprint is
+71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7.
+Migrations remain exactly 0001-0019; no 0020 exists.
+
+Focused topology, stored-geometry, API-geometry, public rendering, map-to-VR,
+Guided VR, Free Roam, building baseline/integration/editor, and BE.6 checks are
+green across MySQL, Supabase, and the supported mixed runtime modes. The
+updated BE.6 freeze is 46/46. Four authorized canonical Supabase session rows
+(one administrator and three student) were removed through exactly one
+revokeUserSessions call per identity after a fail-closed count preflight. The
+ordered postcondition is green at 24/24 -> 18/18 -> 46/46.
+
+The read-only package-boundary probe is green at 71/71 and reports 158 files,
+6,212,545 bytes, aggregate SHA-256
+c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999.
+scripts/quality-gates.js now pins those candidate bytes. This inventory is not
+deployment authorization. The synchronized matrix passed `npm test` at
+`3792/3792` with `QUALITY-GATES OK`, and `npm run qa` at the same exact contract
+total with all five stages green. Final ordered postconditions are green at
+`24/24 -> 18/18 -> 46/46`. Independent read-only review remains open.
+
+M12.P1-R8 remains the next potential section and is read-only under the
+repository's established gate wording. R8 is not authorized by this
+synchronization; even R8 GO authorizes only a separate owner deployment
+decision. M12.P1 remains NO-GO for deployment and pilot readiness; deployment
+is not authorized. Human pilot/Form responses, OFF.2-OFF.6, and final Milestone
+12 acceptance remain open. Do not claim a new GO from this candidate.
+<!-- M12.P1 CURRENT STATUS END -->
+<!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
+**HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident
+traceability and never current authority).**
 
 Accepted history is unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6, and
 OFF.1 are Codex GO. M12.P1 R1-R7, D1-D5, and expanded D7 are complete and
@@ -27,7 +116,7 @@ role-isolation run with separate browser contexts, full suite `3511/3511`
 with `QUALITY-GATES OK`, audit zero, and postconditions
 `24/24 -> 18/18 -> 46/46` with the frozen aggregate fingerprint unchanged.
 
-Production is `https://campusphere-cspc.vercel.app` on deployed runtime
+Historical/superseded: before the `0627bf7` deployment, production used runtime
 baseline `d422b54393f659125912ec5c84ae7927c2533288`. The read-only SEC-51
 production smoke for that exact baseline is independently Codex-accepted.
 Repository HEAD is the later documentation-only commit
@@ -54,7 +143,7 @@ evidence, not current database truth.
 
 The frozen aggregate fingerprint remains
 `a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d`.
-The current local-candidate package boundary is 158 files, 6,201,747 bytes,
+At that July 30 snapshot, the local-candidate package boundary was 158 files, 6,201,747 bytes,
 aggregate SHA-256
 `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`.
 Before the schedule-audit runtime repair, the prior local candidate was 158
@@ -126,7 +215,7 @@ direct SQL or direct session-row deletion, and never create migration `0020`.
 authorized and requires a separate owner decision after R8. Milestone 12
 remains NO-GO. No staging, commit, push, Vercel action, or pilot activity is
 authorized by this continuity snapshot.
-<!-- M12.P1 CURRENT STATUS END -->
+<!-- M12.P1 HISTORICAL 2026-07-30 STATUS END -->
 <!-- M12.P1 PRIOR STATUS START -->
 BE.5 selected 13-building parity/regression, BE.6 selected-demo dataset freeze,
 and OFF.1 received Codex GO. The owner-authorized `M12.P1` readiness audit is
@@ -1557,7 +1646,8 @@ supported logout interface.
 
 The follow-up documentation commit recording that evidence awaits an
 independent read-only R8 review. No R8 GO, Codex GO, deployment GO, pilot GO, or
-Milestone 12 GO is claimed. `SEC-51` production smoke against deployed baseline
+Milestone 12 GO is claimed. Historical/superseded: before `0627bf7`, the
+`SEC-51` production smoke ran against deployed baseline
 `d422b54393f659125912ec5c84ae7927c2533288` on
 `https://campusphere-cspc.vercel.app` is independently Codex-accepted.
 OFF.2-OFF.6 remain deferred until pilot
@@ -1728,8 +1818,8 @@ Do not implement or reintroduce:
 - Milestone 10 is complete and Codex GO.
 - Milestone 11 Room Scheduling, including Sections 11.8A-11.8D and the final 11.8 review, is complete and Codex GO.
 - Supabase migrations are exactly `0001` through `0019`; `0014` through `0019` are owner-applied and verified, and no `0020` exists.
-- RF.1 through RF.6 are complete and Codex GO. The current BE.6-frozen selected-demo graph has 20 route nodes, 48 directed edges, 24 reverse pairs, 48 valid geometries, and 13/13 building destination coverage in both backends; the 13 buildings are not the complete campus. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete replacement verification is green.
-- BE.1 through BE.6 and OFF.1 are complete and Codex GO. BE.4 uses the owner-authorized CAS-only selected-demo scope: the exact Guard House-to-CAS walkthrough is active, while CCS remains map-routable with truthful guided VR deferral.
+- RF.1 through RF.6 are complete and Codex GO. The current additive BE.6 selected-demo candidate has 21 route nodes, 50 directed edges, 25 reverse pairs, 50 valid geometries, and 13/13 building destination coverage in both backends; the 13 buildings are not the complete campus. The prior 20/48/24/48 baseline and the D4 replacement verification remain accepted historical evidence, not current candidate counts.
+- BE.1 through BE.6 and OFF.1 are complete and Codex GO. The current additive Guided VR candidate keeps the exact 24-scene Guard House-to-CAS walkthrough active and adds the 23-scene CCS walkthrough through Road 94 to `scene-ccs-1st-floor`; CCS is no longer current-authority guided-VR deferred.
 - The `M12.P1` read-only readiness audit is complete with Codex NO-GO after one
   critical and six high findings. R1-R7, D1-D5, and expanded D7 are complete and
   Codex GO, including the R3 follow-ups, R4 follow-up, dependency-security

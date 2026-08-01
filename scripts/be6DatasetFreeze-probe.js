@@ -24,12 +24,8 @@ const {
   positiveInt
 } = require('./applyBe5SelectedDemoParityMysql');
 const {
-  SELECTED_KEYS,
-  GUIDED_KEYS,
   INTERIOR_KEYS,
   CAS_SCHEDULE,
-  buildPlan,
-  planIsFullyPresent,
   semanticScopeFingerprint
 } = require('./syncSelectedCasVrSupabaseToMysql');
 const { verifyGuidedChain } = require('../services/guidedVrResolution');
@@ -37,6 +33,13 @@ const { canonicalKey } = require('../services/routeAvailability');
 const { findShortestPath } = require('../utils/pathfinding');
 
 const MIGRATION_DIR = path.join(__dirname, '..', 'database', 'supabase');
+const ACTIVE_GUIDED_KEYS = [...new Set(GUIDED_VR_ROUTES.flatMap((route) => route.scene_keys || []))];
+const SELECTED_KEYS = [...new Set([...ACTIVE_GUIDED_KEYS, ...INTERIOR_KEYS])];
+const SELECTED_KEY_SET = new Set(SELECTED_KEYS);
+const GUIDED_SCENE_COUNT = GUIDED_VR_ROUTES.reduce(
+  (total, route) => total + (Array.isArray(route.scene_keys) ? route.scene_keys.length : 0),
+  0
+);
 const failures = [];
 let checks = 0;
 
@@ -182,6 +185,81 @@ function expectedCore(candidate) {
   };
 }
 
+function countCasScheduleTargets(vrBackend) {
+  const selectedSceneIds = new Set(
+    vrBackend.scenes.map((row) => positiveInt(row.id)).filter((id) => id !== null)
+  );
+  const buildingNameById = new Map();
+  for (const row of (vrBackend.buildings || [])) {
+    const id = positiveInt(row.id);
+    const name = requiredString(row.name);
+    if (id !== null && name) buildingNameById.set(id, name);
+  }
+  return (vrBackend.hotspots || []).filter((row) => {
+    if (!row || row.hotspot_type !== 'schedule' || !selectedSceneIds.has(positiveInt(row.scene_id))) return false;
+    const buildingName = buildingNameById.get(positiveInt(row.schedule_building_id));
+    return canonicalKey(buildingName) === canonicalKey(CAS_SCHEDULE.building_name) &&
+      requiredString(row.schedule_location_type) === CAS_SCHEDULE.location_type &&
+      canonicalKey(row.schedule_location_label) === canonicalKey(CAS_SCHEDULE.location_label) &&
+      canonicalKey(row.schedule_floor_label) === canonicalKey(CAS_SCHEDULE.floor_label);
+  }).length;
+}
+
+function verifySelectedVr(vrBackend) {
+  const countsByKey = new Map();
+  for (const row of (vrBackend.scenes || [])) {
+    const key = requiredString(row.scene_key);
+    if (key) countsByKey.set(key, (countsByKey.get(key) || 0) + 1);
+  }
+  if (vrBackend.scenes.length !== SELECTED_KEYS.length ||
+      SELECTED_KEYS.some((key) => countsByKey.get(key) !== 1) ||
+      [...countsByKey.keys()].some((key) => !SELECTED_KEY_SET.has(key))) {
+    throw new Error('Selected VR scene identities are incomplete or ambiguous.');
+  }
+  return {
+    fingerprint: semanticScopeFingerprint(vrBackend, SELECTED_KEYS),
+    scheduleTargets: countCasScheduleTargets(vrBackend)
+  };
+}
+
+function verifyActiveGuidedRoutes(route, vrBackend, policyResult) {
+  const links = selectedLinks(vrBackend);
+  for (const guided of policyResult.snapshot.active_routes) {
+    const chain = verifyGuidedChain({
+      keys: guided.scene_keys,
+      arrivalKey: guided.arrival_scene_key,
+      scenes: vrBackend.scenes,
+      links
+    });
+    if (!chain.complete || chain.verifiedKeys.length !== guided.scene_keys.length) {
+      throw new Error(`Active guided chain is incomplete for ${guided.destination_node_key}.`);
+    }
+
+    const arrivalRows = vrBackend.scenes.filter((row) => row.scene_key === guided.arrival_scene_key);
+    const destinationNodes = route.snapshot.nodes.filter(
+      (row) => row.node_key === guided.destination_node_key &&
+        row.building_canonical === canonicalKey(guided.destination_name)
+    );
+    const pathResult = destinationNodes.length === 1
+      ? findShortestPath({
+          nodes: route.snapshot.nodes.map((row) => ({ key: row.node_key, lat: row.lat, lng: row.lng })),
+          edges: route.snapshot.edges.map((row) => ({
+            from: row.from_key,
+            to: row.to_key,
+            distance_meters: row.distance_meters,
+            walk_time_seconds: row.walk_time_seconds,
+            is_accessible: row.is_accessible
+          })),
+          startKey: 'main-gate',
+          endKey: guided.destination_node_key
+        })
+      : null;
+    if (arrivalRows.length !== 1 || destinationNodes.length !== 1 || !pathResult || pathResult.success !== true) {
+      throw new Error(`Active guided destination identity is invalid for ${guided.destination_node_key}.`);
+    }
+  }
+}
+
 function buildCandidate(routeState, vrBackend, totals, migrations, policyResult) {
   const route = analyzeState(routeState);
   if (route.blockers.length || !route.snapshot || !route.metrics) {
@@ -189,57 +267,19 @@ function buildCandidate(routeState, vrBackend, totals, migrations, policyResult)
   }
   if (policyResult.blockers.length) throw new Error('Guided policy identities are ambiguous or invalid.');
 
-  const parity = buildPlan(vrBackend, vrBackend);
-  if (!planIsFullyPresent(parity)) throw new Error('Selected VR metadata is incomplete or invalid.');
-
-  const chain = verifyGuidedChain({
-    keys: GUIDED_KEYS,
-    arrivalKey: policyResult.snapshot.active_routes[0] && policyResult.snapshot.active_routes[0].arrival_scene_key,
-    scenes: vrBackend.scenes,
-    links: selectedLinks(vrBackend)
-  });
-  if (!chain.complete || chain.verifiedKeys.length !== GUIDED_KEYS.length) {
-    throw new Error('Selected guided chain is incomplete.');
-  }
-
-  const arrivalKey = policyResult.snapshot.active_routes[0].arrival_scene_key;
-  const arrivalRows = vrBackend.scenes.filter((row) => row.scene_key === arrivalKey);
-  const destinationNodeKey = policyResult.snapshot.active_routes[0].destination_node_key;
-  const destinationNodeRows = route.snapshot.nodes.filter((row) => row.node_key === destinationNodeKey);
-  if (arrivalRows.length !== 1 ||
-      destinationNodeRows.length !== 1 ||
-      destinationNodeRows[0].building_canonical !== canonicalKey('College of Arts and Sciences')) {
-    throw new Error('Selected guided arrival or CAS destination identity is invalid.');
-  }
+  const selectedVr = verifySelectedVr(vrBackend);
+  verifyActiveGuidedRoutes(route, vrBackend, policyResult);
 
   const deferredCcs = policyResult.snapshot.deferred_destinations.filter(
-    (entry) => entry.destination_node_key === 'ccs' &&
+    (entry) => entry.destination_node_key === 'ccs' ||
       canonicalKey(entry.destination_name) === canonicalKey('College of Computer Studies (CCS)')
   );
   const activeCcs = policyResult.snapshot.active_routes.filter(
     (entry) => entry.destination_node_key === 'ccs' ||
       canonicalKey(entry.destination_name) === canonicalKey('College of Computer Studies (CCS)')
   );
-  const ccsNodes = route.snapshot.nodes.filter(
-    (row) => row.node_key === 'ccs' &&
-      row.building_canonical === canonicalKey('College of Computer Studies (CCS)')
-  );
-  const ccsPath = ccsNodes.length === 1
-    ? findShortestPath({
-        nodes: route.snapshot.nodes.map((row) => ({ key: row.node_key, lat: row.lat, lng: row.lng })),
-        edges: route.snapshot.edges.map((row) => ({
-          from: row.from_key,
-          to: row.to_key,
-          distance_meters: row.distance_meters,
-          walk_time_seconds: row.walk_time_seconds,
-          is_accessible: row.is_accessible
-        })),
-        startKey: 'main-gate',
-        endKey: 'ccs'
-      })
-    : null;
-  if (deferredCcs.length !== 1 || activeCcs.length !== 0 || !ccsPath || ccsPath.success !== true) {
-    throw new Error('Deferred CCS identity or map route is invalid.');
+  if (deferredCcs.length !== 0 || activeCcs.length !== 1) {
+    throw new Error('Active CCS guided policy identity is invalid.');
   }
 
   const counts = {
@@ -248,9 +288,9 @@ function buildCandidate(routeState, vrBackend, totals, migrations, policyResult)
     total_vr_hotspots: totals.hotspots,
     selected_vr_scenes: vrBackend.scenes.length,
     selected_source_hotspots: vrBackend.hotspots.length,
-    guided_scenes: GUIDED_KEYS.length,
+    guided_scenes: GUIDED_SCENE_COUNT,
     interior_scenes: INTERIOR_KEYS.length,
-    cas_schedule_targets: parity.schedule_targets
+    cas_schedule_targets: selectedVr.scheduleTargets
   };
   const roster = route.snapshot.buildings.map((row) => row.name).sort();
   const candidate = {
@@ -262,7 +302,7 @@ function buildCandidate(routeState, vrBackend, totals, migrations, policyResult)
     fingerprints: {
       migrations: fingerprint(migrations),
       building_route: route.semanticFingerprint,
-      selected_vr: semanticScopeFingerprint(vrBackend),
+      selected_vr: selectedVr.fingerprint,
       guided_policy: fingerprint(policyResult.snapshot),
       manifest: null
     }
@@ -275,7 +315,7 @@ function compareCandidate(scope, candidate) {
   check(scope, 'migration filename/hash sequence matches the freeze', sameValue(candidate.migrations, SELECTED_DEMO_FREEZE.migrations));
   check(scope, 'all frozen counts match', sameValue(candidate.counts, SELECTED_DEMO_FREEZE.counts));
   check(scope, 'exact 13-building roster matches', sameValue(candidate.roster, SELECTED_DEMO_FREEZE.roster));
-  check(scope, 'active CAS + deferred CCS policy matches', sameValue(candidate.policy, SELECTED_DEMO_FREEZE.policy));
+  check(scope, 'active CAS + active CCS policy matches', sameValue(candidate.policy, SELECTED_DEMO_FREEZE.policy));
   for (const key of ['migrations', 'building_route', 'selected_vr', 'guided_policy', 'manifest']) {
     check(scope, `${key} fingerprint matches`, candidate.fingerprints[key] === SELECTED_DEMO_FREEZE.fingerprints[key]);
   }
@@ -529,8 +569,12 @@ async function readSupabase() {
 function verifySourceRoster() {
   const names = (sourceData.buildings || []).map((row) => row.name).sort();
   check('source', 'models/data.js declares the exact frozen roster', sameValue(names, SELECTED_DEMO_FREEZE.roster));
-  check('source', 'guided catalog defines exactly 24 ordered CAS steps', GUIDED_KEYS.length === 24);
-  check('source', 'selected scope is exactly 24 guided + 2 interior scenes', SELECTED_KEYS.length === 26 && INTERIOR_KEYS.length === 2);
+  const cas = GUIDED_VR_ROUTES.find((route) => route.destination_node_key === 'cas');
+  const ccs = GUIDED_VR_ROUTES.find((route) => route.destination_node_key === 'ccs');
+  check('source', 'guided catalog defines exactly 24 CAS and 23 CCS ordered steps',
+    !!cas && cas.scene_keys.length === 24 && !!ccs && ccs.scene_keys.length === 23);
+  check('source', 'selected scope is exactly 26 active-route scenes + 2 CAS interior scenes',
+    ACTIVE_GUIDED_KEYS.length === 26 && SELECTED_KEYS.length === 28 && INTERIOR_KEYS.length === 2);
 }
 
 async function main() {

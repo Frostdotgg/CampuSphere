@@ -212,7 +212,7 @@ function hotspotTuple(row, allSceneKeyById, buildingNameById) {
 function sameTuple(a, b) { return JSON.stringify(stableValue(a)) === JSON.stringify(stableValue(b)); }
 
 /* ---------- unique-identity validation BEFORE indexing ---------- */
-function buildBackendIndex(backend, label, blockers) {
+function buildBackendIndex(backend, label, blockers, selectedSet = SELECTED_SET) {
   // scene_key unique (selected scope)
   const sceneByKey = new Map();
   for (const s of backend.scenes) {
@@ -294,7 +294,7 @@ function buildBackendIndex(backend, label, blockers) {
   const seenIdentity = new Set();
   for (const h of backend.hotspots) {
     const sourceKey = allSceneKeyById.get(positiveInt(h.scene_id));
-    if (!sourceKey || !SELECTED_SET.has(sourceKey)) continue;
+    if (!sourceKey || !selectedSet.has(sourceKey)) continue;
     const type = optStr(h.hotspot_type);
     if (!HOTSPOT_TYPES.has(type)) { blockers.push(`${label} hotspot on ${sourceKey}: invalid type.`); continue; }
 
@@ -311,7 +311,7 @@ function buildBackendIndex(backend, label, blockers) {
     if (type === 'scene') {
       const targetKey = h.target_scene_id != null ? allSceneKeyById.get(positiveInt(h.target_scene_id)) : null;
       if (!targetKey) { blockers.push(`${label} hotspot on ${sourceKey}: orphaned scene target.`); continue; }
-      external = !SELECTED_SET.has(targetKey);
+      external = !selectedSet.has(targetKey);
     } else if (type === 'schedule') {
       const s = scheduleIdentity(h, buildingNameById);
       if (!s.ok) { blockers.push(`${label} schedule hotspot on ${sourceKey}: ${s.reason}.`); continue; }
@@ -357,14 +357,29 @@ function semanticScopeSnapshotFromIndex(idx) {
 // identity, orphaned target, invalid schedule identity, or non-finite field) can
 // never collapse into a matching hash during authority, preflight, rollback, or
 // post-commit verification.
-function validatedIndex(backend) {
+function selectedKeySet(selectedKeys) {
+  if (selectedKeys === undefined) return SELECTED_SET;
+  if (!Array.isArray(selectedKeys) || selectedKeys.length === 0) {
+    throw new SafeSyncError('Selected scene-key scope is missing or invalid.');
+  }
+  const normalized = selectedKeys.map(optStr);
+  if (normalized.some((key) => key === null) || new Set(normalized).size !== normalized.length) {
+    throw new SafeSyncError('Selected scene-key scope is missing or ambiguous.');
+  }
+  return new Set(normalized);
+}
+function validatedIndex(backend, selectedKeys) {
   const blockers = [];
-  const idx = buildBackendIndex(backend, 'fingerprint', blockers);
+  const idx = buildBackendIndex(backend, 'fingerprint', blockers, selectedKeySet(selectedKeys));
   if (blockers.length) throw new SafeSyncError('Semantic identity is ambiguous or invalid; refusing to fingerprint the selected scope.');
   return idx;
 }
-function semanticScopeFingerprint(backend) { return fingerprint(semanticScopeSnapshotFromIndex(validatedIndex(backend))); }
-function externalBranchFingerprint(backend) { return fingerprint(semanticScopeSnapshotFromIndex(validatedIndex(backend)).hotspots_external); }
+function semanticScopeFingerprint(backend, selectedKeys) {
+  return fingerprint(semanticScopeSnapshotFromIndex(validatedIndex(backend, selectedKeys)));
+}
+function externalBranchFingerprint(backend, selectedKeys) {
+  return fingerprint(semanticScopeSnapshotFromIndex(validatedIndex(backend, selectedKeys)).hotspots_external);
+}
 
 /* ---------- pure plan (full semantic comparison; parity over in-scope only) ---------- */
 function buildPlan(supabase, mysql) {

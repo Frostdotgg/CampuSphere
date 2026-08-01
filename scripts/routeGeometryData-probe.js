@@ -9,18 +9,18 @@
    Migrations 0014, 0015 and 0017 are ALL OWNER-APPLIED. 0014/0015 shipped the
    earlier 52-directed-edge / 26-pair graph; 0017 (Guard House start + eastern
    terminal topology) SUPERSEDES it, so the live graph in BOTH backends is now
-   48 directed edges / 24 pairs. Every count below is fail-closed on that
+   50 directed edges / 25 pairs. Every count below is fail-closed on that
    repaired state — the obsolete 52/26 shape is rejected, not tolerated.
 
      MySQL (direct pool reads):
        - route_edges.path_geometry column exists
-       - 20 route nodes / 48 directed edges
-       - all 48 active edges carry valid path_geometry per the shared
+       - 21 route nodes / 50 directed edges
+       - all 50 active edges carry valid path_geometry per the shared
          utils/routeGeometry.js contract (2-200 points, exact lat/lng keys,
          finite in-range values)
        - endpoint continuity: first/last points match the live from/to node
          coordinates within ENDPOINT_EPSILON
-       - 24 forward/reverse pairs are EXACT reversals of each other
+       - 25 forward/reverse pairs are EXACT reversals of each other
        - 13/13 buildings remain routable from main-gate (pure Dijkstra over
          the same rows; utils/pathfinding.js untouched)
        - retired shortcut/transit pairs stay absent
@@ -28,9 +28,9 @@
 
      Live Supabase (0015 + 0017 OWNER-APPLIED; fail-closed):
        - route_edges.path_geometry column is readable
-       - 20 nodes / 48 directed edges (the pre-0017 52-row state FAILS)
-       - 48/48 valid geometries with endpoint continuity
-       - 24/24 forward/reverse pairs are exact reversals
+       - 21 nodes / 50 directed edges
+       - 50/50 valid geometries with endpoint continuity
+       - 25/25 forward/reverse pairs are exact reversals
        Fails CLOSED when the Supabase env is missing (unless
        PROBE_SKIP_SUPABASE=1 marks an intentionally unconfigured
        MySQL-fallback environment).
@@ -67,15 +67,15 @@ const {
 const EXPECTED_0014_SHA256 =
   'ad9179bd0def19567b512e495fd3133211288e253c872b260421a912cc44e6aa';
 
-const EXPECTED_NODES = 20;
+const EXPECTED_NODES = 21;
 // Pre-RF.6 topology repair (+ NO-GO V2): the four eastern TRANSIT pairs and the
 // three building-backed mid-campus pairs were retired; three eastern terminal
 // spurs plus the main-gate<->flagpole entrance walkway and the
-// flagpole<->mid-campus spine were added -> 24 undirected pairs / 48 directed
+// flagpole<->mid-campus spine plus the additive Lugaw link -> 25 pairs / 50 directed
 // rows. (scripts/routeTopology-probe.js owns the topology assertions; this
 // probe keeps owning the geometry contract.)
-const EXPECTED_EDGES = 48;
-const EXPECTED_PAIRS = 24;
+const EXPECTED_EDGES = 50;
+const EXPECTED_PAIRS = 25;
 const EXPECTED_BUILDINGS = 13;
 // 0015 is owner-applied and IMMUTABLE: its shipped dataset still declares the
 // pre-repair 26-pair shape. Migration 0017 carries the topology correction.

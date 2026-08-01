@@ -11,12 +11,12 @@
    pre-0017 (52-edge) state.
 
      verifyTopology(scope, nodes, edges, buildings) asserts, per backend:
-       - 20 route nodes / 48 directed edges / 24 undirected pairs
+       - 21 route nodes / 50 directed edges / 25 undirected pairs
        - `main-gate` sits on the authoritative Guard House / Main Gate
          coordinate (13.40575220764974, 123.37434735272177, persisted at the
          8-dp precision both backends use)
-       - all 48 geometries are valid + endpoint-continuous
-       - all 24 forward/reverse geometry pairs are EXACT reversals, and the
+       - all 50 geometries are valid + endpoint-continuous
+       - all 25 forward/reverse geometry pairs are EXACT reversals, and the
          forward/reverse edge scalars are symmetric
        - the geometry-bearing pairs attached to the gate begin at the exact
          stored gate coordinate
@@ -73,9 +73,9 @@ const CAS_EPSILON = 1e-8;
 // value must land within the shared endpoint epsilon.
 const GATE_EPSILON = 1e-6;
 
-const EXPECTED_NODES = 20;
-const EXPECTED_EDGES = 48;   // 24 undirected pairs
-const EXPECTED_PAIRS = 24;
+const EXPECTED_NODES = 21;
+const EXPECTED_EDGES = 50;   // 25 undirected pairs
+const EXPECTED_PAIRS = 25;
 const EXPECTED_BUILDINGS = 13;
 
 // Eastern buildings: each must be a TERMINAL destination off east-walk.

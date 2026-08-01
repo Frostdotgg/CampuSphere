@@ -35,8 +35,8 @@
        - CAS resolves to exactly ONE building row
        - exactly ONE `cas` route node, LINKED to that CAS building
        - NO building-type route node has a NULL building_id
-       - the route graph is UNCHANGED: 20 nodes / 48 directed edges /
-         24 reverse pairs / 48 valid geometries / 13 routable destinations
+       - the additive route graph is 21 nodes / 50 directed edges /
+         25 reverse pairs / 50 valid geometries / 13 routable destinations
 
      Static migrations:
        - 0018 exists, is transactional, data-only, idempotent, natural-key based,
@@ -65,9 +65,9 @@ const buildingRepository = require('../repositories/buildingRepository');
 
 const EXPECTED_BUILDINGS = data.buildings.length;
 const PINNED_ROUTABLE_DESTINATIONS = 13;
-const EXPECTED_NODES = 20;
-const EXPECTED_EDGES = 48;
-const EXPECTED_PAIRS = 24;
+const EXPECTED_NODES = 21;
+const EXPECTED_EDGES = 50;
+const EXPECTED_PAIRS = 25;
 
 const CAS_NAME = 'College of Arts and Sciences';
 const CAS_DESCRIPTION = 'College of Arts and Sciences (CAS)';
