@@ -2827,6 +2827,154 @@ function authScopedThemeToggleCssIsCorrect(css) {
     notHidden && globalStillFixed;
 }
 
+/** PURE: /favicon.ico must resolve to the shipped logo before session state. */
+function serverProvidesPreSessionFavicon(serverSource) {
+  if (typeof serverSource !== 'string' || serverSource === '') return false;
+  const routeAt = serverSource.indexOf("app.get('/favicon.ico'");
+  const staticAt = serverSource.indexOf('app.use(express.static(');
+  const sessionAt = serverSource.indexOf('app.use(session(');
+  if (routeAt < 0 || staticAt < 0 || sessionAt < 0) return false;
+  const route = serverSource.slice(routeAt, staticAt);
+  return routeAt < staticAt && routeAt < sessionAt &&
+    /res\.type\('png'\)/.test(route) &&
+    /res\.sendFile\(path\.join\(__dirname,\s*'public',\s*'img',\s*'cspc-logo\.png'\)\)/.test(route);
+}
+
+/** PURE: the edit-profile overlay must be non-interactive while hidden and
+ * expose a bounded, reduced-motion-friendly dialog when shown. */
+function profileModalCssIsAccessible(css) {
+  if (typeof css !== 'string' || css === '') return false;
+  const hidden = (css.match(/\.edit-modal-overlay\s*\{[^}]*\}/) || [])[0] || '';
+  const shown = (css.match(/\.edit-modal-overlay\.show\s*\{[^}]*\}/) || [])[0] || '';
+  const modal = (css.match(/\.edit-modal\s*\{[^}]*\}/) || [])[0] || '';
+  const close = (css.match(/\.edit-modal__close\s*\{[^}]*\}/) || [])[0] || '';
+  const body = (css.match(/\.edit-modal__body\s*\{[^}]*\}/) || [])[0] || '';
+  const reduced = (css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.edit-modal[\s\S]*?transition:\s*none;[\s\S]*?\}/) || [])[0] || '';
+  return /opacity:\s*0\b/.test(hidden) && /visibility:\s*hidden/.test(hidden) &&
+    /pointer-events:\s*none/.test(hidden) && !/transition:\s*all\b/.test(hidden) &&
+    /opacity:\s*1\b/.test(shown) && /visibility:\s*visible/.test(shown) &&
+    /pointer-events:\s*auto/.test(shown) &&
+    /max-height:\s*calc\(100dvh/.test(modal) && /display:\s*flex/.test(modal) &&
+    /flex-direction:\s*column/.test(modal) && !/transition:\s*all\b/.test(modal) &&
+    /width:\s*44px/.test(close) && /height:\s*44px/.test(close) &&
+    /min-height:\s*0/.test(body) && /overflow-y:\s*auto/.test(body) && Boolean(reduced);
+}
+
+/** PURE: modal markup, state, keyboard, focus, and backdrop behaviour must all
+ * be owned by the single setEditModalOpen state transition. */
+function profileModalClientIsAccessible(js) {
+  if (typeof js !== 'string' || js === '') return false;
+  const count = (re) => (js.match(re) || []).length;
+  const labels = js.match(/<label\b[^>]*class="edit-form-label"[^>]*>/g) || [];
+  const labelledFields = labels.length > 0 && labels.every((label) => /\sfor="[^"]+"/.test(label));
+  const dialogMarkup = /id="editModalOverlay"\s+aria-hidden="true"\s+inert/.test(js) &&
+    /id="editModalDialog"\s+role="dialog"\s+aria-modal="true"\s+aria-labelledby="editModalTitle"\s+tabindex="-1"/.test(js) &&
+    /id="editModalTitle">Edit Profile<\/h2>/.test(js) &&
+    /id="closeEditModal"\s+aria-label="Close edit profile dialog"/.test(js);
+  const oneStateOwner = count(/const setEditModalOpen\s*=/g) === 1 &&
+    count(/overlay\.classList\.add\('show'\)/g) === 1 &&
+    count(/overlay\.classList\.remove\('show'\)/g) === 1 &&
+    count(/setEditModalOpen\(true,/g) === 2;
+  const stateIsComplete = /overlay\.removeAttribute\('inert'\)/.test(js) &&
+    /overlay\.setAttribute\('aria-hidden',\s*'false'\)/.test(js) &&
+    /overlay\.setAttribute\('aria-hidden',\s*'true'\)/.test(js) &&
+    /overlay\.setAttribute\('inert',\s*''\)/.test(js);
+  const focusContract = /window\.requestAnimationFrame/.test(js) &&
+    /\(focusable\[0\]\s*\|\|\s*modalDialog\)\.focus\(\)/.test(js) &&
+    /focusTarget[\s\S]{0,180}?focusTarget\.focus\(\)/.test(js) &&
+    /userContainer\.tabIndex\s*=\s*-1/.test(js) &&
+    /lastModalTrigger\s*=\s*trigger\s*===\s*editBtn\s*\?\s*userContainer/.test(js) &&
+    /e\.key\s*===\s*'Escape'/.test(js) && /e\.key\s*!==\s*'Tab'/.test(js) &&
+    /e\.shiftKey/.test(js) && /modalDialog\.contains\(document\.activeElement\)/.test(js);
+  /* An overlay-scoped keydown listener only fires once focus is ALREADY inside
+     the overlay. While focus sat on <body> the trap never ran and Tab walked
+     into the page behind the open dialog, so the trap must be document-scoped,
+     capture-phase, attached on open and removed on close. Matching on the
+     handler identifier keeps prose in comments from satisfying these checks. */
+  const documentCaptureTrap =
+    !/overlay\.addEventListener\(\s*'keydown'/.test(js) &&
+    count(/document\.addEventListener\('keydown',\s*handleModalKeydown,\s*true\)/g) === 1 &&
+    count(/document\.removeEventListener\('keydown',\s*handleModalKeydown,\s*true\)/g) === 1 &&
+    /overlay\.classList\.add\('show'\)[\s\S]{0,400}?document\.addEventListener\('keydown',\s*handleModalKeydown,\s*true\)/.test(js) &&
+    /document\.removeEventListener\('keydown',\s*handleModalKeydown,\s*true\);[\s\S]{0,200}?overlay\.classList\.remove\('show'\)/.test(js);
+  /* Focus outside the dialog must be recaptured rather than allowed to advance,
+     and open-time placement must be verified instead of assumed: the overlay
+     starts at `visibility: hidden`, where .focus() is silently ignored. */
+  const outsideDialogRecapture =
+    /if \(!modalDialog\.contains\(document\.activeElement\)\)\s*\{\s*e\.preventDefault\(\)/.test(js) &&
+    /if \(!modalDialog\.contains\(document\.activeElement\)\)\s*\{[\s\S]{0,220}?\.focus\(\)/.test(js);
+  const verifiedOpenFocus = count(/window\.requestAnimationFrame/g) >= 2 &&
+    /const focusInitialModalElement\s*=/.test(js) &&
+    /if \(!modalDialog\.contains\(document\.activeElement\)\) modalDialog\.focus\(\)/.test(js);
+  /* Close-time restoration must survive a hidden owner — the mobile trigger sits
+     in the menu that closes behind the modal, and the desktop profile menu is
+     hidden at narrow widths — otherwise focus is stranded on <body>. A single
+     fallback is not enough; the chain must be tried until one accepts focus.
+     The menu owner must be derived STRUCTURALLY (ancestor walk + aria-controls),
+     never by naming a navigation id: the M12.P1-D2 single-nav-owner contract
+     bans the dashHamburger/dashTabs literals from this file outright. */
+  const restoreFocusFallback =
+    !/dashHamburger|dashTabs/.test(js) &&
+    /const findMenuControllerFor\s*=/.test(js) &&
+    /node\.parentElement/.test(js) &&
+    /querySelector\('\[aria-controls="'\s*\+\s*node\.id\s*\+\s*'"\]'\)/.test(js) &&
+    /!node\.contains\(controller\)\) return controller;/.test(js) &&
+    /restoreCandidates\s*=\s*\[userContainer,\s*findMenuControllerFor\(focusTarget\)\]/.test(js) &&
+    /if \(active && active !== document\.body && !overlay\.contains\(active\)\) return;/.test(js) &&
+    /candidate\.focus\(\);/.test(js) &&
+    /if \(document\.activeElement === candidate\) break;/.test(js) &&
+    /window\.requestAnimationFrame\(restoreFocusToOwner\);/.test(js) &&
+    /* Focus must leave the overlay BEFORE it is marked inert, or the browser
+       blurs it to <body> and a hidden trigger leaves nothing focused. */
+    /restoreFocusToOwner\(\);\s*(?:\/\/[^\n]*\n\s*)*overlay\.setAttribute\('aria-hidden', 'true'\);\s*(?:\/\/[^\n]*\n\s*)*overlay\.inert = true;/.test(js);
+  const backdropOnly = /overlay\.addEventListener\('click',[\s\S]{0,140}?e\.target\s*===\s*overlay/.test(js);
+  const explicitButtons = ['closeEditModal', 'cancelEditBtn', 'saveEditBtn']
+    .every((id) => new RegExp('<button type="button"[^>]*id="' + id + '"').test(js));
+  return labelledFields && dialogMarkup && oneStateOwner && stateIsComplete &&
+    focusContract && documentCaptureTrap && outsideDialogRecapture &&
+    verifiedOpenFocus && restoreFocusFallback && backdropOnly && explicitButtons &&
+    !/\sonclick=/.test(js);
+}
+
+/** PURE: the deployment guide must constrain isolated browser evidence so a
+ * rehearsal cannot leak PII, reuse auth state, mutate frozen data, or write
+ * browser artifacts into the repository. */
+function describesSafePilotRehearsalProtocol(text) {
+  if (typeof text !== 'string' || text === '') return false;
+  const t = text.replace(/\s+/g, ' ');
+  const required = [
+    /three user-scoped, isolated Playwright MCP servers/i,
+    /temporary output director(?:y|ies) outside the repository/i,
+    /zero CampuSphere cookies/i,
+    /empty `?localStorage`? and `?sessionStorage`?/i,
+    /fresh accessibility snapshot/i,
+    /semantic selector/i,
+    /stale element reference/i,
+    /browser_evaluate[\s\S]*?must not return[\s\S]*?document\.body[\s\S]*?innerHTML/i,
+    /hidden profile fields/i,
+    /personally identifiable information \(PII\)/i,
+    /origin and pathname/i,
+    /strip query strings and fragments/i,
+    /git status --porcelain/i,
+    /repository artifact/i,
+    /fresh `?@my\.cspc\.edu\.ph`? identity/i,
+    /`?student-cspc`? role is verified/i,
+    /Sparse CAS content[\s\S]*?must not be fabricated/i,
+    /supported administrator interface/i,
+    /real logout interface/i,
+    /earlier automated rehearsal disclosed/i,
+  ];
+  return required.every((re) => re.test(t));
+}
+
+/** PURE: a rejecting fixture is evidence only when it changes the supplied
+ * source and the real analyzer rejects those changed bytes. */
+function sourceMutationIsRejected(source, pattern, replacement, analyzer) {
+  if (typeof source !== 'string' || typeof analyzer !== 'function') return false;
+  const mutated = source.replace(pattern, replacement);
+  return mutated !== source && analyzer(mutated) === false;
+}
+
 function runPilotReadinessGate() {
   const rec = makeRecorder('pilot-readiness');
   const { ok } = rec;
@@ -2912,10 +3060,11 @@ function runPilotReadinessGate() {
     /function pilotNoIndex\(/.test(headers) &&
     /res\.set\('X-Robots-Tag',\s*PILOT_ROBOTS_TAG\)/.test(headers) &&
     /module\.exports\s*=\s*\{[^}]*pilotNoIndex/.test(headers));
-  ok('server.js mounts pilotNoIndex before the static handler and the routes',
+  ok('server.js mounts pilotNoIndex and the favicon compatibility route before session state',
     server.indexOf('app.use(pilotNoIndex)') > -1 &&
-    server.indexOf('app.use(pilotNoIndex)') < server.indexOf('express.static') &&
-    server.indexOf('app.use(pilotNoIndex)') < server.indexOf("app.use('/', indexRoutes)"));
+    server.indexOf('app.use(pilotNoIndex)') < server.indexOf('app.use(express.static(') &&
+    server.indexOf('app.use(pilotNoIndex)') < server.indexOf("app.use('/', indexRoutes)") &&
+    serverProvidesPreSessionFavicon(server));
   ok('public/robots.txt disallows every crawler', robotsTxt === EXPECTED_ROBOTS_TXT);
   ok('the indexing control is documented as NOT access control',
     /NOT ACCESS CONTROL|not access control/i.test(headers) &&
@@ -2923,8 +3072,9 @@ function runPilotReadinessGate() {
 
   /* ---- 4. truthful OAuth / pilot documentation ---- */
   const deployDoc = read('docs/deployment.md');
-  ok('docs/deployment.md records the facilitator-mediated pilot model',
-    describesFacilitatorMediatedPilot(deployDoc));
+  ok('docs/deployment.md records the facilitator model and the safe isolated rehearsal protocol',
+    describesFacilitatorMediatedPilot(deployDoc) &&
+    describesSafePilotRehearsalProtocol(deployDoc));
   ok('no tracked documentation still claims an invitation-only pilot',
     !/invitation-only/i.test(deployDoc) &&
     !/invitation-only/i.test(read('plan.md')) &&
@@ -2997,19 +3147,34 @@ function runPilotReadinessGate() {
     !anonAuditClaimIsScoped(view.replace(/HTTP method and the path/gi, 'some details')));
   ok('fixture: empty / non-string input fails the scoped-claim check closed',
     !anonAuditClaimIsScoped('') && !anonAuditClaimIsScoped(null) && !anonAuditClaimIsScoped(['x']));
-  ok('fixture: documentation reintroducing invitation-only framing is rejected',
-    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is invitation-only.'));
-  ok('fixture: documentation reintroducing an OAuth allowlist is rejected',
-    !describesFacilitatorMediatedPilot(deployDoc + ' Participants are pre-added as OAuth test users.'));
-  ok('fixture: documentation reintroducing a 100-participant cap is rejected',
-    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is limited to 100 test users.'));
-  ok('fixture: documentation dropping the basic-identity exception is rejected',
-    !describesFacilitatorMediatedPilot(deployDoc.replace(/basic[- ]identity exception/gi, 'rule')));
+  ok('fixture: invitation-only framing or removal of isolated contexts is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is invitation-only.') &&
+    sourceMutationIsRejected(
+      deployDoc,
+      /three\s+user-scoped,\s+isolated\s+Playwright\s+MCP\s+servers/gi,
+      'browser tabs',
+      describesSafePilotRehearsalProtocol));
+  ok('fixture: an OAuth allowlist or broad page evaluation is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' Participants are pre-added as OAuth test users.') &&
+    sourceMutationIsRejected(deployDoc, /browser_evaluate/gi, 'browser helper',
+      describesSafePilotRehearsalProtocol));
+  ok('fixture: a participant cap or raw OAuth query capture is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc + ' The pilot is limited to 100 test users.') &&
+    sourceMutationIsRejected(deployDoc, /strip query strings and fragments/gi, 'retain full URLs',
+      describesSafePilotRehearsalProtocol));
+  ok('fixture: removing identity or repository-artifact safeguards is rejected',
+    !describesFacilitatorMediatedPilot(deployDoc.replace(/basic[- ]identity exception/gi, 'rule')) &&
+    sourceMutationIsRejected(deployDoc, /fresh `@my\.cspc\.edu\.ph` identity/gi, 'existing account',
+      describesSafePilotRehearsalProtocol) &&
+    sourceMutationIsRejected(deployDoc, /git status --porcelain/gi, 'status check',
+      describesSafePilotRehearsalProtocol));
   ok('fixture: a robots.txt that allows crawling is rejected',
     'User-agent: *\nAllow: /' !== EXPECTED_ROBOTS_TXT);
-  ok('fixture: a weakened X-Robots-Tag value is rejected',
+  ok('fixture: a weakened X-Robots-Tag value or missing favicon route is rejected',
     'noindex' !== EXPECTED_ROBOTS_TAG_VALUE &&
-    'noindex, nofollow' !== EXPECTED_ROBOTS_TAG_VALUE);
+    'noindex, nofollow' !== EXPECTED_ROBOTS_TAG_VALUE &&
+    sourceMutationIsRejected(server, /app\.get\('\/favicon\.ico'/, "app.get('/missing.ico'",
+      serverProvidesPreSessionFavicon));
 
   /* ---- SEC-51 pilot-surface correction: three findings ---- */
   const landingView = read('views/landing.ejs');
@@ -3019,6 +3184,7 @@ function runPilotReadinessGate() {
   const authView = read('views/auth.ejs');
   const completeRegView = read('views/complete-registration.ejs');
   const siteCss = read('public/css/styles.css');
+  const profileJs = read('public/js/profile-script.js');
 
   // Finding 1 — truthful landing role mapping.
   ok('views/landing.ejs states the real three-domain Google sign-in mapping',
@@ -3052,8 +3218,10 @@ function runPilotReadinessGate() {
     authViewPlacesThemeToggleInCard(authView));
   ok('views/complete-registration.ejs places the theme control inside the auth card',
     authViewPlacesThemeToggleInCard(completeRegView));
-  ok('the auth-scoped CSS pins a full 44x44 control to the card top-right without disturbing global placement',
-    authScopedThemeToggleCssIsCorrect(siteCss));
+  ok('auth theme CSS and the edit-profile modal preserve accessible interaction state',
+    authScopedThemeToggleCssIsCorrect(siteCss) &&
+    profileModalCssIsAccessible(siteCss) &&
+    profileModalClientIsAccessible(profileJs));
 
   /* ---- rejecting fixtures: each mutates the REAL source ---- */
   ok('fixture: the superseded exclusive @cspc.edu.ph-only landing claim is rejected',
@@ -3103,16 +3271,99 @@ function runPilotReadinessGate() {
   ok('fixture: a missing auth body class or a duplicated include is rejected',
     !authViewPlacesThemeToggleInCard(authView.replace('<body class="auth-body">', '<body>')) &&
     !authViewPlacesThemeToggleInCard(authView + "\n<%- include('partials/theme-toggle') %>\n"));
-  ok('fixture: auth CSS that hides the control, shrinks it, or drops bottom:auto is rejected',
+  ok('fixture: hidden auth controls or pointer-intercepting hidden modals are rejected',
     !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{)/, '$1\n    display: none;')) &&
     !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{[^}]*?)width:\s*44px/, '$1width: 24px')) &&
-    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{[^}]*?)bottom:\s*auto/, '$1bottom: 28px')));
-  ok('fixture: dropping the card containing block or the whole scoped block is rejected',
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \.theme-toggle \{[^}]*?)bottom:\s*auto/, '$1bottom: 28px')) &&
+    sourceMutationIsRejected(siteCss,
+      /(\.edit-modal-overlay\s*\{[^}]*?)pointer-events:\s*none/, '$1pointer-events: auto',
+      profileModalCssIsAccessible) &&
+    sourceMutationIsRejected(siteCss,
+      /(\.edit-modal-overlay\.show\s*\{[^}]*?)pointer-events:\s*auto/, '$1pointer-events: none',
+      profileModalCssIsAccessible));
+  ok('fixture: dropping containing blocks or modal accessibility state is rejected',
     !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \{[^}]*?)position:\s*relative/, '$1position: static')) &&
-    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/body\.auth-body \.auth-card \.theme-toggle \{[^}]*\}/, '')));
-  ok('fixture: empty / non-string auth inputs fail both auth checks closed',
+    !authScopedThemeToggleCssIsCorrect(siteCss.replace(/body\.auth-body \.auth-card \.theme-toggle \{[^}]*\}/, '')) &&
+    sourceMutationIsRejected(profileJs, 'aria-hidden="true" inert', 'aria-hidden="true"',
+      profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs, "if (e.key === 'Escape')", "if (e.key === 'Enter')",
+      profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs, 'if (e.target === overlay) closeModal();', 'closeModal();',
+      profileModalClientIsAccessible) &&
+    /* The focus trap must stay document-scoped and capture-phase. Rebinding it
+       to the overlay reproduces the exact blocker: with focus on <body> the
+       listener never fires and Tab escapes behind the open dialog. */
+    sourceMutationIsRejected(profileJs,
+      /document\.addEventListener\('keydown', handleModalKeydown, true\);/,
+      "overlay.addEventListener('keydown', handleModalKeydown);",
+      profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs,
+      /document\.addEventListener\('keydown', handleModalKeydown, true\);/,
+      "document.addEventListener('keydown', handleModalKeydown, false);",
+      profileModalClientIsAccessible) &&
+    !profileModalClientIsAccessible(
+      profileJs.replace(/document\.addEventListener\('keydown', handleModalKeydown, true\);/, '') +
+      "\noverlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });\n") &&
+    /* A trap that is never detached keeps swallowing keys after close. */
+    sourceMutationIsRejected(profileJs,
+      /document\.removeEventListener\('keydown', handleModalKeydown, true\);\n/, '',
+      profileModalClientIsAccessible) &&
+    /* Without the recapture branch, Tab from outside the dialog advances into
+       the page behind the modal instead of returning to it. */
+    sourceMutationIsRejected(profileJs,
+      /if \(!modalDialog\.contains\(document\.activeElement\)\) \{/, 'if (false) {',
+      profileModalClientIsAccessible) &&
+    /* M12.P1-D2: naming a navigation id in this file re-breaks the single-nav-
+       owner contract, so the menu owner must stay a structural lookup. */
+    !profileModalClientIsAccessible(
+      profileJs.replace(/findMenuControllerFor\(focusTarget\)/,
+        "document.getElementById('dashHamburger')")) &&
+    !profileModalClientIsAccessible(
+      profileJs + "\nconst strayMenu = document.getElementById('dashTabs');\n") &&
+    sourceMutationIsRejected(profileJs,
+      /querySelector\('\[aria-controls="' \+ node\.id \+ '"\]'\)/,
+      "querySelector('[data-menu]')", profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs, /const findMenuControllerFor\s*=/,
+      'const unusedLookup =', profileModalClientIsAccessible));
+  ok('fixture: empty inputs and missing focus restoration fail all UI checks closed',
     !authViewPlacesThemeToggleInCard('') && !authViewPlacesThemeToggleInCard(null) &&
-    !authScopedThemeToggleCssIsCorrect('') && !authScopedThemeToggleCssIsCorrect(null));
+    !authScopedThemeToggleCssIsCorrect('') && !authScopedThemeToggleCssIsCorrect(null) &&
+    !profileModalCssIsAccessible('') && !profileModalCssIsAccessible(null) &&
+    !profileModalClientIsAccessible('') && !profileModalClientIsAccessible(null) &&
+    sourceMutationIsRejected(
+      profileJs,
+      /if \(focusTarget && document\.contains\(focusTarget\)\) focusTarget\.focus\(\);/,
+      '',
+      profileModalClientIsAccessible) &&
+    /* Tab wrapping alone is not enough: without open-time placement (and its
+       verified retry past the overlay's `visibility: hidden` frame) focus never
+       enters the dialog, which is the state the trap has to prevent. */
+    sourceMutationIsRejected(profileJs,
+      /\(focusable\[0\] \|\| modalDialog\)\.focus\(\);/, '',
+      profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs,
+      /if \(!modalDialog\.contains\(document\.activeElement\)\) modalDialog\.focus\(\);/, '',
+      profileModalClientIsAccessible) &&
+    /* A hidden owner swallows .focus(); without the candidate chain, closing the
+       modal strands focus on <body>. */
+    sourceMutationIsRejected(profileJs,
+      /restoreCandidates = \[userContainer, findMenuControllerFor\(focusTarget\)\]/,
+      'restoreCandidates = []', profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs,
+      /if \(active && active !== document\.body && !overlay\.contains\(active\)\) return;/,
+      'if (false) return;', profileModalClientIsAccessible) &&
+    /* Restoring focus only AFTER the overlay is inert is the defect itself. */
+    sourceMutationIsRejected(profileJs, /\n\s*restoreFocusToOwner\(\);\n/, '\n',
+      profileModalClientIsAccessible) &&
+    sourceMutationIsRejected(profileJs,
+      /if \(document\.activeElement === candidate\) break;/, 'break;',
+      profileModalClientIsAccessible) &&
+    /* Setting `inert` blurs the dialog asynchronously, so a sync-only chain
+       silently leaves focus on <body> at mobile widths. */
+    sourceMutationIsRejected(profileJs,
+      /\n\s*window\.requestAnimationFrame\(restoreFocusToOwner\);/, '',
+      profileModalClientIsAccessible) &&
+    !describesSafePilotRehearsalProtocol('') && !describesSafePilotRehearsalProtocol(null));
 
   return rec.failures;
 }

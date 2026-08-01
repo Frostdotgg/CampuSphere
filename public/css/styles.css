@@ -1570,26 +1570,32 @@ html[data-theme="dark"] {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: var(--space-md);
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     backdrop-filter: blur(4px);
-    transition: all var(--transition-base);
+    transition: opacity var(--transition-base), visibility var(--transition-base);
 }
 
 .edit-modal-overlay.show {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .edit-modal {
     background: var(--white);
     width: 90%;
     max-width: 500px;
+    max-height: calc(100dvh - var(--space-xl));
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     transform: scale(0.95) translateY(20px);
-    transition: all var(--transition-base);
+    transition: transform var(--transition-base);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
@@ -1606,6 +1612,7 @@ html[data-theme="dark"] {
 }
 
 .edit-modal__title {
+    margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--navy-900);
@@ -1616,7 +1623,13 @@ html[data-theme="dark"] {
     border: none;
     color: var(--gray-400);
     cursor: pointer;
-    padding: 4px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: color var(--transition-fast);
 }
 
@@ -1624,10 +1637,23 @@ html[data-theme="dark"] {
     color: var(--navy-900);
 }
 
+.edit-modal__close:focus-visible {
+    outline: 3px solid var(--navy-500);
+    outline-offset: 2px;
+}
+
 .edit-modal__body {
     padding: var(--space-xl);
-    max-height: 70vh;
+    min-height: 0;
+    flex: 1 1 auto;
     overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .edit-modal-overlay,
+    .edit-modal {
+        transition: none;
+    }
 }
 
 .edit-form-group {
@@ -1956,6 +1982,11 @@ iconify-icon {
 
 .dash-nav__user:hover {
     background: rgba(255, 255, 255, 0.05);
+}
+
+.dash-nav__user:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
 }
 
 .dash-nav__login-btn {

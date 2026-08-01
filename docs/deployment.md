@@ -912,6 +912,42 @@ Three consequences follow, and all three are deliberate:
 Do not change the scopes, credentials, callback URL, publishing status, or the
 domain-to-role mapping as part of pilot preparation.
 
+#### Automated pilot-rehearsal evidence safety contract
+
+An automated production rehearsal uses **three user-scoped, isolated
+Playwright MCP servers** (administrator, student, and guest), each with a
+distinct absolute operating-system temporary output directory outside the
+repository. Before any production navigation, each context must prove that it
+has zero CampuSphere cookies and empty `localStorage` and `sessionStorage`.
+Tabs in one shared browser context are not a substitute for this isolation.
+
+Every interaction must start from a fresh accessibility snapshot and use a
+semantic selector that is re-resolved immediately before the action. A stale
+element reference must be discarded; it must never be retried or guessed in a
+different context. `browser_evaluate` may be used only for a narrowly scoped,
+non-mutating measurement and must not return `document.body`, `innerHTML`, all
+inputs, hidden profile fields, cookies, storage, or personally identifiable
+information (PII) such as a participant name, email, student ID, phone number,
+or address. Console and network evidence records only origin and pathname; it
+must strip query strings and fragments, including OAuth parameters.
+
+The executor records `git status --porcelain` before and after the rehearsal
+and stops if any repository artifact appears. Screenshots and transcripts must
+remain in the three operating-system temporary output directories. The student
+account must be a fresh `@my.cspc.edu.ph` identity whose resulting
+`student-cspc` role is verified; an existing role-mismatched account is not a
+valid substitute. Sparse CAS content is truthful frozen-dataset evidence and
+must not be fabricated, filled, or edited for the rehearsal.
+
+Cleanup uses only the supported administrator interface for the two uniquely
+identified rehearsal accounts and the real logout interface for every opened
+session. No direct SQL, broad cleanup, session-row deletion, migration, or
+dataset mutation is permitted. An earlier automated rehearsal disclosed an
+over-broad page evaluation, raw OAuth URL/query capture, temporary files that
+resolved inside the repository, and one stale-reference misclick. Those are
+procedure/evidence-handling deviations, not application findings, and this
+contract prevents their recurrence without erasing the disclosure.
+
 #### Bounded evidence re-execution (M12.P1-R8; candidate evidence)
 
 A separately owner-authorized bounded evidence re-execution has been completed.

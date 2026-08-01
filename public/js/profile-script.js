@@ -157,6 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Build Dropdown
     const userContainer = document.querySelector('.dash-nav__user');
     if (!userContainer) return;
+    // Programmatic focus target used only when the modal closes. Keeping this
+    // at -1 avoids introducing a role=button element that contains the real
+    // dropdown buttons (invalid nested-interactive semantics).
+    userContainer.tabIndex = -1;
 
     const existingDropdown = document.querySelector('.profile-dropdown');
     if (existingDropdown) existingDropdown.remove();
@@ -172,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (canEdit) {
         dropdownHTML += `
-            <button class="profile-dropdown__btn" id="editProfileBtn">
+            <button type="button" class="profile-dropdown__btn" id="editProfileBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -182,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
     dropdownHTML += `
-        <button class="profile-dropdown__btn" id="logoutBtn" style="color:var(--red);">
+        <button type="button" class="profile-dropdown__btn" id="logoutBtn" style="color:var(--red);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -217,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="edit-photo-controls">
                     <input type="file" id="profileImageUpload" accept="image/*" style="display:none;">
-                    <button class="edit-photo-btn upload" id="btnUploadPhoto">Upload Photo</button>
-                    <button class="edit-photo-btn remove" id="btnRemovePhoto">Remove</button>
+                    <button type="button" class="edit-photo-btn upload" id="btnUploadPhoto">Upload Photo</button>
+                    <button type="button" class="edit-photo-btn remove" id="btnRemovePhoto">Remove</button>
                 </div>
             </div>
         `;
@@ -244,65 +248,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Full Name</label>
+                    <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Student ID</label>
+                    <label class="edit-form-label" for="editId">Student ID</label>
                     <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.studentId)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Email</label>
+                    <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Course</label>
+                    <label class="edit-form-label" for="editCourse">Course</label>
                     <select id="editCourse" class="edit-form-input">${courseSelectHTML}</select>
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Year Level</label>
+                    <label class="edit-form-label" for="editYear">Year Level</label>
                     <select id="editYear" class="edit-form-input">${yearSelectHTML}</select>
                 </div>
             `;
         } else if (savedRole === 'instructor') {
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Full Name</label>
+                    <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Employee ID</label>
+                    <label class="edit-form-label" for="editId">Employee ID</label>
                     <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.employeeId)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Email</label>
+                    <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Department</label>
+                    <label class="edit-form-label" for="editDept">Department</label>
                     <input type="text" id="editDept" class="edit-form-input" value="${escapeHtml(profileData.department)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Position</label>
+                    <label class="edit-form-label" for="editPos">Position</label>
                     <input type="text" id="editPos" class="edit-form-input" value="${escapeHtml(profileData.position)}">
                 </div>
             `;
         } else if (savedRole === 'guest') {
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Full Name</label>
+                    <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Email</label>
+                    <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Address</label>
+                    <label class="edit-form-label" for="editAddress">Address</label>
                     <input type="text" id="editAddress" class="edit-form-input" value="${escapeHtml(profileData.address || '')}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Phone</label>
+                    <label class="edit-form-label" for="editPhone">Phone</label>
                     <input type="text" id="editPhone" class="edit-form-input" value="${escapeHtml(profileData.phone || '')}">
                 </div>
             `;
@@ -310,22 +314,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // admin — simple name + email + photo only
             modalFields = photoUploadArea + `
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Full Name</label>
+                    <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label">Email</label>
+                    <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
             `;
         }
 
         const modalHTML = `
-            <div class="edit-modal-overlay" id="editModalOverlay">
-                <div class="edit-modal" id="editModalDialog">
+            <div class="edit-modal-overlay" id="editModalOverlay" aria-hidden="true" inert>
+                <div class="edit-modal" id="editModalDialog" role="dialog" aria-modal="true" aria-labelledby="editModalTitle" tabindex="-1">
                     <div class="edit-modal__header">
-                        <div class="edit-modal__title">Edit Profile</div>
-                        <button class="edit-modal__close" id="closeEditModal">
+                        <h2 class="edit-modal__title" id="editModalTitle">Edit Profile</h2>
+                        <button type="button" class="edit-modal__close" id="closeEditModal" aria-label="Close edit profile dialog">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -336,8 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${modalFields}
                     </div>
                     <div class="edit-modal__footer">
-                        <button class="btn btn--outline btn--sm" id="cancelEditBtn">Cancel</button>
-                        <button class="btn btn--primary btn--sm" id="saveEditBtn">Save Changes</button>
+                        <button type="button" class="btn btn--outline btn--sm" id="cancelEditBtn">Cancel</button>
+                        <button type="button" class="btn btn--primary btn--sm" id="saveEditBtn">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -346,21 +350,153 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
         const overlay = document.getElementById('editModalOverlay');
-        // CSP (8.5): keep clicks inside the dialog from bubbling to the overlay
-        // backdrop-close, via a listener instead of an inline onclick attribute.
         const modalDialog = document.getElementById('editModalDialog');
-        if (modalDialog) modalDialog.addEventListener('click', (e) => e.stopPropagation());
         const closeBtn = document.getElementById('closeEditModal');
         const cancelBtn = document.getElementById('cancelEditBtn');
         const saveBtn = document.getElementById('saveEditBtn');
         const editBtn = document.getElementById('editProfileBtn');
+        let lastModalTrigger = null;
+
+        const getModalFocusableElements = () => Array.from(modalDialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+        )).filter((element) => element.getClientRects().length > 0);
+
+        // Structural lookup for the control that owns the collapsible menu a
+        // trigger lives in, used only as a close-time focus target. Navigation
+        // element ids are deliberately NOT named here: the mobile menu's state is
+        // owned solely by /js/authenticated-nav.js (M12.P1-D2), so this walks the
+        // trigger's ancestors and returns whichever control declares
+        // aria-controls for one of them from outside it. Read-only — this file
+        // never mutates menu classes or aria state.
+        const findMenuControllerFor = (element) => {
+            let node = element && element.parentElement;
+            while (node && node !== document.body) {
+                // Guard the attribute selector against ids needing escaping.
+                if (node.id && /^[A-Za-z][\w-]*$/.test(node.id)) {
+                    const controller = document.querySelector('[aria-controls="' + node.id + '"]');
+                    if (controller && !node.contains(controller)) return controller;
+                }
+                node = node.parentElement;
+            }
+            return null;
+        };
+
+        // Open-time focus placement. The overlay starts at `visibility: hidden`,
+        // and .focus() on a not-yet-visible element is silently ignored — that is
+        // how focus used to stay on <body> with the dialog open. Placement is
+        // therefore verified, and retried on the following frame if it did not
+        // take, instead of being assumed to have worked.
+        const focusInitialModalElement = () => {
+            if (!overlay.classList.contains('show')) return;
+            const focusable = getModalFocusableElements();
+            (focusable[0] || modalDialog).focus();
+            if (!modalDialog.contains(document.activeElement)) modalDialog.focus();
+        };
+
+        // The keyboard contract cannot live on the overlay. If focus is on
+        // <body> (or anywhere else outside the dialog) the overlay never
+        // receives the keydown, so Tab walks into the page behind the modal.
+        // This handler is registered on `document` in the CAPTURE phase for
+        // exactly as long as the modal is open, and removed on close.
+        // stopPropagation is used only for keys the modal actually consumes, so
+        // the mobile-nav document handlers keep their normal behaviour.
+        const handleModalKeydown = (e) => {
+            if (!overlay.classList.contains('show')) return;
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+
+            const focusable = getModalFocusableElements();
+            if (focusable.length === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                modalDialog.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            // Focus is outside the dialog (escaped, or never entered it):
+            // recapture rather than letting the browser advance behind the modal.
+            if (!modalDialog.contains(document.activeElement)) {
+                e.preventDefault();
+                e.stopPropagation();
+                (e.shiftKey ? last : first).focus();
+                return;
+            }
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                e.stopPropagation();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                e.stopPropagation();
+                first.focus();
+            }
+        };
+
+        // One state setter owns every visual, pointer, accessibility, and focus
+        // transition. The hidden overlay is inert immediately, so it cannot
+        // intercept the profile menu or Logout while its opacity is zero.
+        const setEditModalOpen = (open, trigger) => {
+            if (open) {
+                lastModalTrigger = trigger === editBtn ? userContainer : (trigger || document.activeElement);
+                overlay.inert = false;
+                overlay.removeAttribute('inert');
+                overlay.setAttribute('aria-hidden', 'false');
+                overlay.classList.add('show');
+                dropdown.classList.remove('show');
+                document.addEventListener('keydown', handleModalKeydown, true);
+                window.requestAnimationFrame(() => {
+                    focusInitialModalElement();
+                    if (!modalDialog.contains(document.activeElement)) {
+                        window.requestAnimationFrame(focusInitialModalElement);
+                    }
+                });
+                return;
+            }
+
+            document.removeEventListener('keydown', handleModalKeydown, true);
+            overlay.classList.remove('show');
+            const focusTarget = lastModalTrigger;
+            lastModalTrigger = null;
+            if (focusTarget && document.contains(focusTarget)) focusTarget.focus();
+            // Focus must never be left inside the closing dialog, nor stranded on
+            // <body> (which restarts keyboard travel at the top of the page).
+            // Focusing a hidden element is silently ignored, and BOTH plausible
+            // owners can be hidden: the mobile trigger lives inside a collapsible
+            // menu that closes behind the modal, and the desktop profile menu is
+            // hidden at narrow widths. Try each owner until one accepts focus.
+            const restoreFocusToOwner = () => {
+                const active = document.activeElement;
+                if (active && active !== document.body && !overlay.contains(active)) return;
+                const restoreCandidates = [userContainer, findMenuControllerFor(focusTarget)];
+                for (let i = 0; i < restoreCandidates.length; i++) {
+                    const candidate = restoreCandidates[i];
+                    if (!candidate || !document.contains(candidate)) continue;
+                    candidate.focus();
+                    if (document.activeElement === candidate) break;
+                }
+            };
+            // Ordering matters: focus must leave the overlay BEFORE it is marked
+            // inert, otherwise the browser blurs it to <body> and a hidden trigger
+            // leaves nothing focused at all.
+            restoreFocusToOwner();
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.inert = true;
+            overlay.setAttribute('inert', '');
+            // The inert blur can still settle after this turn; re-check once.
+            window.requestAnimationFrame(restoreFocusToOwner);
+        };
 
         if (editBtn) {
             editBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                overlay.classList.add('show');
-                dropdown.classList.remove('show');
+                setEditModalOpen(true, editBtn);
             });
         }
 
@@ -373,14 +509,20 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileEditBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                overlay.classList.add('show');
+                setEditModalOpen(true, mobileEditBtn);
             });
         }
 
-        const closeModal = () => overlay.classList.remove('show');
+        const closeModal = () => setEditModalOpen(false);
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+        // NOTE: the Escape/Tab trap is deliberately NOT bound to the overlay —
+        // see handleModalKeydown above. An overlay-scoped keydown listener only
+        // fires once focus is already inside the overlay, which is precisely the
+        // case that was broken.
 
         saveBtn.addEventListener('click', async () => {
             let base64String = profileData.profileImage || null;

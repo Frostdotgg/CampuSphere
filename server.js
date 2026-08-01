@@ -182,6 +182,16 @@ app.use((req, res, next) => {
   return next();
 });
 
+/* ---- Browser favicon compatibility ----
+   Keep the conventional /favicon.ico request on a real shipped asset and
+   ABOVE both static/session middleware. This removes the otherwise harmless
+   404 from every authenticated page load without creating an anonymous
+   session or duplicating an image in the package. */
+app.get('/favicon.ico', (_req, res) => {
+  res.type('png');
+  return res.sendFile(path.join(__dirname, 'public', 'img', 'cspc-logo.png'));
+});
+
 /* ---- Static Files ---- */
 app.use(express.static(path.join(__dirname, 'public')));
 
