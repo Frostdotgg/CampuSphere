@@ -433,7 +433,7 @@ const GUIDED_VR_ROUTES = Object.freeze([
 
   Object.freeze({
     destination_name: "Graduate School Building",
-    destination_node_key: "gruaduate",
+    destination_node_key: "graduate",
     arrival_scene_key: "scene-graduate-school-1st-floor-4",
     scene_keys: Object.freeze([
       "scene-guard-house",
