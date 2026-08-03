@@ -480,6 +480,18 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-acad1-1st-floor-4",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Multi-Purpose Building II",
+    destination_node_key: "multi-2",
+    arrival_scene_key: "scene-multi-2-1st-floor-3",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-multi-2-1st-floor-3",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
