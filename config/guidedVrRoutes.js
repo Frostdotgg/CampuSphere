@@ -410,6 +410,26 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-pearl-park-2",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Laboratory & Shop Building",
+    destination_node_key: "lab-shop",
+    arrival_scene_key: "scene-lab-and-shop-building-001",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-duran-1st-floor-13",
+      "scene-general-road-19",
+      "scene-general-road-20",
+      "scene-general-road-21",
+      "scene-lab-and-shop-building-001",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
