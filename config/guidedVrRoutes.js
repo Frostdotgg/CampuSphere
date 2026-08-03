@@ -270,7 +270,6 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-general-road-34",
       "scene-general-road-35",
       "scene-general-road-36",
-      "scene-general-road-58",
       "scene-general-road-59",
       "scene-general-road-60",
       "scene-acad-2-1st-floor-17",
