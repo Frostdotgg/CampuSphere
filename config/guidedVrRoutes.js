@@ -430,6 +430,25 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-lab-and-shop-building-001",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Graduate School Building",
+    destination_node_key: "gruaduate",
+    arrival_scene_key: "scene-graduate-school-1st-floor-4",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-duran-1st-floor-13",
+      "scene-general-road-19",
+      "scene-general-road-20",
+      "scene-graduate-school-1st-floor-4",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
