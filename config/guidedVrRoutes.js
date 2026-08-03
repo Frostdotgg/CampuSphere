@@ -449,6 +449,23 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-graduate-school-1st-floor-4",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Technohub Building",
+    destination_node_key: "techno-bldg",
+    arrival_scene_key: "scene-techno-1st-floor-1",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-duran-1st-floor-13",
+      "scene-techno-1st-floor-1",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
