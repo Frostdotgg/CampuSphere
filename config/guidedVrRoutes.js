@@ -182,6 +182,37 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-acad-5-1st-floor-7",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Green Building",
+    destination_node_key: "green",
+    arrival_scene_key: "scene-green-1st-floor-7",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-duran-1st-floor-13",
+      "scene-general-road-19",
+      "scene-general-road-20",
+      "scene-general-road-21",
+      "scene-general-road-22",
+      "scene-general-road-23",
+      "scene-general-road-27",
+      "scene-general-road-28",
+      "scene-general-road-29",
+      "scene-general-road-30",
+      "scene-general-road-31",
+      "scene-general-road-32",
+      "scene-general-road-33",
+      "scene-general-road-34",
+      "scene-general-road-35",
+      "scene-green-1st-floor-7",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
