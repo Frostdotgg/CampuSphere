@@ -652,6 +652,42 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-admin-1st-floor-3",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Duran Hall",
+    destination_node_key: "duran",
+    arrival_scene_key: "scene-duran-1st-floor-6",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-general-road-16",
+      "scene-general-road-17",
+      "scene-duran-1st-floor-6",
+    ]),
+  }),
+
+  Object.freeze({
+    destination_name: "Freedom Park",
+    destination_node_key: "duran",
+    arrival_scene_key: "scene-freedom-park-3",
+    scene_keys: Object.freeze([
+      "scene-guard-house",
+      "scene-general-road-10",
+      "scene-general-road-11",
+      "scene-general-road-12",
+      "scene-general-road-13",
+      "scene-general-road-14",
+      "scene-general-road-15",
+      "scene-general-road-16",
+      "scene-general-road-17",
+      "scene-freedom-park-3",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
