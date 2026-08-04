@@ -496,7 +496,7 @@ const GUIDED_VR_ROUTES = Object.freeze([
   Object.freeze({
     destination_name: "College Dormitory",
     destination_node_key: "dorm",
-    arrival_scene_key: "scene-audit-building-018",
+    arrival_scene_key: "scene-dorm-build-001",
     scene_keys: Object.freeze([
       "scene-guard-house",
       "scene-general-road-10",
@@ -519,13 +519,15 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-general-road-67",
       "scene-audit-building-017",
       "scene-audit-building-018",
+      "scene-csc",
+      "scene-dorm-build-001",
     ]),
   }),
 
   Object.freeze({
     destination_name: "Central Student Council",
     destination_node_key: "csc",
-    arrival_scene_key: "scene-audit-building-018",
+    arrival_scene_key: "scene-csc",
     scene_keys: Object.freeze([
       "scene-guard-house",
       "scene-general-road-10",
@@ -548,6 +550,7 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-general-road-67",
       "scene-audit-building-017",
       "scene-audit-building-018",
+      "scene-csc",
     ]),
   }),
 
