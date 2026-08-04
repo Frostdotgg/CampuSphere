@@ -691,6 +691,20 @@ const GUIDED_VR_ROUTES = Object.freeze([
       "scene-freedom-park-3",
     ]),
   }),
+
+  Object.freeze({
+    destination_name: "Staff House",
+    destination_node_key: "staff-house",
+    arrival_scene_key: "scene-staff-house-2nd-floor-1",
+    scene_keys: Object.freeze([
+      "scene-guard-house-walk-1st-floor-1",
+      "scene-guard-staff-house-2nd-floor-1",
+      "scene-guard-staff-house-2nd-floor-2",
+      "scene-guard-staff-house-2nd-floor-3",
+      "scene-guard-staff-house-2nd-floor-4",
+      "scene-staff-house-2nd-floor-1",
+    ]),
+  }),
 ]);
 
 const DEFERRED_GUIDED_VR_DESTINATIONS = Object.freeze([]);
