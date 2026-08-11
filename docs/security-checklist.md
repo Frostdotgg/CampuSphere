@@ -3,20 +3,26 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## 2026-08-01 Current Security And Pilot Status
+## 2026-08-11 Current Security And Pilot Status
 
-- Production and Git are synchronized at
-  `0627bf78228148e3f989275810c333c16a1f3356`; the owner verified the Vercel
-  Production alias. The current additive candidate is intentionally dirty,
-  unstaged, uncommitted, unpushed, and undeployed.
+- The current candidate started from clean local `HEAD` and `origin/main`
+  `5076e1316cf68e9d05c78a61b2362d1727873a09`. The worktree is now
+  intentionally dirty and unstaged. The owner-observed Vercel Production alias
+  remains on deployed baseline `0627bf78228148e3f989275810c333c16a1f3356`;
+  nothing from this candidate is committed, pushed, linked, or deployed.
 - The deployed modal correction passed desktop and mobile focus containment,
   outside-focus recapture, Escape close, focus restoration, reduced-motion,
   hidden-overlay pointer safety, and the accepted single-navigation-owner
   contract. The five-file matrix was green at `75/75`, `3777/3777` with
   `QUALITY-GATES OK`, all five QA stages, and `24/24 -> 18/18 -> 46/46`.
 - Anonymous production smoke passed `31/31`. `GET /auth` may intentionally
-  initialize an anonymous identity-free session; canonical session hygiene is
-  still green and must be rechecked after any future authenticated exercise.
+  initialize an anonymous identity-free session. After the owner logged out the
+  accessible sessions, exact preflight found one MySQL administrator, one MySQL
+  student, and one Supabase administrator session. A first bounded wrapper
+  stopped before mutation on a role-label mismatch; the corrected wrapper then
+  called the supported `revokeUserSessions()` service exactly once for each of
+  those three verified backend-local identities. No direct session-row delete,
+  account change, or broad cleanup was used.
 - The isolated automated rehearsal PASSed for one temporary CSPC student and
   one temporary Gmail guest. Both were deleted through the supported admin UI,
   all three role sessions were logged out, the seven-user baseline returned,
@@ -30,17 +36,86 @@ defense evidence. Record pass/fail and sanitized notes only.
   supported interfaces. Isolated Supabase and MySQL restores passed; the
   external backup manifest verifies 109/109 files; and all 86 referenced
   Cloudinary delivery assets were downloaded and hashed. This is not a
-  Cloudinary management/original-account export. No selected entity was
-  deleted, no direct SQL was used, and migrations remain `0001-0019`.
-- Cross-backend freeze truth is 21 nodes / 50 edges / 25 exact reverse pairs /
-  50 valid geometries / 13 destinations, with 92 scenes, 80 hotspots, 28
-  selected scenes, and 57 selected-source hotspots. Ordered credential,
-  residue, and BE.6 postconditions are green at `24/24 -> 18/18 -> 46/46`.
-- The package candidate is 158 files / 6,212,545 bytes / SHA-256
-  `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`;
-  the focused boundary probe passed `71/71`, and the independent gate pin is
-  synchronized. The full matrix is green at `3792/3792`, all five QA stages,
-  and `24/24 -> 18/18 -> 46/46`; independent read-only review remains open.
+  Cloudinary management/original-account export. After visual preflight,
+  exactly three redundant MySQL scene-link rows were removed through the
+  supported administrator interface; a post-correction MySQL backup passed
+  6/6 checksum/isolated-restore checks. No direct SQL was used, and migrations
+  remain `0001-0019`.
+- Current MySQL truth is 34 buildings / 44 route nodes / 100 edges / 50 exact
+  reverse pairs / 100 valid geometries / 671 scenes / 1,396 hotspots. Current
+  Supabase truth is 25 / 26 / 50 / 25 / 50 / 664 / 1,372. The shared catalog
+  has 25 active Guided-VR destinations, 472 configured steps, and 99 unique
+  scene keys. The ordered safety postcondition is green at
+  `24/24 -> 18/18 -> 46/46`.
+- The package candidate is 158 files / 6,245,074 bytes / SHA-256
+  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`;
+  the focused boundary probe and registered in-suite package gate both passed
+  `72/72`, and the independent gate pin is synchronized. The failed QA attempt
+  that stopped at 4,512 contract passes
+  after mixed-mode `ECONNRESET` remains historical/rejected. Its incomplete
+  logout left exactly one canonical Supabase student session. A separately
+  authorized fail-closed preflight reverified the intended-role identity, that
+  one session, and zero for the other three canonical Supabase identities;
+  `revokeUserSessions()` was then called exactly once for the student. No direct
+  SQL, direct session-row deletion, account/application-data change, or broad
+  cleanup occurred.
+- The independent read-only review of prior candidate manifest SHA-256
+  `b4c2c3c2a5766399b843c6e43f2f8cf347bcc04473e5ba6a0a808397c77a3d56`
+  returned commit-readiness NO-GO on the incomplete CAS sequence guard, a stale
+  SEC-37 package claim, obsolete OFF.3 scope, and premature pilot sequencing.
+  The bounded follow-up pins the ordered CAS hash, rejects intermediate
+  replacement/reordering and malformed hash pins, validates SEC-37 against the
+  independent package pin, and restores the complete authorization order. The
+  prior manifest is historical; corrected bytes still require independent
+  read-only review.
+- A subsequent independent read-only review of exact 33-file manifest SHA-256
+  `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
+  returned commit-readiness NO-GO because the exact package pin was not applied
+  to the live manifest, obsolete handoff policy was not isolated from current
+  authority, and current dates were stale. This bounded correction adds two
+  independent live package pins, byte-drift and authority/date fixtures,
+  explicit historical boundaries, and synchronized dates. It changes no
+  runtime or data and remains pending independent review.
+- The independent read-only review of exact 34-file manifest SHA-256
+  `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
+  returned commit-readiness NO-GO because the same rejected 4,628-PASS retry
+  carried a transcript-faithful nine-failure account and a duplicate lower-count
+  account in current authority. The correction removes that duplicate and adds
+  a cross-document analyzer with accepting/rejecting fixtures. Runtime and data
+  are unchanged; independent review remains open.
+- The correction's first verification is historical/rejected at `4640/4641`:
+  one combined documentation assertion failed because the analyzer stopped at
+  the first 4,628 mention. Runtime probes and embedded `18/18` residue were
+  green. The analyzer now checks every bounded 4,628 scope; no session or data
+  correction was required.
+- Under a separate bounded authorization, a fail-closed preflight reverified
+  exactly two unexpired sessions for the one intended-role canonical MySQL
+  student, zero for the canonical MySQL administrator and all four canonical
+  Supabase identities, and the explicitly selected MySQL session store. One
+  supported `revokeUserSessions()` call removed both student sessions. No
+  direct session-row deletion, account/application-data change, or broad
+  cleanup occurred. The pre-QA ordered postcondition is green at
+  `24/24 -> 18/18 -> 46/46`.
+- The exact synchronized candidate passes a freshly counted `npm test` at
+  `4641/4641` with `QUALITY-GATES OK` and `npm run qa` at the same exact
+  contract total with all five stages green and all exact transcript markers
+  present. Final ordered
+  postconditions are `24/24 -> 18/18 -> 46/46`. Historical/superseded: the
+  preceding 4,637-check QA command itself exited 0, but its enclosing scorer
+  returned 97 because it searched for nonexistent `SUPABASE-SMOKE OK` instead
+  of the actual `[supabase-smoke] PASS`; no application stage failed and no
+  retry was caused. A later freshly counted suite attempt timed out at its
+  20-minute wrapper bound inside the catalog-wide Guided-VR probe; it produced
+  no completion count, is historical/rejected, and left no CampuSphere Node
+  process or listener. Its one orphaned canonical MySQL student session was
+  exposed by the next bounded run, which exited 1 at 4,628 PASS with nine
+  current-authority wording failures and the residue failure. A fail-closed
+  preflight then proved exactly that one session, zero for the canonical MySQL
+  administrator and all four Supabase identities, and the intended student
+  role; one supported `revokeUserSessions()` call restored the count to zero.
+  No direct session-row delete, account/application-data change, or broad
+  cleanup occurred. The wrapper timeout and bounded red rerun remain
+  historical/rejected. Independent read-only review remains open.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
@@ -168,7 +243,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only `server.js`, `package.json`, `package-lock.json`, `vercel.json`, and the ten runtime directories are re-included; `public/img/sample 360` is denied in both the directory and subtree form AFTER the `public` re-inclusion. No `.env*`, documentation/handoff, script/probe, database schema/seed/migration, screenshot, evidence document, Docker file, local agent metadata, `node_modules`, log/cache/temporary file, or Git metadata is in the package | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` and in-suite `vercel-package-boundary` `70/70` (historical/superseded: `70/70`/`67/67` at the initial R7 candidate, then `71/71`/`69/69` at the literal-NUL remediation). **Accepted R7 closeout (historical, unchanged):** 154 files, 6,166,956 bytes, aggregate SHA-256 `c7c16ed73de4b34e1989e6e6842ab897b1164477fb39ddc5862ed1901638b9ec`. **Current M12.P1-R8 correction candidate (freshly recomputed):** 157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`. The intermediate 154-file/6,165,772-byte figure previously recorded here as a current preview is superseded and has been removed: it described neither the accepted R7 closeout nor any current candidate, so keeping it as current was misleading. The expected allowlist, forbidden path classes, public asset classes, and 18 vendored runtime files are pinned in probe code OUTSIDE `.vercelignore`, so a coordinated config-plus-preview edit still fails without a reviewed code change |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only `server.js`, `package.json`, `package-lock.json`, `vercel.json`, and the ten runtime directories are re-included; `public/img/sample 360` is denied in both the directory and subtree form AFTER the `public` re-inclusion. No `.env*`, documentation/handoff, script/probe, database schema/seed/migration, screenshot, evidence document, Docker file, local agent metadata, `node_modules`, log/cache/temporary file, or Git metadata is in the package | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` and in-suite `vercel-package-boundary` `70/70` (historical/superseded: `70/70`/`67/67` at the initial R7 candidate, then `71/71`/`69/69` at the literal-NUL remediation). **Accepted R7 closeout (historical, unchanged):** 154 files, 6,166,956 bytes, aggregate SHA-256 `c7c16ed73de4b34e1989e6e6842ab897b1164477fb39ddc5862ed1901638b9ec`. **Historical/superseded R8 correction candidate:** 157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`. **Current Guided-VR catalog-remediation candidate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. The expected allowlist, forbidden path classes, public asset classes, and 18 vendored runtime files are pinned in probe code OUTSIDE `.vercelignore`, so a coordinated config-plus-preview edit still fails without a reviewed code change |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 
@@ -220,7 +295,7 @@ disposition are retained as history.
 `https://campusphere-cspc.vercel.app` is on deployed runtime baseline
 `0627bf78228148e3f989275810c333c16a1f3356`. The preceding evidence
 synchronization at `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed
-runtime. The present additive CCS candidate is uncommitted, unpushed, and
+runtime. The Guided-VR catalog-remediation candidate is uncommitted, unpushed, and
 undeployed; it does not change production and still requires review.
 
 **SEC-52 — pilot-surface correction (deployed and independently accepted under
@@ -251,8 +326,8 @@ unchanged. No Milestone 12 GO is claimed.
 
 | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- |
-| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **3792/3792 PASS — additive CCS candidate; independent review required** | Exit 0, exactly 3,792 transcript-wide PASS lines, zero `[FAIL]`, one `QUALITY-GATES OK`, no failed marker, and zero escaped logout-destroy error lines. The exact `+15` over the deployed five-file `3777` suite is `+3` pure guided-VR policy/chain assertions and `+12` CCS runtime assertions across four source combinations. Earlier totals remain historical |
-| `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **71/71** (was **70/70** before the literal-NUL remediation) — standalone (M12.P1-R7), never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
+| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **4641/4641 PASS — rejected-run authority-consistency correction candidate; exit 0** | Fresh standalone transcript count: exactly 4,641 `[PASS]` lines and `QUALITY-GATES OK`; zero failed assertions; independent review remains open |
+| `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **72/72 current candidate**; accepted R7 history remains **71/71** (and **70/70** before the literal-NUL remediation) — standalone, never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
 | Local authenticated exposure matrix (clean bounded re-execution) | Browser-driven in both runtime modes, one bounded server per backend on its own free port | Every scenario in SEC-49 passes with a separate fresh browser context per role and no unsupported cleanup | **126/126 PASS — MySQL 34/34 + 14/14 supplement; Supabase 64/64 + 14/14 supplement; zero failures** | Each role context proved zero carried-over cookies and zero carried-over web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once via `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429`; no retried logout; `services/sessionRevocation.js` never imported or called; no direct session-row deletion and no database cleanup. Final ordered postconditions `24/24 -> 18/18 -> 46/46` |
 | Local authenticated exposure matrix, first execution — historical/superseded | Browser-driven in both runtime modes | Same scenario set | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Retained so the defect is not erased. Repeated runs exhausted the in-memory `preParseAuthLimiter` budget; the run started receiving `429` with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY rather than through the supported logout interface. Direct revocation falls outside the supported-interface rule this evidence class depends on, so the run is not accepted on its numbers. Superseded by the clean bounded re-execution above |
 | Unsupported-domain OAuth flow (SEC-05) | Live Google sign-in from a fresh anonymous browser context | Sanitized `unauthorized_domain` rejection; no row created | **PASS — externally executed** | Reached `accounts.google.com` with exactly `openid`, `email` and `profile`; the account completed Google authorization and returned to CampuSphere; CampuSphere redirected to `/auth?error=unauthorized_domain` with a sanitized message echoing no email and no raw error. Supabase `users` 6 before and 6 after, zero rows on unsupported domains, no role-profile row, and no persisted pending OAuth registration. No email, password, code, token, cookie, or account identifier is recorded |
@@ -260,4 +335,4 @@ unchanged. No Milestone 12 GO is claimed.
 | `node scripts/boundedAnonymousAccessDenial-probe.js` | Zero audit rows from anonymous denials (authoritative global total AND filtered count both flat); exactly one authenticated role-denial row; exactly one login-failure row, in both backends | PASS | **90/90** — standalone (M12.P1-R5), never counted in the `npm test` total; accepted Codex GO |
 | `npm run qa:identity` | Identity/profile uniqueness enforced | PASS | `IDENTITY-CONSTRAINTS OK`, exit 0: no duplicate non-null `(oauth_provider, oauth_subject)` groups, and duplicate `student_profiles` / `instructor_profiles` / `guest_profiles` `user_id` rows are rejected |
 | `npm run qa:audit` | 0 production dependency vulnerabilities | PASS | Accepted compatible remediation, 2026-07-22; subsequent 2026-07-26 advisory drift remediated with exact `ejs@6.0.1` and the `jake/filelist/minimatch/brace-expansion` chain absent |
-| `npm run qa` | Aggregate security and smoke gates pass | **3792/3792 PASS — all five stages green, exit 0; independent review required** | Exactly 3,792 contract PASS lines, zero `[FAIL]`, zero escaped logout-destroy error lines, `QUALITY-GATES OK`, `DB-PERF-GATE OK` with live route geometry at 50/50 across 25 reverse pairs, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`. Candidate evidence only; no deployment or Milestone 12 GO |
+| `npm run qa` | Aggregate security and smoke gates pass | **4641/4641 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the superseded scorer-only exit 97 required nonexistent `SUPABASE-SMOKE OK` even though the inner command exited 0; the later 20-minute standalone-suite wrapper timeout is historical/rejected; independent review remains open |

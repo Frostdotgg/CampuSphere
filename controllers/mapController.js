@@ -12,6 +12,8 @@ const routeRepository = require('../repositories/routeRepository');
 const { logServerError } = require('../utils/serverLog');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const routeAvailability = require('../services/routeAvailability');
+const { GUIDED_VR_ROUTES, DEFERRED_GUIDED_VR_DESTINATIONS } = require('../config/guidedVrRoutes');
+const { resolveGuidedDestinationPolicyByName } = require('../services/guidedVrResolution');
 
 const MAX_QUERY_LEN = 100;
 const MAX_RESULTS = 25;
@@ -563,9 +565,40 @@ exports.apiPathfind = async (req, res) => {
         });
       }
     } else {
-      const matches = nodes.filter((n) => n.building_id === destinationBuildingId);
-      // Prefer the building-type node over service nodes sharing the building.
-      destNode = matches.find((n) => n.node_type === 'building') || matches[0] || null;
+      // Catalog destinations resolve through their configured natural node key,
+      // never whichever sibling node happens to be returned first for a shared
+      // building_id. Resolve the building name inside this same route backend;
+      // backend-local numeric ids never cross sources.
+      let destinationBuilding = null;
+      if (useSupabase) {
+        destinationBuilding = await routeRepository.findRouteSourceBuildingById(destinationBuildingId);
+      } else {
+        const [buildingRows] = await db.query(
+          'SELECT id, name FROM buildings WHERE id = ? LIMIT 1',
+          [destinationBuildingId]
+        );
+        destinationBuilding = buildingRows[0] || null;
+      }
+      const guidedPolicy = destinationBuilding
+        ? resolveGuidedDestinationPolicyByName({
+            destinationName: destinationBuilding.name,
+            activeRoutes: GUIDED_VR_ROUTES,
+            deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
+            canonicalize: routeAvailability.canonicalKey
+          })
+        : { kind: 'none' };
+      if (guidedPolicy.kind === 'active') {
+        const matches = nodes.filter((node) =>
+          node.key === guidedPolicy.route.destination_node_key &&
+          node.building_id === destinationBuildingId);
+        destNode = matches.length === 1 ? matches[0] : null;
+      } else if (guidedPolicy.kind === 'invalid') {
+        destNode = null;
+      } else {
+        const matches = nodes.filter((n) => n.building_id === destinationBuildingId);
+        // Generic/deferred routes retain the local graph mapping.
+        destNode = matches.find((n) => n.node_type === 'building') || matches[0] || null;
+      }
       if (!destNode) {
         return res.status(404).json({
           success: false,

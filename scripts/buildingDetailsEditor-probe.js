@@ -1077,6 +1077,7 @@ async function runLiveMode(mode, base) {
   const createdIds = [];
   let csrf = '';
   let loginOk = false;
+  let baselineCount = null;
 
   const jfetch = async (url, options) => {
     const res = await fetch(base + url, options);
@@ -1126,6 +1127,12 @@ async function runLiveMode(mode, base) {
     check(mode, 'admin CSRF token available', csrf.length > 0);
     const H = { 'Content-Type': 'application/json', Accept: 'application/json', Cookie: jar.header(), 'X-CSRF-Token': csrf };
     const GET = { Accept: 'application/json', Cookie: jar.header() };
+
+    const before = await jfetch('/admin/api/buildings', { headers: GET });
+    const beforeRows = (before.json && before.json.buildings) || [];
+    baselineCount = beforeRows.length;
+    check(mode, 'complete pre-fixture building roster is available',
+      before.status === 200 && baselineCount > 0);
 
     // ---- create with full structured details + unknown sentinels ----
     const DETAILS = {
@@ -1254,7 +1261,8 @@ async function runLiveMode(mode, base) {
       const rows = (aj && aj.buildings) || [];
       const left = rows.filter((b) => String(b.name || '').indexOf('ZZ D5 Details Probe') === 0).length;
       check(mode, `zero leftover D5 fixtures (found ${left})`, left === 0);
-      check(mode, `roster restored to exactly 13 buildings (found ${rows.length})`, rows.length === 13);
+      check(mode, `roster restored to the ${baselineCount} pre-fixture buildings (found ${rows.length})`,
+        baselineCount !== null && rows.length === baselineCount);
     } catch (e) {
       check(mode, 'fixture cleanup verified', false);
     }
@@ -1299,7 +1307,7 @@ function leakScan(mode, bodies) {
   }
 
   console.log('');
-  console.log('NOTE fixtures were created and deleted through the ADMIN HTTP API only; the 13 selected-demo buildings were never touched.');
+  console.log('NOTE fixtures were created and deleted through the ADMIN HTTP API only; the pre-existing building catalog was never modified.');
   if (failures.length === 0) {
     console.log('BUILDING-DETAILS-EDITOR-PROBE OK: all checks passed.');
     process.exitCode = 0;

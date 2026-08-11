@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-01 (Asia/Manila)
+Last updated: 2026-08-11 (Asia/Manila)
 
 The first two sections are the only current copy-paste prompts. They authorize
 repository reads and status reconciliation only. Earlier prompts remain below
@@ -67,13 +67,14 @@ wins:
   evidence is the fresh-context BrowserContext run, 3511/3511 with
   QUALITY-GATES OK, audit zero, and 24/24 -> 18/18 -> 46/46 with historical
   aggregate a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
-- Expected clean Git/deployment commit is
+- The clean starting Git baseline for the current remediation candidate is
+  5076e1316cf68e9d05c78a61b2362d1727873a09 on local HEAD and origin/main.
+  This is a starting baseline, not a self-referential final-candidate SHA. The
+  owner-observed deployed runtime baseline is
   0627bf78228148e3f989275810c333c16a1f3356. It follows SEC-51/R8 evidence
   commit bbb25d0dee5917e4704da35784421c840f825afb and baseline
-  d422b54393f659125912ec5c84ae7927c2533288. The owner observed 0627bf7 Ready
-  with the Production alias at https://campusphere-cspc.vercel.app. Verify Git
-  locally; label Vercel identity owner-observed unless authorized platform
-  evidence independently confirms it.
+  d422b54393f659125912ec5c84ae7927c2533288. Label Vercel identity
+  owner-observed unless authorized platform evidence independently confirms it.
 - 0627bf7 changes exactly docs/deployment.md, public/css/styles.css,
   public/js/profile-script.js, scripts/quality-gates.js, and server.js. It fixes
   mobile/narrow overlay interaction, modal focus placement/containment/
@@ -93,31 +94,103 @@ wins:
   the executor transcript, three temporary repository files were removed, one
   read-only misclick was corrected, and human sign-in sequencing interrupted
   the flow.
-- The additive candidate is parity-matched in both backends at 13 buildings,
-  21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries,
-  13 routable buildings, 92 scenes, 80 hotspots, 28 selected scenes, and 57
-  selected-source hotspots. Active Guided VR is CAS 24 plus CCS 23 through
-  Road 94. Selected-VR fingerprint is
-  d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22;
-  aggregate is 71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7.
+- The expanded candidate is backend-specific. MySQL has 34 buildings, 44 route
+  nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, 671
+  scenes, and 1,396 hotspots. Supabase has 25 buildings, 26 route nodes, 50
+  directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes, and
+  1,372 hotspots. The shared catalog has 25 active Guided-VR destinations, 472
+  configured steps, and 99 unique scene keys. MySQL selected-VR fingerprint is
+  371321de2af6be1ac87fb2f0d7c30a946c5538409022fd2968e21894b97caca2;
+  Supabase selected-VR fingerprint is
+  1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c;
+  shared catalog fingerprint is
+  ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6.
 - Migrations are exactly 0001-0019; no 0020. External backup and final-delta
   restore proofs passed for Supabase and MySQL; the manifest verifies 109/109
   files, and 86 referenced Cloudinary delivery assets were exported and hashed.
   This is not a Cloudinary management/original-account export.
-- Four authorized canonical Supabase session rows were revoked through one
-  supported service call per affected identity. Ordered postconditions are
-  green at 24/24 -> 18/18 -> 46/46.
-- Current read-only Vercel package enumeration is 158 files, 6,212,545 bytes,
-  SHA-256 c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999;
-  the focused probe passed 71/71 and scripts/quality-gates.js pins those bytes.
-- The synchronized matrix passed npm test at 3792/3792 with QUALITY-GATES OK;
-  npm run qa carried the same 3,792 contract PASS lines and all five green
-  stages; final ordered postconditions passed 24/24 -> 18/18 -> 46/46.
-  Independent read-only review, human pilot/Form responses, OFF.2-OFF.6, and
-  final Milestone 12 GO remain open. URLs and secrets stay outside Git.
+- After the owner logged out accessible administrator/student sessions, exact
+  preflight found one MySQL administrator, one MySQL student, and one Supabase
+  administrator session. A first bounded wrapper stopped before mutation on a
+  role-label mismatch. The corrected wrapper invoked supported
+  `revokeUserSessions()` exactly once for each verified backend-local identity;
+  it used no direct session-row deletion and changed no account or application
+  data. That pre-QA read-only postcondition was 24/24 -> 18/18 -> 46/46.
+- Current read-only Vercel package enumeration is 158 files, 6,245,074 bytes,
+  SHA-256 b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4;
+  the focused and registered in-suite package gates both passed 72/72 and
+  scripts/quality-gates.js pins those bytes.
+- The independent read-only review of prior candidate manifest SHA-256
+  b4c2c3c2a5766399b843c6e43f2f8cf347bcc04473e5ba6a0a808397c77a3d56
+  returned commit-readiness NO-GO for the incomplete ordered CAS sequence guard,
+  contradictory SEC-37 package evidence, obsolete OFF.3 catalog scope, and
+  premature pilot sequencing. The bounded follow-up pins the ordered hash,
+  expands rejection coverage, validates the package claim, and restores the
+  review-to-pilot authorization order. The prior manifest is historical; the
+  corrected bytes still require another independent read-only review.
+- The next independent read-only review of exact 33-file manifest SHA-256
+  2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8
+  returned commit-readiness NO-GO because the exact package pin was not enforced
+  live, obsolete handoff policy was not isolated from current authority, and
+  current dates were stale. This bounded correction adds independent live pins,
+  byte-drift/authority/date fixtures, and explicit historical boundaries. It
+  changes no runtime or data and still requires independent read-only review.
+- The independent read-only review of exact 34-file manifest SHA-256
+  ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4
+  returned commit-readiness NO-GO because six current-authority documents
+  repeated the rejected 4,628-PASS retry with an incorrect lower failure count
+  after recording the transcript-faithful nine wording failures plus residue.
+  The bounded correction removes the duplicate account and adds a
+  cross-document analyzer with accepting/rejecting fixtures. It changes no
+  runtime or data and still requires independent read-only review.
+- The first verification of that correction is historical/rejected at
+  4640/4641: one documentation assertion failed because the analyzer stopped at
+  the evidence ledger's first 4,628 mention. Runtime probes and embedded 18/18
+  residue were green. The analyzer now evaluates every bounded 4,628 scope; no
+  session or data correction was required.
+- Focused catalog/runtime/BE.6/package probes are green. The failed QA attempt
+  that stopped at 4,512 contract passes after mixed-mode `ECONNRESET` and left
+  one canonical Supabase student session is historical/rejected. Under a
+  separate bounded authorization, a fail-closed preflight reverified the one
+  intended-role identity and one session, verified zero for the other three
+  canonical Supabase identities, then called `revokeUserSessions()` exactly
+  once for that student. No direct SQL, direct session-row deletion, account or
+  application-data change, or broad cleanup occurred. A later separately
+  authorized fail-closed preflight reverified exactly two unexpired sessions
+  for the one intended-role canonical MySQL student, zero for the canonical
+  MySQL administrator and all four canonical Supabase identities, and the
+  explicitly selected MySQL session store. One supported
+  `revokeUserSessions()` call removed both student sessions; no direct
+  session-row deletion, account/application-data change, or broad cleanup
+  occurred. The exact synchronized candidate passes a freshly counted
+  `npm test` at `4641/4641` with `QUALITY-GATES OK` and `npm run qa` at the same
+  exact contract total with all five stages green and all exact transcript
+  markers present. Final ordered
+  postconditions are `24/24 -> 18/18 -> 46/46`. Historical/superseded: the
+  preceding 4,637-check QA command itself exited 0, but its enclosing scorer
+  returned 97 because it searched for nonexistent `SUPABASE-SMOKE OK` instead
+  of the actual `[supabase-smoke] PASS`; no application stage failed and no
+  retry was caused. A later freshly counted suite attempt timed out at its
+  20-minute wrapper bound inside the catalog-wide Guided-VR probe; it produced
+  no completion count, is historical/rejected, and left no CampuSphere Node
+  process or listener. Its one orphaned canonical MySQL student session was
+  exposed by the next bounded run, which exited 1 at 4,628 PASS with nine
+  current-authority wording failures and the residue failure. A fail-closed
+  preflight then proved exactly that one session, zero for the canonical MySQL
+  administrator and all four Supabase identities, and the intended student
+  role; one supported `revokeUserSessions()` call restored the count to zero.
+  No direct session-row delete, account/application-data change, or broad
+  cleanup occurred. The wrapper timeout and bounded red rerun remain
+  historical/rejected. The pre-remediation 4629/4629 and 4624/4624 matrices
+  and the prior 4609/4609, 4599/4599, 615-pass, 4608/4609, 4623/4624,
+  4,512-pass QA, and 3792/3792 evidence remain
+  historical/superseded or rejected. Independent read-only review remains
+  open. Human pilot/Form responses, OFF.2-OFF.6, and final Milestone 12 GO
+  remain open.
+  URLs and secrets stay outside Git.
 
-The next workstream is independent read-only review of the uncommitted additive
-candidate. Preserve one-writer control and the external backup. Never
+The next boundary is independent read-only review of the exact candidate.
+Preserve one-writer control and the external backup. Never
 use direct SQL as an operational shortcut, run
 syncSelectedCasVrSupabaseToMysql.js --apply as cleanup, invent migration 0020,
 stage/commit/push/deploy before review, or claim a new GO from candidate evidence.
@@ -173,17 +246,64 @@ particular: deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
 five-file evidence at 75/75, 3777/3777 plus QUALITY-GATES OK, five-stage QA,
 and 24/24 -> 18/18 -> 46/46; owner-observed Vercel identity; same-author review
 caveat; 31/31 anonymous smoke scope; automated rehearsal and its deviations;
-the uncommitted additive candidate at 21/50/25/50/13 plus 92 scenes, 80
-hotspots, 28 selected scenes, 57 selected-source hotspots, selected-VR
-d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22,
-aggregate 71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7;
+the uncommitted backend-specific candidate at MySQL 34 buildings / 44 route
+nodes / 100 edges / 50 reverse pairs / 100 geometries / 671 scenes / 1,396
+hotspots and Supabase 25 / 26 / 50 / 25 / 50 / 664 / 1,372; shared Guided-VR
+catalog 25 destinations / 472 configured steps / 99 unique scene keys;
 migrations 0001-0019 only; completed external backup/restore/Cloudinary-delivery
-evidence; current ordered 24/24 -> 18/18 -> 46/46; and package inventory
-158 files / 6,212,545 bytes /
-c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999.
-The synchronized matrix passed npm test at 3792/3792 with QUALITY-GATES OK;
-npm run qa carried the same 3,792 contract PASS lines and all five green stages;
-final ordered postconditions passed 24/24 -> 18/18 -> 46/46.
+evidence; pre-QA ordered postcondition 24/24 -> 18/18 -> 46/46 after the
+bounded supported cleanup disclosed above; and package inventory 158 files / 6,245,074 bytes /
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+Focused remediation probes are green. The failed QA attempt that stopped at
+4,512 contract passes after mixed-mode `ECONNRESET` and left one canonical
+Supabase student session is historical/rejected. Under a separate bounded
+authorization, a fail-closed preflight reverified the one intended-role
+identity and one session, verified zero for the other three canonical Supabase
+identities, then called `revokeUserSessions()` exactly once for that student.
+No direct SQL, direct session-row deletion, account or application-data change,
+or broad cleanup occurred. A later separately authorized fail-closed preflight
+reverified exactly two unexpired sessions for the one intended-role canonical
+MySQL student, zero for the canonical MySQL administrator and all four
+canonical Supabase identities, and the explicitly selected MySQL session
+store. One supported `revokeUserSessions()` call removed both student sessions;
+no direct session-row deletion, account/application-data change, or broad
+cleanup occurred. The exact synchronized candidate passes a freshly counted
+`npm test` at `4641/4641` with `QUALITY-GATES OK` and `npm run qa` at the same
+exact contract total with all five stages green and all exact transcript
+markers present. Final ordered
+postconditions are `24/24 -> 18/18 -> 46/46`. Historical/superseded: the
+preceding 4,637-check QA command itself exited 0, but its enclosing scorer
+returned 97 because it searched for nonexistent `SUPABASE-SMOKE OK` instead
+of the actual `[supabase-smoke] PASS`; no application stage failed and no
+retry was caused. A later freshly counted suite attempt timed out at its
+20-minute wrapper bound inside the catalog-wide Guided-VR probe; it produced no
+completion count, is historical/rejected, and left no CampuSphere Node process
+or listener. Its one orphaned canonical MySQL student session was exposed by
+the next bounded run, which exited 1 at 4,628 PASS with nine current-authority
+wording failures and the residue failure. A fail-closed preflight then proved
+exactly that one session, zero for the canonical MySQL administrator and all
+four Supabase identities, and the intended student role; one supported
+`revokeUserSessions()` call restored the count to zero. No direct session-row
+delete, account/application-data change, or broad cleanup occurred. The wrapper
+timeout and bounded red rerun remain
+historical/rejected. The pre-remediation 4629/4629 and 4624/4624 matrices and
+prior 4609/4609, 4599/4599,
+initializer-order 615-pass stop, 4608/4609
+ROADMAP-wording failure, 4623/4624 reusable-prompt failure, and 4,512-pass QA
+attempt are historical/superseded or rejected. Independent review readiness is
+established, but review itself remains open.
+The independent review of exact 34-file manifest
+ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4 returned
+commit-readiness NO-GO because current authority repeated the rejected
+4,628-PASS retry with an incorrect lower failure count. The bounded correction
+removes that duplicate account and adds cross-document accepting/rejecting
+coverage; runtime and data remain unchanged, and a new independent review is
+still required.
+The correction's first verification is historical/rejected at 4640/4641: the
+analyzer stopped at the first 4,628 evidence mention, so its one combined
+documentation assertion failed while runtime probes and embedded 18/18 residue
+were green. It now evaluates every bounded 4,628 scope; no session or data
+correction was required.
 
 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
 dependency-security remediation is complete and Codex GO: after the accepted
@@ -198,8 +318,10 @@ is the fresh-context BrowserContext run, 3511/3511 with QUALITY-GATES OK, audit
 zero, and 24/24 -> 18/18 -> 46/46 with historical aggregate
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
 
-The next workstream is independent read-only review, not more data mutation.
-Preserve the backup and one-writer boundary. Never
+The bounded independent-review findings are remediated and the corrected matrix
+is green. The next boundary is another independent read-only review of the
+exact manifest. The former session-residue findings are closed and historical;
+do not repeat cleanup. Preserve the backup and one-writer boundary. Never
 blanket-delete, use direct SQL, run syncSelectedCasVrSupabaseToMysql.js --apply
 as cleanup, create 0020 without a reviewed schema need, or stage/push/deploy
 before the separate review and owner decision.

@@ -366,7 +366,7 @@ async function runRouteTests() {
 }
 
 /* =========================================================================
-   VR sync fixtures: a fully-present 26-scene selected scope in both backends
+   VR sync fixtures: a fully-present selected CAS scope in both backends
    with DIFFERENT numeric ids, one CAS schedule hotspot, valid guided media,
    allScenes reference, and an optional out-of-scope Free Roam branch.
 ========================================================================= */
@@ -381,8 +381,8 @@ function makeVrBackend(idBase, overrides) {
     image_url: CLOUD + key + '.jpg', cloudinary_public_id: 'demo/' + key,
     node_id: null, building_id: null, initial_yaw: 0, initial_pitch: 0, display_order: i + 1
   }));
-  const buildings = [{ id: idBase + 900, name: 'College of Arts and Sciences' }];
-  const nodes = [{ id: idBase + 800, node_key: 'cas' }];
+  const buildings = [{ id: idBase + 900, name: vr.CAS_SCHEDULE.building_name }];
+  const nodes = [{ id: idBase + 800, node_key: 'acad-3' }];
   const casF3 = scenes.find((s) => s.scene_key === 'scene-cas-1st-floor-3').id;
   const hotspots = [{
     id: idBase + 500, scene_id: casF3, target_scene_id: null,
@@ -412,12 +412,37 @@ function makeVrBackend(idBase, overrides) {
 
 function runVrTests() {
   const S = 'vr';
+  const casRoute = {
+    destination_name: vr.EXPECTED_CAS_SYNC_ROUTE.destination_name,
+    destination_node_key: vr.EXPECTED_CAS_SYNC_ROUTE.destination_node_key,
+    arrival_scene_key: vr.EXPECTED_CAS_SYNC_ROUTE.arrival_scene_key,
+    scene_keys: [...vr.GUIDED_KEYS]
+  };
+  check(S, 'current CAS natural-key catalog matches the frozen 26-scene sync guard',
+    vr.casSyncCatalogProblems().length === 0 && vr.GUIDED_KEYS.length === 26);
+  const reorderedScenes = [...casRoute.scene_keys];
+  [reorderedScenes[1], reorderedScenes[2]] = [reorderedScenes[2], reorderedScenes[1]];
+  const replacedIntermediateScene = [...casRoute.scene_keys];
+  replacedIntermediateScene[1] = 'scene-unexpected-intermediate';
+  check(S, 'CAS sync guard rejects identity, count, final-step, duplicate, replacement, reorder, and hash-pin drift', [
+    [{ ...casRoute, destination_name: 'College of Arts and Sciences' }],
+    [{ ...casRoute, destination_node_key: 'cas' }],
+    [{ ...casRoute, arrival_scene_key: 'scene-cas-wrong' }],
+    [{ ...casRoute, scene_keys: casRoute.scene_keys.slice(0, -1) }],
+    [{ ...casRoute, scene_keys: [...casRoute.scene_keys.slice(0, -1), 'scene-other'] }],
+    [{ ...casRoute, scene_keys: [...casRoute.scene_keys.slice(0, -1), casRoute.scene_keys[0]] }],
+    [{ ...casRoute, scene_keys: replacedIntermediateScene }],
+    [{ ...casRoute, scene_keys: reorderedScenes }]
+  ].every((catalog) => vr.casSyncCatalogProblems(catalog).length > 0) &&
+    vr.casSyncCatalogProblems([casRoute], { ...vr.EXPECTED_CAS_SYNC_ROUTE, scene_keys_sha256: null }).length > 0 &&
+    vr.casSyncCatalogProblems([casRoute], { ...vr.EXPECTED_CAS_SYNC_ROUTE, scene_keys_sha256: 'not-a-sha256' }).length > 0);
+
   const supabase = makeVrBackend(1000);
   const mysql = makeVrBackend(5000);
   const basePlan = vr.buildPlan(supabase, mysql);
   check(S, 'exact parity with different numeric ids -> all present, no writes',
     basePlan.blockers.length === 0 && vr.planIsFullyPresent(basePlan) &&
-    basePlan.counts.scene_present === 26 && basePlan.counts.hotspot_present === 1 &&
+    basePlan.counts.scene_present === vr.SELECTED_KEYS.length && basePlan.counts.hotspot_present === 1 &&
     basePlan.counts.scene_insert === 0 && basePlan.counts.scene_update === 0 &&
     basePlan.counts.hotspot_insert === 0 && basePlan.counts.hotspot_update === 0 && basePlan.counts.hotspot_delete === 0);
   check(S, 'exactly one CAS schedule target', basePlan.schedule_targets === 1);
@@ -442,7 +467,7 @@ function runVrTests() {
   check(S, 'hotspot target change changes the fingerprint', withTargetA !== withTargetB);
 
   // Truthful actions.
-  check(S, 'a scene attribute mismatch yields update (not present)', (() => { const p = vr.buildPlan(supabase, makeVrBackend(5000, { mutate: (b) => { b.scenes[3].title = 'D'; } })); return p.counts.scene_update === 1 && p.counts.scene_present === 25; })());
+  check(S, 'a scene attribute mismatch yields update (not present)', (() => { const p = vr.buildPlan(supabase, makeVrBackend(5000, { mutate: (b) => { b.scenes[3].title = 'D'; } })); return p.counts.scene_update === 1 && p.counts.scene_present === vr.SELECTED_KEYS.length - 1; })());
   check(S, 'a hotspot attribute mismatch yields update (not present)', (() => { const p = vr.buildPlan(supabase, makeVrBackend(5000, { mutate: (b) => { b.hotspots[0].yaw = 99; } })); return p.counts.hotspot_update === 1 && p.counts.hotspot_present === 0; })());
   check(S, 'a missing MySQL scene yields insert', vr.buildPlan(supabase, makeVrBackend(5000, { mutate: (b) => { b.scenes = b.scenes.filter((s) => s.scene_key !== 'scene-general-road-20'); b.allScenes = b.allScenes.filter((s) => s.scene_key !== 'scene-general-road-20'); } })).counts.scene_insert === 1);
   check(S, 'a MySQL-only in-scope hotspot yields delete', (() => {
@@ -456,8 +481,8 @@ function runVrTests() {
 
   // Duplicate identities fail closed.
   check(S, 'duplicate scene_key fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.scenes.push({ ...b.scenes[0], id: 999 }); } }), mysql).blockers.length > 0);
-  check(S, 'duplicate node_key fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'cas' }); } }), mysql).blockers.length > 0);
-  check(S, 'duplicate canonical building fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.buildings.push({ id: 4322, name: 'college of arts and sciences' }); } }), mysql).blockers.length > 0);
+  check(S, 'duplicate node_key fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'acad-3' }); } }), mysql).blockers.length > 0);
+  check(S, 'duplicate canonical building fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.buildings.push({ id: 4322, name: 'academic building iii' }); } }), mysql).blockers.length > 0);
   check(S, 'duplicate hotspot identity fails closed', vr.buildPlan(makeVrBackend(1000, { mutate: (b) => { b.hotspots.push({ ...b.hotspots[0], id: 4323 }); } }), mysql).blockers.length > 0);
 
   // External-target fail-closed: an orphaned scene target (resolves to no scene).
@@ -472,14 +497,14 @@ function runVrTests() {
   // identity blocker — an invalid/ambiguous snapshot can never collapse into a
   // matching hash during authority/preflight/rollback/post-commit verification.
   check(S, 'semanticScopeFingerprint throws on a duplicate scene_key', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.scenes.push({ ...b.scenes[0], id: 999 }); } }))));
-  check(S, 'semanticScopeFingerprint throws on a duplicate node_key', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'cas' }); } }))));
-  check(S, 'semanticScopeFingerprint throws on a duplicate canonical building', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.buildings.push({ id: 4322, name: 'college of arts and sciences' }); } }))));
+  check(S, 'semanticScopeFingerprint throws on a duplicate node_key', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'acad-3' }); } }))));
+  check(S, 'semanticScopeFingerprint throws on a duplicate canonical building', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.buildings.push({ id: 4322, name: 'academic building iii' }); } }))));
   check(S, 'semanticScopeFingerprint throws on a duplicate hotspot identity (never equal fp)', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => { b.hotspots.push({ ...b.hotspots[0], id: 4323 }); } }))));
   check(S, 'semanticScopeFingerprint throws on an orphaned external target', threw(() => vr.semanticScopeFingerprint(makeVrBackend(1000, { mutate: (b) => {
     const src = b.scenes.find((s) => s.scene_key === 'scene-cas-1st-floor').id;
     b.hotspots.push({ id: 7777, scene_id: src, target_scene_id: 999999, hotspot_type: 'scene', label: 'orphan', text: null, schedule_building_id: null, schedule_location_type: null, schedule_location_label: null, schedule_floor_label: null, yaw: 0, pitch: 0, display_order: 1 });
   } }))));
-  check(S, 'externalBranchFingerprint also fails closed on an identity blocker', threw(() => vr.externalBranchFingerprint(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'cas' }); } }))));
+  check(S, 'externalBranchFingerprint also fails closed on an identity blocker', threw(() => vr.externalBranchFingerprint(makeVrBackend(1000, { mutate: (b) => { b.nodes.push({ id: 4321, node_key: 'acad-3' }); } }))));
   // A duplicate hotspot must THROW rather than silently produce the clean fingerprint.
   check(S, 'a duplicate hotspot yields no fingerprint (throws instead of colliding)', (() => {
     let dupFp = null;

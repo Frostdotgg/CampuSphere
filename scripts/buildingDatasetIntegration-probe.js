@@ -11,8 +11,7 @@
    THE DEFECTS THIS LOCKS DOWN
    ---------------------------
    1. MIXED SOURCES. BUILDING_DATA_SOURCE and ROUTE_DATA_SOURCE are independent,
-      and numeric ids are BACKEND-LOCAL: the College of Arts and Sciences is a
-      different id in each backend. /api/search previously selected BOTH its
+      and numeric ids are BACKEND-LOCAL. /api/search previously selected BOTH its
       building hits and its route hits with the ROUTE switch, so in a mixed
       configuration it emitted a route-backend id as `building.id` and the browser
       could open the WRONG building.
@@ -24,9 +23,11 @@
       and admin create/rename returns a sanitized 409.
 
    Per mode this asserts:
-     - exactly 13 buildings, ZERO unavailable in the clean state
+     - the complete backend-specific frozen building catalog, with all 25
+       configured Guided-VR destinations available while additional buildings
+       may truthfully remain not_mapped
      - buildings matched by NORMALIZED NAME, never by numeric id
-     - CAS search: building.id belongs to the BUILDING source (it equals the id
+     - configured-anchor search: building.id belongs to the BUILDING source (it equals the id
        /api/buildings reports) and route_destination_id belongs to the ROUTE source
      - /api/pathfind accepts route_destination_id
      - selecting a search hit resolves the SAME canonical row as /api/buildings
@@ -58,11 +59,11 @@ const { getRegressionCredentials } = require('./regressionCredentials');
 // canonical identity authenticated here is terminated through the real logout
 // interface so `npm test` leaves no persisted regression session behind.
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
+const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
+const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
-const EXPECTED_BUILDINGS = 13;
 const REASONS = ['not_mapped', 'unreachable', 'invalid_geometry', 'ambiguous_name', 'route_data_unavailable'];
-
-const CAS_CANON = 'college of arts and sciences';
+const ANCHOR_POLICY = GUIDED_VR_ROUTES[0];
 
 const failures = [];
 function check(scope, label, ok) {
@@ -174,6 +175,74 @@ function verifyDuplicateNameContract() {
 }
 
 /* ===========================================================================
+   PURE configured-endpoint availability contract. Fixtures only: no server,
+   repository, database, or session access. This pins the exact natural-key
+   selection before Dijkstra so a connected sibling can never hide a missing,
+   duplicated, wrong-building, or unreachable active endpoint.
+=========================================================================== */
+function verifyConfiguredEndpointAvailabilityContract() {
+  console.log('\nconfigured-endpoint availability contract (pure fixtures; no DB writes):');
+  const decorate = routeAvailability.availabilityDecorationForDestination;
+  const buildingId = 99;
+  const destinationKey = ANCHOR_POLICY.destination_node_key;
+  const node = (key, id, extra) => Object.assign({
+    id,
+    key,
+    label: key,
+    node_type: 'building',
+    building_id: buildingId,
+    lat: 13.4 + (id / 10000),
+    lng: 123.37 + (id / 10000)
+  }, extra || {});
+  const gate = node('main-gate', 1, { node_type: 'gate', building_id: null });
+  const exact = node(destinationKey, 2);
+  const sibling = node('configured-destination-sibling', 3);
+  const edge = (to) => ({
+    from: 'main-gate',
+    to,
+    distance_meters: 10,
+    walk_time_seconds: 8,
+    path_label: 'fixture path',
+    is_accessible: 1
+  });
+  const run = (nodes, edges, name) => decorate({
+    destinationName: name || ANCHOR_POLICY.destination_name,
+    routeBuildingId: buildingId,
+    nodes,
+    edges,
+    edgeGeometryByKey: new Map(),
+    vrRouteId: 7
+  });
+
+  let result = run([gate, sibling, exact], [edge(sibling.key), edge(exact.key)]);
+  check('endpoint', 'active catalog availability follows the configured natural node key',
+    result.route_available === true && result.route_destination_id === buildingId);
+
+  result = run([gate, sibling], [edge(sibling.key)]);
+  check('endpoint', 'connected sibling cannot hide a missing configured endpoint',
+    result.route_available === false && result.route_unavailable_reason === 'not_mapped');
+
+  result = run(
+    [gate, sibling, node(destinationKey, 4, { building_id: buildingId + 1 })],
+    [edge(sibling.key), edge(destinationKey)]
+  );
+  check('endpoint', 'configured key attached to the wrong building fails closed',
+    result.route_available === false && result.route_unavailable_reason === 'not_mapped');
+
+  result = run([gate, exact, node(destinationKey, 5)], [edge(destinationKey)]);
+  check('endpoint', 'duplicate configured endpoint keys fail closed',
+    result.route_available === false && result.route_unavailable_reason === 'not_mapped');
+
+  result = run([gate, exact], []);
+  check('endpoint', 'exact configured endpoint without a Dijkstra path is unreachable',
+    result.route_available === false && result.route_unavailable_reason === 'unreachable');
+
+  result = run([gate, sibling], [edge(sibling.key)], 'Unconfigured Future Building');
+  check('endpoint', 'non-catalog buildings retain the generic building-node fallback',
+    result.route_available === true && result.route_unavailable_reason === null);
+}
+
+/* ===========================================================================
    Per-mode HTTP verification.
 =========================================================================== */
 async function runMode(scope, base, authSource) {
@@ -186,6 +255,7 @@ async function runMode(scope, base, authSource) {
   const STUDENT_PASS = creds.student.password;
   const bodies = [];
   const createdIds = [];
+  const expectedBuildings = SELECTED_DEMO_FREEZE.backends[authSource].counts.buildings;
   let adminJar = null;
   let adminCsrf = '';
 
@@ -248,24 +318,27 @@ async function runMode(scope, base, authSource) {
     /* ---- clean-state dataset ---- */
     let r = await jfetch('/api/buildings', { headers: SH });
     const pub = (r.json && r.json.buildings) || [];
-    check(scope, `/api/buildings -> ${EXPECTED_BUILDINGS} buildings (found ${pub.length})`,
-      r.status === 200 && pub.length === EXPECTED_BUILDINGS);
+    const activeCanons = new Set(GUIDED_VR_ROUTES.map((policy) => norm(policy.destination_name)));
+    const activeRows = pub.filter((building) => activeCanons.has(norm(building.name)));
+    check(scope, `/api/buildings -> complete ${expectedBuildings}-building source catalog (found ${pub.length})`,
+      r.status === 200 && pub.length === expectedBuildings);
     check(scope, 'every building carries the additive route contract (typed)',
       pub.length > 0 && pub.every(contractOk));
-    check(scope, `ZERO unavailable buildings in the clean state (found ${pub.filter((b) => !b.route_available).length})`,
-      pub.filter((b) => !b.route_available).length === 0);
+    check(scope, 'all 25 configured Guided-VR destination buildings are available',
+      activeRows.length === GUIDED_VR_ROUTES.length && activeRows.every((b) => b.route_available === true));
     check(scope, 'no building reports ambiguous_name in the clean state',
       pub.every((b) => b.route_unavailable_reason !== 'ambiguous_name'));
 
-    /* ---- ID SEPARATION: CAS, matched by canonical name (never by id) ---- */
-    const casList = pub.find((b) => norm(b.name) === CAS_CANON);
-    check(scope, 'CAS resolved from /api/buildings by canonical name', !!casList);
+    /* ---- ID SEPARATION: configured anchor, matched by name (never by id) ---- */
+    const anchorCanon = norm(ANCHOR_POLICY.destination_name);
+    const casList = pub.find((b) => norm(b.name) === anchorCanon);
+    check(scope, 'configured anchor resolved from /api/buildings by canonical name', !!casList);
     if (!casList) return bodies;
 
-    r = await jfetch('/api/search?q=' + encodeURIComponent('Arts and Sciences'), { headers: SH });
+    r = await jfetch('/api/search?q=' + encodeURIComponent(ANCHOR_POLICY.destination_name), { headers: SH });
     const hits = ((r.json && r.json.results) || []).map((x) => x.building).filter(Boolean);
-    const casSearch = hits.find((b) => norm(b.name) === CAS_CANON);
-    check(scope, 'CAS is returned by /api/search', !!casSearch);
+    const casSearch = hits.find((b) => norm(b.name) === anchorCanon);
+    check(scope, 'configured anchor is returned by /api/search', !!casSearch);
     if (!casSearch) return bodies;
     check(scope, 'search hits carry the same decorated contract', hits.every(contractOk));
 
@@ -280,11 +353,11 @@ async function runMode(scope, base, authSource) {
     // route_destination_id must belong to the ROUTE source -> /api/pathfind (route
     // backend) must accept it and land on a real destination.
     const destId = Number(casSearch.route_destination_id);
-    check(scope, 'CAS exposes a positive route_destination_id', Number.isInteger(destId) && destId > 0);
+    check(scope, 'configured anchor exposes a positive route_destination_id', Number.isInteger(destId) && destId > 0);
     r = await jfetch(`/api/pathfind?start=main-gate&destinationBuildingId=${destId}`, { headers: SH });
     check(scope, 'route_destination_id is accepted by /api/pathfind (ROUTE-source id)',
       r.status === 200 && r.json && r.json.success === true && !!r.json.route &&
-      r.json.route.destination && r.json.route.destination.key === 'cas');
+      r.json.route.destination && r.json.route.destination.key === ANCHOR_POLICY.destination_node_key);
     check(scope, 'search route_destination_id matches the /api/buildings route_destination_id',
       Number(casSearch.route_destination_id) === Number(casList.route_destination_id));
 
@@ -323,8 +396,8 @@ async function runMode(scope, base, authSource) {
 
     r = await jfetch('/admin/api/buildings', { headers: AH });
     const adm = (r.json && r.json.buildings) || [];
-    check(scope, `GET /admin/api/buildings -> ${EXPECTED_BUILDINGS} rows`,
-      r.status === 200 && adm.length === EXPECTED_BUILDINGS);
+    check(scope, `GET /admin/api/buildings -> ${expectedBuildings} rows`,
+      r.status === 200 && adm.length === expectedBuildings);
     check(scope, 'admin rows carry the admin shape + availability fields',
       adm.length > 0 && adm.every((b) => Object.prototype.hasOwnProperty.call(b, 'created_at') && contractOk(b)));
     r = await jfetch('/admin/api/buildings', { headers: SH });
@@ -338,7 +411,7 @@ async function runMode(scope, base, authSource) {
       typeof r.json.message === 'string' && !/id|sql|supabase/i.test(r.json.message.replace(/building/gi, '')));
 
     // punctuation/case variant of an existing name must also collide
-    r = await adminPost({ name: 'college of ARTS and sciences', category: 'Academic', description: 'dup probe', lat: 13.406, lng: 123.375 });
+    r = await adminPost({ name: ANCHOR_POLICY.destination_name.toUpperCase().replace(/\s+/g, '---'), category: 'Academic', description: 'dup probe', lat: 13.406, lng: 123.375 });
     check(scope, 'admin CREATE with a canonical (case/punctuation) variant -> 409', r.status === 409);
 
     // a genuinely unique staged building is still allowed
@@ -378,8 +451,9 @@ async function runMode(scope, base, authSource) {
     check(scope, 'public still SHOWS the staged building (campus information preserved)', !!pubStaged);
     check(scope, 'staged building is marked unavailable (not_mapped)',
       !!pubStaged && pubStaged.route_available === false && pubStaged.route_unavailable_reason === 'not_mapped');
-    check(scope, `the ${EXPECTED_BUILDINGS} real destinations remain usable alongside it`,
-      pubWith.filter((b) => b.route_available === true).length === EXPECTED_BUILDINGS);
+    const activeWith = pubWith.filter((building) => activeCanons.has(norm(building.name)));
+    check(scope, `the ${GUIDED_VR_ROUTES.length} configured destinations remain usable alongside it`,
+      activeWith.length === GUIDED_VR_ROUTES.length && activeWith.every((b) => b.route_available === true));
 
     // Probe the ROUTE-source id when one exists (that is the id pathfind actually
     // consumes); otherwise the building id. Either way it must be refused.
@@ -410,8 +484,8 @@ async function runMode(scope, base, authSource) {
         const rows = (aj && aj.buildings) || [];
         const left = rows.filter((b) => /^ZZ BE3 /.test(String(b.name || ''))).length;
         check(scope, `zero leftover probe fixtures (found ${left})`, left === 0);
-        check(scope, `roster restored to exactly ${EXPECTED_BUILDINGS} buildings (found ${rows.length})`,
-          rows.length === EXPECTED_BUILDINGS);
+        check(scope, `roster restored to exactly ${expectedBuildings} buildings (found ${rows.length})`,
+          rows.length === expectedBuildings);
       } catch (e) {
         check(scope, 'fixture cleanup verified', false);
       }
@@ -445,6 +519,7 @@ const MODES = [
   console.log('=== CampuSphere building dataset integration probe (BE.3 + mixed-source repair) ===');
 
   verifyDuplicateNameContract();
+  verifyConfiguredEndpointAvailabilityContract();
 
   const supabaseUsable = hasSupabaseConfig();
   for (const m of MODES) {

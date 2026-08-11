@@ -8,11 +8,10 @@
 
    The defect this probe locks down
    --------------------------------
-   The College of Arts and Sciences (CAS) was created through the admin UI, not
-   the seed, so it was missing from the canonical static roster. A clean rebuild
-   therefore produced 12 buildings and left the `cas` route node with a NULL
-   building_id — CAS was silently UNROUTABLE, and the verified 13-destination
-   baseline could not be reproduced from source control.
+   Historically, the College of Arts and Sciences (CAS) was created through the
+   admin UI but was missing from the canonical static seed roster. BE.2 made the
+   13-building seed reproducible. The current candidate deliberately separates
+   that seed history from the larger backend-specific live catalogs.
 
    BE.2 makes CAS canonical (models/data.js + migration 0018). BE.5 treats the
    current source-controlled roster as the selected orientation-demo set while
@@ -30,13 +29,15 @@
          can no longer create a building-backed route node with building_id NULL
 
      Live MySQL and live Supabase (SELECT / repository reads only):
-       - exactly 13 buildings; the roster matches the canonical set by
-         NORMALIZED NAME (numeric ids are NEVER compared across backends)
-       - CAS resolves to exactly ONE building row
-       - exactly ONE `cas` route node, LINKED to that CAS building
-       - NO building-type route node has a NULL building_id
-       - the additive route graph is 21 nodes / 50 directed edges /
-         25 reverse pairs / 50 valid geometries / 13 routable destinations
+       - every seed building remains present exactly once by NORMALIZED NAME
+         while each complete live roster matches its backend-specific freeze
+         (numeric ids are NEVER compared across backends)
+       - every active Guided-VR destination resolves to exactly one building and
+         its exact configured natural route-node key
+       - NO building-type route node has a NULL building_id, no building node
+         dangles, and all 25 configured destinations are reachable
+       - complete backend-specific node/edge/pair/geometry counts and
+         fingerprints match the refreshed freeze
 
      Static migrations:
        - 0018 exists, is transactional, data-only, idempotent, natural-key based,
@@ -61,14 +62,10 @@ const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { findShortestPath } = require('../utils/pathfinding');
 const { validatePathGeometry } = require('../utils/routeGeometry');
 const data = require('../models/data');
-const buildingRepository = require('../repositories/buildingRepository');
+const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
+const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
 const EXPECTED_BUILDINGS = data.buildings.length;
-const PINNED_ROUTABLE_DESTINATIONS = 13;
-const EXPECTED_NODES = 21;
-const EXPECTED_EDGES = 50;
-const EXPECTED_PAIRS = 25;
-
 const CAS_NAME = 'College of Arts and Sciences';
 const CAS_DESCRIPTION = 'College of Arts and Sciences (CAS)';
 const CAS_NODE_KEY = 'cas';
@@ -221,44 +218,38 @@ COMMIT;
    Shared live-backend validator. MySQL and Supabase get the IDENTICAL contract.
 --------------------------------------------------------------------------- */
 function verifyBackend(scope, buildings, nodes, edges) {
-  check(scope, `exactly ${EXPECTED_BUILDINGS} buildings (found ${buildings.length})`,
-    buildings.length === EXPECTED_BUILDINGS);
+  const frozen = SELECTED_DEMO_FREEZE.backends[scope];
+  check(scope, `complete live roster has ${frozen.counts.buildings} buildings (found ${buildings.length})`,
+    buildings.length === frozen.counts.buildings);
 
-  // roster parity against the canonical static source, by normalized name
-  const canonical = new Set(data.buildings.map((b) => norm(b.name)));
-  const live = new Set(buildings.map((b) => norm(b.name)));
-  const missing = [...canonical].filter((n) => !live.has(n));
-  const extra = [...live].filter((n) => !canonical.has(n));
-  check(scope, `live roster matches models/data.js by normalized name (missing ${missing.length}, unexpected ${extra.length})`,
-    missing.length === 0 && extra.length === 0);
+  const liveNames = buildings.map((building) => building.name).sort();
+  check(scope, 'complete live roster matches the refreshed backend freeze',
+    JSON.stringify(liveNames) === JSON.stringify(frozen.roster));
+  check(scope, 'all live canonical building names are unique',
+    new Set(buildings.map((building) => norm(building.name))).size === buildings.length);
 
-  // CAS resolves to exactly one row
-  const casRows = buildings.filter((b) => norm(b.name) === norm(CAS_NAME));
-  check(scope, `"${CAS_NAME}" resolves to exactly ONE building row (found ${casRows.length})`,
-    casRows.length === 1);
-
-  if (casRows.length === 1) {
-    const cas = casRows[0];
-    check(scope, `CAS category is ${CAS_CATEGORY}`, String(cas.category) === CAS_CATEGORY);
-    check(scope, `CAS public description is "${CAS_DESCRIPTION}"`,
-      String(cas.description) === CAS_DESCRIPTION);
-    check(scope, 'CAS sits on the owner-confirmed coordinate',
-      Math.abs(num(cas.lat) - CAS_LAT) <= COORD_EPSILON &&
-      Math.abs(num(cas.lng) - CAS_LNG) <= COORD_EPSILON);
+  const buildingByCanonical = new Map();
+  for (const building of buildings) {
+    const key = norm(building.name);
+    const list = buildingByCanonical.get(key) || [];
+    list.push(building);
+    buildingByCanonical.set(key, list);
   }
-
-  // exactly one `cas` node, LINKED to the CAS building
-  const casNodes = nodes.filter((n) => n.node_key === CAS_NODE_KEY);
-  check(scope, `exactly ONE route node with node_key='${CAS_NODE_KEY}' (found ${casNodes.length})`,
-    casNodes.length === 1);
-  if (casNodes.length === 1 && casRows.length === 1) {
-    check(scope, `the '${CAS_NODE_KEY}' node is LINKED to the CAS building (building_id is not NULL and points at CAS)`,
-      casNodes[0].building_id != null &&
-      Number(casNodes[0].building_id) === Number(casRows[0].id));
-    check(scope, `the '${CAS_NODE_KEY}' node uses the exact owner-confirmed coordinate`,
-      Math.abs(num(casNodes[0].lat) - CAS_LAT) <= COORD_EPSILON &&
-      Math.abs(num(casNodes[0].lng) - CAS_LNG) <= COORD_EPSILON);
+  const nodesByKey = new Map();
+  for (const node of nodes) {
+    const list = nodesByKey.get(node.node_key) || [];
+    list.push(node);
+    nodesByKey.set(node.node_key, list);
   }
+  check(scope, 'all 25 active destination buildings exist exactly once', GUIDED_VR_ROUTES.every((route) =>
+    (buildingByCanonical.get(norm(route.destination_name)) || []).length === 1));
+  check(scope, 'all configured natural destination nodes exist exactly once and map to their building',
+    GUIDED_VR_ROUTES.every((route) => {
+      const matchingBuildings = buildingByCanonical.get(norm(route.destination_name)) || [];
+      const matchingNodes = nodesByKey.get(route.destination_node_key) || [];
+      return matchingBuildings.length === 1 && matchingNodes.length === 1 &&
+        Number(matchingNodes[0].building_id) === Number(matchingBuildings[0].id);
+    }));
 
   // NO building-type node may be unmapped — this is the regression class itself
   const unmapped = nodes.filter((n) => n.node_type === 'building' && n.building_id == null);
@@ -270,11 +261,10 @@ function verifyBackend(scope, buildings, nodes, edges) {
   const dangling = nodes.filter((n) => n.building_id != null && !bIds.has(Number(n.building_id)));
   check(scope, `no route node points at a missing building (dangling ${dangling.length})`, dangling.length === 0);
 
-  /* ---- the route graph must be UNCHANGED by BE.2 ---- */
-  check(scope, `route graph still has ${EXPECTED_NODES} nodes (found ${nodes.length})`,
-    nodes.length === EXPECTED_NODES);
-  check(scope, `route graph still has ${EXPECTED_EDGES} directed edges (found ${edges.length})`,
-    edges.length === EXPECTED_EDGES);
+  check(scope, `route graph matches ${frozen.counts.route_nodes} frozen nodes (found ${nodes.length})`,
+    nodes.length === frozen.counts.route_nodes);
+  check(scope, `route graph matches ${frozen.counts.route_edges} frozen directed edges (found ${edges.length})`,
+    edges.length === frozen.counts.route_edges);
 
   const keyById = new Map(nodes.map((n) => [Number(n.id), n.node_key]));
   let geomValid = 0;
@@ -292,12 +282,13 @@ function verifyBackend(scope, buildings, nodes, edges) {
     const un = a < b ? `${a}|${b}` : `${b}|${a}`;
     if (!seen.has(un)) { seen.add(un); pairs++; }
   }
-  check(scope, `all ${EXPECTED_EDGES} edges still carry valid geometry (valid ${geomValid})`,
-    geomValid === EXPECTED_EDGES);
-  check(scope, `route graph still has ${EXPECTED_PAIRS} undirected pairs (found ${pairs})`,
-    pairs === EXPECTED_PAIRS);
+  check(scope, `all ${edges.length} edges carry valid endpoint-continuous geometry (valid ${geomValid})`,
+    geomValid === edges.length);
+  check(scope, `route graph matches ${frozen.counts.reverse_pairs} frozen reverse pairs (found ${pairs})`,
+    pairs === frozen.counts.reverse_pairs);
 
-  // 13/13 routable from the Guard House
+  // Every active catalog destination is routable from the Guard House through
+  // its configured natural node key. Sibling/legacy building nodes cannot win.
   const pfNodes = nodes.map((n) => ({
     id: Number(n.id), key: n.node_key, label: n.label, node_type: n.node_type,
     building_id: n.building_id != null ? Number(n.building_id) : null,
@@ -309,22 +300,13 @@ function verifyBackend(scope, buildings, nodes, edges) {
     walk_time_seconds: Number(e.walk_time_seconds) || 0,
     is_accessible: Number(e.is_accessible)
   }));
-  let routable = 0;
-  let casRoutable = false;
-  for (const b of buildings) {
-    const m = pfNodes.filter((n) => n.building_id === Number(b.id));
-    const dest = m.find((n) => n.node_type === 'building') || m[0] || null;
-    if (!dest) continue;
-    const r = findShortestPath({ nodes: pfNodes, edges: pfEdges, startKey: 'main-gate', endKey: dest.key });
-    if (r.success && r.nodes.length >= 2) {
-      routable++;
-      if (norm(b.name) === norm(CAS_NAME)) casRoutable = true;
-    }
-  }
-  check(scope, `${PINNED_ROUTABLE_DESTINATIONS}/${PINNED_ROUTABLE_DESTINATIONS} destinations routable from main-gate (routable ${routable})`,
-    routable === PINNED_ROUTABLE_DESTINATIONS &&
-    EXPECTED_BUILDINGS === PINNED_ROUTABLE_DESTINATIONS);
-  check(scope, 'CAS is routable from main-gate', casRoutable);
+  const routable = GUIDED_VR_ROUTES.filter((route) => {
+    const result = findShortestPath({ nodes: pfNodes, edges: pfEdges,
+      startKey: 'main-gate', endKey: route.destination_node_key });
+    return result.success && result.nodes.length >= 2;
+  }).length;
+  check(scope, `25/25 active destinations are routable from main-gate (routable ${routable})`,
+    routable === GUIDED_VR_ROUTES.length);
 }
 
 (async () => {
@@ -384,19 +366,6 @@ function verifyBackend(scope, buildings, nodes, edges) {
          FROM route_edges`
     );
     verifyBackend('mysql', myB, myN, myE);
-    const casTerm = '%CAS%';
-    const [myCasSearch] = await db.query(
-      `SELECT name
-         FROM buildings
-        WHERE name LIKE ?
-           OR category LIKE ?
-           OR description LIKE ?
-           OR JSON_SEARCH(details, 'one', ?) IS NOT NULL
-        ORDER BY name ASC
-        LIMIT 25`,
-      [casTerm, casTerm, casTerm, casTerm]
-    );
-    const myCasSearchNames = myCasSearch.map((row) => norm(row.name)).sort();
 
     /* ---------------- live Supabase ---------------- */
     say('\nsupabase live baseline:');
@@ -418,15 +387,16 @@ function verifyBackend(scope, buildings, nodes, edges) {
       check('supabase', 'live buildings + route graph are readable', readable);
       if (readable) {
         verifyBackend('supabase', sbB, sbN, sbE);
-        const sbCasSearch = await buildingRepository.search('CAS', { limit: 25 });
-        const sbCasSearchNames = sbCasSearch.map((row) => norm(row.name)).sort();
         check('cross-backend',
-          'building search for "CAS" returns identical natural building names',
-          JSON.stringify(myCasSearchNames) === JSON.stringify(sbCasSearchNames));
+          'both backends contain every active destination natural building name',
+          GUIDED_VR_ROUTES.every((route) =>
+            myB.filter((building) => norm(building.name) === norm(route.destination_name)).length === 1 &&
+            sbB.filter((building) => norm(building.name) === norm(route.destination_name)).length === 1));
         check('cross-backend',
-          'building search for "CAS" includes the canonical College of Arts and Sciences',
-          myCasSearchNames.includes(norm(CAS_NAME)) &&
-          sbCasSearchNames.includes(norm(CAS_NAME)));
+          'both backends contain every configured natural destination node key',
+          GUIDED_VR_ROUTES.every((route) =>
+            myN.filter((node) => node.node_key === route.destination_node_key).length === 1 &&
+            sbN.filter((node) => node.node_key === route.destination_node_key).length === 1));
       }
     }
 

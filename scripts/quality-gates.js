@@ -2002,8 +2002,12 @@ function runVrRuntimeGate() {
   // through the guarded helper before reaching EJS / JSON output.
   ok('vrController guards guided-route image_url', /image_url:\s*resolveSceneImageUrl\(s\.image_url\)/.test(src));
   ok('vrController guards scene-browser image_url', /image_url:\s*resolveSceneImageUrl\(current\.image_url\)/.test(src));
-  // The VR runtime never selects, shapes, or surfaces cloudinary_public_id.
-  ok('vrController never references cloudinary_public_id', !/cloudinary_public_id/.test(src));
+  // Guided verification reads the stored public ID internally so arrival can
+  // fail closed on incomplete delivery metadata. Public response construction
+  // must remain explicit and must never expose that field.
+  ok('vrController uses cloudinary_public_id only as internal guided metadata',
+    /SELECT id, scene_key, title, description, image_url, cloudinary_public_id, node_id/.test(src) &&
+    !/cloudinary_public_id\s*:/.test(src));
   return rec.failures;
 }
 
@@ -3537,15 +3541,23 @@ function runVercelPackageBoundaryGate() {
   }
 
   /* ---- 4. the enumerated live package ---- */
-  const liveEnum = R7.enumeratePackage(root, liveParsed.rules);
-  const livePackageProblems = R7.evaluatePackageContract(liveEnum.files);
+  const liveManifest = R7.buildPackageManifest(root, liveParsed.rules);
+  const liveFiles = liveManifest.files.map((entry) => entry.path);
+  const livePackageProblems = R7.evaluatePackageContract(liveFiles);
   ok('the enumerated package satisfies the independently pinned contract',
     livePackageProblems.length === 0);
   livePackageProblems.forEach((p) => console.error('    - package: ' + p));
+  const liveManifestProblems = R7.verifyManifestSelfConsistency(liveManifest);
+  ok('the live package manifest is internally consistent', liveManifestProblems.length === 0);
+  liveManifestProblems.forEach((p) => console.error('    - manifest: ' + p));
+  const livePinProblems = currentPackageInventoryProblems(liveManifest);
+  ok('the live package manifest matches the quality gate independent file-count, byte-total, and SHA-256 pin',
+    livePinProblems.length === 0 && R7.evaluatePinnedPackageManifest(liveManifest).length === 0);
+  livePinProblems.forEach((p) => console.error('    - package-pin: ' + p));
   ok('the enumerated package contains no path inside the denied panorama subtree',
-    liveEnum.files.every((p) => !/^public\/img\/sample 360(\/|$)/i.test(p)));
+    liveFiles.every((p) => !/^public\/img\/sample 360(\/|$)/i.test(p)));
   ok('every enumerated path is normalized, relative, and traversal-free',
-    liveEnum.files.every((p) => p === R7.toPosix(p) && !p.startsWith('/') &&
+    liveFiles.every((p) => p === R7.toPosix(p) && !p.startsWith('/') &&
       !/^[A-Za-z]:/.test(p) && !p.split('/').includes('..')));
   ok('no package manifest or deployment archive was written into the repository',
     !fs.existsSync(path.join(root, 'vercel-package-manifest.json')) &&
@@ -3825,16 +3837,33 @@ function runVercelPackageBoundaryGate() {
       skippedNonRegularEntries: 0,
     };
     const clone = () => JSON.parse(JSON.stringify(good));
+    const syntheticPin = { files: 2, bytes: '5', sha256: good.aggregateSha256 };
     ok('fixture: a consistent preview manifest is accepted',
-      R7.verifyManifestSelfConsistency(good).length === 0);
+      R7.verifyManifestSelfConsistency(good).length === 0 &&
+      currentPackageInventoryProblems(good, syntheticPin).length === 0 &&
+      R7.evaluatePinnedPackageManifest(liveManifest).length === 0);
     ok('fixture: a falsified file count, byte total, or aggregate hash is rejected',
       R7.verifyManifestSelfConsistency(Object.assign(clone(), { fileCount: 3 })).length > 0 &&
       R7.verifyManifestSelfConsistency(Object.assign(clone(), { byteTotal: 9999 })).length > 0 &&
-      R7.verifyManifestSelfConsistency(Object.assign(clone(), { aggregateSha256: 'f'.repeat(64) })).length > 0);
+      R7.verifyManifestSelfConsistency(Object.assign(clone(), { aggregateSha256: 'f'.repeat(64) })).length > 0 &&
+      currentPackageInventoryProblems(Object.assign(clone(), { fileCount: 3 }), syntheticPin).length > 0 &&
+      currentPackageInventoryProblems(Object.assign(clone(), { byteTotal: 9999 }), syntheticPin).length > 0 &&
+      currentPackageInventoryProblems(Object.assign(clone(), { aggregateSha256: 'f'.repeat(64) }), syntheticPin).length > 0);
     ok('fixture: a falsified per-file size or hash is rejected',
       R7.verifyManifestSelfConsistency((() => { const m = clone(); m.files[0].bytes = 99; return m; })()).length > 0 &&
       R7.verifyManifestSelfConsistency((() => { const m = clone(); m.files[0].sha256 = 'a'.repeat(64); return m; })()).length > 0 &&
-      R7.verifyManifestSelfConsistency((() => { const m = clone(); m.files[0].sha256 = 'not-a-hash'; return m; })()).length > 0);
+      R7.verifyManifestSelfConsistency((() => { const m = clone(); m.files[0].sha256 = 'not-a-hash'; return m; })()).length > 0 &&
+      (() => {
+        const changed = JSON.parse(JSON.stringify(liveManifest));
+        changed.files[0].bytes += 1;
+        changed.files[0].sha256 = changed.files[0].sha256 === 'a'.repeat(64)
+          ? 'f'.repeat(64) : 'a'.repeat(64);
+        changed.byteTotal = changed.files.reduce((sum, entry) => sum + entry.bytes, 0);
+        changed.aggregateSha256 = R7.computeAggregateSha256(changed.files);
+        return R7.verifyManifestSelfConsistency(changed).length === 0 &&
+          R7.evaluatePinnedPackageManifest(changed).length > 0 &&
+          currentPackageInventoryProblems(changed).length > 0;
+      })());
     ok('fixture: a missing preview label, duplicated path, or backslash path is rejected',
       R7.verifyManifestSelfConsistency(Object.assign(clone(), { label: 'deployment manifest' })).length > 0 &&
       R7.verifyManifestSelfConsistency((() => { const m = clone(); m.files[1].path = 'server.js'; m.aggregateSha256 = R7.computeAggregateSha256(m.files); m.byteTotal = 5; return m; })()).length > 0 &&
@@ -4202,6 +4231,114 @@ function recordsAcceptedD7EvidenceText(value) {
   return d7Go && acceptedEvidence && freshContexts && fullSuite && auditZero && postconditions;
 }
 
+/**
+ * PURE: require the completed candidate matrix in one live authority scope and
+ * reject the exact pending/session-remediation regressions found by independent
+ * review. Historical failures may remain when clearly framed; only a live
+ * instruction that still makes them the next boundary is rejected here.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function currentCandidateVerificationProblems(value, expectedTotal) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const problems = [];
+  const total = Number(expectedTotal);
+  const exact = Number.isInteger(total) ? String(total) + '/' + String(total) : '';
+
+  if (t === '' || exact === '') return ['missing candidate verification scope or invalid total'];
+
+  const candidateScopes = [];
+  let exactAt = t.indexOf(exact);
+  while (exactAt >= 0) {
+    candidateScopes.push(t.slice(Math.max(0, exactAt - 220), exactAt + 700));
+    exactAt = t.indexOf(exact, exactAt + exact.length);
+  }
+  const verifiedScope = candidateScopes.find((scope) =>
+    /npm test/i.test(scope) && /QUALITY-GATES OK/i.test(scope) &&
+    /npm run qa/i.test(scope) && /(?:five[- ]stage|five stages|five green stages)/i.test(scope) &&
+    /24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(scope));
+  if (!verifiedScope) {
+    problems.push('current scope does not bind npm test to the exact total and QUALITY-GATES OK');
+  }
+  if (!verifiedScope ||
+      !(verifiedScope.includes(exact) || /same (?:exact )?contract total/i.test(verifiedScope))) {
+    problems.push('current scope does not bind full five-stage QA to the exact candidate total');
+  }
+
+  if (!/24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(t)) {
+    problems.push('current scope does not record the final ordered postconditions');
+  }
+  if (!/(?:independent (?:read-only )?(?:re-)?review[^.]{0,300}(?:remain|remains|is|stays)(?: still)? (?:open|pending|required)|review itself remains open)/i.test(t)) {
+    problems.push('current scope does not keep independent review open');
+  }
+  if (/(?:matrix|contract\/QA total|ordered postconditions?)[^.]{0,140}\b(?:remain|remains|are|is) pending\b/i.test(t)) {
+    problems.push('current scope still declares completed verification pending');
+  }
+  if (/next boundary[^.]{0,180}(?:resolution|natural expiry)[^.]{0,80}session-residue findings/i.test(t)) {
+    problems.push('current scope still instructs session-residue remediation');
+  }
+  return problems;
+}
+
+/**
+ * PURE: preserve one transcript-faithful account of the two rejected
+ * verification anomalies that immediately precede the current candidate.
+ *
+ * The first run stopped at the wrapper's 20-minute bound without a completion
+ * count. The bounded retry emitted 4,628 PASS lines, nine current-authority
+ * wording failures, and the canonical MySQL student-session residue failure.
+ * A separate earlier QA command was green internally, while its external
+ * scorer alone returned 97 after looking for the invented SUPABASE-SMOKE OK
+ * marker instead of the real [supabase-smoke] PASS marker.
+ *
+ * This analyzer intentionally rejects the stale "seven documentation
+ * failures" wording found by independent review. It is applied to every
+ * current authority block and to the evidence ledger so one corrected document
+ * cannot mask drift in another.
+ * @returns {string[]} problems (empty = transcript-faithful)
+ */
+function rejectedVerificationHistoryProblems(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const problems = [];
+
+  const timeoutRecorded =
+    /20-minute wrapper bound[\s\S]{0,220}no completion count/i.test(t) ||
+    /wrapper timeout at 20 minutes[\s\S]{0,220}no completion count/i.test(t);
+  if (!timeoutRecorded) {
+    problems.push('missing rejected 20-minute wrapper timeout and no-completion disclosure');
+  }
+
+  const retryRe = /\b4,?628\b/g;
+  const retryScopes = [];
+  let retryMatch;
+  while ((retryMatch = retryRe.exec(t)) !== null) {
+    retryScopes.push(t.slice(retryMatch.index, retryMatch.index + 1200));
+  }
+  if (retryScopes.length === 0) problems.push('missing rejected 4,628-PASS retry disclosure');
+  const exactRetryScope = retryScopes.find((scope) =>
+    /\bnine\b[\s\S]{0,100}\bcurrent-authority wording (?:failures|mismatches)\b/i.test(scope) &&
+    /\b(?:residue failure|orphaned canonical MySQL student session)\b/i.test(scope));
+  if (!exactRetryScope) {
+    problems.push('rejected retry does not record nine current-authority wording failures');
+    problems.push('rejected retry does not record the canonical student-session residue failure');
+  }
+  if (/\b(?:seven|7)\s+(?:current-authority wording|documentation) failures\b/i.test(t)) {
+    problems.push('stale seven-documentation-failure account remains');
+  }
+
+  const scorerRe = /\b(?:returned|exit(?:ed)?)\s+97\b/ig;
+  const scorerScopes = [];
+  let scorerMatch;
+  while ((scorerMatch = scorerRe.exec(t)) !== null) {
+    scorerScopes.push(t.slice(Math.max(0, scorerMatch.index - 180), scorerMatch.index + 700));
+  }
+  if (!scorerScopes.some((scope) =>
+    scope.includes('SUPABASE-SMOKE OK') && scope.includes('[supabase-smoke] PASS'))) {
+    problems.push('scorer-only exit 97 is not bound to the invented and actual smoke markers');
+  }
+
+  return problems;
+}
+
 /** PURE: does ONE reusable prompt body carry the current M12.P1 authority? */
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
@@ -4226,7 +4363,9 @@ function reusablePromptIsCurrent(body) {
      continuity claims. Requiring the deployed-baseline analyzer here closes the
      gap where a prompt body could assert a stale or conflicting production
      baseline that every other authority document is already checked against. */
-  return carriesCurrentAuthority && !declaresStaleOrPrematureAuthority(t) &&
+  return carriesCurrentAuthority &&
+    currentCandidateVerificationProblems(t, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
+    !declaresStaleOrPrematureAuthority(t) &&
     deploymentDocumentClaimsAreCurrent(t);
 }
 
@@ -4463,19 +4602,82 @@ function analyzeProvenanceRemediationRow(md) {
    legitimate citation, while the same figure sitting in a STATUS cell is a
    current disposition. Only the latter is a defect. */
 
-/* The current R8 enumerated package inventory, pinned HERE independently of the
+/* The current candidate package inventory, pinned HERE independently of the
    probe and of both evidence documents, so a document edit alone cannot move
    what "current" means. */
-const EXPECTED_R8_PACKAGE_INVENTORY = Object.freeze({
+const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   files: 158,
-  bytes: '6,212,545',
-  sha256: 'c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999',
+  bytes: '6,245,074',
+  sha256: 'b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4',
 });
+
+/** PURE: compare a manifest with this gate's independent exact-byte pin. */
+function currentPackageInventoryProblems(manifest, expected = EXPECTED_CURRENT_PACKAGE_INVENTORY) {
+  const problems = [];
+  if (!manifest || typeof manifest !== 'object') return ['manifest is missing'];
+  const expectedBytes = Number(String(expected && expected.bytes == null ? '' : expected.bytes).replace(/,/g, ''));
+  if (manifest.fileCount !== Number(expected && expected.files)) {
+    problems.push('live package file count differs from the quality-gate pin');
+  }
+  if (manifest.byteTotal !== expectedBytes) {
+    problems.push('live package byte total differs from the quality-gate pin');
+  }
+  if (manifest.aggregateSha256 !== String(expected && expected.sha256 || '')) {
+    problems.push('live package aggregate SHA-256 differs from the quality-gate pin');
+  }
+  return problems;
+}
+
+/* Current expanded BE.6 evidence, pinned independently of both the freeze
+   configuration and the evidence document. A coordinated config+docs edit
+   therefore cannot silently redefine the reviewed backend/catalog truth. */
+const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
+  mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations',
+  supabase: 'Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations',
+  guidedCatalog: 'the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys',
+  be6Result: 'BE.6 candidate remains 46/46',
+});
+
+/* The facilitator demo must state the same backend/catalog authority and the
+   complete fail-closed arrival contract. This pin is independent of the demo
+   document and the runtime resolver. */
+const EXPECTED_CURRENT_DEMO_ROUTING = Object.freeze({
+  mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations',
+  supabase: 'Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations',
+  guidedCatalog: 'Guided VR covers 25 active destinations, 472 configured steps, and 99 unique scene keys',
+  naturalEndpoint: 'the configured natural destination node',
+  storedMappings: 'stored start and arrival scene mappings',
+  approvedMedia: 'an approved Cloudinary delivery URL and public ID',
+  bidirectionalLinks: 'exactly one forward and one reverse scene link for every adjacent scene pair',
+  failClosed: 'otherwise the route remains unavailable and no arrival is reported',
+});
+
+const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
+  'candidate remediation and verification',
+  'independent commit-readiness review',
+  'local commit',
+  'separately authorized push',
+  'separately authorized read-only R8',
+  'separate owner deployment decision',
+  'limited pilot',
+]);
 
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-const EXPECTED_SEC51_CURRENT_QUALITY_TOTAL = 3792;
+// The independently reviewed transcript-fidelity candidate emitted 4,639
+// checks. This bounded authority-consistency remediation adds exactly two: one
+// live cross-document rejected-run check and one combined accepting/rejecting
+// history fixture.
+const EXPECTED_CURRENT_QUALITY_TOTAL = 4641;
+
+const REQUIRED_CURRENT_QA_EVIDENCE_MARKERS = Object.freeze([
+  'QUALITY-GATES OK',
+  'DB-PERF-GATE OK',
+  '[supabase-smoke] PASS',
+  'IDENTITY-CONSTRAINTS OK',
+  'found 0 vulnerabilities',
+]);
 
 /** PURE: the STATUS cell of an evidence row (always second-to-last column). */
 function evidenceStatusCell(cells) {
@@ -4564,6 +4766,116 @@ function analyzeManualBlackBoxRows(md) {
     if (/\bpending\b/i.test(status)) problems.push('Pending manual status: ' + label);
     if (status.trim() === '') problems.push('blank manual status: ' + label);
     if (evidenceReferenceCell(r.cells).trim() === '') problems.push('blank manual evidence/disposition: ' + label);
+  }
+  return problems;
+}
+
+/**
+ * PURE: exactly one current route/pathfinding manual row must bind its PASS
+ * disposition to the independently pinned expanded BE.6 backend and Guided-VR
+ * catalog truth. Historical rows elsewhere remain legal.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeCurrentRoutePathfindingEvidence(md, expected) {
+  const section = markdownSection(md, /^##\s+Manual Black-Box Checklist\s*$/);
+  if (section.trim() === '') return ['no Manual Black-Box Checklist section'];
+
+  const rows = markdownTableRows(section).filter((row) =>
+    /^route\/pathfinding$/i.test(String(row.cells[0] || '').trim()) &&
+    /^road-following destination route$/i.test(String(row.cells[1] || '').trim()));
+  const current = rows.filter((row) => !evidenceRowSelfMarkedHistorical(row.cells));
+  const problems = [];
+
+  if (current.length === 0) problems.push('no current route/pathfinding evidence row');
+  if (current.length > 1) problems.push('duplicate current route/pathfinding evidence rows');
+
+  for (const row of current) {
+    const status = evidenceStatusCell(row.cells);
+    const evidence = evidenceReferenceCell(row.cells).replace(/[`*_]/g, '').replace(/\s+/g, ' ').trim();
+    const normalizedEvidence = evidence.toLowerCase();
+    const requiredClaims = [expected.mysql, expected.supabase, expected.guidedCatalog, expected.be6Result];
+
+    if (!/\bPASS\b/i.test(status)) problems.push('current route/pathfinding row is not PASS');
+    for (const claim of requiredClaims) {
+      if (!normalizedEvidence.includes(String(claim).toLowerCase())) {
+        problems.push('current route/pathfinding row does not bind the pinned claim: ' + claim);
+      }
+    }
+    if (normalizedEvidence.includes(
+      '21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 13 routable destinations in both backends')) {
+      problems.push('current route/pathfinding row restores the superseded shared 21/50/25/50/13 topology');
+    }
+  }
+
+  return problems;
+}
+
+/** PURE: extract the body of one exact level-three markdown subsection. */
+function markdownSubsection(md, headingRe) {
+  const lines = String(md == null ? '' : md).split(/\r?\n/);
+  const start = lines.findIndex((line) => headingRe.test(line.trim()));
+  if (start < 0) return '';
+  const out = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^###\s+/.test(lines[i])) break;
+    out.push(lines[i]);
+  }
+  return out.join('\n');
+}
+
+/**
+ * PURE: the facilitator's Campus Navigation section must bind its expected
+ * result to the backend-specific freeze and complete arrival authority.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeDemoRoutingContract(md, expected) {
+  const section = markdownSubsection(md, /^###\s+4\.\s+Campus Navigation\s*$/i);
+  if (!section.trim()) return ['Campus Navigation subsection is missing'];
+  const normalized = section.replace(/[`*_]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const required = [
+    expected.mysql,
+    expected.supabase,
+    expected.guidedCatalog,
+    expected.naturalEndpoint,
+    expected.storedMappings,
+    expected.approvedMedia,
+    expected.bidirectionalLinks,
+    expected.failClosed,
+  ];
+  const problems = [];
+  for (const claim of required) {
+    if (!normalized.includes(String(claim).toLowerCase())) {
+      problems.push('Campus Navigation omits the pinned claim: ' + claim);
+    }
+  }
+  if (/20-node\s*\/\s*48-edge|24-pair graph|all 13 current destinations/i.test(section)) {
+    problems.push('Campus Navigation restores the superseded shared demo topology');
+  }
+  return problems;
+}
+
+/**
+ * PURE: the facilitator's readiness section must preserve every remaining
+ * authorization boundary in order and must not promote the limited pilot as
+ * the immediate next step while candidate review and R8 remain open.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeDemoReadinessSequence(md, expectedSteps) {
+  const section = markdownSubsection(md, /^###\s+6\.\s+Security And Deployment Readiness\s*$/i);
+  if (!section.trim()) return ['Security And Deployment Readiness subsection is missing'];
+  const normalized = section.replace(/[`*_]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const problems = [];
+  let cursor = -1;
+  for (const step of expectedSteps) {
+    const index = normalized.indexOf(String(step).toLowerCase(), cursor + 1);
+    if (index < 0) {
+      problems.push('readiness sequence omits or reorders: ' + step);
+      continue;
+    }
+    cursor = index;
+  }
+  if (/m12\.p1\s+limited-pilot readiness is next/i.test(section)) {
+    problems.push('limited-pilot readiness is incorrectly promoted as the immediate next step');
   }
   return problems;
 }
@@ -5034,7 +5346,7 @@ function analyzeSupersededCandidateRows(md) {
 }
 
 /**
- * PURE: exactly ONE current R8 package inventory row, stating the independently
+ * PURE: exactly ONE current candidate package inventory row, stating the independently
  * pinned file count, byte count, and aggregate SHA-256 in its STATUS cell.
  * @returns {string[]} problems (empty = compliant)
  */
@@ -5052,6 +5364,30 @@ function analyzeCurrentPackageInventoryRow(md, expected) {
     if (!status.includes(expected.bytes)) problems.push('current inventory row does not state the pinned byte count');
     if (!status.includes(expected.sha256)) problems.push('current inventory row does not state the pinned aggregate SHA-256');
   }
+  return problems;
+}
+
+/**
+ * PURE: SEC-37 must carry exactly one explicitly CURRENT package claim and it
+ * must equal the independent package pin. Historical figures may remain in the
+ * same evidence cell only when they are not labelled current.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeSecurityChecklistPackageBoundaryRow(md, expected) {
+  const rows = markdownTableRows(md).filter((r) => /^SEC-37$/i.test(String(r.cells[0] || '').trim()));
+  const problems = [];
+  if (rows.length === 0) return ['SEC-37 package-boundary row is missing'];
+  if (rows.length > 1) return ['SEC-37 package-boundary row is duplicated'];
+  const evidence = evidenceReferenceCell(rows[0].cells);
+  const currentClaims = [...evidence.matchAll(
+    /\*\*Current\b[^:\n|]{0,120}:\*\*\s*(\d+)\s+files,\s*([\d,]+)\s+bytes,\s*aggregate SHA-256\s+`([a-f0-9]{64})`/gi
+  )];
+  if (currentClaims.length === 0) return ['SEC-37 has no explicit current package claim'];
+  if (currentClaims.length > 1) return ['SEC-37 has duplicate current package claims'];
+  const [, files, bytes, sha256] = currentClaims[0];
+  if (Number(files) !== expected.files) problems.push('SEC-37 current file count differs from the package pin');
+  if (bytes !== expected.bytes) problems.push('SEC-37 current byte count differs from the package pin');
+  if (sha256.toLowerCase() !== expected.sha256) problems.push('SEC-37 current SHA-256 differs from the package pin');
   return problems;
 }
 
@@ -5101,13 +5437,13 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     {
       label: 'test-evidence current full contract suite',
       md: testEvidenceMd,
-      match: (r) => /^full contract suite \(additive CCS\/Road-94 candidate\)$/i
+      match: (r) => /^full contract suite \(Guided-VR catalog-remediation candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
       label: 'test-evidence current Full QA aggregate',
       md: testEvidenceMd,
-      match: (r) => /^full QA aggregate \(additive CCS\/Road-94 candidate\)$/i
+      match: (r) => /^full QA aggregate \(Guided-VR catalog-remediation candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
@@ -5141,6 +5477,50 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     if (total == null) problems.push(spec.label + ': status does not carry one exact equal N/N total');
     else if (total !== expectedTotal) problems.push(spec.label + ': status total does not match the pinned current total');
     if (!/QUALITY-GATES OK/.test(row.raw)) problems.push(spec.label + ': row does not bind QUALITY-GATES OK to its current disposition');
+  }
+  return problems;
+}
+
+/**
+ * PURE: the current npm-run-qa rows in BOTH evidence documents must bind every
+ * actual stage marker to the row's own evidence cell. A neighbouring row, an
+ * invented normalized marker, or a generic "all green" claim cannot satisfy
+ * this contract.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function analyzeCurrentQaStageMarkers(testEvidenceMd, securityChecklistMd,
+  requiredMarkers = REQUIRED_CURRENT_QA_EVIDENCE_MARKERS) {
+  const specs = [
+    {
+      label: 'test-evidence current Full QA aggregate',
+      md: testEvidenceMd,
+      match: (r) => /^full QA aggregate \(Guided-VR catalog-remediation candidate\)$/i
+        .test(String(r.cells[0] || '').trim()),
+    },
+    {
+      label: 'security-checklist current npm run qa',
+      md: securityChecklistMd,
+      match: (r) => normalizedEvidenceCommand(r.cells[0]) === 'npm run qa',
+    },
+  ];
+  const problems = [];
+  if (!Array.isArray(requiredMarkers) || requiredMarkers.length !== 5 ||
+      requiredMarkers.some((marker) => typeof marker !== 'string' || marker === '')) {
+    return ['required QA-stage marker pin is malformed'];
+  }
+  for (const spec of specs) {
+    const rows = markdownTableRows(spec.md).filter(spec.match);
+    const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
+    if (current.length !== 1) {
+      problems.push(spec.label + ': expected exactly one current row');
+      continue;
+    }
+    const evidence = evidenceReferenceCell(current[0].cells);
+    for (const marker of requiredMarkers) {
+      if (!evidence.includes(marker)) {
+        problems.push(spec.label + ': missing exact stage marker ' + marker);
+      }
+    }
   }
   return problems;
 }
@@ -5689,6 +6069,59 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
+  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-11';
+  /** PURE: all current authority surfaces must carry one synchronized date. */
+  function currentCandidateDateProblems(sourceMap, expectedDate = EXPECTED_CURRENT_CANDIDATE_DATE) {
+    const problems = [];
+    for (const name of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
+      const value = String(sourceMap && sourceMap[name] || '');
+      const pattern = new RegExp('\\*\\*CURRENT STATUS \\(' + expectedDate.replace(/\./g, '\\.') + '\\b');
+      if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current-status date');
+    }
+    for (const name of ['CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'docs/new-session-grounding-prompts.md']) {
+      const value = String(sourceMap && sourceMap[name] || '');
+      const pattern = new RegExp('^Last updated:\\s*' + expectedDate.replace(/\./g, '\\.') + '\\s*\\(Asia/Manila\\)\\s*$', 'm');
+      if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized Last updated date');
+    }
+    const headings = {
+      'docs/deployment.md': 'Current Deployment And Guided-VR Candidate Status',
+      'docs/security-checklist.md': 'Current Security And Pilot Status',
+      'docs/test-evidence.md': 'Current Evidence Classification',
+    };
+    for (const [name, heading] of Object.entries(headings)) {
+      const value = String(sourceMap && sourceMap[name] || '');
+      const pattern = new RegExp('^## ' + expectedDate.replace(/\./g, '\\.') + ' ' + heading + '\\s*$', 'm');
+      if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current heading date');
+    }
+    return problems;
+  }
+
+  const liveDateProblems = currentCandidateDateProblems(docs);
+  ok('all live authority and evidence surfaces carry the synchronized current candidate date',
+    liveDateProblems.length === 0);
+  liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
+
+  const DATE_FIXTURE = {
+    'AGENTS.md': '**CURRENT STATUS (2026-08-11 candidate).**',
+    'CLAUDE.md': '**CURRENT STATUS (2026-08-11 candidate).**',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-11 (Asia/Manila)\n**CURRENT STATUS (2026-08-11 candidate).**',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-11 (Asia/Manila)\n**CURRENT STATUS (2026-08-11 candidate).**',
+    'plan.md': '**CURRENT STATUS (2026-08-11 candidate).**',
+    'ROADMAP.md': '**CURRENT STATUS (2026-08-11 candidate).**',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-11 (Asia/Manila)',
+    'docs/deployment.md': '## 2026-08-11 Current Deployment And Guided-VR Candidate Status',
+    'docs/security-checklist.md': '## 2026-08-11 Current Security And Pilot Status',
+    'docs/test-evidence.md': '## 2026-08-11 Current Evidence Classification',
+  };
+  ok('fixture: synchronized current dates are accepted and any single stale current date is rejected',
+    currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
+    currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
+      'docs/security-checklist.md': '## 2026-08-10 Current Security And Pilot Status',
+    })).length > 0 &&
+    currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
+      'ROADMAP.md': '**CURRENT STATUS (2026-08-10 candidate).**',
+    })).length > 0);
+
   // L7: AGENTS.md + CLAUDE.md must not carry the stale claims and must document
   // the live test/auth/persistence/Cloudinary architecture.
   for (const [name, doc] of [['AGENTS.md', agents], ['CLAUDE.md', claude]]) {
@@ -5774,12 +6207,12 @@ function runDocsCurrentGate() {
 
   for (const name of architectureDocs) {
     const doc = docs[name].replace(/\s+/g, ' ');
-    ok(`${name} records the refreshed 21/50/25/50/13 route topology`,
-      /21.{0,60}(nodes|route nodes)/i.test(doc) &&
-      /50.{0,60}(directed edges|edges)/i.test(doc) &&
-      /25.{0,60}(reverse pairs|pairs)/i.test(doc) &&
-      /50.{0,80}geometr/i.test(doc) &&
-      /13.{0,80}(routable|destinations|destination coverage)/i.test(doc));
+    ok(`${name} records the expanded backend-specific route and Guided-VR catalog truth`,
+      /MySQL.{0,160}34.{0,40}buildings.{0,100}44.{0,40}(nodes|route nodes).{0,100}100.{0,40}(directed edges|edges).{0,100}50.{0,40}(reverse pairs|pairs).{0,100}100.{0,80}geometr/i.test(doc) &&
+      /Supabase.{0,160}25.{0,40}buildings.{0,100}26.{0,40}(nodes|route nodes).{0,100}50.{0,40}(directed edges|edges).{0,100}25.{0,40}(reverse pairs|pairs).{0,100}50.{0,80}geometr/i.test(doc) &&
+      /25.{0,80}(active|configured).{0,80}(Guided VR|destinations)/i.test(doc) &&
+      /472.{0,80}(configured )?(steps|scene steps)/i.test(doc) &&
+      /99.{0,80}unique.{0,40}(scene|scene keys)/i.test(doc));
     ok(`${name} states routing uses the campus graph and owner-managed geometry`,
       /(own|its own|internal).{0,40}campus graph/i.test(doc) &&
       /owner-managed.{0,80}(geometr(y|ies)|path_geometry)/i.test(doc));
@@ -5789,6 +6222,158 @@ function runDocsCurrentGate() {
     ok(`${name} records guided-VR destination-coverage truth`,
       /Guided VR[\s\S]{0,180}(arrival|arrive)[\s\S]{0,220}(destination|partial|coverage)/i.test(doc));
   }
+
+  const GUIDED_VR_HISTORY_START = '<!-- GUIDED-VR HISTORICAL POLICY START -->';
+  const GUIDED_VR_HISTORY_END = '<!-- GUIDED-VR HISTORICAL POLICY END -->';
+  const M12_HISTORY_START = '<!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->';
+  const M12_HISTORY_END = '<!-- M12.P1 HISTORICAL 2026-07-30 STATUS END -->';
+  const M12_PRIOR_START = '<!-- M12.P1 PRIOR STATUS START -->';
+  const M12_PRIOR_END = '<!-- M12.P1 PRIOR STATUS END -->';
+
+  /** PURE: remove exactly one ordered marker block, or fail closed. */
+  function stripSingleAuthorityBlock(value, startMarker, endMarker) {
+    const text = String(value == null ? '' : value);
+    const starts = text.split(startMarker).length - 1;
+    const ends = text.split(endMarker).length - 1;
+    const start = text.indexOf(startMarker);
+    const end = text.indexOf(endMarker);
+    if (starts !== 1 || ends !== 1 || start < 0 || end <= start) {
+      return { valid: false, current: text };
+    }
+    return {
+      valid: true,
+      current: text.slice(0, start) + text.slice(end + endMarker.length),
+    };
+  }
+
+  /** PURE: expose only current repository authority, excluding marked history. */
+  function currentRepositoryGuidedVrAuthority(value, includeGuidedHistory) {
+    let current = String(value == null ? '' : value);
+    const pairs = [
+      [M12_HISTORY_START, M12_HISTORY_END],
+      [M12_PRIOR_START, M12_PRIOR_END],
+    ];
+    if (includeGuidedHistory) pairs.push([GUIDED_VR_HISTORY_START, GUIDED_VR_HISTORY_END]);
+    for (const [startMarker, endMarker] of pairs) {
+      const stripped = stripSingleAuthorityBlock(current, startMarker, endMarker);
+      if (!stripped.valid) return { valid: false, current };
+      current = stripped.current;
+    }
+    return { valid: true, current };
+  }
+
+  /** PURE: isolate the one permitted historical Guided-VR policy block. */
+  function guidedVrHistoricalPolicy(value) {
+    const text = String(value == null ? '' : value);
+    const starts = text.split(GUIDED_VR_HISTORY_START).length - 1;
+    const ends = text.split(GUIDED_VR_HISTORY_END).length - 1;
+    const start = text.indexOf(GUIDED_VR_HISTORY_START);
+    const end = text.indexOf(GUIDED_VR_HISTORY_END);
+    if (starts !== 1 || ends !== 1 || start < 0 || end <= start) {
+      return { valid: false, history: '', current: text };
+    }
+    const history = text.slice(start + GUIDED_VR_HISTORY_START.length, end);
+    const current = text.slice(0, start) + text.slice(end + GUIDED_VR_HISTORY_END.length);
+    const compactHistory = history.replace(/\s+/g, ' ');
+    return {
+      valid: (
+        /### Building Expansion/i.test(history) &&
+        /\bBE\.1\b/i.test(compactHistory) &&
+        /\bBE\.4\b/i.test(compactHistory) &&
+        /\bBE\.6\b/i.test(compactHistory) &&
+        !/### Offline Campus Navigation Package/i.test(history) &&
+        /### Offline Campus Navigation Package/i.test(current)
+      ),
+      history,
+      current,
+    };
+  }
+
+  /** PURE: find obsolete Guided-VR policy presented as current authority. */
+  function guidedVrAuthorityProblems(value) {
+    const blocks = stripFencedBlocks(value)
+      .split(/\r?\n\s*\r?\n/)
+      .map((block) => block.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    return blocks.filter((block) => {
+      const stale = (
+        /\bCAS-only\b/i.test(block) ||
+        /\b(?:deferred[- ]CCS|CCS[- ]deferred|CCS[- ]unavailable)\b/i.test(block) ||
+        /\bCCS\b[^.]{0,180}\b(?:Guided[- ]?VR|route)\b[^.]{0,180}\b(?:deferred|unavailable)\b/i.test(block) ||
+        /\bmissing CCS\b[^.]{0,120}\b(?:placeholder|media|panorama)\b/i.test(block) ||
+        /\bCAS\b[^.]{0,100}\b(?:required|only)\b[^.]{0,100}\bGuided[- ]?VR\b/i.test(block) ||
+        /\bCAS guided[- ]?VR\b[^.]{0,160}\bdeferred CCS\b/i.test(block) ||
+        /\b24[- ]scene\b[^.]{0,120}\bCAS\b[^.]{0,160}\b23[- ]scene\b[^.]{0,120}\bCCS\b/i.test(block) ||
+        /\bfrozen\s+13-building\s+catalog\b/i.test(block) ||
+        /\brequired\s+CAS\s+VR\s+metadata\b/i.test(block)
+      );
+      if (!stale) return false;
+      const historical = /\b(?:historical|superseded|older|former)\b/i.test(block);
+      const disclaimsCurrent = /\b(?:not current|does not describe current|no longer current|not operative)\b/i.test(block);
+      return !(historical && disclaimsCurrent);
+    });
+  }
+
+  const liveGuidedVrHistory = guidedVrHistoricalPolicy(docs['plan.md']);
+  ok('plan.md carries exactly one ordered historical Guided-VR policy block around completed BE history',
+    liveGuidedVrHistory.valid);
+  ok('plan.md current authority contains no operative CAS-only or deferred-CCS Guided-VR policy',
+    guidedVrAuthorityProblems(liveGuidedVrHistory.current).length === 0);
+  ok('ROADMAP.md current authority contains no operative CAS-only or deferred-CCS Guided-VR policy',
+    guidedVrAuthorityProblems(docs['ROADMAP.md']).length === 0);
+
+  for (const [name, includeGuidedHistory] of [
+    ['CODEX_HANDOFF.md', true],
+    ['CLAUDE_HANDOFF.md', true],
+    ['AGENTS.md', false],
+    ['CLAUDE.md', false],
+  ]) {
+    const authority = currentRepositoryGuidedVrAuthority(docs[name], includeGuidedHistory);
+    const problems = authority.valid ? guidedVrAuthorityProblems(authority.current) : ['authority markers are invalid'];
+    ok(`${name} marked history is isolated and current Guided-VR authority rejects obsolete CAS-only/deferred-CCS policy`,
+      authority.valid && problems.length === 0);
+    problems.forEach((problem) => console.error(`    - ${name} Guided-VR authority: ${problem}`));
+  }
+
+  const CURRENT_GUIDED_VR_FIXTURE = 'All 25 configured Guided-VR destinations remain active online. OFF.3 packages the current BE.6-frozen public catalog for the selected supported backend and Guided-VR metadata for all 25 active destinations. The 13-building roster is only the reproducible seed baseline.';
+  const EXPLICIT_GUIDED_VR_HISTORY_FIXTURE = 'Historical and superseded: the older CAS-only/deferred-CCS policy is not current and does not describe current runtime truth.';
+  const MARKED_GUIDED_VR_HISTORY_FIXTURE = [
+    GUIDED_VR_HISTORY_START,
+    '### Building Expansion',
+    'BE.1 through BE.6 are completed history. BE.4 required deferred CCS behavior.',
+    GUIDED_VR_HISTORY_END,
+    '### Offline Campus Navigation Package',
+    CURRENT_GUIDED_VR_FIXTURE,
+  ].join('\n\n');
+  const GENERIC_MARKED_GUIDED_VR_FIXTURE = [
+    GUIDED_VR_HISTORY_START,
+    'BE.4 required deferred CCS behavior.',
+    GUIDED_VR_HISTORY_END,
+    CURRENT_GUIDED_VR_FIXTURE,
+  ].join('\n\n');
+  ok('fixture: the current 25-destination Guided-VR policy is accepted',
+    guidedVrAuthorityProblems(CURRENT_GUIDED_VR_FIXTURE).length === 0);
+  ok('fixture: explicitly historical obsolete Guided-VR policy is accepted',
+    guidedVrAuthorityProblems(EXPLICIT_GUIDED_VR_HISTORY_FIXTURE).length === 0);
+  ok('fixture: a single marker-wrapped obsolete BE policy is isolated and accepted as history',
+    guidedVrHistoricalPolicy(MARKED_GUIDED_VR_HISTORY_FIXTURE).valid &&
+    guidedVrAuthorityProblems(guidedVrHistoricalPolicy(MARKED_GUIDED_VR_HISTORY_FIXTURE).current).length === 0 &&
+    stripSingleAuthorityBlock(
+      GENERIC_MARKED_GUIDED_VR_FIXTURE, GUIDED_VR_HISTORY_START, GUIDED_VR_HISTORY_END).valid &&
+    guidedVrAuthorityProblems(stripSingleAuthorityBlock(
+      GENERIC_MARKED_GUIDED_VR_FIXTURE, GUIDED_VR_HISTORY_START, GUIDED_VR_HISTORY_END).current).length === 0);
+  ok('fixture: a current catalog followed by operative deferred-CCS authority is rejected',
+    guidedVrAuthorityProblems(CURRENT_GUIDED_VR_FIXTURE + '\n\nCCS Guided VR remains deferred until a later release.').length > 0);
+  ok('fixture: future CCS-unavailable, frozen-13-building, and CAS-only offline scopes are rejected',
+    guidedVrAuthorityProblems('OFF.5 must preserve the current CCS-unavailable Guided-VR state.').length > 0 &&
+    guidedVrAuthorityProblems('OFF.3 packages the frozen 13-building catalog for public use.').length > 0 &&
+    guidedVrAuthorityProblems('OFF.3 packages required CAS VR metadata for public use.').length > 0);
+  ok('fixture: the obsolete exact 24-scene CAS and 23-scene CCS policy is rejected',
+    guidedVrAuthorityProblems('Current policy requires a 24-scene CAS route and a 23-scene CCS route.').length > 0);
+  ok('fixture: missing, duplicated, or inverted Guided-VR history markers fail closed',
+    !guidedVrHistoricalPolicy(MARKED_GUIDED_VR_HISTORY_FIXTURE.replace(GUIDED_VR_HISTORY_START, '')).valid &&
+    !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_START + '\n' + MARKED_GUIDED_VR_HISTORY_FIXTURE).valid &&
+    !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_END + '\nold\n' + GUIDED_VR_HISTORY_START).valid);
 
   for (const name of sequenceDocs) {
     const doc = docs[name].replace(/\s+/g, ' ');
@@ -5811,13 +6396,14 @@ function runDocsCurrentGate() {
     'CLAUDE.md',
     'docs/deployment.md',
     'docs/demo-script.md',
+    'docs/security-checklist.md',
     'docs/test-evidence.md',
   ];
   const authoritativeText = antiStaleDocs.map((name) => docs[name]).join('\n');
   ok('authoritative docs contain no pre-0019 migration-current claims',
     !/(0014|0015|0016|0017|0018|0019) should not exist|STATE 001[7-9] PENDING|(?:migration\s+001[7-9]|001[7-9]\s+migration)[^\n]{0,50}(pending|unapplied)/i.test(authoritativeText));
-  ok('authoritative docs contain no obsolete 52-edge/26-pair topology',
-    !/(52[^\n]{0,30}(directed )?edges|26[^\n]{0,30}(reverse )?pairs)/i.test(authoritativeText));
+  ok('authoritative docs contain no obsolete topology, additive-CCS label, or August 1 current-pointer',
+    !/(52[^\n]{0,30}(directed )?edges|26[^\n]{0,30}(reverse )?pairs|20-node\s*\/\s*48-edge|24-pair graph|present additive CCS candidate|override the August 1 status above)/i.test(authoritativeText));
 
   // Narrow stale-status predicate (M12.P1-D5 corrective). The previous broad
   // proximity regex `RF\.1[^\n]{0,80}(active|current)` falsely matched the
@@ -6412,6 +6998,7 @@ function runDocsCurrentGate() {
     'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md',
     'AGENTS.md', 'CLAUDE.md',
   ];
+  const currentM12Statuses = [];
   /* PER-DOCUMENT validation. Joining the documents would let one truthful
      banner mask a stale declaration elsewhere — exactly the false green that
      let four live stale phrasings survive. Each status document must
@@ -6423,12 +7010,16 @@ function runDocsCurrentGate() {
     ok(`${name} records R3 complete and Codex GO`,
       declaresClosedR3(docs[name]));
     const status = currentM12Status(docs[name]);
+    currentM12Statuses.push(status);
     ok(`${name} carries exactly one ordered M12.P1 current-status block`,
       status !== null);
     ok(`${name} current status records R1-R7/D1-D5/D7 GO, accepted R7/D7 evidence, and the R8 read-only stop`,
       status !== null && declaresR7GoAuthority(status));
     ok(`${name} current status keeps M12.P1 deployment/pilot readiness at NO-GO`,
       status !== null && keepsM12P1NoGo(status));
+    ok(`${name} current status records the exact completed candidate matrix and keeps independent review open`,
+      status !== null &&
+      currentCandidateVerificationProblems(status, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
     ok(`${name} contains no stale forward-looking post-R4 instruction`,
       !declaresStalePostR4Instruction(docs[name]));
     ok(`${name} contains no stale pre-D7-GO authority or premature R8 promotion`,
@@ -6436,6 +7027,10 @@ function runDocsCurrentGate() {
     ok(`${name} names no spent prompt as current authority and no stale pre-R8 sequence`,
       !declaresSpentPromptAuthority(docs[name]));
   }
+  ok('all current authority blocks and the evidence ledger preserve one transcript-faithful rejected-run account',
+    currentM12Statuses.every((status) =>
+      status !== null && rejectedVerificationHistoryProblems(status).length === 0) &&
+    rejectedVerificationHistoryProblems(docs['docs/test-evidence.md']).length === 0);
 
   /* M12.P1-R8: the deployment guide must carry the COMPLETE Vercel checklist. */
   ok('docs/deployment.md lists all 14 fail-closed profile entries plus SESSION_SECRET, the OAuth trio, the /auth/callback URI, and the Google Form',
@@ -6446,6 +7041,31 @@ function runDocsCurrentGate() {
   ok('fixture: a checklist missing the /auth/callback URI is flagged',
     vercelChecklistIsComplete(
       docs['docs/deployment.md'].split('/auth/callback').join('/auth/redacted')) === false);
+  ok('docs/deployment.md records completed candidate verification and keeps independent review open',
+    currentCandidateVerificationProblems(
+      docs['docs/deployment.md'], EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
+  ok('fixture: current candidate verification rejects pending-matrix and stale session-remediation authority',
+    currentCandidateVerificationProblems(
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Independent read-only review remains open.',
+      4641).length === 0 &&
+    currentCandidateVerificationProblems(
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions remain pending. Independent read-only review remains open.',
+      4641).length > 0 &&
+    currentCandidateVerificationProblems(
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Independent read-only review remains open. The next boundary is owner-directed resolution of session-residue findings.',
+      4641).length > 0);
+  const REJECTED_HISTORY_OK =
+    'Historical/rejected: a freshly counted suite attempt stopped at its 20-minute wrapper bound and produced no completion count. ' +
+    'The bounded retry exited 1 at 4,628 PASS with nine current-authority wording failures and the residue failure from one orphaned canonical MySQL student session. ' +
+    'Separately, an earlier green QA command had an enclosing scorer that returned 97 because it searched for nonexistent SUPABASE-SMOKE OK instead of the actual [supabase-smoke] PASS marker.';
+  ok('fixture: transcript-faithful rejected-run history is accepted while stale counts and marker/timeout drift are rejected',
+    rejectedVerificationHistoryProblems(REJECTED_HISTORY_OK).length === 0 &&
+    rejectedVerificationHistoryProblems(
+      REJECTED_HISTORY_OK.replace('nine current-authority wording failures', 'seven documentation failures')).length > 0 &&
+    rejectedVerificationHistoryProblems(
+      REJECTED_HISTORY_OK.replace('[supabase-smoke] PASS', 'SUPABASE-SMOKE OK')).length > 0 &&
+    rejectedVerificationHistoryProblems(
+      REJECTED_HISTORY_OK.replace('produced no completion count', 'completed successfully')).length > 0);
 
   /* M12.P1-R8: superseded audits must announce themselves as history. */
   for (const name of ['CODEBASE_REMEDIATION_PLAN.md', 'fable5_security_bugs_report.md']) {
@@ -6597,6 +7217,7 @@ function runDocsCurrentGate() {
       'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. ' +
       'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Independent read-only review remains open. ' +
       'M12.P1-R8 is the next potential section and is read-only, but this context-only prompt does not authorize R8 execution. Even R8 GO authorizes only a separate owner deployment decision. ' +
       'The sequence is R8 read-only review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. ' +
       'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized. ' +
@@ -6671,6 +7292,12 @@ function runDocsCurrentGate() {
       reusablePromptIsCurrent(WRONG_BASELINE_BODY) === false &&
       reusablePromptsAreCurrent(buildDoc(WRONG_BASELINE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, WRONG_BASELINE_BODY)) === false);
+    ok('fixture: reusable prompts reject completed-verification pending wording and stale session-remediation sequencing',
+      reusablePromptIsCurrent(CURRENT_BODY.replace(
+        'Final ordered postconditions are 24/24 -> 18/18 -> 46/46.',
+        'Final ordered postconditions remain pending.')) === false &&
+      reusablePromptIsCurrent(CURRENT_BODY +
+        ' The next boundary is owner-directed resolution of session-residue findings.') === false);
     ok('fixture: a stale Codex prompt body fails (direct + inverse + qualified R5-next)',
       reusablePromptsAreCurrent(buildDoc(STALE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY + ' The next implementation section is R5.', CURRENT_BODY)) === false &&
@@ -6746,6 +7373,7 @@ function runDocsCurrentGate() {
   {
     const te = docs['docs/test-evidence.md'];
     const sc = docs['docs/security-checklist.md'];
+    const demo = docs['docs/demo-script.md'];
 
     ok('docs/test-evidence.md exposes exactly one current safety row stating 24/24',
       analyzeCurrentSafetyRow(te).length === 0);
@@ -6814,20 +7442,27 @@ function runDocsCurrentGate() {
     /* ---- M12.P1-R8 evidence-consistency corrections (live documents) ---- */
     ok('docs/test-evidence.md exposes exactly one current, non-Pending Full QA aggregate disposition',
       analyzeFullQaAggregateRows(te).length === 0);
-    ok('docs/test-evidence.md Manual Black-Box Checklist carries no Pending status and no blank disposition',
-      analyzeManualBlackBoxRows(te).length === 0);
+    ok('docs/test-evidence.md Manual Black-Box Checklist is fully dispositioned and binds current route/pathfinding evidence to the expanded BE.6 truth',
+      analyzeManualBlackBoxRows(te).length === 0 &&
+      analyzeCurrentRoutePathfindingEvidence(te, EXPECTED_CURRENT_BE6_EVIDENCE).length === 0);
+    ok('docs/demo-script.md binds routing to the backend freeze and preserves the ordered review-to-pilot authorization sequence',
+      analyzeDemoRoutingContract(demo, EXPECTED_CURRENT_DEMO_ROUTING).length === 0 &&
+      analyzeDemoReadinessSequence(demo, EXPECTED_CURRENT_DEMO_SEQUENCE).length === 0);
     ok('docs/test-evidence.md deployment smoke records the accepted SEC-51 result with its host and deployed baseline',
       analyzeDeploymentSmokeRow(te).length === 0);
     ok('docs/test-evidence.md presents no superseded R8 candidate figure as a current status',
       analyzeSupersededCandidateRows(te).length === 0);
-    ok('docs/security-checklist.md presents no superseded R8 candidate figure as a current status',
-      analyzeSupersededCandidateRows(sc).length === 0);
-    ok('docs/test-evidence.md exposes exactly one current R8 package inventory row with the pinned figures',
-      analyzeCurrentPackageInventoryRow(te, EXPECTED_R8_PACKAGE_INVENTORY).length === 0);
+    ok('docs/security-checklist.md presents no superseded R8 status and exactly one independently pinned current package claim',
+      analyzeSupersededCandidateRows(sc).length === 0 &&
+      analyzeSecurityChecklistPackageBoundaryRow(sc, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
+    ok('docs/test-evidence.md exposes exactly one current candidate package inventory row with the pinned figures',
+      analyzeCurrentPackageInventoryRow(te, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
     ok('docs/test-evidence.md exposes exactly one current full-suite correction-candidate row',
       analyzeCurrentCandidateSuiteRow(te).length === 0);
     ok('current npm-test and full-QA dispositions bind one exact pinned total across both evidence documents',
-      analyzeExactCurrentQualityTotals(te, sc, EXPECTED_SEC51_CURRENT_QUALITY_TOTAL).length === 0);
+      analyzeExactCurrentQualityTotals(te, sc, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
+    ok('current full-QA dispositions bind all five exact transcript stage markers in both evidence documents',
+      analyzeCurrentQaStageMarkers(te, sc).length === 0);
 
     const scheduleAuditService = readIf(path.join('services', 'auditService.js'));
     const scheduleAuditController = readIf(path.join('controllers', 'adminScheduleController.js'));
@@ -6843,13 +7478,32 @@ function runDocsCurrentGate() {
     const M_HDR = '## Manual Black-Box Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- | --- | --- |\n';
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
-    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **3792/3792 PASS - all five stages, exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `IDENTITY-CONSTRAINTS OK` |';
+    const QA_STAGE_EVIDENCE = '`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`';
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **4641/4641 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
+    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 candidate remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys |';
+    const M_ROUTE_STALE = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The refreshed BE.6 selected-demo candidate holds at 46/46 with 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 13 routable destinations in both backends |';
+    const M_ROUTE_WRONG_MYSQL_COUNT = M_ROUTE_CURRENT.replace('44 route nodes', '43 route nodes');
+    const DEMO_OK = [
+      '### 4. Campus Navigation',
+      '',
+      'Expected: ' + EXPECTED_CURRENT_DEMO_ROUTING.mysql + '; ' +
+        EXPECTED_CURRENT_DEMO_ROUTING.supabase + '; ' + EXPECTED_CURRENT_DEMO_ROUTING.guidedCatalog + '.',
+      'Arrival requires ' + EXPECTED_CURRENT_DEMO_ROUTING.naturalEndpoint + ', ' +
+        EXPECTED_CURRENT_DEMO_ROUTING.storedMappings + ', ' + EXPECTED_CURRENT_DEMO_ROUTING.approvedMedia + ', and ' +
+        EXPECTED_CURRENT_DEMO_ROUTING.bidirectionalLinks + '; ' + EXPECTED_CURRENT_DEMO_ROUTING.failClosed + '.',
+      '',
+      '### 5. Next Section',
+      '',
+      '### 6. Security And Deployment Readiness',
+      '',
+      'Remaining sequence: ' + EXPECTED_CURRENT_DEMO_SEQUENCE.join(' -> ') + '.',
+    ].join('\n');
     const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
     const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; historical/superseded: before that deployment, the earlier baseline was d422b54393f659125912ec5c84ae7927c2533288 |';
     const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
@@ -6861,18 +7515,23 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12 additive CCS cutover package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,212,545 bytes, aggregate SHA-256 `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`; focused probe `71/71`** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12 additive CCS cutover package inventory (candidate) | `x` | recomputed | **158 files, 6,212,545 bytes, aggregate SHA-256 `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`** | before this runtime correction, the previous candidate was 158 files, 6,201,747 bytes, aggregate `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1` |';
+    const INV_CURRENT = '| M12 Guided-VR catalog-remediation package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`; focused and in-suite gates `72/72`** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12 Guided-VR catalog-remediation package inventory (candidate) | `x` | recomputed | **158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`** | before this review remediation, the previous candidate was 158 files, 6,242,755 bytes, aggregate `3eb6296b924039e57c445400f0a958bf4b7234305a3278ea0fbcb12b99dfd653` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
+    const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
+    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Historical/superseded:** 157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`. **Current Guided-VR catalog-remediation candidate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('158 files, 6,245,074 bytes', '157 files, 6,194,154 bytes');
+    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |');
+    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current Guided-VR catalog-remediation candidate:**', '**Historical/superseded Guided-VR catalog-remediation candidate:**');
 
-    const EXACT_SUITE_OK = '| Full contract suite (additive CCS/Road-94 candidate) | `npm test` | zero fail | **3792/3792 PASS - correction candidate** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (additive CCS/Road-94 candidate) | `npm run qa` | all green | **3792/3792 PASS - exit 0** | `QUALITY-GATES OK` |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (additive CCS/Road-94 candidate) | `npm run qa` | all green | **3791/3791 PASS - exit 0** | `QUALITY-GATES OK`; 3792/3792 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (Guided-VR catalog-remediation candidate) | `npm test` | zero fail | **4641/4641 PASS - correction candidate** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4641/4641 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4640/4640 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4641/4641 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **3792/3792 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **3792/3792 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 3792/3792 |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4641/4641 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4641/4641 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
+    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4641/4641 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
        now structural. Each rejecting fixture below keeps every required action
@@ -7028,12 +7687,39 @@ function runDocsCurrentGate() {
       analyzeFullQaAggregateRows(Q_HDR + Q_QA_CURRENT + '\n' + Q_QA_CURRENT).length > 0 &&
       analyzeFullQaAggregateRows(Q_HDR + Q_QA_HISTORICAL).length > 0);
 
-    ok('fixture: a fully dispositioned manual checklist section is accepted',
-      analyzeManualBlackBoxRows(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0);
-    ok('fixture: a Pending or blank-evidence manual row is rejected and a missing section fails closed',
+    ok('fixture: a fully dispositioned manual checklist with exact current route/pathfinding BE.6 evidence is accepted',
+      analyzeManualBlackBoxRows(M_HDR + M_OK + '\n' + M_ROUTE_CURRENT + '\n' + M_SMOKE_OK + M_TAIL).length === 0 &&
+      analyzeCurrentRoutePathfindingEvidence(
+        M_HDR + M_OK + '\n' + M_ROUTE_CURRENT + '\n' + M_SMOKE_OK + M_TAIL,
+        EXPECTED_CURRENT_BE6_EVIDENCE).length === 0);
+    ok('fixture: Pending, blank, missing, stale, or single-count-mutated manual evidence fails closed',
       analyzeManualBlackBoxRows(M_HDR + M_PENDING + M_TAIL).length > 0 &&
       analyzeManualBlackBoxRows(M_HDR + M_BLANK_EVIDENCE + M_TAIL).length > 0 &&
-      analyzeManualBlackBoxRows('## Some Other Section\n\n| a | b | c | d | e | f |\n').length > 0);
+      analyzeManualBlackBoxRows('## Some Other Section\n\n| a | b | c | d | e | f |\n').length > 0 &&
+      analyzeCurrentRoutePathfindingEvidence(
+        M_HDR + M_ROUTE_STALE + M_TAIL, EXPECTED_CURRENT_BE6_EVIDENCE).length > 0 &&
+      analyzeCurrentRoutePathfindingEvidence(
+        M_HDR + M_ROUTE_WRONG_MYSQL_COUNT + M_TAIL, EXPECTED_CURRENT_BE6_EVIDENCE).length > 0);
+    ok('fixture: an exact backend/catalog demo with complete arrival authority and ordered readiness sequence is accepted',
+      analyzeDemoRoutingContract(DEMO_OK, EXPECTED_CURRENT_DEMO_ROUTING).length === 0 &&
+      analyzeDemoReadinessSequence(DEMO_OK, EXPECTED_CURRENT_DEMO_SEQUENCE).length === 0);
+    ok('fixture: stale topology, missing arrival authority, or a missing/reordered readiness boundary fails closed', [
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.mysql, 'the verified 20-node / 48-edge / 24-pair graph routes all 13 current destinations'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.guidedCatalog, 'Guided VR covers 24 active destinations'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.naturalEndpoint, 'the selected destination'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.storedMappings, 'scene coverage'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.approvedMedia, 'available images'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.bidirectionalLinks, 'navigation links'),
+      DEMO_OK.replace(EXPECTED_CURRENT_DEMO_ROUTING.failClosed, 'arrival is reported')
+    ].every((fixture) => analyzeDemoRoutingContract(fixture, EXPECTED_CURRENT_DEMO_ROUTING).length > 0) &&
+      analyzeDemoReadinessSequence(
+        DEMO_OK.replace(EXPECTED_CURRENT_DEMO_SEQUENCE[0], 'limited-pilot readiness is next'),
+        EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0 &&
+      analyzeDemoReadinessSequence(
+        DEMO_OK.replace(
+          EXPECTED_CURRENT_DEMO_SEQUENCE.join(' -> '),
+          [...EXPECTED_CURRENT_DEMO_SEQUENCE].reverse().join(' -> ')),
+        EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0);
 
     ok('fixture: a SEC-51 deployment-smoke row naming the host and the CURRENT deployed baseline is accepted, with or without a marked historical baseline',
       analyzeDeploymentSmokeRow(M_HDR + M_OK + '\n' + M_SMOKE_OK + M_TAIL).length === 0 &&
@@ -7046,24 +7732,32 @@ function runDocsCurrentGate() {
       analyzeDeploymentSmokeRow(M_HDR + M_SMOKE_OK + '\n' + M_SMOKE_OK + M_TAIL).length > 0 &&
       analyzeDeploymentSmokeRow(M_HDR + M_OK + M_TAIL).length > 0);
 
-    ok('fixture: superseded 3659 and 6,192,992 figures are accepted once marked historical, including a historical citation inside an evidence cell',
+    ok('fixture: superseded figures are accepted once historical and SEC-37 accepts one pinned current package claim',
       analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_HIST + '\n' + INV_STALE_HIST).length === 0 &&
-      analyzeSupersededCandidateRows(Q_HDR + INV_CURRENT_CITES_OLD).length === 0);
-    ok('fixture: a superseded 3659 or 6,192,992 figure sitting in a CURRENT status cell is rejected',
+      analyzeSupersededCandidateRows(Q_HDR + INV_CURRENT_CITES_OLD).length === 0 &&
+      analyzeSecurityChecklistPackageBoundaryRow(
+        SEC37_HDR + SEC37_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
+    ok('fixture: stale current status or stale, duplicated, and missing SEC-37 current package claims are rejected',
       analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_CURRENT).length > 0 &&
-      analyzeSupersededCandidateRows(Q_HDR + INV_STALE_CURRENT).length > 0);
+      analyzeSupersededCandidateRows(Q_HDR + INV_STALE_CURRENT).length > 0 &&
+      analyzeSecurityChecklistPackageBoundaryRow(
+        SEC37_HDR + SEC37_STALE_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0 &&
+      analyzeSecurityChecklistPackageBoundaryRow(
+        SEC37_HDR + SEC37_DUPLICATE_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0 &&
+      analyzeSecurityChecklistPackageBoundaryRow(
+        SEC37_HDR + SEC37_HISTORICAL_ONLY, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0);
 
     /* The second clause pins the scoping regression directly: a CURRENT row that
        cites older evidence as historical inside its EVIDENCE cell must stay
        current. Judging "historical" from the whole row demoted the live current
        inventory row and left zero current rows. */
     ok('fixture: exactly one current inventory row carrying the pinned figures is accepted, including one that cites older evidence as historical',
-      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_STALE_HIST, EXPECTED_R8_PACKAGE_INVENTORY).length === 0 &&
-      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT_CITES_OLD + '\n' + INV_STALE_HIST, EXPECTED_R8_PACKAGE_INVENTORY).length === 0);
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_STALE_HIST, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT_CITES_OLD + '\n' + INV_STALE_HIST, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
     ok('fixture: a stale-figure, duplicated, or absent current inventory row is rejected',
-      analyzeCurrentPackageInventoryRow(Q_HDR + INV_STALE_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0 &&
-      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0 &&
-      analyzeCurrentPackageInventoryRow(Q_HDR + Q_QA_CURRENT, EXPECTED_R8_PACKAGE_INVENTORY).length > 0);
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_STALE_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + INV_CURRENT + '\n' + INV_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0 &&
+      analyzeCurrentPackageInventoryRow(Q_HDR + Q_QA_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length > 0);
 
     ok('fixture: one current full-suite candidate row plus a historical one is accepted',
       analyzeCurrentCandidateSuiteRow(Q_HDR + SUITE_CURRENT + '\n' + SUITE_STALE_HIST).length === 0);
@@ -7075,21 +7769,35 @@ function runDocsCurrentGate() {
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        3792).length === 0);
+        4641).length === 0);
     ok('fixture: a mismatched QA total or a total appearing only in neighbouring evidence is rejected',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_MISMATCH,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_BARE,
-        3792).length > 0);
+        4641).length > 0);
     ok('fixture: missing, duplicated, or historical-only current total rows fail closed',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK,
-        3792).length > 0 &&
+        4641).length > 0 &&
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + Q_QA_HISTORICAL,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        3792).length > 0);
+        4641).length > 0);
+    ok('fixture: all five exact QA-stage markers are accepted and every missing or invented marker is rejected',
+      analyzeCurrentQaStageMarkers(
+        Q_HDR + EXACT_QA_OK,
+        SEC_COMMAND_HDR + SEC_NPM_QA_OK).length === 0 &&
+      REQUIRED_CURRENT_QA_EVIDENCE_MARKERS.every((marker) =>
+        analyzeCurrentQaStageMarkers(
+          Q_HDR + EXACT_QA_OK.replace(marker, 'missing-stage-marker'),
+          SEC_COMMAND_HDR + SEC_NPM_QA_OK).length > 0 &&
+        analyzeCurrentQaStageMarkers(
+          Q_HDR + EXACT_QA_OK,
+          SEC_COMMAND_HDR + SEC_NPM_QA_OK.replace(marker, 'missing-stage-marker')).length > 0) &&
+      analyzeCurrentQaStageMarkers(
+        Q_HDR + EXACT_QA_OK.replace('[supabase-smoke] PASS', 'SUPABASE-SMOKE OK'),
+        SEC_COMMAND_HDR + SEC_NPM_QA_OK).length > 0);
 
     ok('fixture: the exact three-action schedule audit contract is accepted only from a real frozen allowlist array and real handler structure',
       analyzeScheduleAuditContract(SCHEDULE_SERVICE_OK, SCHEDULE_CONTROLLER_OK).allowlist.length === 0 &&
@@ -8399,10 +9107,9 @@ const VR_HOTSPOT_NAV_PROBES = [
   ['VR hotspot navigation contracts', 'vrHotspotNavigation-probe.js'],
 ];
 
-// BE.4 NO-GO repair: pure resolver/helper logic (fail-closed route start,
-// media-aware configured-chain verification, per-hotspot navigation mapping)
-// with in-memory fixtures. No server, no DB — must pass regardless of the live
-// route-graph / VR parity defects.
+// Catalog-wide resolver/helper logic: fail-closed natural destination policy,
+// stored endpoint mapping, media metadata, and per-hotspot navigation. Pure
+// fixtures; no server or database.
 const GUIDED_VR_RESOLUTION_PROBES = [
   ['guided VR resolution pure-logic contracts', 'guidedVrResolution-probe.js'],
 ];
@@ -8422,18 +9129,17 @@ const BE5_SELECTED_DEMO_PARITY_PROBES = [
   ['BE.5 selected-demo parity correction safety contracts', 'be5SelectedDemoParity-probe.js'],
 ];
 
-// BE.6 selected-demo freeze: immutable migration hashes, natural-key
-// building/route and selected-CAS VR fingerprints, and the deferred-CCS policy.
-// The probe is SELECT-only and fails closed on any live or source drift.
+// BE.6 expanded freeze: immutable migration hashes, reproducible seed source,
+// backend-specific current catalogs/graphs, and all 25 Guided-VR chains. The
+// probe is SELECT-only and fails closed on any live or source drift.
 const BE6_DATASET_FREEZE_PROBES = [
   ['BE.6 selected-demo dataset freeze contracts', 'be6DatasetFreeze-probe.js'],
 ];
 
-// BE.4: CAS-only selected demo across uniform AND mixed source configurations:
-// Guard House -> CAS completes through the natural-key catalog, while CCS
-// remains map-routable and returns the fixed deferred guided-VR state.
+// Catalog-wide Guided VR across uniform and mixed source configurations. Every
+// active destination resolves its configured natural node and exact scene chain.
 const GUIDED_VR_PROBES = [
-  ['CAS-only selected-demo VR contracts', 'guidedCasVr-probe.js'],
+  ['catalog-wide Guided-VR runtime contracts', 'guidedCasVr-probe.js'],
 ];
 
 // Pre-Milestone-12 RF.3: additive route.geometry on /api/pathfind (helpers +
@@ -8457,19 +9163,17 @@ const ROUTE_TOPOLOGY_PROBES = [
   ['route topology (Guard House start + eastern terminal destinations)', 'routeTopology-probe.js'],
 ];
 
-// BE.2 correction-only batch: the canonical 13-building roster must be
-// reproducible from source. Proves models/data.js declares all 13 (CAS included),
-// that the seed fails closed on a missing/duplicate canonical name instead of
-// silently seeding a building node with building_id NULL, and that BOTH live
-// backends carry 13 buildings with CAS linked to the `cas` node — while the route
-// graph stays unchanged at 20/48/24/48/13.
+// Preserve the reproducible 13-building source roster while freezing each
+// backend's complete current catalog and graph. Live names are unique, every
+// building node maps exactly once, and all configured destinations are reachable.
 const BUILDING_BASELINE_PROBES = [
-  ['canonical building dataset baseline (13 buildings + CAS linkage)', 'buildingBaseline-probe.js'],
+  ['seed baseline plus expanded live building catalogs', 'buildingBaseline-probe.js'],
 ];
 
 // BE.3: public + admin surfaces share ONE server-computed route-availability
-// truth (services/routeAvailability.js). Proves the 13 canonical buildings are
-// route_available on every surface in BOTH modes, and that a staged-but-unrouted
+// truth (services/routeAvailability.js). Proves every active catalog destination
+// resolves through its exact natural node key in every supported source mode,
+// and that a staged-but-unrouted
 // building (created and deleted through the ADMIN HTTP API only) stays visible as
 // campus information while its destination/VR actions are withdrawn and no
 // /api/pathfind is issued for it.
@@ -8513,15 +9217,15 @@ const SPAWNED_PROBE_STAGES = [
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,
     heading: '[Building details editor QA] (M12.P1-D5 structured details editor + preservation contracts)' },
   { key: 'guided-vr-resolution', prefix: 'guided-vr-resolution', probes: GUIDED_VR_RESOLUTION_PROBES,
-    heading: '[Guided VR resolution QA] (BE.4 pure fail-closed start + media-aware chain + hotspot nav)' },
+    heading: '[Guided VR resolution QA] (catalog policy + stored endpoints + media-aware chain + hotspot nav)' },
   { key: 'be4-repair-safety', prefix: 'be4-repair-safety', probes: BE4_REPAIR_SAFETY_PROBES,
     heading: '[BE.4 repair-utility safety QA] (pure fingerprints/simulation/validation/rollback + VR parity/transaction)' },
   { key: 'be5-selected-demo-parity', prefix: 'be5-selected-demo-parity', probes: BE5_SELECTED_DEMO_PARITY_PROBES,
     heading: '[BE.5 selected-demo parity safety QA] (pure MySQL transaction guards + migration 0019 static review)' },
   { key: 'be6-dataset-freeze', prefix: 'be6-dataset-freeze', probes: BE6_DATASET_FREEZE_PROBES,
-    heading: '[BE.6 selected-demo freeze QA] (migration hashes + building/route + selected-VR natural-key fingerprints)' },
+    heading: '[BE.6 expanded freeze QA] (seed baseline + backend catalogs + all Guided-VR natural-key fingerprints)' },
   { key: 'guided-cas', prefix: 'guided-cas', probes: GUIDED_VR_PROBES,
-    heading: '[Selected-demo VR QA] (CAS natural-key chain + deferred CCS + mixed-source combos)' },
+    heading: '[Guided-VR catalog QA] (25 natural-key chains + stored endpoints + mixed-source combos)' },
   { key: 'route-geometry', prefix: 'route-geometry', probes: ROUTE_GEOMETRY_PROBES,
     heading: '[Road-following route geometry QA] (RF.3 route.geometry API + helper probe)' },
   { key: 'public-route-render', prefix: 'public-route-render', probes: PUBLIC_ROUTE_RENDER_PROBES,
@@ -8529,7 +9233,7 @@ const SPAWNED_PROBE_STAGES = [
   { key: 'route-topology', prefix: 'route-topology', probes: ROUTE_TOPOLOGY_PROBES,
     heading: '[Route topology QA] (Guard House start + eastern terminal destinations + 0017 static shape)' },
   { key: 'building-baseline', prefix: 'building-baseline', probes: BUILDING_BASELINE_PROBES,
-    heading: '[Building baseline QA] (BE.2 canonical 13-building roster + CAS linkage + seed fail-closed)' },
+    heading: '[Building baseline QA] (13-building seed source + backend-specific expanded catalogs + reachability)' },
   { key: 'building-integration', prefix: 'building-integration', probes: BUILDING_INTEGRATION_PROBES,
     heading: '[Building dataset integration QA] (BE.3 shared route availability across public + admin)' },
   /* LAST by construction: every session-creating probe above has finished, so

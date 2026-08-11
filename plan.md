@@ -4,10 +4,10 @@
 
 Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Destination Routing Repair (RF.1-RF.6) is also complete and Codex GO. BE.1 through BE.6 and OFF.1 are complete and Codex GO. Final Milestone 12 GO has not been issued.
 
-Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current additive BE.6 selected-demo candidate is green in both backends: 21 route nodes, 50 directed edges, 25 exact forward/reverse pairs, 50 valid road geometries, and 13 routable destinations. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
+Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-01 additive CCS cutover candidate).**
+**CURRENT STATUS (2026-08-11 Guided-VR catalog-remediation candidate).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
 OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
@@ -30,62 +30,162 @@ Playwright BrowserContext objects, clean supported-interface teardown, npm test
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d
 unchanged at that accepted historical baseline.
 
-Production and pushed Git history remain at
-0627bf78228148e3f989275810c333c16a1f3356 on main; local HEAD and origin/main
-also remain there. The owner-observed Vercel Production alias remains
-https://campusphere-cspc.vercel.app. The current worktree is intentionally
-dirty with an uncommitted additive CCS/data-contract candidate. Nothing from
-this candidate has been staged, committed, pushed, linked, or deployed. The
-accepted 0627bf7 five-file verification, anonymous production smoke 31/31, and
-automated frozen-data rehearsal remain historical evidence and do not verify
-this new candidate.
+The clean starting Git baseline for this candidate was
+5076e1316cf68e9d05c78a61b2362d1727873a09 on local HEAD and origin/main. That
+value is a starting baseline, not a self-referential claim about the final dirty
+worktree. The owner-observed Vercel Production alias remains
+https://campusphere-cspc.vercel.app on deployed baseline
+0627bf78228148e3f989275810c333c16a1f3356. The current worktree is intentionally
+dirty and unstaged. Nothing from this candidate has been committed, pushed,
+linked, or deployed. The accepted 0627bf7 five-file verification, anonymous
+production smoke 31/31, and automated frozen-data rehearsal remain historical
+evidence and do not verify this new candidate.
 
-The separately authorized backup and additive reconciliation have been
-performed. The owner maintained one-writer control. The external backup set
-contains provider-supported Supabase roles/schema/public-data dumps, pre- and
-post-cutover restore bundles, separate MySQL dumps, and a referenced-delivery
-Cloudinary export. All 86 referenced Cloudinary delivery URLs downloaded and
-were hashed; this is not a Cloudinary management/original-account export.
-Isolated Supabase and MySQL restores passed. The external manifest currently
-verifies 109/109 files with zero checksum mismatches. Secrets, signed URLs,
-database identifiers, and backup paths remain outside Git.
+The separately authorized backup and additive reconciliation were performed
+under one-writer control. The external backup set contains provider-supported
+Supabase roles/schema/public-data dumps, pre- and post-cutover restore bundles,
+separate MySQL dumps, and a referenced-delivery Cloudinary export. All 86
+referenced delivery URLs downloaded and were hashed; this is not a Cloudinary
+management/original-account export. Isolated Supabase and MySQL restores
+passed, and the external aggregate manifest recorded 109/109 files with zero
+checksum mismatches. After the bounded duplicate-link correction, a fresh
+MySQL dump was checksummed and proved by isolated canonical restore/redump
+(6/6 manifest checks). Secrets, signed URLs, database identifiers, and backup
+paths remain outside Git.
 
 The data reconciliation used supported administrator interfaces only. It did
 not use direct SQL, blanket deletion, syncSelectedCasVrSupabaseToMysql.js
---apply, or migration 0020. Supabase added one reverse edge, one atomic
-forward/reverse geometry pair, the legacy scene-ccs scene, and three legacy
-hotspots. MySQL additively received the Lugaw node and edge pair plus the seven
-new scenes and fourteen hotspots already present in Supabase. The
-lugaw-pilipinas node is consistently classified as a building-free walkway.
-No building, schedule, route, scene, hotspot, or user was removed.
+--apply, or migration 0020. Additive catalog and scene-to-node reconciliation
+completed without deleting buildings, schedules, routes, scenes, or users.
+A later bounded preflight confirmed three MySQL Guided-VR directions each had
+exactly two otherwise redundant links while each reverse direction had one.
+After visual confirmation that the duplicates represented the same navigation
+point, exactly one redundant hotspot was removed from each direction through
+the supported administrator interface—three deletions total, no blanket
+cleanup. The fresh post-correction MySQL backup and isolated restore proof
+supersede the pre-correction MySQL copy for rollback purposes.
 
-Current dual-backend truth is 13 buildings, 21 route nodes, 50 directed edges,
-25 exact reverse pairs, 50 valid endpoint-continuous geometries, and 13
-routable destinations. Both backends contain 92 VR scenes and 80 hotspots. The
-selected freeze covers 28 scenes and 57 selected-source hotspots. Active Guided
-VR is CAS at 24 scenes plus CCS at 23 scenes, with Road 94 immediately before
-scene-ccs-1st-floor. Selected-VR fingerprint is
-d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22;
-aggregate fingerprint is
-71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7.
+The 13-building models/data.js roster remains the reproducible seed baseline;
+it is not asserted as the complete live catalog. Current MySQL truth is 34
+buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid
+endpoint-continuous geometries, 671 VR scenes, and 1,396 hotspots. Current
+Supabase truth is 25 buildings, 26 route nodes, 50 directed edges, 25 exact
+reverse pairs, 50 valid endpoint-continuous geometries, 664 VR scenes, and
+1,372 hotspots. The shared active Guided VR catalog has 25 active Guided VR
+destinations, 472 configured steps, and 99 unique scene keys; the expanded
+freeze covers those keys plus two CAS interior scenes. Every configured
+building/node identity is unique and reachable from main-gate in both route
+backends. Backend-specific selected-VR fingerprints are
+371321de2af6be1ac87fb2f0d7c30a946c5538409022fd2968e21894b97caca2
+for MySQL and
+1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c
+for Supabase; the shared Guided catalog fingerprint is
+ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6.
 Migrations remain exactly 0001-0019; no 0020 exists.
 
-Focused topology, stored-geometry, API-geometry, public rendering, map-to-VR,
-Guided VR, Free Roam, building baseline/integration/editor, and BE.6 checks are
-green across MySQL, Supabase, and the supported mixed runtime modes. The
-updated BE.6 freeze is 46/46. Four authorized canonical Supabase session rows
-(one administrator and three student) were removed through exactly one
-revokeUserSessions call per identity after a fail-closed count preflight. The
-ordered postcondition is green at 24/24 -> 18/18 -> 46/46.
+The current natural-key runtime and focused catalog probes are green:
+pure resolution, topology, stored/API geometry, public rendering, map-to-VR,
+catalog-wide Guided VR, Free Roam, building baseline/integration/editor, and
+BE.6. All 25 Guided routes pass in MySQL, Supabase, and both supported mixed
+route/VR source combinations. The refreshed BE.6 freeze remains exactly 46/46.
 
-The read-only package-boundary probe is green at 71/71 and reports 158 files,
-6,212,545 bytes, aggregate SHA-256
-c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999.
-scripts/quality-gates.js now pins those candidate bytes. This inventory is not
-deployment authorization. The synchronized matrix passed `npm test` at
-`3792/3792` with `QUALITY-GATES OK`, and `npm run qa` at the same exact contract
-total with all five stages green. Final ordered postconditions are green at
-`24/24 -> 18/18 -> 46/46`. Independent read-only review remains open.
+After the owner logged out the accessible administrator/student sessions, a
+SELECT-only preflight found exactly one remaining MySQL administrator session,
+one MySQL student session, and one Supabase administrator session. A first
+bounded wrapper stopped before mutation on a role-label mismatch. The corrected
+preflight then invoked `revokeUserSessions()` exactly once for each of those
+three verified backend-local identities. It used no direct session-row delete,
+no account/data change, and no broad cleanup. That pre-QA read-only
+postcondition was green at `24/24 -> 18/18 -> 46/46`.
+
+The read-only package-boundary probe is green at 72/72 and reports 158 files,
+6,245,074 bytes, aggregate SHA-256
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+The registered in-suite package gate is green at 72/72.
+scripts/quality-gates.js independently pins those candidate bytes. This
+inventory is not deployment authorization. The failed `npm run qa` attempt
+that stopped at 4,512 contract passes after a mixed-mode integration
+`ECONNRESET` remains historical/rejected. Its incomplete student logout left
+exactly one unexpired canonical Supabase student session and produced the
+historical `17/18` residue reading. Under a separate bounded authorization, a
+fail-closed preflight reverified exactly one intended-role student identity,
+that one session, and zero sessions for the other three canonical Supabase
+identities; `revokeUserSessions()` was then invoked exactly once for that
+student. It used no direct SQL or direct session-row deletion, changed no
+account/application data, and performed no broad cleanup. The ordered
+precondition returned to `24/24 -> 18/18 -> 46/46`.
+
+The independent read-only review of prior candidate manifest SHA-256
+`b4c2c3c2a5766399b843c6e43f2f8cf347bcc04473e5ba6a0a808397c77a3d56`
+returned commit-readiness NO-GO on four bounded findings: the legacy CAS sync
+utility omitted the ordered scene-sequence hash, SEC-37 retained a contradictory
+package claim, OFF.3 retained obsolete catalog scope, and the demo promoted the
+pilot before the remaining review boundaries. The follow-up now pins the exact
+CAS scene-array fingerprint before scope derivation, rejects replacement,
+reorder, and hash-pin drift, validates SEC-37 against the independent package
+pin, scopes OFF.3 to the selected supported backend and all 25 active Guided-VR
+destinations, and restores review -> commit -> push -> R8 -> deployment -> pilot
+ordering. The prior manifest and its NO-GO disposition are historical; these
+corrected bytes still require a new independent read-only review and claim no
+GO.
+
+A subsequent independent read-only review of exact 33-file manifest SHA-256
+`2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
+returned commit-readiness NO-GO on two high findings and one low finding: the
+exact package pin was documented but not enforced against the live manifest,
+obsolete Guided-VR handoff sections were historical and not operative, but were
+not marked away from current authority, and current dates were stale. This bounded correction
+adds independent live package-pin enforcement and byte-drift fixtures, isolates
+the obsolete handoff sections as explicit history, expands authority/date
+fixtures, and synchronizes current dates. It changes no runtime or data and
+still requires another independent read-only review.
+
+Under a separate bounded authorization, a fail-closed preflight reverified
+exactly two unexpired sessions for the one intended-role canonical MySQL
+student, zero for the canonical MySQL administrator and all four canonical
+Supabase identities, and an explicitly selected MySQL session store.
+`revokeUserSessions()` was invoked exactly once for that student and removed
+both sessions. No direct session-row deletion, account/application-data change,
+or broad cleanup occurred. The pre-QA ordered postcondition is green at
+`24/24 -> 18/18 -> 46/46`.
+
+The exact synchronized candidate passes a freshly counted `npm test` at
+`4641/4641` with `QUALITY-GATES OK` and `npm run qa` at the same exact contract
+total with all five stages green and all exact transcript markers present. Final ordered postconditions are
+`24/24 -> 18/18 -> 46/46`. Historical/superseded: the preceding 4,637-check QA
+command itself exited 0, but its enclosing scorer returned 97 because it
+searched for nonexistent `SUPABASE-SMOKE OK` instead of the actual
+`[supabase-smoke] PASS`; no application stage failed and no retry was caused. A
+later freshly counted suite attempt timed out at its 20-minute wrapper bound
+inside the catalog-wide Guided-VR probe; it produced no completion count, is
+historical/rejected, and left no CampuSphere Node process or listener. Its one
+orphaned canonical MySQL student session was exposed by the next bounded run,
+which exited 1 at 4,628 PASS with nine current-authority wording failures and
+the residue failure. A fail-closed preflight then proved exactly that one
+session, zero for the canonical MySQL administrator and all four Supabase
+identities, and the intended student role; `revokeUserSessions()` was invoked
+exactly once for that student and restored the count from one to zero. No direct
+session-row delete, account/application-data change, or broad cleanup occurred.
+pre-remediation `4629/4629`, `4624/4624`, `4609/4609`, `4599/4599`, 615-pass,
+`4608/4609`, `4623/4624`, and 4,512-pass executions remain historical,
+superseded, or rejected. Independent read-only review remains open; these
+results establish candidate-review readiness only.
+
+The independent read-only review of exact 34-file manifest SHA-256
+`ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
+returned commit-readiness NO-GO because the same rejected 4,628-PASS retry was
+described once with the exact nine current-authority wording failures plus
+residue and again with an incorrect lower failure count. This bounded correction
+removes the stale duplicate account and adds one cross-document analyzer with accepting and
+rejecting fixtures. It changes no runtime or data. The prior `4639/4639` matrix
+and manifest are historical candidate evidence; the corrected bytes require a
+new independent read-only review and claim no GO.
+The first verification execution of this correction is historical/rejected at
+`4640/4641`: the new analyzer inspected only the evidence ledger's first 4,628
+mention, so its one combined live assertion failed even though all runtime
+probes and embedded residue were green. It now evaluates every bounded 4,628
+scope and requires at least one exact transcript-faithful account; no session or
+data correction was required.
 
 M12.P1-R8 remains the next potential section and is read-only under the
 repository's established gate wording. R8 is not authorized by this
@@ -664,7 +764,15 @@ Codex performed the final RF.6 review after the guided-VR coverage-truth repair.
   final Milestone 12 GO, although `M12.P1` may conduct the separately reviewed
   online pilot first.
 
+<!-- GUIDED-VR HISTORICAL POLICY START -->
 ### Building Expansion
+
+> **Historical/superseded Guided-VR policy record.** BE.1 through BE.6 are
+> accepted completed history, but their original CAS-only/deferred-CCS scope
+> does not describe the current 25-destination runtime or govern future OFF
+> work. The current-status block and the forward-looking offline sections below
+> are the active authority. This marker preserves evidence without reviving the
+> superseded policy.
 
 **BE.1: Authoritative Building and Routing Baseline Audit**
 
@@ -785,6 +893,8 @@ vulnerabilities; and final cleanup found no fixture or listener residue.
 
 BE.6 GO authorized OFF.1. OFF.1 subsequently completed and received Codex GO.
 
+<!-- GUIDED-VR HISTORICAL POLICY END -->
+
 ### Offline Campus Navigation Package
 
 **OFF.1: Offline Baseline Audit and Domain Contract**
@@ -811,13 +921,17 @@ were empty, session-neutral shell/static caches remained, and browser Back,
 reload, and direct `/map` revisit could not replay the authenticated page.
 
 The approved future package requires an explicit **Download Offline Guide**
-action; retains the downloaded public guide until explicit logout; covers the
-frozen 13-building catalog and precomputed routes; includes only public
-`audience=all`, `status=scheduled` schedules for today through the next 14 days
-with a 100-row-per-building cap; includes the selected CAS/Free-Roam dataset;
-keeps CCS truthfully deferred; treats OpenStreetMap tiles as best-effort; and
-excludes authenticated HTML, sessions, CSRF tokens, credentials, user/profile
-data, admin/private content, mutations, raw errors, and unapproved media.
+action; retains the downloaded public guide until explicit logout; represents
+all 25 active Guided-VR destinations and their precomputed routes; includes
+only public `audience=all`, `status=scheduled` schedules for today through the
+next 14 days with a 100-row-per-building cap; caches only explicitly selected,
+owner-approved Guided-VR/Free-Roam media within the agreed quota; treats
+OpenStreetMap tiles as best-effort; and excludes authenticated HTML, sessions,
+CSRF tokens, credentials, user/profile data, admin/private content, mutations,
+raw errors, and unapproved media. A route whose approved media was not
+downloaded remains active online and receives a truthful offline-media-
+unavailable state; cache coverage must never redefine route policy or claim
+arrival.
 
 **OFF.2: Installability, Offline Shell, and Update Lifecycle**
 
@@ -850,19 +964,33 @@ Render the frozen campus destinations and their road-following routes while disc
 
 Use a bounded set of demo-critical map assets instead of attempting to mirror the complete OpenStreetMap tile service. Tile absence must degrade to a readable campus/destination/route experience rather than a blank or broken page. Preserve route clearing, stale-request protection, and desktop/mobile usability.
 
-**OFF.5: Offline CAS VR and Deferred CCS State**
+**OFF.5: Offline Guided-VR Catalog and Free Roam State**
 
 **Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
 
-Cache only the Guard House, approved general-road, and CAS panoramas/assets needed for the selected demonstration walkthrough and Free Roam entry path. Cache no missing CCS placeholder media; CCS must retain the same truthful guided-VR-unavailable state while offline, with its cached public map route handled by OFF.4.
+Represent every configured active destination in the offline catalog. Cache
+only the owner-approved panoramas/assets selected by the explicit download
+flow and admitted by the agreed quota, including the required Free Roam entry
+path. When an active route's media is not cached or a download is incomplete,
+show a distinct offline-media-unavailable state without changing its online
+active status or claiming arrival.
 
-Handle storage quota pressure, unavailable media, partial coverage, cache-version replacement, and interrupted downloads without corrupting the online Cloudinary path. Keep room-door schedule hotspots functional when their approved read-only schedule data is cached, and preserve truthful coverage-ended behavior for uncached destinations.
+Handle storage quota pressure, unavailable media, partial coverage,
+cache-version replacement, and interrupted downloads without corrupting the
+online Cloudinary path. Keep room-door schedule hotspots functional only when
+their approved read-only schedule data and required media are cached, and
+preserve truthful coverage-ended behavior for every incomplete cached chain.
 
 **OFF.6: Offline Feature, Privacy, and Final GO/NO-GO**
 
 **Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
 
-Run the final offline acceptance matrix after an online warm-up and after a clean install. Test network loss, browser restart while offline, map destinations and road routes, CAS guided VR, deferred CCS guided-VR behavior, Free Roam, selected schedules, unavailable resources, reconnect refresh, cache upgrades, logout/shared-device privacy, quota/error handling, and desktop/mobile layouts.
+Run the final offline acceptance matrix after an online warm-up and after a
+clean install. Test network loss, browser restart while offline, all 25 catalog
+entries and road routes, at least one fully cached Guided-VR chain, an active
+route whose media was not cached, an interrupted/partial chain, Free Roam,
+selected schedules, unavailable resources, reconnect refresh, cache upgrades,
+logout/shared-device privacy, quota/error handling, and desktop/mobile layouts.
 
 OFF.6 receives GO only when:
 
@@ -1818,8 +1946,8 @@ Do not implement or reintroduce:
 - Milestone 10 is complete and Codex GO.
 - Milestone 11 Room Scheduling, including Sections 11.8A-11.8D and the final 11.8 review, is complete and Codex GO.
 - Supabase migrations are exactly `0001` through `0019`; `0014` through `0019` are owner-applied and verified, and no `0020` exists.
-- RF.1 through RF.6 are complete and Codex GO. The current additive BE.6 selected-demo candidate has 21 route nodes, 50 directed edges, 25 reverse pairs, 50 valid geometries, and 13/13 building destination coverage in both backends; the 13 buildings are not the complete campus. The prior 20/48/24/48 baseline and the D4 replacement verification remain accepted historical evidence, not current candidate counts.
-- BE.1 through BE.6 and OFF.1 are complete and Codex GO. The current additive Guided VR candidate keeps the exact 24-scene Guard House-to-CAS walkthrough active and adds the 23-scene CCS walkthrough through Road 94 to `scene-ccs-1st-floor`; CCS is no longer current-authority guided-VR deferred.
+- RF.1 through RF.6 are complete and Codex GO. The current expanded BE.6 candidate freezes MySQL at 34 buildings / 44 route nodes / 100 directed edges / 50 reverse pairs / 100 valid geometries and Supabase at 25 / 26 / 50 / 25 / 50. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The prior 20/48/24/48 and 21/50/25/50 baselines and the D4 replacement verification remain accepted historical evidence, not current candidate counts.
+- BE.1 through BE.6 and OFF.1 are complete and Codex GO. The current Guided-VR remediation candidate covers 25 active destinations, 472 configured steps, and 99 unique scene keys; the older CAS-only/CCS-only policy is historical and does not describe current runtime truth.
 - The `M12.P1` read-only readiness audit is complete with Codex NO-GO after one
   critical and six high findings. R1-R7, D1-D5, and expanded D7 are complete and
   Codex GO, including the R3 follow-ups, R4 follow-up, dependency-security
@@ -1858,7 +1986,9 @@ Do not implement or reintroduce:
 - Real schedule data is admin-managed and stored in the configured runtime data source.
 - Supabase is the production target; MySQL remains local/fallback.
 - Room/facility schedule work should be additive and should preserve current app behavior when no schedule rows exist.
-- CAS is the required polished guided-VR demonstration destination. CCS remains map-routable with guided VR deferred until a separately authorized owner-supplied panorama upgrade; Cloudinary uploads remain owner-controlled.
+- All 25 configured Guided-VR destinations are active. Any future catalog,
+  route, endpoint, link, or media change requires refreshed freeze and
+  verification evidence; Cloudinary uploads remain owner-controlled.
 - Future Supabase migrations after owner-applied `0019` must use the next sequential number, remain unapplied until Codex review, and be applied only by the project owner.
 - The road-following routing repair, BE.5 parity/regression, BE.6 freeze, and
   OFF.1 privacy/domain audit are complete and Codex GO. The owner-authorized

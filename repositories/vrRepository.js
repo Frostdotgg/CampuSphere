@@ -29,9 +29,11 @@
                        target_scene_id, target_scene_key, target_title,
                        schedule_building_id, schedule_location_type,
                        schedule_location_label, schedule_floor_label
-   - Explicit column lists only (never select('*')), so reserved columns
-     (cloudinary_public_id, created_at, updated_at) and the nested target
-     embed never leak into returned shapes.
+   - Explicit column lists only (never select('*')). Browser/graph methods omit
+     reserved columns and flatten the nested target embed. The internal guided
+     scene read intentionally includes cloudinary_public_id for server-side
+     delivery validation; its controller re-shapes the public response and
+     never exposes that field to the browser.
    - Supabase failures are rethrown as plain Error objects prefixed with
      `vrRepository.<method>:`, carrying only a redacted Supabase message
      (never keys, URLs, headers, or other secret-like values).
@@ -39,12 +41,16 @@
 
 const { getSupabaseClient } = require('../config/supabase');
 
-// Explicit column lists pin the MySQL-era row shapes and keep reserved
-// columns (cloudinary_public_id, created_at, updated_at) out of results.
+// Explicit column lists pin browser/public row shapes. Guided verification
+// reads the public ID internally, but response construction keeps that and
+// other reserved columns out of browser payloads.
 const SCENE_BROWSER_COLUMNS =
   'id, scene_key, title, description, image_url, initial_yaw, initial_pitch, display_order';
 const GRAPH_SCENE_COLUMNS =
   'id, scene_key, title, description, image_url, node_id, building_id, initial_yaw, initial_pitch, display_order';
+const GUIDED_SCENE_COLUMNS =
+  'id, scene_key, title, description, image_url, cloudinary_public_id, node_id, building_id, ' +
+  'initial_yaw, initial_pitch, display_order';
 // Hotspot columns plus the to-one target scene embedded via the
 // target_scene_id FK. The embed is flattened into target_scene_key /
 // target_title below; the nested object itself is never returned.
@@ -213,8 +219,8 @@ async function listScenesForGraphPath({ nodeIds, buildingIds } = {}) {
 /* ---------------------------------------------------------------------------
    BE.4 natural-key guided-walkthrough reads. Batched and bounded — one scene
    read for the whole configured key list and one link read for the resolved
-   scene ids (never one query per scene). Explicit columns only, so
-   cloudinary_public_id / timestamps can never leak into guided responses.
+   scene ids (never one query per scene). Guided callers construct their public
+   response explicitly, so cloudinary_public_id / timestamps cannot leak.
 --------------------------------------------------------------------------- */
 
 // Bound + sanitize a natural scene-key list: strings only, trimmed,
@@ -239,9 +245,11 @@ function sanitizeSceneKeys(arr) {
 }
 
 /**
- * Scenes matching a bounded list of natural scene keys, in the graph-scene
- * row shape, ordered by display_order ASC then id ASC. An empty/invalid key
- * list returns [] WITHOUT querying (never "all scenes").
+ * Scenes matching a bounded list of natural scene keys, in the internal
+ * guided-verification shape (including cloudinary_public_id), ordered by
+ * display_order ASC then id ASC. Callers must explicitly construct any public
+ * response. An empty/invalid key list returns [] WITHOUT querying (never "all
+ * scenes").
  */
 async function listScenesByKeys(sceneKeys) {
   const keys = sanitizeSceneKeys(sceneKeys);
@@ -250,7 +258,7 @@ async function listScenesByKeys(sceneKeys) {
   const sb = getSupabaseClient();
   const { data, error } = await sb
     .from('vr_scenes')
-    .select(GRAPH_SCENE_COLUMNS)
+    .select(GUIDED_SCENE_COLUMNS)
     .in('scene_key', keys)
     .order('display_order', { ascending: true })
     .order('id', { ascending: true });
@@ -276,6 +284,24 @@ async function listSceneLinkHotspots(sceneIds) {
     .eq('hotspot_type', 'scene')
     .in('scene_id', ids);
   if (error) throw fail('listSceneLinkHotspots', error);
+  return data || [];
+}
+
+/**
+ * Route-node natural identities for guided scene endpoint validation in the
+ * active VR backend. The returned numeric ids are used only to join rows from
+ * this same backend; controllers expose only node_key.
+ */
+async function listRouteNodeKeysByIds(nodeIds) {
+  const ids = sanitizeIds(nodeIds);
+  if (ids.length === 0) return [];
+
+  const sb = getSupabaseClient();
+  const { data, error } = await sb
+    .from('route_nodes')
+    .select('id, node_key')
+    .in('id', ids);
+  if (error) throw fail('listRouteNodeKeysByIds', error);
   return data || [];
 }
 
@@ -551,6 +577,7 @@ module.exports = {
   // BE.4 natural-key guided walkthrough reads
   listScenesByKeys,
   listSceneLinkHotspots,
+  listRouteNodeKeysByIds,
   // admin VR (Section 7.8)
   listScenesAdmin,
   findSceneById,

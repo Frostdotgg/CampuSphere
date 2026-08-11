@@ -202,7 +202,7 @@ async function runMode(mode, base) {
       destId = routes[0].destination ? routes[0].destination.id : null;
     }
   } catch (e) { /* handled by the check below */ }
-  check(mode, 'backward-compat: /api/routes -> 200 with a route', r.status === 200 && !!routeId);
+  check(mode, 'backward-compat: /api/routes -> 200 (an empty predefined catalog is valid)', r.status === 200);
   if (routeId) {
     r = await hfetch('/vr/routes/' + routeId, { headers: HTMLH });
     check(mode, 'backward-compat: /vr/routes/:routeId -> 200 guided route',

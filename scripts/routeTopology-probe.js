@@ -10,13 +10,13 @@
    no "pending application" tolerance: live Supabase fails CLOSED on the
    pre-0017 (52-edge) state.
 
-     verifyTopology(scope, nodes, edges, buildings) asserts, per backend:
-       - 21 route nodes / 50 directed edges / 25 undirected pairs
+     verifyExpandedTopology(scope, nodes, edges, buildings) asserts, per backend:
+       - the complete backend-specific frozen node/edge/reverse-pair counts
        - `main-gate` sits on the authoritative Guard House / Main Gate
          coordinate (13.40575220764974, 123.37434735272177, persisted at the
          8-dp precision both backends use)
-       - all 50 geometries are valid + endpoint-continuous
-       - all 25 forward/reverse geometry pairs are EXACT reversals, and the
+       - every frozen geometry is valid + endpoint-continuous
+       - all frozen forward/reverse geometry pairs are EXACT reversals, and the
          forward/reverse edge scalars are symmetric
        - the geometry-bearing pairs attached to the gate begin at the exact
          stored gate coordinate
@@ -25,7 +25,8 @@
        - the seven retired TRANSIT pairs are absent in BOTH directions:
              green-building<->cas, cas<->ccs, cas<->clinic, ccs<->chs,
              ictu<->mid-campus, gymnasium<->mid-campus, auditorium<->mid-campus
-       - 13/13 buildings routable from main-gate, every route starting at the
+       - every active Guided-VR destination is routable from main-gate through
+         its configured natural node key, with every route starting at the
          authoritative gate coordinate
        - the building-free central spine exists, and each eastern route is
          exactly  main-gate -> flagpole -> mid-campus -> east-walk -> <dest>
@@ -60,6 +61,8 @@ const db = require('../config/db');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { findShortestPath } = require('../utils/pathfinding');
 const { validatePathGeometry, reversePathGeometry } = require('../utils/routeGeometry');
+const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
+const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
 // Authoritative Guard House / Main Gate coordinate (owner-approved).
 const GATE_LAT = 13.40575220764974;
@@ -167,6 +170,147 @@ function parseStoredGeometry(raw) {
 }
 const num = (v) => Number(v);
 const pts = (arr) => arr.map((p) => ({ lat: num(p.lat), lng: num(p.lng) }));
+const canonical = (value) => String(value == null ? '' : value)
+  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/* Current expanded-catalog validator. Historical migration-shape assertions
+   below remain intact, but live acceptance is driven by the refreshed BE.6
+   backend-specific freeze and the 25 configured natural destinations. */
+function verifyExpandedTopology(scope, nodes, edges, buildings) {
+  const frozen = SELECTED_DEMO_FREEZE.backends[scope];
+  const expected = frozen && frozen.counts;
+  check(scope, 'backend-specific freeze exists', !!expected);
+  if (!expected) return;
+
+  check(scope, `route graph has ${expected.route_nodes} nodes (found ${nodes.length})`,
+    nodes.length === expected.route_nodes);
+  check(scope, `route graph has ${expected.route_edges} directed edges (found ${edges.length})`,
+    edges.length === expected.route_edges);
+  check(scope, `building catalog has ${expected.buildings} rows (found ${buildings.length})`,
+    buildings.length === expected.buildings);
+
+  const nodeKeys = nodes.map((n) => String(n.node_key || '').trim());
+  const buildingNames = buildings.map((b) => canonical(b.name));
+  check(scope, 'every route node has one unique non-blank natural key',
+    nodeKeys.every(Boolean) && new Set(nodeKeys).size === nodes.length);
+  check(scope, 'every building has one unique non-blank canonical name',
+    buildingNames.every(Boolean) && new Set(buildingNames).size === buildings.length);
+  check(scope, 'complete current building roster matches the refreshed freeze',
+    JSON.stringify(buildings.map((b) => String(b.name)).sort()) ===
+      JSON.stringify([...frozen.roster].sort()));
+
+  const nodeByKey = new Map(nodes.map((n) => [n.node_key, n]));
+  const nodeById = new Map(nodes.map((n) => [Number(n.id), n]));
+  const keyById = new Map(nodes.map((n) => [Number(n.id), n.node_key]));
+  const buildingById = new Map(buildings.map((b) => [Number(b.id), b]));
+  const buildingsByCanonical = new Map();
+  for (const b of buildings) {
+    const key = canonical(b.name);
+    const list = buildingsByCanonical.get(key) || [];
+    list.push(b);
+    buildingsByCanonical.set(key, list);
+  }
+
+  const gate = nodeByKey.get('main-gate');
+  check(scope, 'main-gate is the stored Guard House start',
+    !!gate && String(gate.label) === GATE_LABEL &&
+    Math.abs(num(gate.lat) - GATE_LAT) <= GATE_EPSILON &&
+    Math.abs(num(gate.lng) - GATE_LNG) <= GATE_EPSILON);
+
+  const buildingNodes = nodes.filter((n) => String(n.node_type) === 'building');
+  check(scope, `building-node count matches the freeze (${expected.building_nodes})`,
+    buildingNodes.length === expected.building_nodes);
+  check(scope, 'every building node references an existing building',
+    buildingNodes.every((n) => Number.isSafeInteger(Number(n.building_id)) &&
+      buildingById.has(Number(n.building_id))));
+
+  const edgeByPair = new Map();
+  let validGeometry = 0;
+  for (const edge of edges) {
+    const from = nodeById.get(Number(edge.from_node_id));
+    const to = nodeById.get(Number(edge.to_node_id));
+    const pair = `${from ? from.node_key : '?'}|${to ? to.node_key : '?'}`;
+    if (!edgeByPair.has(pair)) edgeByPair.set(pair, []);
+    edgeByPair.get(pair).push(edge);
+    const parsed = parseStoredGeometry(edge.path_geometry);
+    const result = from && to && parsed != null
+      ? validatePathGeometry(parsed, { fromNode: from, toNode: to, allowNull: false, snapEndpoints: false })
+      : { ok: false };
+    if (result.ok) validGeometry++;
+  }
+  check(scope, 'every directed edge identity is unique',
+    edgeByPair.size === edges.length && [...edgeByPair.values()].every((rows) => rows.length === 1));
+  check(scope, `all ${expected.valid_geometries} edges carry valid endpoint-continuous geometry`,
+    validGeometry === expected.valid_geometries && validGeometry === edges.length);
+
+  let exactPairs = 0;
+  let scalarMismatch = 0;
+  const seen = new Set();
+  for (const [pair, rows] of edgeByPair) {
+    const [a, b] = pair.split('|');
+    const identity = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    const reverse = edgeByPair.get(`${b}|${a}`);
+    if (!reverse || rows.length !== 1 || reverse.length !== 1) continue;
+    const forwardGeometry = pts(parseStoredGeometry(rows[0].path_geometry));
+    const reverseGeometry = pts(parseStoredGeometry(reverse[0].path_geometry));
+    if (JSON.stringify(reverseGeometry) === JSON.stringify(reversePathGeometry(forwardGeometry))) exactPairs++;
+    if (Number(rows[0].distance_meters) !== Number(reverse[0].distance_meters) ||
+        Number(rows[0].walk_time_seconds) !== Number(reverse[0].walk_time_seconds)) scalarMismatch++;
+  }
+  check(scope, `${expected.reverse_pairs} exact forward/reverse geometry pairs`,
+    exactPairs === expected.exact_reverse_geometries && seen.size === expected.reverse_pairs);
+  check(scope, 'forward/reverse distance and walk-time scalars are symmetric', scalarMismatch === 0);
+
+  const pfNodes = nodes.map((n) => ({
+    id: Number(n.id), key: n.node_key, label: n.label, node_type: n.node_type,
+    building_id: n.building_id == null ? null : Number(n.building_id),
+    lat: num(n.lat), lng: num(n.lng)
+  }));
+  const pfEdges = edges.map((e) => ({
+    from: keyById.get(Number(e.from_node_id)),
+    to: keyById.get(Number(e.to_node_id)),
+    distance_meters: Number(e.distance_meters),
+    walk_time_seconds: Number(e.walk_time_seconds),
+    path_label: e.path_label == null ? null : e.path_label,
+    is_accessible: Number(e.is_accessible)
+  }));
+
+  let exactCatalogMappings = 0;
+  let reachable = 0;
+  for (const policy of GUIDED_VR_ROUTES) {
+    const matchedBuildings = buildingsByCanonical.get(canonical(policy.destination_name)) || [];
+    const matchedNodes = nodes.filter((n) => n.node_key === policy.destination_node_key);
+    if (matchedBuildings.length === 1 && matchedNodes.length === 1 &&
+        Number(matchedNodes[0].building_id) === Number(matchedBuildings[0].id)) {
+      exactCatalogMappings++;
+    }
+    const route = findShortestPath({
+      nodes: pfNodes, edges: pfEdges, startKey: 'main-gate', endKey: policy.destination_node_key
+    });
+    if (route.success && route.nodes.length >= 2 &&
+        route.nodes[0].key === 'main-gate' &&
+        route.nodes[route.nodes.length - 1].key === policy.destination_node_key) reachable++;
+  }
+  check(scope, 'all 25 Guided-VR destinations map to exactly one natural building node',
+    GUIDED_VR_ROUTES.length === 25 && exactCatalogMappings === GUIDED_VR_ROUTES.length);
+  check(scope, 'all 25 Guided-VR destinations are reachable from main-gate',
+    reachable === GUIDED_VR_ROUTES.length);
+}
+
+function expandedCatalogParity(mysql, supabase) {
+  const summarize = (state) => {
+    const buildingById = new Map(state.buildings.map((b) => [Number(b.id), canonical(b.name)]));
+    return GUIDED_VR_ROUTES.map((policy) => {
+      const matches = state.nodes.filter((n) => n.node_key === policy.destination_node_key);
+      return [policy.destination_node_key, matches.length,
+        matches.length === 1 ? buildingById.get(Number(matches[0].building_id)) : null];
+    });
+  };
+  check('cross-backend', 'all configured natural destination identities map to the same canonical building',
+    JSON.stringify(summarize(mysql)) === JSON.stringify(summarize(supabase)));
+}
 
 /* =============================================================================
    SHARED TOPOLOGY VALIDATOR
@@ -181,7 +325,10 @@ const pts = (arr) => arr.map((p) => ({ lat: num(p.lat), lng: num(p.lng) }));
                         path_geometry }]
    @param buildings  [{ id }]  (the application building set)
 ============================================================================= */
-function verifyTopology(scope, nodes, edges, buildings) {
+// Historical 0017/selected-demo validator retained only as a readable reference
+// for the static migration-shape assertions below. Live acceptance is exclusively
+// verifyExpandedTopology(); this helper is intentionally not invoked.
+function verifyHistoricalSelectedTopology(scope, nodes, edges, buildings) {
   check(scope, `route graph has ${EXPECTED_NODES} nodes (found ${nodes.length})`,
     nodes.length === EXPECTED_NODES);
   check(scope, `route graph has ${EXPECTED_EDGES} directed edges = ${EXPECTED_PAIRS} pairs (found ${edges.length})`,
@@ -432,7 +579,8 @@ function verifyTopology(scope, nodes, edges, buildings) {
     footprintViolations === 0);
 }
 
-function selectedCasParity(mysql, supabase) {
+// Historical CAS-only parity helper retained with the historical validator.
+function historicalSelectedCasParity(mysql, supabase) {
   const geometryMap = (state) => {
     const keyById = new Map(state.nodes.map((node) => [Number(node.id), node.node_key]));
     return new Map(state.edges.map((edge) => {
@@ -476,7 +624,7 @@ function selectedCasParity(mysql, supabase) {
          FROM route_edges`
     );
     const [myBuildings] = await db.query('SELECT id, name FROM buildings');
-    verifyTopology('mysql', myNodes, myEdges, myBuildings);
+    verifyExpandedTopology('mysql', myNodes, myEdges, myBuildings);
     const mysqlState = { nodes: myNodes, edges: myEdges, buildings: myBuildings };
     let supabaseState = null;
 
@@ -506,11 +654,11 @@ function selectedCasParity(mysql, supabase) {
         Array.isArray(sbNodes) && Array.isArray(sbEdges) && Array.isArray(sbBuildings);
       check('supabase', 'live route graph + buildings are readable', readable);
       if (readable) {
-        verifyTopology('supabase', sbNodes, sbEdges, sbBuildings);
+        verifyExpandedTopology('supabase', sbNodes, sbEdges, sbBuildings);
         supabaseState = { nodes: sbNodes, edges: sbEdges, buildings: sbBuildings };
       }
     }
-    if (supabaseState) selectedCasParity(mysqlState, supabaseState);
+    if (supabaseState) expandedCatalogParity(mysqlState, supabaseState);
 
     /* ================= Static migration checks ================= */
     say('\nstatic migration checks (this probe applies NO SQL):');

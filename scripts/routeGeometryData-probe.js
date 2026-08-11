@@ -2,35 +2,35 @@
 
 /* ========================================
    CampuSphere - Route edge geometry data probe
-   Pre-Milestone-12 RF.2 verification script.
+   BE.6 backend-specific verification script.
 
    READ-ONLY. Verifies, without starting any server:
 
-   Migrations 0014, 0015 and 0017 are ALL OWNER-APPLIED. 0014/0015 shipped the
-   earlier 52-directed-edge / 26-pair graph; 0017 (Guard House start + eastern
-   terminal topology) SUPERSEDES it, so the live graph in BOTH backends is now
-   50 directed edges / 25 pairs. Every count below is fail-closed on that
+   Migrations 0014, 0015 and 0017 are ALL OWNER-APPLIED. The immutable
+   migrations remain source history; current live expectations come from the
+   backend-specific BE.6 freeze. Every count below is fail-closed on that
    repaired state — the obsolete 52/26 shape is rejected, not tolerated.
 
      MySQL (direct pool reads):
        - route_edges.path_geometry column exists
-       - 21 route nodes / 50 directed edges
-       - all 50 active edges carry valid path_geometry per the shared
+       - 34 buildings / 44 route nodes / 100 directed edges
+       - all 100 active edges carry valid path_geometry per the shared
          utils/routeGeometry.js contract (2-200 points, exact lat/lng keys,
          finite in-range values)
        - endpoint continuity: first/last points match the live from/to node
          coordinates within ENDPOINT_EPSILON
-       - 25 forward/reverse pairs are EXACT reversals of each other
-       - 13/13 buildings remain routable from main-gate (pure Dijkstra over
+       - 50 forward/reverse pairs are EXACT reversals of each other
+       - 33/34 buildings remain routable from main-gate (pure Dijkstra over
          the same rows; utils/pathfinding.js untouched)
        - retired shortcut/transit pairs stay absent
        - no orphan edge endpoints, no malformed stored payloads
 
      Live Supabase (0015 + 0017 OWNER-APPLIED; fail-closed):
        - route_edges.path_geometry column is readable
-       - 21 nodes / 50 directed edges
+       - 25 buildings / 26 nodes / 50 directed edges
        - 50/50 valid geometries with endpoint continuity
        - 25/25 forward/reverse pairs are exact reversals
+       - 25/25 buildings remain routable from main-gate
        Fails CLOSED when the Supabase env is missing (unless
        PROBE_SKIP_SUPABASE=1 marks an intentionally unconfigured
        MySQL-fallback environment).
@@ -62,21 +62,14 @@ const {
   validatePathGeometry,
   reversePathGeometry
 } = require('../utils/routeGeometry');
+const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
 // Owner-applied 0014 must remain immutable. Pinned at RF.2 authoring time.
 const EXPECTED_0014_SHA256 =
   'ad9179bd0def19567b512e495fd3133211288e253c872b260421a912cc44e6aa';
 
-const EXPECTED_NODES = 21;
-// Pre-RF.6 topology repair (+ NO-GO V2): the four eastern TRANSIT pairs and the
-// three building-backed mid-campus pairs were retired; three eastern terminal
-// spurs plus the main-gate<->flagpole entrance walkway and the
-// flagpole<->mid-campus spine plus the additive Lugaw link -> 25 pairs / 50 directed
-// rows. (scripts/routeTopology-probe.js owns the topology assertions; this
-// probe keeps owning the geometry contract.)
-const EXPECTED_EDGES = 50;
-const EXPECTED_PAIRS = 25;
-const EXPECTED_BUILDINGS = 13;
+const MYSQL_COUNTS = SELECTED_DEMO_FREEZE.backends.mysql.counts;
+const SUPABASE_COUNTS = SELECTED_DEMO_FREEZE.backends.supabase.counts;
 // 0015 is owner-applied and IMMUTABLE: its shipped dataset still declares the
 // pre-repair 26-pair shape. Migration 0017 carries the topology correction.
 const EXPECTED_0015_PAIRS = 26;
@@ -144,7 +137,7 @@ function normalizePoints(points) {
 }
 
 (async () => {
-  console.log('=== CampuSphere route edge geometry probe (Pre-Milestone-12 RF.2) ===');
+  console.log('=== CampuSphere route edge geometry probe (BE.6 backend-specific freeze) ===');
   try {
     console.log('\nmysql data checks:');
 
@@ -163,8 +156,10 @@ function normalizePoints(points) {
               path_label, is_accessible, path_geometry
          FROM route_edges`
     );
-    check(`route graph has ${EXPECTED_NODES} nodes (found ${nodes.length})`, nodes.length === EXPECTED_NODES);
-    check(`route graph has ${EXPECTED_EDGES} directed edges (found ${edges.length})`, edges.length === EXPECTED_EDGES);
+    check(`MySQL route graph has ${MYSQL_COUNTS.route_nodes} nodes (found ${nodes.length})`,
+      nodes.length === MYSQL_COUNTS.route_nodes);
+    check(`MySQL route graph has ${MYSQL_COUNTS.route_edges} directed edges (found ${edges.length})`,
+      edges.length === MYSQL_COUNTS.route_edges);
 
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
     const keyById = new Map(nodes.map((n) => [n.id, n.node_key]));
@@ -199,8 +194,9 @@ function normalizePoints(points) {
       validCount++;
       geometryByPair.set(keyById.get(e.from_node_id) + '|' + keyById.get(e.to_node_id), normalizePoints(v.value));
     }
-    check(`all ${EXPECTED_EDGES} active edges carry valid geometry (valid ${validCount}, missing ${missingCount}, malformed ${malformedCount})`,
-      validCount === EXPECTED_EDGES && missingCount === 0 && malformedCount === 0);
+    check(`all ${MYSQL_COUNTS.valid_geometries} MySQL edges carry valid geometry (valid ${validCount}, missing ${missingCount}, malformed ${malformedCount})`,
+      validCount === MYSQL_COUNTS.valid_geometries && edges.length === MYSQL_COUNTS.route_edges &&
+      missingCount === 0 && malformedCount === 0);
     check('endpoint continuity holds for every stored geometry (failures ' + endpointFailCount + ')', endpointFailCount === 0);
 
     // Forward/reverse exact-reversal parity across the undirected pairs
@@ -217,8 +213,8 @@ function normalizePoints(points) {
       const rev = geometryByPair.get(rk);
       if (!rev || JSON.stringify(rev) !== JSON.stringify(reversePathGeometry(fwd))) reversalFail++;
     }
-    check(`${EXPECTED_PAIRS} forward/reverse pairs are exact reversals (pairs ${pairCount}, mismatches ${reversalFail})`,
-      pairCount === EXPECTED_PAIRS && reversalFail === 0);
+    check(`${MYSQL_COUNTS.exact_reverse_geometries} MySQL forward/reverse pairs are exact reversals (pairs ${pairCount}, mismatches ${reversalFail})`,
+      pairCount === MYSQL_COUNTS.exact_reverse_geometries && reversalFail === 0);
 
     // Retired shortcut pairs stay absent
     let retiredPresent = 0;
@@ -232,9 +228,10 @@ function normalizePoints(points) {
     }
     check('retired shortcut pairs remain absent', retiredPresent === 0);
 
-    // 13/13 destination routability from main-gate (pure Dijkstra, same rows)
+    // Complete MySQL building catalog and routability from main-gate.
     const [buildings] = await db.query('SELECT id, name FROM buildings');
-    check(`building count is ${EXPECTED_BUILDINGS} (found ${buildings.length})`, buildings.length === EXPECTED_BUILDINGS);
+    check(`MySQL building count is ${MYSQL_COUNTS.buildings} (found ${buildings.length})`,
+      buildings.length === MYSQL_COUNTS.buildings);
     const pfNodes = nodes.map((n) => ({
       id: n.id, key: n.node_key, label: n.label, node_type: n.node_type,
       building_id: n.building_id != null ? Number(n.building_id) : null,
@@ -255,11 +252,12 @@ function normalizePoints(points) {
       const r = findShortestPath({ nodes: pfNodes, edges: pfEdges, startKey: 'main-gate', endKey: dest.key });
       if (r.success && r.nodes.length >= 2) routable++;
     }
-    check(`13/13 destinations remain routable from main-gate (routable ${routable})`, routable === EXPECTED_BUILDINGS);
+    check(`${MYSQL_COUNTS.routable_destinations}/${MYSQL_COUNTS.buildings} MySQL buildings remain routable from main-gate (routable ${routable})`,
+      routable === MYSQL_COUNTS.routable_destinations);
 
     // ---- Live Supabase verification (0015 + 0017 are OWNER-APPLIED) ----
-    // Mirrors the MySQL geometry checks against the live production store, at
-    // the SAME post-0017 counts. Fails CLOSED when Supabase is
+    // Mirrors the MySQL geometry checks against the live production store with
+    // Supabase's own frozen counts. Fails CLOSED when Supabase is
     // unreachable/unconfigured, unless PROBE_SKIP_SUPABASE=1 marks an
     // intentional MySQL-fallback environment.
     console.log('\nsupabase live data checks (0015 + 0017 owner-applied; fail-closed):');
@@ -272,19 +270,22 @@ function normalizePoints(points) {
     } else {
       const sb = getSupabaseClient();
       const { data: sbNodes, error: nErr } = await sb
-        .from('route_nodes').select('id, node_key, lat, lng').order('id', { ascending: true });
+        .from('route_nodes').select('id, node_key, label, node_type, building_id, lat, lng').order('id', { ascending: true });
       const { data: sbEdges, error: eErr } = await sb
-        .from('route_edges').select('from_node_id, to_node_id, path_geometry').order('id', { ascending: true });
-      check('live Supabase route graph readable including path_geometry (0015 applied)',
-        !nErr && !eErr && Array.isArray(sbNodes) && Array.isArray(sbEdges));
-      if (!nErr && !eErr && Array.isArray(sbNodes) && Array.isArray(sbEdges)) {
-        check(`live Supabase has ${EXPECTED_NODES} nodes (found ${sbNodes.length})`, sbNodes.length === EXPECTED_NODES);
+        .from('route_edges').select('from_node_id, to_node_id, distance_meters, walk_time_seconds, path_label, is_accessible, path_geometry').order('id', { ascending: true });
+      const { data: sbBuildings, error: bErr } = await sb
+        .from('buildings').select('id, name').order('id', { ascending: true });
+      check('live Supabase route graph and building catalog are readable including path_geometry',
+        !nErr && !eErr && !bErr && Array.isArray(sbNodes) && Array.isArray(sbEdges) && Array.isArray(sbBuildings));
+      if (!nErr && !eErr && !bErr && Array.isArray(sbNodes) && Array.isArray(sbEdges) && Array.isArray(sbBuildings)) {
+        check(`live Supabase has ${SUPABASE_COUNTS.route_nodes} nodes (found ${sbNodes.length})`,
+          sbNodes.length === SUPABASE_COUNTS.route_nodes);
         // Migration 0017 (Guard House start + eastern terminal topology) is
         // OWNER-APPLIED, so live Supabase must carry the REPAIRED graph. This
         // now fails CLOSED: the obsolete pre-0017 52-row / 26-pair state is a
         // hard failure, not an accepted alternative.
-        check(`live Supabase has ${EXPECTED_EDGES} directed edges post-0017 (found ${sbEdges.length}; the pre-0017 52-row state is rejected)`,
-          sbEdges.length === EXPECTED_EDGES);
+        check(`live Supabase has ${SUPABASE_COUNTS.route_edges} directed edges (found ${sbEdges.length}; the pre-0017 52-row state is rejected)`,
+          sbEdges.length === SUPABASE_COUNTS.route_edges);
 
         const sbNodeById = new Map(sbNodes.map((n) => [Number(n.id), n]));
         const sbKeyById = new Map(sbNodes.map((n) => [Number(n.id), n.node_key]));
@@ -303,8 +304,9 @@ function normalizePoints(points) {
           sbValid++;
           sbGeomByPair.set(sbKeyById.get(Number(e.from_node_id)) + '|' + sbKeyById.get(Number(e.to_node_id)), normalizePoints(v.value));
         }
-        check(`live Supabase edges all carry valid geometry with endpoint continuity (valid ${sbValid}/${EXPECTED_EDGES}, bad ${sbBad})`,
-          sbValid === EXPECTED_EDGES && sbEdges.length === EXPECTED_EDGES && sbBad === 0);
+        check(`live Supabase edges all carry valid geometry with endpoint continuity (valid ${sbValid}/${SUPABASE_COUNTS.valid_geometries}, bad ${sbBad})`,
+          sbValid === SUPABASE_COUNTS.valid_geometries &&
+          sbEdges.length === SUPABASE_COUNTS.route_edges && sbBad === 0);
 
         let sbPairs = 0;
         let sbRevFail = 0;
@@ -318,8 +320,36 @@ function normalizePoints(points) {
           const rev = sbGeomByPair.get(b + '|' + a);
           if (!rev || JSON.stringify(rev) !== JSON.stringify(reversePathGeometry(fwd))) sbRevFail++;
         }
-        check(`live Supabase has ${EXPECTED_PAIRS} forward/reverse pairs, all exact reversals (pairs ${sbPairs}, mismatches ${sbRevFail})`,
-          sbRevFail === 0 && sbPairs === EXPECTED_PAIRS && sbPairs * 2 === sbEdges.length);
+        check(`live Supabase has ${SUPABASE_COUNTS.exact_reverse_geometries} forward/reverse pairs, all exact reversals (pairs ${sbPairs}, mismatches ${sbRevFail})`,
+          sbRevFail === 0 && sbPairs === SUPABASE_COUNTS.exact_reverse_geometries &&
+          sbPairs * 2 === sbEdges.length);
+
+        check(`live Supabase building count is ${SUPABASE_COUNTS.buildings} (found ${sbBuildings.length})`,
+          sbBuildings.length === SUPABASE_COUNTS.buildings);
+        const sbPfNodes = sbNodes.map((n) => ({
+          id: Number(n.id), key: n.node_key, label: n.label, node_type: n.node_type,
+          building_id: n.building_id != null ? Number(n.building_id) : null,
+          lat: Number(n.lat), lng: Number(n.lng)
+        }));
+        const sbPfEdges = sbEdges.map((e) => ({
+          from: sbKeyById.get(Number(e.from_node_id)), to: sbKeyById.get(Number(e.to_node_id)),
+          distance_meters: Number(e.distance_meters) || 0,
+          walk_time_seconds: Number(e.walk_time_seconds) || 0,
+          path_label: e.path_label != null ? e.path_label : null,
+          is_accessible: Number(e.is_accessible)
+        }));
+        let sbRoutable = 0;
+        for (const building of sbBuildings) {
+          const matches = sbPfNodes.filter((node) => node.building_id === Number(building.id));
+          const destination = matches.find((node) => node.node_type === 'building') || matches[0] || null;
+          if (!destination) continue;
+          const route = findShortestPath({
+            nodes: sbPfNodes, edges: sbPfEdges, startKey: 'main-gate', endKey: destination.key
+          });
+          if (route.success && route.nodes.length >= 2) sbRoutable++;
+        }
+        check(`${SUPABASE_COUNTS.routable_destinations}/${SUPABASE_COUNTS.buildings} Supabase buildings remain routable from main-gate (routable ${sbRoutable})`,
+          sbRoutable === SUPABASE_COUNTS.routable_destinations);
       }
     }
 
@@ -380,7 +410,7 @@ function normalizePoints(points) {
       ) === false);
 
     console.log('');
-    console.log(`NOTE 0015 and 0017 are OWNER-APPLIED; live Supabase path_geometry column, ${EXPECTED_EDGES}/${EXPECTED_EDGES} coverage, and ${EXPECTED_PAIRS}-pair reverse parity are verified above (read-only).`);
+    console.log(`NOTE 0015 and 0017 are OWNER-APPLIED; live Supabase path_geometry column, ${SUPABASE_COUNTS.valid_geometries}/${SUPABASE_COUNTS.route_edges} coverage, and ${SUPABASE_COUNTS.exact_reverse_geometries}-pair reverse parity are verified above (read-only).`);
     console.log('NOTE read-only probe: no rows were created or modified, and no SQL was applied.');
   } catch (e) {
     console.error('  [FAIL] probe aborted by an unexpected error (sanitized).');

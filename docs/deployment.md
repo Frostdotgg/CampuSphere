@@ -12,15 +12,15 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-01 Current Deployment And Data-Cutover Status
+## 2026-08-11 Current Deployment And Guided-VR Candidate Status
 
-- Git and production are synchronized at deployed production baseline
-  `0627bf78228148e3f989275810c333c16a1f3356`: `main`, `HEAD`,
-  `origin/main`, and the pushed remote match. That synchronization preflight
-  was clean; the current additive candidate worktree is intentionally dirty,
-  unstaged, uncommitted, unpushed, and undeployed. The owner verified that
-  Vercel marks the deployed commit Ready with the Production alias for
-  `https://campusphere-cspc.vercel.app`.
+- The candidate starting Git commit SHA-1 is
+  `5076e1316cf68e9d05c78a61b2362d1727873a09` on local HEAD and origin/main.
+  The worktree is now intentionally dirty and unstaged. Nothing from the
+  Guided-VR remediation candidate is committed, pushed, or deployed. The
+  owner-observed Vercel Production alias remains
+  `https://campusphere-cspc.vercel.app` on deployed baseline
+  `0627bf78228148e3f989275810c333c16a1f3356`.
 - The preceding SEC-51/R8 Git commit SHA-1 is
   `bbb25d0dee5917e4704da35784421c840f825afb`. The five-file deployed follow-up
   changes only this document, `public/css/styles.css`,
@@ -41,29 +41,105 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   human pilot or Google Form response. Its PII/transcript, temporary-file,
   misclick, and human sign-in sequencing deviations remain disclosed in the
   authority handoffs and are not repeated with sensitive values here.
-- The additive CCS/data candidate is parity-matched in both backends at 13
-  buildings, 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid
-  geometries, 13 routable destinations, 92 VR scenes, and 80 hotspots. The
-  selected freeze covers 28 scenes and 57 selected-source hotspots. Its
-  selected-VR SHA-256
-  `d0034e88a53420cee9f310540ae73b94996706a614517d52f753af02ca36cb22`
-  and aggregate SHA-256
-  `71cd227246356af95e64f871cc19078219236dcf226ca4aab12497e9d98211f7`.
-  Migrations remain exactly `0001-0019`; no `0020` exists.
+- The 13-building `models/data.js` roster remains the reproducible seed
+  baseline, not the complete live catalog. MySQL currently has 34 buildings,
+  44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid
+  geometries. Supabase currently has 25 buildings, 26 route nodes, 50 directed
+  edges, 25 exact reverse pairs, and 50 valid geometries. The shared catalog
+  has 25 active Guided VR destinations, 472 configured steps, and 99 unique
+  scene keys. Migrations remain exactly `0001-0019`; no `0020` exists.
 - The separately authorized backup/cutover used one-writer control and
   supported admin interfaces. Isolated Supabase and MySQL restores passed;
   the external manifest verifies 109/109 files; and all 86 referenced
   Cloudinary delivery URLs were exported and hashed. That delivery export is
-  not a Cloudinary management/original-account export. No selected entity was
-  deleted and no direct SQL or cleanup sync apply was used.
-- After an exact count preflight, one administrator and three student
-  Supabase session rows were revoked through one supported service call per
-  identity. Ordered postconditions are green at `24/24 -> 18/18 -> 46/46`.
-- The current Vercel allowlist candidate is 158 files, 6,212,545 bytes,
+  not a Cloudinary management/original-account export. A later bounded admin
+  correction removed exactly three redundant MySQL scene links after visual
+  preflight; no building, schedule, route, scene, or user was removed. A fresh
+  MySQL dump passed 6/6 checksum and isolated restore/redump checks. No direct
+  SQL, blanket cleanup, or sync apply was used.
+- After the owner logged out the accessible administrator/student sessions,
+  exact preflight found one MySQL administrator, one MySQL student, and one
+  Supabase administrator session. A first bounded wrapper stopped before
+  mutation on a role-label mismatch. The corrected wrapper invoked supported
+  `revokeUserSessions()` exactly once for each verified backend-local identity.
+  It used no direct session-row deletion and changed no account or application
+  data. That pre-QA read-only postcondition was `24/24 -> 18/18 -> 46/46`.
+- The failed `npm run qa` attempt that stopped at 4,512 contract passes after a
+  mixed-mode integration `ECONNRESET` remains historical/rejected. Its
+  incomplete student logout left exactly one unexpired canonical Supabase
+  student session and produced the historical `17/18` residue reading. Under a
+  separate bounded authorization, a fail-closed preflight reverified exactly
+  one intended-role student identity, that one session, and zero sessions for
+  the other three canonical Supabase identities; `revokeUserSessions()` was
+  then invoked exactly once for that student. It used no direct SQL or direct
+  session-row deletion, changed no account/application data, and performed no
+  broad cleanup. The ordered precondition returned to
+  `24/24 -> 18/18 -> 46/46`.
+- The independent read-only review of prior candidate manifest SHA-256
+  `b4c2c3c2a5766399b843c6e43f2f8cf347bcc04473e5ba6a0a808397c77a3d56`
+  returned commit-readiness NO-GO on the incomplete CAS sequence guard, a stale
+  SEC-37 package claim, obsolete OFF.3 scope, and premature pilot sequencing.
+  The bounded follow-up pins the ordered CAS hash, extends rejecting fixtures,
+  binds SEC-37 to the independent package pin, and restores the complete
+  review-to-pilot authorization order. The prior manifest is historical; the
+  corrected bytes still require a new independent read-only review.
+- A subsequent independent read-only review of exact 33-file manifest SHA-256
+  `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
+  returned commit-readiness NO-GO because the exact package inventory was not
+  enforced against the live manifest, obsolete handoff policy was historical
+  but not isolated from current authority, and current dates were stale. This
+  bounded correction adds independent live package pins and byte-drift
+  fixtures, explicit handoff-history boundaries, authority/date fixtures, and
+  synchronized current dates. It changes no runtime or data and still requires
+  independent read-only review.
+- The independent read-only review of exact 34-file manifest SHA-256
+  `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
+  returned commit-readiness NO-GO because six current-authority documents
+  repeated the rejected 4,628-PASS retry with an incorrect lower failure count
+  after already recording the transcript-faithful nine wording failures plus
+  residue. This bounded correction removes the duplicate claim and adds a
+  cross-document analyzer with accepting/rejecting fixtures. It changes no
+  runtime or data and still requires independent read-only review.
+- The first verification of that correction is historical/rejected at
+  `4640/4641`: the new analyzer stopped at the evidence ledger's first 4,628
+  mention, so one combined documentation assertion failed while runtime probes
+  and embedded `18/18` residue remained green. The analyzer now evaluates every
+  bounded 4,628 scope; no session or data correction was required.
+- Under a separate bounded authorization, a fail-closed preflight reverified
+  exactly two unexpired sessions for the one intended-role canonical MySQL
+  student, zero for the canonical MySQL administrator and all four canonical
+  Supabase identities, and the explicitly selected MySQL session store. One
+  supported `revokeUserSessions()` call removed both student sessions. No
+  direct session-row deletion, account/application-data change, or broad
+  cleanup occurred. The pre-QA ordered postcondition is green at
+  `24/24 -> 18/18 -> 46/46`.
+- The exact synchronized candidate passes a freshly counted `npm test` at
+  `4641/4641` with `QUALITY-GATES OK` and `npm run qa` at the same exact
+  contract total with all five stages green and all exact transcript markers
+  present. Final ordered
+  postconditions are `24/24 -> 18/18 -> 46/46`. Historical/superseded: the
+  preceding 4,637-check QA command itself exited 0, but its enclosing scorer
+  returned 97 because it searched for nonexistent `SUPABASE-SMOKE OK` instead
+  of the actual `[supabase-smoke] PASS`; no application stage failed and no
+  retry was caused. A later freshly counted suite attempt timed out at its
+  20-minute wrapper bound inside the catalog-wide Guided-VR probe; it produced
+  no completion count, is historical/rejected, and left no CampuSphere Node
+  process or listener. Its one orphaned canonical MySQL student session was
+  exposed by the next bounded run, which exited 1 at 4,628 PASS with nine
+  current-authority wording failures and the residue failure. A fail-closed
+  preflight then proved exactly that one session, zero for the canonical MySQL
+  administrator and all four Supabase identities, and the intended student
+  role; one supported `revokeUserSessions()` call restored the count to zero.
+  No direct session-row delete, account/application-data change, or broad
+  cleanup occurred. The wrapper timeout and bounded red rerun remain
+  historical/rejected. Independent read-only review remains open; R8,
+  deployment, and GO remain unclaimed.
+- The current Vercel allowlist candidate is 158 files, 6,245,074 bytes,
   aggregate SHA-256
-  `c1d3c78e6d14efc21be18bce234137e7dddc5d9434f6f1df3e660d5e82384999`;
-  the focused boundary probe passed `71/71`, and `scripts/quality-gates.js`
-  pins these candidate bytes. This is not deployment authorization.
+  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`;
+  the focused boundary probe and registered in-suite package gate both passed
+  `72/72`, and `scripts/quality-gates.js` pins these candidate bytes. This is
+  not deployment authorization.
 - Human pilot evidence, OFF.2-OFF.6, and final Milestone 12 GO remain open.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
@@ -100,16 +176,19 @@ hotspots, or schedules with real campus data:
    refreshed. A data backup does not back up source code; retain the Git commit
    and deployment record separately.
 
-The backup, isolated restore proofs, and additive reconciliation described
-above have been performed. The full contract/QA matrix passed at `3792/3792`
-with all five QA stages green, and its ordered postcondition passed
-`24/24 -> 18/18 -> 46/46`. Independent read-only review, commit, push, and
-deployment remain separate and are not authorized by this documentation record.
+The backup, isolated restore proofs, additive reconciliation, and duplicate-link
+correction described above have been performed. Focused catalog and BE.6 probes
+are green; the exact synchronized full contract/QA matrix and final ordered
+postconditions recorded above passed on the candidate bytes. Bounded
+independent-review findings were remediated and the corrected matrix passed;
+another independent read-only review of the fresh exact manifest remains
+required. Commit, push, and deployment
+remain separate and are not authorized by this documentation record.
 
 ## Historical/Superseded — 2026-07-30 R8 Continuity Status
 
 The following section records what was known on July 30. It is retained for
-incident traceability and does not override the August 1 status above.
+incident traceability and does not override the August 10 status above.
 
 - Historical/superseded: before the `0627bf7` deployment, production at
   `https://campusphere-cspc.vercel.app` used the independently Codex-accepted
@@ -772,14 +851,16 @@ All migrations are written to be idempotent/additive where practical
 > the authoritative Guard House topology, CAS baseline, and selected-demo
 > parity.
 
-The refreshed additive candidate routing dataset contains 21 nodes, 50 directed
-edges, 25 exact forward/reverse pairs, 50 valid geometries, and 13 routable building
-destinations in both backends. CampuSphere computes routes from its own campus
-graph and renders owner-managed road geometry. Google Maps, Google Earth,
-Strava, SIS, and external routing engines are not integrated.
-Guided VR reports arrival only when mapped panorama coverage reaches the
-selected destination; partial coverage ends with an explicit notice and never
-claims arrival.
+The current expanded candidate is backend-specific: MySQL contains 34
+buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100
+valid geometries; Supabase contains 25 buildings, 26 route nodes, 50 directed
+edges, 25 exact reverse pairs, and 50 valid geometries. The shared Guided-VR
+catalog contains 25 active destinations, 472 configured steps, and 99 unique
+scene keys. CampuSphere computes routes from its own campus graph and renders
+owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and
+external routing engines are not integrated. Guided VR reports arrival only
+after stored natural-key endpoints, approved panorama media, and every exact
+forward/reverse adjacent scene link verify; partial coverage fails closed.
 
 ---
 
@@ -1118,7 +1199,7 @@ bootstrap implementation.
 
 The preceding SEC-51 evidence synchronization at Git commit SHA-1
 `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
-present additive CCS candidate is uncommitted, unpushed, and undeployed; it does
+Guided-VR catalog-remediation candidate is uncommitted, unpushed, and undeployed; it does
 not change production, and independent review is still required.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
@@ -1377,7 +1458,7 @@ because inside the app container `localhost` is the container itself.
 | Google `redirect_uri_mismatch` | `GOOGLE_REDIRECT_URI` doesn't exactly match an Authorized redirect URI in Google Cloud. Register the exact scheme/host/port/path (§7). |
 | App can't reach MySQL in Docker (`ECONNREFUSED`/timeout) | `DB_HOST` points at `localhost` inside the container. In Compose use `DB_HOST=mysql` (the service name); standalone, point it at the reachable host. |
 | Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply migrations through `0019` in order; `0011` is required for Supabase sessions, `0012`-`0013` for scheduling/VR targets, and `0014`-`0019` for road-following routing, CAS baseline, selected-demo parity, and admin geometry. Verify with `npm run qa:smoke` and the focused probes. |
-| `npm run qa:db` fails on a missing index or route-geometry count | Apply the Supabase migrations through `0019` (§3) and run `node database/seed.js` for MySQL. The refreshed additive candidate route truth is 21 nodes, 50 directed edges, 25 reverse pairs, and 50 valid geometries. |
+| `npm run qa:db` fails on a missing index or route-geometry count | Apply the Supabase migrations through `0019` (§3) and run `node database/seed.js` for MySQL. Re-measure the selected backend rather than assuming parity: the current candidate freezes MySQL at 44 nodes / 100 edges / 50 reverse pairs / 100 geometries and Supabase at 26 / 50 / 25 / 50. |
 | `npm test` / `npm run qa` fails | Ensure MySQL is running and seeded; Supabase portions SKIP cleanly only when no Supabase runtime is selected. Selected Supabase runtimes fail closed when credentials or required migrations are missing. Re-run the named focused probe or gate for detail. |
 
 ---

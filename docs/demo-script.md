@@ -77,10 +77,18 @@ do not expose stacks, SQL, or secrets.
 4. Open **Set VR Route**. Navigate mapped scenes and show that incomplete scene
    coverage ends with a coverage notice, not a false arrival message.
 
-Expected: map search is capped and sanitized, the verified 20-node / 48-edge /
-24-pair graph routes all 13 current destinations, road geometry renders in
-order, and VR navigation uses admin-managed non-private data. Guided VR reports
-arrival only when scene coverage reaches the selected destination.
+Expected: map search is capped and sanitized, road geometry renders in graph
+order, and VR navigation uses admin-managed non-private data. MySQL freezes 34
+buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid
+geometries, and 33 routable destinations; Supabase freezes 25 buildings, 26
+route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries,
+and 25 routable destinations; Guided VR covers 25 active destinations, 472
+configured steps, and 99 unique scene keys.
+
+Arrival requires the configured natural destination node, stored start and
+arrival scene mappings, an approved Cloudinary delivery URL and public ID, and
+exactly one forward and one reverse scene link for every adjacent scene pair;
+otherwise the route remains unavailable and no arrival is reported.
 
 ### 5. PWA And Offline Boundary
 
@@ -118,10 +126,12 @@ Explain:
 - RF.6 road-following routing is Codex GO. CampuSphere computes routes from its
   own campus graph and owner-managed road geometry; it does not integrate Google
   Maps, Google Earth, Strava, SIS, or another external routing engine.
-- `M12.P1` limited-pilot readiness is next; deployment requires separate GO and
-  owner authorization. The full authenticated app is exposed while facilitators
-  focus student/guest feedback on routing. OFF.6 is required before final M12
-  GO.
+- The remaining sequence is candidate remediation and verification ->
+  independent commit-readiness review -> local commit -> separately authorized
+  push -> separately authorized read-only R8 -> separate owner deployment
+  decision -> limited pilot. The full authenticated app is exposed only after
+  those gates while facilitators focus student/guest feedback on routing. OFF.6
+  remains required before final M12 GO.
 - Docker packaging exists; Docker full deployment finalization is Milestone 13
   and must be verified on a Docker-enabled machine.
 

@@ -936,10 +936,13 @@ async function runMode(mode, base, api) {
   try {
   const H = { Cookie: student.jar.header(), Accept: 'application/json' };
 
-  // Pick a destination the seeded graph provably maps.
-  let r = await jfetch('/api/routes', { headers: H });
-  const routes = (r.json && r.json.routes) || [];
-  const destId = routes.length && routes[0].destination ? routes[0].destination.id : null;
+  // Pick a destination from the complete computed building catalog. Supabase
+  // may intentionally have no predefined campus_routes rows.
+  let r = await jfetch('/api/buildings', { headers: H });
+  const buildings = (r.json && (r.json.buildings || r.json.data)) || [];
+  const mapped = buildings.find((b) => b.route_available === true &&
+    Number.isInteger(Number(b.route_destination_id)) && Number(b.route_destination_id) > 0);
+  const destId = mapped ? Number(mapped.id) : null;
   check(mode, 'fixture: destination building id available', Number.isInteger(destId) && destId > 0);
   if (!Number.isInteger(destId) || destId <= 0) return bodies;
 

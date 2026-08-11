@@ -13,9 +13,9 @@
 
    Part 2 (both runtime modes via scripts/with-server.js, never a foreground
    server): verifies the additive /api/pathfind contract:
-     - all 13 destinations return ordered numeric route.geometry whose first/
-       last points equal the start/destination node coordinates, with no
-       duplicated consecutive points;
+     - every active catalog destination returns ordered numeric route.geometry
+       whose first/last points equal the configured start/destination node
+       coordinates, with no duplicated consecutive points;
      - route.nodes / route.segments / distance / walk-time metrics keep the
        pre-RF.3 shape byte-for-byte (segments carry NO geometry key);
      - reverse traversal returns the exact reversed forward geometry;
@@ -49,7 +49,10 @@ const { getRegressionCredentials } = require('./regressionCredentials');
 // canonical identity authenticated here is terminated through the real logout
 // interface so `npm test` leaves no persisted regression session behind.
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
+const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
 const SEGMENT_KEYS = ['from', 'to', 'distance_meters', 'walk_time_seconds', 'path_label'];
+const canonical = (value) => String(value == null ? '' : value)
+  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 const failures = [];
 function check(scope, label, ok) {
@@ -295,12 +298,25 @@ async function runMode(mode, base) {
 
   let r = await jfetch('/api/buildings', { headers: H });
   const buildings = (r.json && (r.json.buildings || r.json.data)) || [];
-  check(mode, `13 buildings listed (found ${buildings.length})`, buildings.length === 13);
+  const byName = new Map();
+  for (const building of buildings) {
+    const key = canonical(building.name);
+    const list = byName.get(key) || [];
+    list.push(building);
+    byName.set(key, list);
+  }
+  const destinations = GUIDED_VR_ROUTES.map((policy) => {
+    const matches = byName.get(canonical(policy.destination_name)) || [];
+    return matches.length === 1 ? matches[0] : null;
+  });
+  check(mode, `all ${GUIDED_VR_ROUTES.length} configured destination buildings are listed exactly once`,
+    GUIDED_VR_ROUTES.length === 25 && destinations.every(Boolean));
 
-  // All 13 destinations: additive geometry + unchanged legacy contract.
+  // Every active catalog destination: additive geometry + unchanged legacy contract.
   let okCount = 0;
   let geometryPointTotal = 0;
-  for (const b of buildings) {
+  let directPair = null;
+  for (const b of destinations.filter(Boolean)) {
     r = await jfetch(`/api/pathfind?start=main-gate&destinationBuildingId=${b.id}`, { headers: H });
     const route = r.json && r.json.route;
     if (!(r.status === 200 && r.json && r.json.success === true && route)) continue;
@@ -330,26 +346,32 @@ async function runMode(mode, base) {
     if (legacyOk && geometryOk) {
       okCount++;
       geometryPointTotal += g.length;
+      if (!directPair && nodes.length >= 2) directPair = [nodes[0].key, nodes[1].key];
     }
   }
-  check(mode, `13/13 destinations return ordered numeric route.geometry with intact legacy contract (ok ${okCount}/13, total points ${geometryPointTotal})`, okCount === 13);
+  check(mode, `${GUIDED_VR_ROUTES.length}/${GUIDED_VR_ROUTES.length} active destinations return ordered numeric route.geometry with intact legacy contract (ok ${okCount}/${GUIDED_VR_ROUTES.length}, total points ${geometryPointTotal})`,
+    okCount === GUIDED_VR_ROUTES.length);
 
-  // Reverse traversal: exact reversed forward geometry. Uses the west-campus
-  // corridor (main-gate <-> main-academic), whose shortest path is UNIQUE in
-  // both directions — routes with equal-cost alternatives (e.g. the 103s
-  // ictu/gymnasium tie) may legitimately pick a different winner per
-  // direction, which would test Dijkstra tie-breaking, not geometry reversal.
-  const fwd = await jfetch('/api/pathfind?start=main-gate&destinationNodeKey=main-academic', { headers: H });
-  const rev = await jfetch('/api/pathfind?start=main-academic&destinationNodeKey=main-gate', { headers: H });
+  // Reverse traversal: use the first direct segment from an accepted route so
+  // no equal-cost whole-route tie can test Dijkstra selection instead of the
+  // stored forward/reverse geometry contract.
+  const pairStart = directPair && directPair[0];
+  const pairEnd = directPair && directPair[1];
+  const fwd = pairStart && pairEnd
+    ? await jfetch(`/api/pathfind?start=${encodeURIComponent(pairStart)}&destinationNodeKey=${encodeURIComponent(pairEnd)}`, { headers: H })
+    : { json: null };
+  const rev = pairStart && pairEnd
+    ? await jfetch(`/api/pathfind?start=${encodeURIComponent(pairEnd)}&destinationNodeKey=${encodeURIComponent(pairStart)}`, { headers: H })
+    : { json: null };
   const fwdRoute = fwd.json && fwd.json.route;
   const revRoute = rev.json && rev.json.route;
   const fwdReversed = fwdRoute ? reversePathGeometry(fwdRoute.geometry) : [];
   const reverseMatches = !!fwdRoute && !!revRoute &&
-    Array.isArray(fwdRoute.geometry) && fwdRoute.geometry.length >= 3 &&
+    Array.isArray(fwdRoute.geometry) && fwdRoute.geometry.length >= 2 &&
     Array.isArray(revRoute.geometry) &&
     revRoute.geometry.length === fwdReversed.length &&
     revRoute.geometry.every((p, i) => samePt(p, fwdReversed[i]));
-  check(mode, 'reverse traversal returns the exact reversed forward geometry (main-gate <-> main-academic)', reverseMatches);
+  check(mode, 'one direct route pair returns exact reversed forward geometry', reverseMatches);
 
   // Start equals destination: one coordinate.
   r = await jfetch('/api/pathfind?start=main-gate&destinationNodeKey=main-gate', { headers: H });

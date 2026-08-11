@@ -36,7 +36,9 @@
    AVAILABILITY CONTRACT
    ---------------------
    A building is available ONLY when all of the following hold:
-     1. it has a route-source destination node (matched by canonical name);
+     1. it has a route-source destination node (the exact configured natural
+        node key for an active Guided-VR destination; otherwise the generic
+        building-node mapping);
      2. that node is reachable from `main-gate`;
      3. the path has finite, ordered nodes;
      4. it assembles complete, valid road geometry.
@@ -68,6 +70,11 @@ const routeRepository = require('../repositories/routeRepository');
 const buildingRepository = require('../repositories/buildingRepository');
 const { findShortestPath } = require('../utils/pathfinding');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
+const {
+  GUIDED_VR_ROUTES,
+  DEFERRED_GUIDED_VR_DESTINATIONS
+} = require('../config/guidedVrRoutes');
+const { resolveGuidedDestinationPolicyByName } = require('./guidedVrResolution');
 
 const START_NODE_KEY = 'main-gate';
 
@@ -219,6 +226,120 @@ function groupByCanonical(rows) {
 }
 
 /* ---------------------------------------------------------------------------
+   PURE destination-node resolution for route availability.
+
+   Active Guided-VR destinations are governed by their configured natural
+   destination_node_key. A sibling node that happens to share building_id must
+   never make the building look routable when that configured endpoint is
+   missing, duplicated, or attached to a different building. Non-catalog and
+   deferred destinations retain the generic building-node fallback used by the
+   public campus graph.
+--------------------------------------------------------------------------- */
+function resolveAvailabilityDestinationNode({
+  destinationName,
+  routeBuildingId,
+  nodes,
+  activeRoutes = GUIDED_VR_ROUTES,
+  deferredDestinations = DEFERRED_GUIDED_VR_DESTINATIONS
+}) {
+  const list = Array.isArray(nodes) ? nodes : [];
+  const policy = resolveGuidedDestinationPolicyByName({
+    destinationName,
+    activeRoutes,
+    deferredDestinations,
+    canonicalize: canonicalKey
+  });
+
+  if (policy.kind === 'invalid') return null;
+  if (policy.kind === 'active') {
+    const configuredKey = policy.route.destination_node_key;
+    const matches = list.filter((node) =>
+      node && node.key === configuredKey && node.building_id === routeBuildingId);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  const matches = list.filter((node) => node && node.building_id === routeBuildingId);
+  return matches.find((node) => node.node_type === 'building') || matches[0] || null;
+}
+
+/* PURE per-destination availability calculation, exported for rejecting
+   fixtures. Database/repository reads remain in buildAvailabilityIndex(). */
+function availabilityDecorationForDestination({
+  destinationName,
+  routeBuildingId,
+  nodes,
+  edges,
+  edgeGeometryByKey,
+  vrRouteId,
+  activeRoutes = GUIDED_VR_ROUTES,
+  deferredDestinations = DEFERRED_GUIDED_VR_DESTINATIONS
+}) {
+  const vr = vrRouteId || null;
+  const dest = resolveAvailabilityDestinationNode({
+    destinationName,
+    routeBuildingId,
+    nodes,
+    activeRoutes,
+    deferredDestinations
+  });
+
+  if (!dest) {
+    return {
+      route_available: false,
+      route_destination_id: routeBuildingId,
+      route_unavailable_reason: REASON.NOT_MAPPED,
+      vr_route_id: vr
+    };
+  }
+
+  const result = findShortestPath({
+    nodes: Array.isArray(nodes) ? nodes : [],
+    edges: Array.isArray(edges) ? edges : [],
+    startKey: START_NODE_KEY,
+    endKey: dest.key
+  });
+  const reachable =
+    result.success &&
+    Array.isArray(result.nodes) && result.nodes.length >= 2 &&
+    Number.isFinite(Number(result.distance_meters)) &&
+    Number.isFinite(Number(result.walk_time_seconds));
+
+  if (!reachable) {
+    return {
+      route_available: false,
+      route_destination_id: routeBuildingId,
+      route_unavailable_reason: REASON.UNREACHABLE,
+      vr_route_id: vr
+    };
+  }
+
+  const assembled = assembleRouteGeometry({
+    nodes: result.nodes,
+    segments: result.segments,
+    edgeGeometryByKey: edgeGeometryByKey instanceof Map ? edgeGeometryByKey : new Map()
+  });
+  const geometryOk =
+    !assembled.incomplete &&
+    assembled.invalidEdges === 0 &&
+    Array.isArray(assembled.geometry) &&
+    assembled.geometry.length >= 2;
+
+  return geometryOk
+    ? {
+      route_available: true,
+      route_destination_id: routeBuildingId,
+      route_unavailable_reason: null,
+      vr_route_id: vr
+    }
+    : {
+      route_available: false,
+      route_destination_id: routeBuildingId,
+      route_unavailable_reason: REASON.INVALID_GEOMETRY,
+      vr_route_id: vr
+    };
+}
+
+/* ---------------------------------------------------------------------------
    Build the canonical-name -> availability index.
 
    Joins the BUILDING source and the ROUTE source by canonical name, and refuses
@@ -288,64 +409,14 @@ async function buildAvailabilityIndex() {
     }
     const routeBuildingId = join.routeBuildingId;
 
-    // 1. destination node (prefer the building-type node over a service node)
-    const matches = nodes.filter((n) => n.building_id === routeBuildingId);
-    const dest = matches.find((n) => n.node_type === 'building') || matches[0] || null;
-    const vr = src.vrByBuildingId.get(routeBuildingId) || null;
-
-    if (!dest) {
-      byName.set(key, {
-        route_available: false,
-        route_destination_id: routeBuildingId,
-        route_unavailable_reason: REASON.NOT_MAPPED,
-        vr_route_id: vr
-      });
-      continue;
-    }
-
-    // 2 + 3. reachable from main-gate with finite ordered nodes
-    const result = findShortestPath({ nodes, edges, startKey: START_NODE_KEY, endKey: dest.key });
-    const reachable =
-      result.success &&
-      Array.isArray(result.nodes) && result.nodes.length >= 2 &&
-      Number.isFinite(Number(result.distance_meters)) &&
-      Number.isFinite(Number(result.walk_time_seconds));
-
-    if (!reachable) {
-      byName.set(key, {
-        route_available: false,
-        route_destination_id: routeBuildingId,
-        route_unavailable_reason: REASON.UNREACHABLE,
-        vr_route_id: vr
-      });
-      continue;
-    }
-
-    // 4. complete, valid drawing geometry
-    const assembled = assembleRouteGeometry({
-      nodes: result.nodes,
-      segments: result.segments,
-      edgeGeometryByKey
-    });
-    const geometryOk =
-      !assembled.incomplete &&
-      assembled.invalidEdges === 0 &&
-      Array.isArray(assembled.geometry) &&
-      assembled.geometry.length >= 2;
-
-    byName.set(key, geometryOk
-      ? {
-        route_available: true,
-        route_destination_id: routeBuildingId,
-        route_unavailable_reason: null,
-        vr_route_id: vr
-      }
-      : {
-        route_available: false,
-        route_destination_id: routeBuildingId,
-        route_unavailable_reason: REASON.INVALID_GEOMETRY,
-        vr_route_id: vr
-      });
+    byName.set(key, availabilityDecorationForDestination({
+      destinationName: routeGroups.get(key)[0].name,
+      routeBuildingId,
+      nodes,
+      edges,
+      edgeGeometryByKey,
+      vrRouteId: src.vrByBuildingId.get(routeBuildingId) || null
+    }));
   }
 
   return { ok: true, byName };
@@ -416,6 +487,8 @@ module.exports = {
   canonicalKey,
   canonicalJoinVerdict,
   groupByCanonical,
+  resolveAvailabilityDestinationNode,
+  availabilityDecorationForDestination,
   loadBuildingSourceRoster,
   canonicalNameCollides,
   buildAvailabilityIndex,

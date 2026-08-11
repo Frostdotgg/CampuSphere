@@ -72,6 +72,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
+/* Independent exact-byte authority for the current reviewed package. Keep this
+   pin local to the standalone probe so a coordinated documentation or
+   quality-gate edit cannot silently bless changed deployable bytes. */
+const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
+  files: 158,
+  bytes: 6245074,
+  sha256: 'b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4',
+});
+
 /* M12.P1-R8 label correction.
    The superseded label described this inventory as an uncommitted-working-tree
    preview and denied being an immutable manifest. That was accurate while the
@@ -663,6 +672,26 @@ function verifyManifestSelfConsistency(manifest) {
 }
 
 /**
+ * PURE: does a self-consistent manifest match the independently pinned live
+ * package inventory? This deliberately accepts no caller-supplied expectation.
+ * @returns {string[]} problems (empty = exact match)
+ */
+function evaluatePinnedPackageManifest(manifest) {
+  const problems = [];
+  if (!manifest || typeof manifest !== 'object') return ['manifest is missing'];
+  if (manifest.fileCount !== EXPECTED_PACKAGE_INVENTORY.files) {
+    problems.push('manifest file count differs from the independently pinned inventory');
+  }
+  if (manifest.byteTotal !== EXPECTED_PACKAGE_INVENTORY.bytes) {
+    problems.push('manifest byte total differs from the independently pinned inventory');
+  }
+  if (manifest.aggregateSha256 !== EXPECTED_PACKAGE_INVENTORY.sha256) {
+    problems.push('manifest aggregate SHA-256 differs from the independently pinned inventory');
+  }
+  return problems;
+}
+
+/**
  * PURE: does an enumerated package satisfy the independently pinned contract?
  * Forbidden inclusions are reported by CLASS LABEL and COUNT only.
  * @returns {string[]} problems (empty = compliant)
@@ -1024,6 +1053,10 @@ async function main() {
   const manifestProblems = verifyManifestSelfConsistency(manifest);
   check('package', 'the preview manifest is internally consistent', manifestProblems.length === 0);
   manifestProblems.forEach((p) => console.error('    - manifest: ' + p));
+  const pinnedManifestProblems = evaluatePinnedPackageManifest(manifest);
+  check('package', 'the live package manifest matches the independently pinned file count, bytes, and aggregate SHA-256',
+    pinnedManifestProblems.length === 0);
+  pinnedManifestProblems.forEach((p) => console.error('    - package-pin: ' + p));
   check('package', 'every enumerated path is normalized to forward slashes',
     manifest.files.every((f) => f.path === toPosix(f.path) && !f.path.startsWith('/') && !/^[A-Za-z]:/.test(f.path)));
   check('package', 'no enumerated path resolves inside the denied panorama subtree',
@@ -1058,6 +1091,7 @@ if (require.main === module) {
 
 module.exports = {
   PREVIEW_LABEL,
+  EXPECTED_PACKAGE_INVENTORY,
   ROOT_IGNORE_TOKEN,
   EXPECTED_ROOT_FILES,
   EXPECTED_RUNTIME_DIRS,
@@ -1089,5 +1123,6 @@ module.exports = {
   computeAggregateSha256,
   buildPackageManifest,
   verifyManifestSelfConsistency,
+  evaluatePinnedPackageManifest,
   evaluatePackageContract,
 };

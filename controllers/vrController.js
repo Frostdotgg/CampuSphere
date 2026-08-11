@@ -49,7 +49,7 @@ const {
 const { canonicalKey } = require('../services/routeAvailability');
 const {
   resolveStartNode,
-  resolveGuidedDestinationPolicy,
+  resolveGuidedDestinationPolicyByName,
   isResolvedMediaArrival,
   isSafeSceneKey,
   verifyGuidedChain,
@@ -261,13 +261,30 @@ async function resolveGraphScenes(route, sources) {
   }
   const startNode = start.node;
 
-  // Destination node: a node mapped to the route's destination building;
-  // prefer the building-type node over service nodes sharing the building.
-  const destMatches = nodes.filter((n) => n.building_id === route.destination.id);
-  const destNode =
-    destMatches.find((n) => n.node_type === 'building') ||
-    destMatches[0] ||
-    null;
+  // Catalog destinations resolve FROM the configured natural node key. This
+  // prevents a duplicate/sibling building node from winning merely because it
+  // shares one backend-local building_id. The selected node must exist exactly
+  // once and map to the route-source destination building in this same backend.
+  const guidedPolicy = findGuidedVrPolicy(route.destination.name);
+  let destNode = null;
+  if (guidedPolicy.kind === 'active') {
+    const configuredKey = guidedPolicy.route.destination_node_key;
+    const configuredMatches = nodes.filter((n) => n.key === configuredKey);
+    if (configuredMatches.length !== 1 ||
+        configuredMatches[0].building_id !== Number(route.destination.id)) {
+      return { ok: true, route, path: [], scenes: [],
+        distance_meters: 0, walk_time_seconds: 0,
+        reason: 'guided_destination_node_invalid', destination_reached: false,
+        coverage_notice: configuredCoverageEndsNotice(route),
+        coverage_message: configuredCoverageEndsApiMessage(route) };
+    }
+    destNode = configuredMatches[0];
+  } else {
+    // Non-catalog routes retain the local graph mapping. This branch never
+    // compares numeric ids across backends; it runs entirely in route source.
+    const destMatches = nodes.filter((n) => n.building_id === Number(route.destination.id));
+    destNode = destMatches.find((n) => n.node_type === 'building') || destMatches[0] || null;
+  }
 
   if (!destNode) {
     return { ok: true, route, path: [], scenes: [],
@@ -295,7 +312,6 @@ async function resolveGraphScenes(route, sources) {
   // scene sequence is resolved by stable scene keys in VR_DATA_SOURCE —
   // valid across ANY route/VR source combination because no numeric id ever
   // crosses a backend.
-  const guidedPolicy = findGuidedVrPolicy(route.destination.name, destNode.key);
   if (guidedPolicy.kind === 'active') {
     return buildGuidedNaturalKeyScenes({
       route, guided: guidedPolicy.route, pathNodes, result, vrSupabase: sources.vrSupabase
@@ -523,15 +539,13 @@ function attachHotspotNav(hotspots, orderedScenes, step, isFinal, prevUrl, nextU
 
    Arrival is true ONLY when EVERY configured scene was verified and the
    final scene is the catalog's arrival_scene_key — never scenes.length.
-   node_key is presentation-only: START_NODE_KEY for the first scene and the
-   catalog's destination node key for the verified arrival scene;
-   intermediate road panoramas stay null. Nothing here writes node/building
-   mappings to database rows.
+   node_key is translated from each scene's stored node_id through route_nodes
+   in the active VR backend. The controller never fabricates a start or arrival
+   mapping. Nothing here writes node/building mappings to database rows.
 --------------------------------------------------------- */
-function findGuidedVrPolicy(destinationName, destinationNodeKey) {
-  return resolveGuidedDestinationPolicy({
+function findGuidedVrPolicy(destinationName) {
+  return resolveGuidedDestinationPolicyByName({
     destinationName,
-    destinationNodeKey,
     activeRoutes: GUIDED_VR_ROUTES,
     deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
     canonicalize: canonicalKey
@@ -547,8 +561,8 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
     sceneRows = await vrRepository.listScenesByKeys(keys);
   } else {
     const [rows] = await db.query(
-      `SELECT id, scene_key, title, description, image_url, node_id,
-              building_id, initial_yaw, initial_pitch, display_order
+      `SELECT id, scene_key, title, description, image_url, cloudinary_public_id, node_id,
+               building_id, initial_yaw, initial_pitch, display_order
          FROM vr_scenes
         WHERE scene_key IN (?)`,
       [Array.from(keys)]
@@ -565,6 +579,30 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
     if (sceneByKey.has(s.scene_key)) duplicateKeys.add(s.scene_key);
     else sceneByKey.set(s.scene_key, s);
   }
+
+  // Resolve stored scene.node_id values through route_nodes in the SAME VR
+  // backend. The verifier and public response use only natural node_key values;
+  // numeric ids never cross source boundaries.
+  const sceneNodeIds = [...new Set(sceneRows
+    .map((scene) => Number(scene.node_id))
+    .filter((id) => Number.isInteger(id) && id > 0))];
+  let sceneNodeRows = [];
+  if (sceneNodeIds.length > 0) {
+    if (vrSupabase) {
+      sceneNodeRows = await vrRepository.listRouteNodeKeysByIds(sceneNodeIds);
+    } else {
+      const [rows] = await db.query(
+        'SELECT id, node_key FROM route_nodes WHERE id IN (?)',
+        [sceneNodeIds]
+      );
+      sceneNodeRows = rows;
+    }
+  }
+  const sceneNodeKeyById = new Map(sceneNodeRows.map((node) => [Number(node.id), node.node_key]));
+  const verifiedSceneRows = sceneRows.map((scene) => ({
+    ...scene,
+    node_key: scene.node_id == null ? null : (sceneNodeKeyById.get(Number(scene.node_id)) || null)
+  }));
 
   // Batched directional-link read for the resolved VR-source scene ids.
   const resolvedIds = [...sceneByKey.entries()]
@@ -606,8 +644,10 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
   const chain = verifyGuidedChain({
     keys,
     arrivalKey: guided.arrival_scene_key,
-    scenes: sceneRows,
-    links
+    scenes: verifiedSceneRows,
+    links,
+    startNodeKey: START_NODE_KEY,
+    destinationNodeKey: guided.destination_node_key
   });
   const verified = chain.verified;
   const complete = chain.complete;
@@ -619,12 +659,9 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
     description: s.description || '',
     // Same output guard as the graph mapping (Section 10.5 + pre-11.8C).
     image_url: resolveSceneImageUrl(s.image_url),
-    // Presentation-only derivation (never persisted): the chain starts at
-    // the Guard House / Main Gate node and the VERIFIED arrival scene ends
-    // at the destination node; intermediate panoramas carry no node mapping.
-    node_key: idx === 0
-      ? START_NODE_KEY
-      : (complete && idx === verified.length - 1 ? guided.destination_node_key : null),
+    // Stored endpoint mapping translated through the active VR backend. No
+    // synthetic first/final labels are introduced by the controller.
+    node_key: s.node_key || null,
     initial_yaw: toNum(s.initial_yaw, 0),
     initial_pitch: toNum(s.initial_pitch, 0)
   }));

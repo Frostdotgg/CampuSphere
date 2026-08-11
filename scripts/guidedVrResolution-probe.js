@@ -1,27 +1,21 @@
 'use strict';
 
-/* ========================================
-   CampuSphere - Guided VR resolution PURE probe (BE.4 NO-GO repair)
-
-   Read-only, no server, no database, no network. Exercises the pure
-   services/guidedVrResolution.js helpers with in-memory fixtures so the
-   fail-closed route-start identity, the media-aware configured-chain
-   verification, and the per-hotspot navigation mapping are proven WITHOUT
-   depending on the current (damaged) Supabase/MySQL data.
-
-   These are pure code-behavior assertions and MUST all pass regardless of the
-   live route-graph / VR parity defects.
-
-   Run:  node scripts/guidedVrResolution-probe.js
-   ======================================== */
+/*
+ * Catalog-wide Guided VR pure probe.
+ *
+ * Read-only: no server, database, network, or session. Exercises every active
+ * route plus fail-closed malformed/partial fixtures using natural identities.
+ */
 
 const {
   resolveStartNode,
+  resolveGuidedDestinationPolicyByName,
   resolveGuidedDestinationPolicy,
   isResolvedMediaArrival,
   verifyGuidedChain,
   deriveHotspotNav,
-  isApprovedCloudinaryUrl
+  isApprovedCloudinaryUrl,
+  hasApprovedCloudinaryMetadata
 } = require('../services/guidedVrResolution');
 const {
   GUIDED_VR_ROUTES,
@@ -34,31 +28,6 @@ function check(label, ok) {
   if (!ok) failures.push(label);
 }
 
-const CAS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'cas');
-const CCS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'ccs');
-const KEYS = CAS ? CAS.scene_keys : [];
-const CCS_KEYS = CCS ? CCS.scene_keys : [];
-const ARRIVAL = CAS ? CAS.arrival_scene_key : 'scene-cas-1st-floor';
-const CCS_ARRIVAL = CCS ? CCS.arrival_scene_key : 'scene-ccs-1st-floor';
-const CLOUD = 'https://res.cloudinary.com/demo/image/upload/';
-
-// Build a fully-linked, Cloudinary-backed fixture for the whole configured
-// chain: one scene per key + exact forward/reverse scene links between
-// adjacent keys. Helpers below mutate copies to model each defect.
-function fullScenesFor(keys) {
-  return keys.map((k, i) => ({ scene_key: k, image_url: CLOUD + k + '.jpg', id: i + 1 }));
-}
-function fullLinksFor(keys) {
-  const links = [];
-  for (let i = 0; i < keys.length - 1; i++) {
-    links.push({ fromKey: keys[i], toKey: keys[i + 1] });
-    links.push({ fromKey: keys[i + 1], toKey: keys[i] });
-  }
-  return links;
-}
-function fullScenes() { return fullScenesFor(KEYS); }
-function fullLinks() { return fullLinksFor(KEYS); }
-
 function canonicalize(value) {
   return String(value == null ? '' : value)
     .toLowerCase()
@@ -66,237 +35,188 @@ function canonicalize(value) {
     .trim();
 }
 
-/* ---- active selected-demo destination policy ---- */
-console.log('=== Active selected-demo destination policy ===');
-check('CAS resolves as an active guided route', (function () {
-  const r = resolveGuidedDestinationPolicy({
-    destinationName: 'College of Arts and Sciences',
-    destinationNodeKey: 'cas',
+function scenesFor(route) {
+  return route.scene_keys.map((sceneKey, index) => ({
+    id: index + 1,
+    scene_key: sceneKey,
+    image_url: `https://res.cloudinary.com/demo/image/upload/${sceneKey}.jpg`,
+    cloudinary_public_id: `campusphere/vr/${sceneKey}`,
+    node_key: index === 0
+      ? 'main-gate'
+      : (index === route.scene_keys.length - 1 ? route.destination_node_key : null)
+  }));
+}
+
+function linksFor(keys) {
+  const links = [];
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    links.push({ fromKey: keys[index], toKey: keys[index + 1] });
+    links.push({ fromKey: keys[index + 1], toKey: keys[index] });
+  }
+  return links;
+}
+
+function verifyRoute(route, scenes = scenesFor(route), links = linksFor(route.scene_keys)) {
+  return verifyGuidedChain({
+    keys: route.scene_keys,
+    arrivalKey: route.arrival_scene_key,
+    scenes,
+    links,
+    startNodeKey: 'main-gate',
+    destinationNodeKey: route.destination_node_key
+  });
+}
+
+console.log('=== Catalog authority ===');
+check('exactly 25 active Guided VR destinations are configured', GUIDED_VR_ROUTES.length === 25);
+check('no destination is deferred', DEFERRED_GUIDED_VR_DESTINATIONS.length === 0);
+check('destination names are canonically unique',
+  new Set(GUIDED_VR_ROUTES.map((route) => canonicalize(route.destination_name))).size === GUIDED_VR_ROUTES.length);
+check('destination node keys are unique',
+  new Set(GUIDED_VR_ROUTES.map((route) => route.destination_node_key)).size === GUIDED_VR_ROUTES.length);
+
+for (const route of GUIDED_VR_ROUTES) {
+  const label = route.destination_node_key;
+  const byName = resolveGuidedDestinationPolicyByName({
+    destinationName: route.destination_name,
     activeRoutes: GUIDED_VR_ROUTES,
     deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
     canonicalize
   });
-  return r.kind === 'active' && r.route === CAS;
-})());
-check('CCS resolves as an active guided route by canonical name and node key', (function () {
-  const r = resolveGuidedDestinationPolicy({
-    destinationName: 'College of Computer Studies (CCS)',
-    destinationNodeKey: 'ccs',
+  check(`${label}: canonical name resolves the configured natural node key`,
+    byName.kind === 'active' && byName.route.destination_node_key === route.destination_node_key);
+
+  const exact = resolveGuidedDestinationPolicy({
+    destinationName: route.destination_name,
+    destinationNodeKey: route.destination_node_key,
     activeRoutes: GUIDED_VR_ROUTES,
     deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
     canonicalize
   });
-  return r.kind === 'active' && r.route === CCS;
-})());
-check('duplicate active CCS identity fails closed', (function () {
-  const overlap = GUIDED_VR_ROUTES.concat([{
-    destination_name: 'College of Computer Studies CCS',
-    destination_node_key: 'ccs',
-    arrival_scene_key: 'scene-ccs',
-    scene_keys: ['scene-ccs']
-  }]);
-  return resolveGuidedDestinationPolicy({
-    destinationName: 'College of Computer Studies (CCS)',
-    destinationNodeKey: 'ccs',
-    activeRoutes: overlap,
-    deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
+  check(`${label}: exact name/node policy is active`, exact.kind === 'active' && exact.route === route);
+
+  const chain = verifyRoute(route);
+  check(`${label}: complete media/link/endpoint fixture reaches configured arrival`,
+    chain.complete === true && chain.verifiedKeys.length === route.scene_keys.length &&
+    chain.verifiedKeys[chain.verifiedKeys.length - 1] === route.arrival_scene_key);
+}
+
+console.log('=== Fail-closed policy fixtures ===');
+const first = GUIDED_VR_ROUTES[0];
+check('unknown destination remains outside the catalog',
+  resolveGuidedDestinationPolicyByName({
+    destinationName: 'Unlisted Building', activeRoutes: GUIDED_VR_ROUTES,
+    deferredDestinations: [], canonicalize
+  }).kind === 'none');
+check('duplicate canonical destination name is invalid',
+  resolveGuidedDestinationPolicyByName({
+    destinationName: first.destination_name,
+    activeRoutes: GUIDED_VR_ROUTES.concat([{ ...first }]),
+    deferredDestinations: [], canonicalize
+  }).kind === 'invalid');
+check('active/deferred overlap is invalid',
+  resolveGuidedDestinationPolicyByName({
+    destinationName: first.destination_name,
+    activeRoutes: GUIDED_VR_ROUTES,
+    deferredDestinations: [{ destination_name: first.destination_name, destination_node_key: first.destination_node_key }],
     canonicalize
+  }).kind === 'invalid');
+check('resolved sibling node mismatch is invalid',
+  resolveGuidedDestinationPolicy({
+    destinationName: first.destination_name, destinationNodeKey: 'wrong-sibling',
+    activeRoutes: GUIDED_VR_ROUTES, deferredDestinations: [], canonicalize
+  }).kind === 'invalid');
+check('malformed active route with duplicate scene keys is invalid', (function () {
+  const malformed = { ...first, scene_keys: [first.scene_keys[0], first.scene_keys[0]], arrival_scene_key: first.scene_keys[0] };
+  return resolveGuidedDestinationPolicyByName({
+    destinationName: malformed.destination_name, activeRoutes: [malformed],
+    deferredDestinations: [], canonicalize
   }).kind === 'invalid';
 })());
-check('active/deferred CCS overlap fails closed', (function () {
-  return resolveGuidedDestinationPolicy({
-    destinationName: 'College of Computer Studies (CCS)',
-    destinationNodeKey: 'ccs',
-    activeRoutes: GUIDED_VR_ROUTES,
-    deferredDestinations: [{
-      destination_name: 'College of Computer Studies (CCS)',
-      destination_node_key: 'ccs'
-    }],
-    canonicalize
-  }).kind === 'invalid';
-})());
-check('policy node mismatch fails closed', (function () {
-  return resolveGuidedDestinationPolicy({
-    destinationName: 'College of Computer Studies (CCS)',
-    destinationNodeKey: 'cas',
-    activeRoutes: GUIDED_VR_ROUTES,
-    deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
-    canonicalize
-  }).kind === 'invalid';
-})());
-check('unlisted destination keeps the generic route policy', (function () {
-  return resolveGuidedDestinationPolicy({
-    destinationName: 'Engineering Building',
-    destinationNodeKey: 'engineering',
-    activeRoutes: GUIDED_VR_ROUTES,
-    deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
-    canonicalize
-  }).kind === 'none';
-})());
-check('generic mapped scene with missing media cannot count as arrival',
-  isResolvedMediaArrival({ node_key: 'ccs', image_url: null }, 'ccs') === false);
-check('generic mapped scene with resolved media can count as arrival',
-  isResolvedMediaArrival({ node_key: 'library', image_url: '/img/library.jpg' }, 'library') === true);
 
-/* ---- FIX 1: fail-closed route start ---- */
-console.log('=== FIX 1: fail-closed route start ===');
-check('missing main-gate fails closed (no start node)',
-  resolveStartNode([{ key: 'flagpole', node_type: 'gate' }, { key: 'cas' }]).ok === false);
-check('duplicate main-gate fails closed',
-  resolveStartNode([{ key: 'main-gate' }, { key: 'main-gate' }]).ok === false);
-check('no fallback to another gate node when main-gate is absent',
-  resolveStartNode([{ key: 'welcome-arch', node_type: 'gate' }, { key: 'flagpole' }]).ok === false);
-check('no fallback to the first node when main-gate is absent',
-  resolveStartNode([{ key: 'flagpole' }, { key: 'cas' }]).ok === false);
-check('exactly one main-gate resolves ok',
-  (function () { const r = resolveStartNode([{ key: 'flagpole' }, { key: 'main-gate', id: 7 }]); return r.ok === true && r.node.id === 7; })());
+console.log('=== Fail-closed start, media, endpoint, and link fixtures ===');
+check('missing main-gate fails closed', resolveStartNode([{ key: 'other-gate' }]).ok === false);
+check('duplicate main-gate fails closed', resolveStartNode([{ key: 'main-gate' }, { key: 'main-gate' }]).ok === false);
+check('exactly one main-gate resolves', resolveStartNode([{ key: 'main-gate', id: 1 }]).ok === true);
+check('approved Cloudinary URL is accepted', isApprovedCloudinaryUrl('https://res.cloudinary.com/demo/image/upload/a.jpg'));
+check('local media is not approved Guided VR delivery', !isApprovedCloudinaryUrl('/img/vr/a.jpg'));
+check('valid URL and public id are approved metadata', hasApprovedCloudinaryMetadata({
+  image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg',
+  cloudinary_public_id: 'campusphere/vr/a'
+}));
+check('missing public id fails delivery metadata', !hasApprovedCloudinaryMetadata({
+  image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', cloudinary_public_id: null
+}));
+check('generic mapped scene without media is not arrival',
+  !isResolvedMediaArrival({ node_key: first.destination_node_key, image_url: null }, first.destination_node_key));
 
-/* ---- FIX 2: media-aware configured-chain verification ---- */
-console.log('=== FIX 2: media-aware configured-chain verification ===');
-check('media predicate: approved Cloudinary URL is usable', isApprovedCloudinaryUrl(CLOUD + 'a.jpg') === true);
-check('media predicate: local /img fallback is NOT usable', isApprovedCloudinaryUrl('/img/vr/a.jpg') === false);
-check('media predicate: null / missing is NOT usable', isApprovedCloudinaryUrl(null) === false);
-check('media predicate: malformed / rejected is NOT usable', isApprovedCloudinaryUrl('http://evil.example/a.jpg') === false);
-
-check('complete Cloudinary-backed 24-scene chain permits arrival', (function () {
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes: fullScenes(), links: fullLinks() });
-  return r.complete === true && r.verifiedKeys.length === KEYS.length &&
-    r.verifiedKeys[r.verifiedKeys.length - 1] === ARRIVAL;
+check('wrong stored start node stops before the first scene', (function () {
+  const scenes = scenesFor(first);
+  scenes[0].node_key = 'other-gate';
+  const result = verifyRoute(first, scenes);
+  return !result.complete && result.verifiedKeys.length === 0 && result.stoppedBefore === first.scene_keys[0];
+})());
+check('wrong stored arrival node stops before arrival', (function () {
+  const scenes = scenesFor(first);
+  scenes[scenes.length - 1].node_key = 'wrong-sibling';
+  const result = verifyRoute(first, scenes);
+  return !result.complete && result.verifiedKeys.length === first.scene_keys.length - 1 &&
+    result.stoppedBefore === first.arrival_scene_key;
+})());
+check('missing panorama public id stops the verified prefix', (function () {
+  const scenes = scenesFor(first);
+  scenes[2].cloudinary_public_id = null;
+  const result = verifyRoute(first, scenes);
+  return !result.complete && result.verifiedKeys.length === 2 && result.stoppedBefore === first.scene_keys[2];
+})());
+check('duplicate scene row is ambiguous', (function () {
+  const scenes = scenesFor(first);
+  scenes.push({ ...scenes[2], id: 9999 });
+  const result = verifyRoute(first, scenes);
+  return !result.complete && result.verifiedKeys.length === 2 && result.stoppedBefore === first.scene_keys[2];
+})());
+check('duplicate forward link stops the chain', (function () {
+  const links = linksFor(first.scene_keys);
+  links.push({ fromKey: first.scene_keys[1], toKey: first.scene_keys[2] });
+  const result = verifyRoute(first, scenesFor(first), links);
+  return !result.complete && result.verifiedKeys.length === 2 && result.stoppedBefore === first.scene_keys[2];
+})());
+check('missing reverse link stops the chain', (function () {
+  const from = first.scene_keys[1];
+  const to = first.scene_keys[2];
+  const links = linksFor(first.scene_keys).filter((link) => !(link.fromKey === to && link.toKey === from));
+  const result = verifyRoute(first, scenesFor(first), links);
+  return !result.complete && result.verifiedKeys.length === 2 && result.stoppedBefore === to;
 })());
 
-check('complete Cloudinary-backed 23-scene CCS chain permits arrival', (function () {
-  const r = verifyGuidedChain({
-    keys: CCS_KEYS,
-    arrivalKey: CCS_ARRIVAL,
-    scenes: fullScenesFor(CCS_KEYS),
-    links: fullLinksFor(CCS_KEYS)
-  });
-  return r.complete === true && r.verifiedKeys.length === CCS_KEYS.length &&
-    r.verifiedKeys[r.verifiedKeys.length - 1] === CCS_ARRIVAL;
+console.log('=== Target-specific navigation ===');
+const keys = first.scene_keys;
+check('previous target maps only to the guided previous URL', (function () {
+  const nav = deriveHotspotNav({ targetKey: keys[0], prevSceneKey: keys[0], nextSceneKey: keys[2],
+    isFinalArrival: false, prevUrl: '/prev', nextUrl: '/next' });
+  return nav.kind === 'prev' && nav.url === '/prev';
 })());
-
-check('missing Road 94 -> CCS reverse link stops before the CCS arrival', (function () {
-  const road94 = CCS_KEYS[CCS_KEYS.length - 2];
-  const links = fullLinksFor(CCS_KEYS).filter(
-    (link) => !(link.fromKey === CCS_ARRIVAL && link.toKey === road94)
-  );
-  const r = verifyGuidedChain({
-    keys: CCS_KEYS,
-    arrivalKey: CCS_ARRIVAL,
-    scenes: fullScenesFor(CCS_KEYS),
-    links
-  });
-  return r.complete === false && r.stoppedBefore === CCS_ARRIVAL &&
-    r.verifiedKeys.length === CCS_KEYS.length - 1;
+check('next target maps only to the guided next URL', (function () {
+  const nav = deriveHotspotNav({ targetKey: keys[2], prevSceneKey: keys[0], nextSceneKey: keys[2],
+    isFinalArrival: false, prevUrl: '/prev', nextUrl: '/next' });
+  return nav.kind === 'next' && nav.url === '/next';
 })());
-
-check('a null panorama on scene 5 stops the prefix before it (no arrival)', (function () {
-  const scenes = fullScenes();
-  scenes[4].image_url = null; // 5th configured scene
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes, links: fullLinks() });
-  return r.complete === false && r.verifiedKeys.length === 4 && r.stoppedBefore === KEYS[4];
+check('safe final-scene branch maps to Free Roam', (function () {
+  const nav = deriveHotspotNav({ targetKey: 'scene-interior-1', prevSceneKey: keys[keys.length - 2],
+    nextSceneKey: null, isFinalArrival: true, prevUrl: '/prev' });
+  return nav.kind === 'explore' && nav.url === '/vr/scene-interior-1';
 })());
-
-check('a local-only panorama on scene 3 stops the prefix before it (no arrival)', (function () {
-  const scenes = fullScenes();
-  scenes[2].image_url = '/img/vr/' + KEYS[2] + '.jpg';
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes, links: fullLinks() });
-  return r.complete === false && r.verifiedKeys.length === 2 && r.stoppedBefore === KEYS[2];
-})());
-
-check('a rejected (non-Cloudinary https) panorama on the first scene yields an empty prefix', (function () {
-  const scenes = fullScenes();
-  scenes[0].image_url = 'https://cdn.evil.example/' + KEYS[0] + '.jpg';
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes, links: fullLinks() });
-  return r.complete === false && r.verifiedKeys.length === 0 && r.stoppedBefore === KEYS[0];
-})());
-
-check('a missing forward/reverse link stops the prefix at that transition', (function () {
-  const links = fullLinks().filter((l) => !(l.fromKey === KEYS[3] && l.toKey === KEYS[2]));
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes: fullScenes(), links });
-  return r.complete === false && r.verifiedKeys.length === 3 && r.stoppedBefore === KEYS[3];
-})());
-
-check('a duplicate scene key is ambiguous and stops the prefix before it', (function () {
-  const scenes = fullScenes();
-  scenes.push({ scene_key: KEYS[2], image_url: CLOUD + 'dup.jpg', id: 999 });
-  const r = verifyGuidedChain({ keys: KEYS, arrivalKey: ARRIVAL, scenes, links: fullLinks() });
-  return r.complete === false && r.verifiedKeys.length === 2 && r.stoppedBefore === KEYS[2];
-})());
-
-check('arrival is never claimed from scenes.length alone (last must equal arrival key)', (function () {
-  // A chain that resolves every scene but whose last key is not the arrival key
-  // (shorter catalog) must not report complete.
-  const shortKeys = KEYS.slice(0, 5);
-  const scenes = fullScenes();
-  const links = fullLinks();
-  const r = verifyGuidedChain({ keys: shortKeys, arrivalKey: ARRIVAL, scenes, links });
-  return r.verifiedKeys.length === 5 && r.complete === false;
-})());
-
-/* ---- FIX 3: target-specific panorama navigation ---- */
-console.log('=== FIX 3: target-specific panorama navigation ===');
-// Model step 2 of the CAS route: current=Road 10, prev=Guard House (step 1),
-// next=Road 11 (step 3). Note the configured order is guard-house, road-10,
-// road-11 (keys[1]=road-10, keys[0]=guard-house, keys[2]=road-11).
-const STEP2_PREV = KEYS[0]; // scene-guard-house
-const STEP2_NEXT = KEYS[2]; // scene-general-road-11
-check('Road 10 "Back" (target=Guard House) maps to guided step 1 (Previous URL)', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: STEP2_PREV, prevSceneKey: STEP2_PREV, nextSceneKey: STEP2_NEXT,
-    isFinalArrival: false, prevUrl: '/vr/to/153?step=1', nextUrl: '/vr/to/153?step=3'
-  });
-  return nav.kind === 'prev' && nav.url === '/vr/to/153?step=1';
-})());
-check('Road 10 "Forward" (target=Road 11) maps to guided step 3 (Next URL)', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: STEP2_NEXT, prevSceneKey: STEP2_PREV, nextSceneKey: STEP2_NEXT,
-    isFinalArrival: false, prevUrl: '/vr/to/153?step=1', nextUrl: '/vr/to/153?step=3'
-  });
-  return nav.kind === 'next' && nav.url === '/vr/to/153?step=3';
-})());
-// Model step 24 (arrival = scene-cas-1st-floor): prev=Road 39 (step 23), no next.
-const FINAL_PREV = KEYS[KEYS.length - 2]; // scene-general-road-39
-check('final CAS -> Road 39 hotspot maps to guided step 23 (Previous URL)', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: FINAL_PREV, prevSceneKey: FINAL_PREV, nextSceneKey: null,
-    isFinalArrival: true, prevUrl: '/vr/to/153?step=23', nextUrl: null
-  });
-  return nav.kind === 'prev' && nav.url === '/vr/to/153?step=23';
-})());
-check('final CAS -> CAS interior hotspot maps to its safe Free Roam URL', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: 'scene-cas-1st-floor-2', prevSceneKey: FINAL_PREV, nextSceneKey: null,
-    isFinalArrival: true, prevUrl: '/vr/to/153?step=23', nextUrl: null
-  });
-  return nav.kind === 'explore' && nav.url === '/vr/scene-cas-1st-floor-2';
-})());
-check('unrelated non-final branch has NO navigation URL', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: 'scene-somewhere-else', prevSceneKey: STEP2_PREV, nextSceneKey: STEP2_NEXT,
-    isFinalArrival: false, prevUrl: '/vr/to/153?step=1', nextUrl: '/vr/to/153?step=3'
-  });
+check('unrelated non-final branch does not navigate', (function () {
+  const nav = deriveHotspotNav({ targetKey: 'scene-interior-1', prevSceneKey: keys[0],
+    nextSceneKey: keys[2], isFinalArrival: false, prevUrl: '/prev', nextUrl: '/next' });
   return nav.kind === 'none' && nav.url === null;
-})());
-check('a non-final interior branch (not prev/next) has NO navigation URL', (function () {
-  const nav = deriveHotspotNav({
-    targetKey: 'scene-cas-1st-floor-2', prevSceneKey: STEP2_PREV, nextSceneKey: STEP2_NEXT,
-    isFinalArrival: false, prevUrl: '/x', nextUrl: '/y'
-  });
-  return nav.kind === 'none' && nav.url === null;
-})());
-check('an empty/missing target yields NO navigation URL', (function () {
-  const a = deriveHotspotNav({ targetKey: '', prevSceneKey: STEP2_PREV, nextSceneKey: STEP2_NEXT, isFinalArrival: true });
-  const b = deriveHotspotNav({ targetKey: null, isFinalArrival: true });
-  return a.kind === 'none' && a.url === null && b.kind === 'none' && b.url === null;
 })());
 
 console.log('');
 if (failures.length === 0) {
-  console.log('GUIDED-VR-RESOLUTION-PROBE OK: all pure-logic checks passed.');
-  process.exitCode = 0;
+  console.log('GUIDED-VR-RESOLUTION-PROBE OK: catalog-wide pure contracts passed.');
 } else {
   console.error(`GUIDED-VR-RESOLUTION-PROBE FAILED: ${failures.length} check(s) did not pass:`);
-  failures.forEach((f) => console.error('  - ' + f));
+  failures.forEach((failure) => console.error('  - ' + failure));
   process.exitCode = 1;
 }

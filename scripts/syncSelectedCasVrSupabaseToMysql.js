@@ -41,12 +41,55 @@ const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { normalizeMediaUrl, validateCloudinaryPublicId } = require('../utils/mediaUrl');
 const { CLOUDINARY_DELIVERY_ORIGIN } = require('../config/cloudinary');
 const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
+const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
 const APPLY_CONFIRMATION = 'SYNC_SELECTED_CAS_VR_TO_MYSQL';
 const HOTSPOT_TYPES = new Set(['scene', 'info', 'exit', 'schedule']);
 const SCHEDULE_LOCATION_TYPES = new Set(['room', 'facility']);
 
-const CAS = GUIDED_VR_ROUTES.find((d) => d.destination_node_key === 'cas');
+// Resolve the legacy CAS-scoped utility from the independently frozen natural
+// identity. Backend-local numeric ids never participate in this guard.
+const CAS_FREEZE_ROW = SELECTED_DEMO_FREEZE.policy.active_routes.find((row) =>
+  row && row.destination_node_key === 'acad-3' && row.arrival_scene_key === 'scene-cas-1st-floor');
+const EXPECTED_CAS_SYNC_ROUTE = Object.freeze({
+  destination_name: CAS_FREEZE_ROW ? CAS_FREEZE_ROW.destination_name : null,
+  destination_node_key: CAS_FREEZE_ROW ? CAS_FREEZE_ROW.destination_node_key : null,
+  arrival_scene_key: CAS_FREEZE_ROW ? CAS_FREEZE_ROW.arrival_scene_key : null,
+  scene_count: CAS_FREEZE_ROW ? CAS_FREEZE_ROW.step_count : null,
+  scene_keys_sha256: CAS_FREEZE_ROW ? CAS_FREEZE_ROW.scene_keys_sha256 : null
+});
+
+/** PURE: fail closed unless one route matches the frozen CAS sync contract. */
+function casSyncCatalogProblems(routes, expected) {
+  const catalog = Array.isArray(routes) ? routes : GUIDED_VR_ROUTES;
+  const pin = expected || EXPECTED_CAS_SYNC_ROUTE;
+  const problems = [];
+  if (!pin || typeof pin !== 'object' || !pin.destination_name ||
+      !pin.destination_node_key || !pin.arrival_scene_key ||
+      !Number.isInteger(pin.scene_count) || pin.scene_count < 2 ||
+      typeof pin.scene_keys_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(pin.scene_keys_sha256)) {
+    return ['frozen CAS sync contract is unavailable'];
+  }
+
+  const matches = catalog.filter((route) => route &&
+    route.destination_node_key === pin.destination_node_key &&
+    route.arrival_scene_key === pin.arrival_scene_key);
+  if (matches.length !== 1) return ['CAS sync route does not resolve exactly once'];
+
+  const route = matches[0];
+  const sceneKeys = Array.isArray(route.scene_keys) ? route.scene_keys : [];
+  if (route.destination_name !== pin.destination_name) problems.push('destination name differs from the freeze');
+  if (sceneKeys.length !== pin.scene_count) problems.push('scene count differs from the freeze');
+  if (sceneKeys[sceneKeys.length - 1] !== pin.arrival_scene_key) problems.push('arrival scene is not the final step');
+  if (new Set(sceneKeys).size !== sceneKeys.length) problems.push('scene sequence contains a duplicate key');
+  if (fingerprint(sceneKeys) !== pin.scene_keys_sha256) problems.push('ordered scene sequence differs from the freeze');
+  return problems;
+}
+
+const CAS = GUIDED_VR_ROUTES.find((route) => route &&
+  route.destination_node_key === EXPECTED_CAS_SYNC_ROUTE.destination_node_key &&
+  route.arrival_scene_key === EXPECTED_CAS_SYNC_ROUTE.arrival_scene_key);
+const CAS_CATALOG_PROBLEMS = casSyncCatalogProblems(GUIDED_VR_ROUTES);
 const GUIDED_KEYS = CAS ? [...CAS.scene_keys] : [];
 const INTERIOR_KEYS = ['scene-cas-1st-floor-2', 'scene-cas-1st-floor-3'];
 const SELECTED_KEYS = [...new Set([...GUIDED_KEYS, ...INTERIOR_KEYS])];
@@ -54,7 +97,7 @@ const SELECTED_SET = new Set(SELECTED_KEYS);
 const GUIDED_SET = new Set(GUIDED_KEYS);
 
 const CAS_SCHEDULE = Object.freeze({
-  building_name: 'College of Arts and Sciences',
+  building_name: CAS ? CAS.destination_name : 'Academic Building III',
   location_type: 'room',
   location_label: 'CAS 101',
   floor_label: 'First Floor'
@@ -904,7 +947,9 @@ async function main() {
     return;
   }
   if (!hasSupabaseConfig()) throw new SafeSyncError('Supabase server credentials are not configured.');
-  if (!CAS || GUIDED_KEYS.length !== 24) throw new SafeSyncError('Guided CAS catalog is not the expected 24-scene sequence.');
+  if (CAS_CATALOG_PROBLEMS.length) {
+    throw new SafeSyncError('Guided CAS catalog does not match the frozen Academic Building III natural-key contract.');
+  }
 
   const sb = getSupabaseClient();
   const [supabase, mysql] = await Promise.all([readSupabase(sb), readMysqlSelected(null)]);
@@ -935,10 +980,12 @@ if (require.main === module) {
 
 module.exports = {
   APPLY_CONFIRMATION,
+  EXPECTED_CAS_SYNC_ROUTE,
   SELECTED_KEYS,
   GUIDED_KEYS,
   INTERIOR_KEYS,
   CAS_SCHEDULE,
+  casSyncCatalogProblems,
   buildPlan,
   planIsFullyPresent,
   applyPlanWithAdapter,
