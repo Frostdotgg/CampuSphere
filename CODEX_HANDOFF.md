@@ -1,11 +1,11 @@
 # CampuSphere Codex Handoff
 
-Last updated: 2026-08-11 (Asia/Manila)
+Last updated: 2026-08-12 (Asia/Manila)
 
 Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-11 Guided-VR catalog-remediation candidate).**
+**CURRENT STATUS (2026-08-12 Guided-VR authority-remediation candidate).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
 OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
@@ -28,16 +28,17 @@ Playwright BrowserContext objects, clean supported-interface teardown, npm test
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d
 unchanged at that accepted historical baseline.
 
-The clean starting Git baseline for this candidate was
-5076e1316cf68e9d05c78a61b2362d1727873a09 on local HEAD and origin/main. That
-value is a starting baseline, not a self-referential claim about the final dirty
-worktree. The owner-observed Vercel Production alias remains
-https://campusphere-cspc.vercel.app on deployed baseline
-0627bf78228148e3f989275810c333c16a1f3356. The current worktree is intentionally
-dirty and unstaged. Nothing from this candidate has been committed, pushed,
-linked, or deployed. The accepted 0627bf7 five-file verification, anonymous
-production smoke 31/31, and automated frozen-data rehearsal remain historical
-evidence and do not verify this new candidate.
+The Guided-VR runtime and catalog remediation is committed and pushed as
+43627cf0a77741556f4e701711e55612a739799b, with Git tree
+eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Local HEAD and origin/main matched
+that commit at the first integrated R8 review. The owner-observed Vercel
+Production alias remains https://campusphere-cspc.vercel.app on deployed
+baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this
+authority-only follow-up is deployed. Live Git truth, not this narrative,
+controls whether a later working tree is clean or modified. The accepted
+0627bf7 five-file verification, anonymous production smoke 31/31, and
+automated frozen-data rehearsal remain historical evidence and do not verify
+the later Guided-VR runtime commit.
 
 The separately authorized backup and additive reconciliation were performed
 under one-writer control. The external backup set contains provider-supported
@@ -185,12 +186,30 @@ probes and embedded residue were green. It now evaluates every bounded 4,628
 scope and requires at least one exact transcript-faithful account; no session or
 data correction was required.
 
-M12.P1-R8 remains the next potential section and is read-only under the
-repository's established gate wording. R8 is not authorized by this
-synchronization; even R8 GO authorizes only a separate owner deployment
-decision. M12.P1 remains NO-GO for deployment and pilot readiness; deployment
-is not authorized. Human pilot/Form responses, OFF.2-OFF.6, and final Milestone
-12 acceptance remain open. Do not claim a new GO from this candidate.
+The first execution of this authority follow-up is historical/rejected at
+`4635/4641`: six static checks rejected the Git-tree long-hex label, the
+canonical lifecycle fixture, the combined lifecycle/evidence check, both
+reusable grounding prompts, and their combined accepting fixture. All
+runtime, database, catalog, BE.6, and embedded session-residue probes were
+green, including `18/18`. The labels, predicates, and prompt authority were
+corrected before a fresh full rerun; no session or data correction was needed.
+
+The first integrated read-only M12.P1-R8 review of clean commit 43627cf
+reverified package inventory 158 files / 6,245,074 bytes / SHA-256
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4,
+npm test 4641/4641 with QUALITY-GATES OK, five-stage QA at the same exact
+contract total, and final 24/24 -> 18/18 -> 46/46. It returned R8 NO-GO solely
+because operative authority falsely described the committed and pushed
+candidate as dirty, uncommitted, and unpushed; it found no separate runtime,
+security, database, or package blocker. This bounded follow-up corrects that
+lifecycle authority, preserves the current 72/72 versus accepted historical
+71/71 R7 classification, and adds accepting/rejecting fixtures. Independent
+commit-readiness review of the exact follow-up bytes remains open. The required
+order is independent commit-readiness review -> local commit -> separately
+authorized push -> clean-commit R8 re-review. M12.P1 remains NO-GO for
+deployment and pilot readiness; deployment is not authorized. Human pilot/Form
+responses, OFF.2-OFF.6, and final Milestone 12 acceptance remain open. Do not
+claim a new GO from this candidate.
 <!-- M12.P1 CURRENT STATUS END -->
 <!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
 **HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident

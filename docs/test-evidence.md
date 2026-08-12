@@ -4,11 +4,11 @@ Milestone 8, Section 8.10. Use this checklist to record defense and deployment
 evidence without committing private data. Store actual screenshots or recordings
 outside the repo unless they have been reviewed and explicitly approved.
 
-## 2026-08-11 Current Evidence Classification
+## 2026-08-12 Current Evidence Classification
 
 | Evidence class | Current disposition |
 | --- | --- |
-| Git/deployment | The clean starting baseline was local `HEAD === origin/main === 5076e1316cf68e9d05c78a61b2362d1727873a09`; the worktree is now intentionally dirty and unstaged. Owner-observed Vercel Production remains deployed at `0627bf78228148e3f989275810c333c16a1f3356`; the remediation candidate is uncommitted, unpushed, and undeployed |
+| Git/deployment | The Guided-VR runtime/catalog remediation is committed and pushed as `43627cf0a77741556f4e701711e55612a739799b`, tree `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`; local HEAD and origin/main matched it at the first integrated R8 review. Owner-observed Vercel Production remains deployed at `0627bf78228148e3f989275810c333c16a1f3356`; neither `43627cf` nor this authority-only follow-up is deployed. Live Git truth controls later working-tree state |
 | SEC-51/R8 synchronization | Commit `bbb25d0dee5917e4704da35784421c840f825afb` is accepted history; the later five-file deployment is `0627bf7` |
 | Five-file verification | PASS: logout `75/75`; `npm test` `3777/3777` plus `QUALITY-GATES OK`; `npm run qa` with exactly 3,777 contract PASS lines and all five green stages; ordered `24/24 -> 18/18 -> 46/46`; pre/post hashes identical |
 | Read-only review | GO for the five-file candidate with low/advisory findings; same-author/self-review caveat retained and not represented as third-party independence |
@@ -21,8 +21,8 @@ outside the repo unless they have been reviewed and explicitly approved.
 | Session postcondition | The earlier supported Supabase student-session restoration remains historical. Current bounded restoration: a fail-closed preflight reverified exactly two unexpired sessions for the one intended-role canonical MySQL student, zero for the canonical MySQL administrator and all four canonical Supabase identities, and the explicitly selected MySQL session store. Exactly one supported `revokeUserSessions()` call removed both student sessions; no direct session-row deletion, account/application-data change, or broad cleanup occurred. Current ordered postconditions are **`24/24 -> 18/18 -> 46/46`** |
 | Independent candidate review | Prior candidate manifest SHA-256 `b4c2c3c2a5766399b843c6e43f2f8cf347bcc04473e5ba6a0a808397c77a3d56` received commit-readiness NO-GO for an incomplete ordered CAS sequence guard, contradictory SEC-37 package evidence, obsolete OFF.3 catalog scope, and premature pilot sequencing. Exact 33-file manifest SHA-256 `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8` then received NO-GO because the exact package pin was not enforced live, obsolete handoff policy was not isolated from current authority, and current dates were stale. Exact 34-file manifest SHA-256 `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4` then received NO-GO because current authority gave the same rejected 4,628-PASS retry both its transcript-faithful nine wording failures plus residue and a duplicate incorrect lower count. All three dispositions are historical; this bounded correction removes the duplicate account, adds cross-document accepting/rejecting fixtures, and still requires another independent read-only review |
 | Current package boundary | **158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`; focused and in-suite package gates `72/72`; candidate evidence only, not deployment authorization** |
-| Current verification boundary | **Candidate-review ready; no GO claimed.** The exact synchronized candidate passes a freshly counted `npm test` at `4641/4641` with `QUALITY-GATES OK`, full `npm run qa` at the same exact contract total with all five stages green and all exact transcript markers present, and final ordered postconditions `24/24 -> 18/18 -> 46/46`. The earlier wrapper timeout, bounded red rerun, and scorer-only exit 97 remain historical/rejected. Independent read-only review remains open; R8, deployment, and GO remain unclaimed |
-| Remaining scope | Human pilot/Google Form responses, OFF.2-OFF.6, independent candidate review, and final Milestone 12 review remain open |
+| Current verification boundary | **Authority-follow-up review ready; no GO claimed.** The first integrated read-only M12.P1-R8 review of clean commit `43627cf` reverified `npm test` `4641/4641` with `QUALITY-GATES OK`, full five-stage `npm run qa` at the same exact contract total, package pin 158 / 6,245,074 / `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`, and final `24/24 -> 18/18 -> 46/46`. It returned R8 NO-GO solely for stale operative Git-lifecycle wording and found no separate runtime, security, database, or package blocker. Independent commit-readiness review of the bounded authority follow-up remains open. Historical/rejected: the follow-up's first run was `4635/4641`; six static lifecycle/documentation checks failed while runtime, database, BE.6, and embedded `18/18` residue were green. No session or data correction was needed. The earlier timeout, bounded red rerun, and scorer-only exit 97 also remain historical/rejected |
+| Remaining scope | Independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review; then any separate owner deployment decision. Human pilot/Google Form responses, OFF.2-OFF.6, and final Milestone 12 review remain open |
 
 The separately authorized backup and additive reconciliation were performed
 under one-writer control. The additive phase deleted no building, schedule,
@@ -163,8 +163,9 @@ verified restored database or repository postconditions and are not erased.
 `0627bf78228148e3f989275810c333c16a1f3356`; Vercel identity is owner-observed.
 The preceding evidence synchronization at
 `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
-Guided-VR catalog-remediation candidate is uncommitted, unpushed, and undeployed; it does
-not change production. Historical/superseded: before the current deployment,
+Guided-VR runtime/catalog remediation is commit `43627cf`, pushed to
+origin/main and not deployed; this authority-only follow-up is also not
+deployed. Historical/superseded: before the current deployment,
 the accepted runtime baseline was
 `d422b54393f659125912ec5c84ae7927c2533288`; the still earlier accepted baseline
 was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`.

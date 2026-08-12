@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-11 (Asia/Manila)
+Last updated: 2026-08-12 (Asia/Manila)
 
 The first two sections are the only current copy-paste prompts. They authorize
 repository reads and status reconciliation only. Earlier prompts remain below
@@ -14,7 +14,8 @@ Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
 You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
 handoff owner, and delivery coordinator.
 
-This is a fresh context-only grounding session. Change nothing. Do not edit,
+This is a fresh context-only grounding session that does not authorize
+implementation. Change nothing. Do not edit,
 format, create, delete, move, stage, commit, amend, stash, reset, clean, tag,
 push, deploy, link Vercel, apply SQL, access or mutate either database, invoke
 Cloudinary/Upstash management APIs, clear sessions, create migration 0020,
@@ -67,11 +68,13 @@ wins:
   evidence is the fresh-context BrowserContext run, 3511/3511 with
   QUALITY-GATES OK, audit zero, and 24/24 -> 18/18 -> 46/46 with historical
   aggregate a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
-- The clean starting Git baseline for the current remediation candidate is
-  5076e1316cf68e9d05c78a61b2362d1727873a09 on local HEAD and origin/main.
-  This is a starting baseline, not a self-referential final-candidate SHA. The
-  owner-observed deployed runtime baseline is
-  0627bf78228148e3f989275810c333c16a1f3356. It follows SEC-51/R8 evidence
+- The Guided-VR runtime/catalog remediation is committed and pushed as
+  43627cf0a77741556f4e701711e55612a739799b, tree
+  eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Local HEAD and origin/main
+  matched it at the first integrated R8 review. The owner-observed deployed
+  runtime remains on deployed production baseline
+  0627bf78228148e3f989275810c333c16a1f3356;
+  neither 43627cf nor the authority-only follow-up is deployed. It follows SEC-51/R8 evidence
   commit bbb25d0dee5917e4704da35784421c840f825afb and baseline
   d422b54393f659125912ec5c84ae7927c2533288. Label Vercel identity
   owner-observed unless authorized platform evidence independently confirms it.
@@ -184,21 +187,27 @@ wins:
   historical/rejected. The pre-remediation 4629/4629 and 4624/4624 matrices
   and the prior 4609/4609, 4599/4599, 615-pass, 4608/4609, 4623/4624,
   4,512-pass QA, and 3792/3792 evidence remain
-  historical/superseded or rejected. Independent read-only review remains
-  open. Human pilot/Form responses, OFF.2-OFF.6, and final Milestone 12 GO
+  historical/superseded or rejected. The first integrated read-only M12.P1-R8
+  review of clean commit 43627cf reverified the package pin, 4641/4641 test,
+  five-stage QA, and 24/24 -> 18/18 -> 46/46, but returned R8 NO-GO solely for
+  stale operative Git-lifecycle wording. It found no separate runtime,
+  security, database, or package blocker. Independent commit-readiness review
+  of the bounded authority follow-up remains open. Human pilot/Form responses,
+  OFF.2-OFF.6, and final Milestone 12 GO
   remain open.
   URLs and secrets stay outside Git.
 
-The next boundary is independent read-only review of the exact candidate.
+The next boundary is independent commit-readiness review of the exact
+authority-follow-up candidate.
 Preserve one-writer control and the external backup. Never
 use direct SQL as an operational shortcut, run
 syncSelectedCasVrSupabaseToMysql.js --apply as cleanup, invent migration 0020,
 stage/commit/push/deploy before review, or claim a new GO from candidate evidence.
 
-M12.P1-R8 is the next potential section and is read-only. This context-only
-prompt does not authorize implementation or R8. The sequence is R8 read-only
-review -> separate owner deployment decision. M12.P1 remains NO-GO, and
-deployment is not authorized.
+The required sequence is independent commit-readiness review -> local commit ->
+separately authorized push -> clean-commit R8 re-review -> separate owner
+deployment decision. This context-only prompt authorizes none of those actions.
+M12.P1 remains NO-GO, and deployment is not authorized.
 
 Return only a grounding report with inspected files/capabilities; exact live
 Git/repository truth; separately classified accepted, rehearsal, historical,
@@ -217,7 +226,8 @@ You are Claude Code acting as CampuSphere's implementation partner and evidence
 recorder. Codex remains the quality/review gate and the owner makes every
 commit, database, vendor, and deployment decision.
 
-This is a fresh context-only grounding session. Change nothing. Do not edit,
+This is a fresh context-only grounding session that does not authorize
+implementation. Change nothing. Do not edit,
 format, create, delete, move, stage, commit, amend, stash, reset, clean, tag,
 push, deploy, link Vercel, apply SQL, access or mutate either database, invoke
 Cloudinary/Upstash management APIs, clear sessions, create migration 0020,
@@ -241,12 +251,15 @@ credential-safety, residue, BE.6, topology, geometry, map-to-VR, guided-VR,
 Free-Roam, and building probes source-read only; all Supabase migration
 filenames; and read-only Git branch/HEAD/origin/status/stashes/refs/recent graph.
 
-Reconcile the same current facts listed in the Codex prompt above. In
-particular: deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
+Reconcile the same current facts listed in the Codex prompt above, including
+the committed/pushed `43627cf` runtime candidate, undeployed authority
+follow-up, first integrated R8 NO-GO disposition, open independent
+commit-readiness review, and required review -> commit -> push -> R8 re-review
+order. In particular: deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
 five-file evidence at 75/75, 3777/3777 plus QUALITY-GATES OK, five-stage QA,
 and 24/24 -> 18/18 -> 46/46; owner-observed Vercel identity; same-author review
 caveat; 31/31 anonymous smoke scope; automated rehearsal and its deviations;
-the uncommitted backend-specific candidate at MySQL 34 buildings / 44 route
+the backend-specific catalog at MySQL 34 buildings / 44 route
 nodes / 100 edges / 50 reverse pairs / 100 geometries / 671 scenes / 1,396
 hotspots and Supabase 25 / 26 / 50 / 25 / 50 / 664 / 1,372; shared Guided-VR
 catalog 25 destinations / 472 configured steps / 99 unique scene keys;
@@ -318,18 +331,27 @@ is the fresh-context BrowserContext run, 3511/3511 with QUALITY-GATES OK, audit
 zero, and 24/24 -> 18/18 -> 46/46 with historical aggregate
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
 
-The bounded independent-review findings are remediated and the corrected matrix
-is green. The next boundary is another independent read-only review of the
-exact manifest. The former session-residue findings are closed and historical;
+The Guided-VR runtime/catalog remediation is committed and pushed to origin/main as
+43627cf0a77741556f4e701711e55612a739799b, tree
+eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Production remains owner-observed
+on deployed production baseline 0627bf78228148e3f989275810c333c16a1f3356; neither
+43627cf nor the authority-only follow-up is deployed. The first integrated
+read-only M12.P1-R8 review reverified the package pin, 4641/4641 test,
+five-stage QA, and 24/24 -> 18/18 -> 46/46, but returned R8 NO-GO solely for
+stale operative Git-lifecycle wording and found no separate runtime, security,
+database, or package blocker. Independent commit-readiness review remains open.
+The next boundary is independent
+commit-readiness review of the exact authority-follow-up manifest. The former
+session-residue findings are closed and historical;
 do not repeat cleanup. Preserve the backup and one-writer boundary. Never
 blanket-delete, use direct SQL, run syncSelectedCasVrSupabaseToMysql.js --apply
 as cleanup, create 0020 without a reviewed schema need, or stage/push/deploy
 before the separate review and owner decision.
 
-M12.P1-R8 is the next potential section and is read-only. This context-only
-prompt does not authorize implementation or R8. The sequence is R8 read-only
-review -> separate owner deployment decision. M12.P1 remains NO-GO, and
-deployment is not authorized.
+The required sequence is independent commit-readiness review -> local commit ->
+separately authorized push -> clean-commit R8 re-review -> separate owner
+deployment decision. This context-only prompt authorizes none of those actions.
+M12.P1 remains NO-GO, and deployment is not authorized.
 
 Return only a grounding report: capabilities/files; exact verified truth versus
 recorded/owner-observed claims; evidence classes; inconsistencies; blockers and

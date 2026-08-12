@@ -12,15 +12,16 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-11 Current Deployment And Guided-VR Candidate Status
+## 2026-08-12 Current Deployment And Guided-VR Candidate Status
 
-- The candidate starting Git commit SHA-1 is
-  `5076e1316cf68e9d05c78a61b2362d1727873a09` on local HEAD and origin/main.
-  The worktree is now intentionally dirty and unstaged. Nothing from the
-  Guided-VR remediation candidate is committed, pushed, or deployed. The
-  owner-observed Vercel Production alias remains
-  `https://campusphere-cspc.vercel.app` on deployed baseline
-  `0627bf78228148e3f989275810c333c16a1f3356`.
+- The Guided-VR runtime/catalog remediation is committed and pushed as Git
+  commit SHA-1 `43627cf0a77741556f4e701711e55612a739799b`, Git tree SHA-1
+  `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`; local HEAD and origin/main
+  matched that commit at the first integrated R8 review. The owner-observed
+  Vercel Production alias remains `https://campusphere-cspc.vercel.app` on
+  deployed baseline `0627bf78228148e3f989275810c333c16a1f3356`. Neither
+  `43627cf` nor this authority-only follow-up is deployed. Live Git truth,
+  rather than this document, controls later working-tree state.
 - The preceding SEC-51/R8 Git commit SHA-1 is
   `bbb25d0dee5917e4704da35784421c840f825afb`. The five-file deployed follow-up
   changes only this document, `public/css/styles.css`,
@@ -140,6 +141,23 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   the focused boundary probe and registered in-suite package gate both passed
   `72/72`, and `scripts/quality-gates.js` pins these candidate bytes. This is
   not deployment authorization.
+- The first authority-follow-up execution is historical/rejected at
+  `4635/4641`: six static lifecycle/documentation checks failed, while all
+  runtime, database, catalog, BE.6, and embedded residue probes were green,
+  including `18/18`. The labels, predicates, and prompts were corrected before
+  a fresh rerun; no session or data correction was needed.
+- The first integrated read-only M12.P1-R8 review of clean commit `43627cf`
+  reverified the exact package pin above, `npm test` `4641/4641` with
+  `QUALITY-GATES OK`, five-stage QA at the same exact contract total, and final
+  `24/24 -> 18/18 -> 46/46`. It returned R8 NO-GO solely because operative
+  authority falsely described the committed and pushed candidate as dirty,
+  uncommitted, and unpushed; it found no separate runtime, security, database,
+  or package blocker. The bounded follow-up corrects that lifecycle wording,
+  preserves current R7 `72/72` versus accepted historical `71/71`, and adds
+  accepting/rejecting fixtures. Independent commit-readiness review of the
+  exact follow-up bytes remains open. The required order is independent
+  commit-readiness review -> local commit -> separately authorized push ->
+  clean-commit R8 re-review.
 - Human pilot evidence, OFF.2-OFF.6, and final Milestone 12 GO remain open.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
@@ -188,7 +206,7 @@ remain separate and are not authorized by this documentation record.
 ## Historical/Superseded — 2026-07-30 R8 Continuity Status
 
 The following section records what was known on July 30. It is retained for
-incident traceability and does not override the August 10 status above.
+incident traceability and does not override the August 12 status above.
 
 - Historical/superseded: before the `0627bf7` deployment, production at
   `https://campusphere-cspc.vercel.app` used the independently Codex-accepted
@@ -1199,8 +1217,9 @@ bootstrap implementation.
 
 The preceding SEC-51 evidence synchronization at Git commit SHA-1
 `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
-Guided-VR catalog-remediation candidate is uncommitted, unpushed, and undeployed; it does
-not change production, and independent review is still required.
+Guided-VR runtime/catalog remediation is commit `43627cf`, pushed to
+origin/main and not deployed; this authority-only follow-up is also not
+deployed and still requires independent commit-readiness review.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 
