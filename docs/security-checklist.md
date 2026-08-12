@@ -5,14 +5,29 @@ defense evidence. Record pass/fail and sanitized notes only.
 
 ## 2026-08-12 Current Security And Pilot Status
 
-- The Guided-VR runtime/catalog remediation is committed and pushed as
+- The Guided-VR runtime/catalog remediation remains recorded as
   `43627cf0a77741556f4e701711e55612a739799b`, Git tree
-  `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`; local HEAD and origin/main
-  matched that commit at the first integrated R8 review. The owner-observed
-  Vercel Production alias remains on deployed baseline
-  `0627bf78228148e3f989275810c333c16a1f3356`. Neither `43627cf` nor this
-  authority-only follow-up is deployed; live Git truth controls later
-  working-tree state.
+  `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`. The final R8 authority
+  synchronization is committed and pushed as
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; live Git at post-deployment
+  review confirmed branch `main`, local HEAD, and origin/main matched it. The
+  authorized push automatically triggered Vercel Production while automatic
+  domain assignment was enabled. The owner accepts
+  `https://campusphere-cspc.vercel.app` on deployed technical Production
+  baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
+- Bounded anonymous read-only GET-only post-deployment verification passed.
+  It covered public pages/assets, sampled source-byte identity, anonymous
+  protected-route denial, and zero checked `Set-Cookie` responses; it avoided
+  `/auth`, did not authenticate, and did not exercise schedule auditing. The
+  accepted source package identity is 158 files, 6,245,074 bytes, aggregate
+  SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`.
+- Owner-observed Vercel settings now show `Auto-assign Custom Production
+  Domains` disabled. Future `main` pushes may create staged Production
+  deployments, but replacing the live alias requires explicit manual
+  promotion. This saved-state control was not tested with a dummy push.
+- Historical/superseded: before this deployment, Production served
+  `0627bf78228148e3f989275810c333c16a1f3356`; its accepted five-file and
+  anonymous `31/31` evidence remain history.
 - The deployed modal correction passed desktop and mobile focus containment,
   outside-focus recapture, Escape close, focus restoration, reduced-motion,
   hidden-overlay pointer safety, and the accepted single-navigation-owner
@@ -69,16 +84,16 @@ defense evidence. Record pass/fail and sanitized notes only.
   The bounded follow-up pins the ordered CAS hash, rejects intermediate
   replacement/reordering and malformed hash pins, validates SEC-37 against the
   independent package pin, and restores the complete authorization order. The
-  prior manifest is historical; corrected bytes still require independent
-  read-only review.
+  prior manifest is historical; at that point the corrected bytes required an
+  independent read-only review.
 - A subsequent independent read-only review of exact 33-file manifest SHA-256
   `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
   returned commit-readiness NO-GO because the exact package pin was not applied
   to the live manifest, obsolete handoff policy was not isolated from current
   authority, and current dates were stale. This bounded correction adds two
   independent live package pins, byte-drift and authority/date fixtures,
-  explicit historical boundaries, and synchronized dates. It changes no
-  runtime or data and remains pending independent review.
+  explicit historical boundaries, and synchronized dates. It changed no
+  runtime or data; at that historical point independent review remained open.
 - The independent read-only review of exact 34-file manifest SHA-256
   `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
   returned commit-readiness NO-GO because the same rejected 4,628-PASS retry
@@ -187,17 +202,16 @@ defense evidence. Record pass/fail and sanitized notes only.
   remained. The focused probe then passed immediately in both runtime modes.
   No repository, database, session, package, or vendor correction was required
   for that transient harness-start failure.
-- Fresh-session authority is role-specific: Codex grounds and performs one
-  final independent read-only R8 review of the exact live 11-file candidate;
-  Claude Code grounds only and then waits. Neither prompt authorizes edits,
-  tests, Git mutation, deployment, pilot, offline implementation, or Milestone
-  12 GO. After R8, the owner separately chooses the next workstream.
+- Fresh-session authority is state-neutral: Codex and Claude Code both ground
+  current truth and then wait for the owner. Neither prompt authorizes review,
+  edits, tests, Git mutation, a new deployment or promotion, pilot activity,
+  offline implementation, or Milestone 12 GO.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
 
-OFF.2-OFF.6, real participant feedback, and final Milestone 12 acceptance are
-still open. This checklist records evidence only and authorizes no mutation.
+Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO
+remain open. This checklist records evidence only and authorizes no mutation.
 
 ## Historical/Superseded — 2026-07-30 R8 Review Status
 
@@ -336,7 +350,7 @@ adherence.
 
 | SEC-49 | Local authenticated exposure matrix | Drive the full authenticated surface in BOTH runtime modes with a separate fresh browser context per role | For administrator, student, instructor, and guest: each context starts with zero carried-over cookies and zero carried-over web storage; sign-in works through the real form; role denial is correct (`/admin` 403 HTML and `/admin/api/*` 403 JSON for non-admins, 200 for the administrator; 302/401 for anonymous); registration trust refuses `admin`/`instructor`/`student-cspc` escalation; the participant dashboard, building roster, destination routing, and Free Roam VR all respond truthfully; guided VR claims arrival only where coverage exists; admin CRUD completes create -> read-back -> edit -> delete with a real list read proving zero residue; logout returns 200 and the post-logout request is denied; and `/dashboard`, `/map`, and `/admin` show no horizontal overflow, zero CSP violations, and zero console errors at 1440x900 and 390x844 | **PASS (clean bounded re-execution)** | M12.P1-R8. **MySQL 34/34, Supabase 64/64**, plus a **14/14 supplement per backend** covering SEC-08/09/10/11 — **126 checks, zero failures**. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once through `terminateAll()` and the real CSRF-protected `POST /logout`. No `429` occurred; no failed logout was retried; `services/sessionRevocation.js` was never imported or called; no session row was deleted directly and no database cleanup was performed. MySQL exercises administrator and student (the only deterministic local fixtures); instructor and guest are exercised in Supabase, where all four regression identities exist. Every fixture was deleted through the same admin API that created it. Final ordered postconditions were `24/24 -> 18/18 -> 46/46`. The earlier first execution of this matrix is historical/superseded and is NOT accepted — see the evidence row below |
 | SEC-50 | Pilot feedback form readiness | Fetch the owner-supplied responder form anonymously and inspect it WITHOUT submitting | The form is reachable, is a responder (not editor) URL, is accepting responses, does not request an email address, and carries the minimum `docs/usability-survey.md` questionnaire | **PASS (external owner evidence: READY)** | M12.P1-R8. Opened anonymously; the page served was the **responder page, not the editor UI**; it was **accepting responses** and requested **no email address**. Matched **10/10 SUS-style statements, 8/8 user-satisfaction questions, and 4/4 open-feedback prompts**. **Nothing was submitted and no response row was created.** The responder URL is deliberately NOT recorded in this repository — only its readiness is |
-| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets carry the expected CSP, indexing, and crawl-denial contracts | **PASS (automated anonymous production smoke; owner-observed deployment identity)** | The `31/31` anonymous smoke ran against `https://campusphere-cspc.vercel.app` on deployed baseline `0627bf78228148e3f989275810c333c16a1f3356`. It covered scoped public pages/static assets, CSP nonce behaviour, `X-Robots-Tag`, crawl-denial intent, and zero scoped 4xx/5xx responses. It did not perform an authenticated login or exercise schedule auditing. Historical/superseded: before this deployment, the detailed independent browser smoke ran against `d422b54393f659125912ec5c84ae7927c2533288`; the still earlier baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` |
+| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets retain expected security contracts; protected surfaces deny anonymous access | **PASS (bounded anonymous read-only GET-only post-deployment verification; owner-observed deployment identity)** | The bounded checks ran against `https://campusphere-cspc.vercel.app` on deployed technical Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Public pages/assets returned the expected responses, sampled bytes matched pushed source, protected HTML routes redirected to `/auth`, protected JSON routes returned `401`, and checked responses set no cookie. `/auth` was deliberately avoided; no authenticated login or schedule auditing was exercised. Historical/superseded: before this deployment, anonymous smoke `31/31` ran on `0627bf78228148e3f989275810c333c16a1f3356`; the earlier detailed browser smoke ran on `d422b54393f659125912ec5c84ae7927c2533288`; the first accepted baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` |
 
 **Status labelling.** Every row above states HOW it was proven.
 `PASS (clean bounded re-execution)` means the exact scenario was executed in the
@@ -358,22 +372,25 @@ exposure matrix and its supplement, in the clean bounded re-execution. SEC-15
 through SEC-22 are recorded against the specific automated gate or probe that
 covers each one, labelled as automated rather than manual. SEC-05 was previously
 deferred and has now been executed externally with the proven facts recorded in
-its row. SEC-51 (actual Vercel production smoke) was previously deferred, was
-then executed externally, and most recently passed an automated anonymous
-`31/31` smoke against deployed baseline
-`0627bf78228148e3f989275810c333c16a1f3356`; deployment identity remains
-owner-observed. Historical/superseded: before this deployment, the accepted
-baseline was `d422b54393f659125912ec5c84ae7927c2533288`; the still earlier
-`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` baseline and original `DEFERRED`
-disposition are retained as history.
+its row. SEC-51 (actual Vercel production smoke) was previously deferred and
+later executed externally. The current bounded anonymous read-only GET-only
+post-deployment verification passed against deployed technical Production
+baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; deployment identity remains
+owner-observed. Historical/superseded: before this deployment, anonymous smoke
+`31/31` ran on `0627bf78228148e3f989275810c333c16a1f3356`; the earlier accepted
+baseline was `d422b54393f659125912ec5c84ae7927c2533288`; the first baseline was
+`78d9053c8ce5c2cc7a9ede80326950cfd29a3a53`.
 
-**Deployed runtime versus local candidate.** Production at
-`https://campusphere-cspc.vercel.app` is on deployed runtime baseline
-`0627bf78228148e3f989275810c333c16a1f3356`. The preceding evidence
-synchronization at `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed
-runtime. The Guided-VR runtime/catalog remediation is commit `43627cf`, pushed
-to origin/main and not deployed. The authority follow-up's later Git and review
-disposition must be read from live Git and the latest external review report.
+**Deployed technical Production baseline.** Production at
+`https://campusphere-cspc.vercel.app` serves
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` as the accepted technical
+Production baseline. The authorized push automatically triggered that
+deployment. Historical/superseded: `bbb25d0` was an earlier evidence commit,
+and `43627cf` was the Guided-VR runtime/catalog remediation. Previously, before
+`fea3b2e`, Production served `0627bf78228148e3f989275810c333c16a1f3356`.
+`Auto-assign Custom Production Domains` is disabled, so
+future `main` deployments require explicit manual promotion before replacing
+the live alias.
 
 **SEC-52 — pilot-surface correction (deployed and independently accepted under
 SEC-51).** Three findings were raised against the pilot surface and
@@ -389,11 +406,13 @@ theme-toggle overlapped the auth card's privacy notice and Back-to-Home link —
 it is now rendered inside the card and pinned to its top-right by one
 auth-scoped rule, still 44x44 and never hidden, with global placement
 unchanged. Each contract is asserted in the `pilot-readiness` gate with
-mutated-source rejecting fixtures. **All three remain live on deployed baseline
-`0627bf78228148e3f989275810c333c16a1f3356`.**
+mutated-source rejecting fixtures. **All three remain present in deployed
+technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`.**
 
-Historical/superseded: before this deployment they were independently verified
-in the detailed SEC-51 smoke on
+Historical/superseded: before this deployment they were live on
+`0627bf78228148e3f989275810c333c16a1f3356` and were independently verified in
+the earlier detailed SEC-51 smoke on
 `d422b54393f659125912ec5c84ae7927c2533288`, which confirmed production
 `public/js/public-nav.js` and `public/css/styles.css` byte-identical to that
 earlier baseline. The implementation and local verification history above is retained

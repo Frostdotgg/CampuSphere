@@ -2089,14 +2089,14 @@ function containsLikelyDocumentationSecret(value) {
       'SHA-256 `[recognized-integrity-digest]`')
     // Production Git evidence is safe only when the 40-hex value is bound to
     // an explicit deployed/runtime baseline label.
-    .replace(/\b(?:SEC-51\s+runtime|deployed(?:\s+(?:runtime|production))?|production\s+runtime)\s+baseline\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
+    .replace(/\b(?:SEC-51\s+runtime|deployed(?:\s+(?:runtime|production))?|production\s+runtime|(?:current|accepted)\s+technical\s+Production|technical\s+Production)\s+baseline\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
       'deployed runtime baseline `[recognized-git-commit]`')
     // A repository identifier is safe only when the same claim identifies it
     // as the later documentation-only commit.
     .replace(/\bRepository HEAD\s+`[0-9a-f]{40}`(?=[^.]{0,160}\bdocumentation-only commit\b)/gi,
       'Repository HEAD `[recognized-documentation-commit]`')
     // Explicit Git SHA-1 evidence is a repository identifier, not a secret.
-    .replace(/\bGit[\r\n \t]+commit SHA-1(?:\s+is)?\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
+    .replace(/\bGit[\r\n \t]+commit[\r\n \t]+SHA-1(?:\s+is)?\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
       'Git commit SHA-1 `[recognized-git-commit]`')
     // Git tree objects are safe only with the same explicit SHA-1 binding.
     .replace(/\bGit[\r\n \t]+tree SHA-1(?:\s+is)?\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
@@ -2145,8 +2145,9 @@ function runCloudinaryDocsGate() {
   ok('fixture: explicitly labeled Git commits and SHA-256 integrity digests are accepted',
     !containsLikelyDocumentationSecret(
       'Production is on deployed runtime baseline `0123456789abcdef0123456789abcdef01234567`.\n' +
+      'The current technical Production baseline `1357902468abcdef1357902468abcdef13579024` is accepted.\n' +
       'Repository HEAD `89abcdef0123456789abcdef0123456789abcdef` is a later documentation-only commit.\n' +
-      'Git commit SHA-1 `fedcba9876543210fedcba9876543210fedcba98`.\n' +
+      'Git commit\nSHA-1 `fedcba9876543210fedcba9876543210fedcba98`.\n' +
       'Git tree SHA-1 `1234567890abcdef1234567890abcdef12345678`.\n' +
       'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.'));
   ok('fixture: an unlabeled long-hex value is rejected',
@@ -4284,42 +4285,74 @@ function currentCandidateVerificationProblems(value, expectedTotal) {
   return problems;
 }
 
-/* The runtime/catalog candidate is a pushed Git commit. Later authority commits
- * and reviews are intentionally not pinned as mutable "current" prose: live Git
- * and the latest external review report control those states. Production remains
- * independently pinned and must never be implied to have moved. */
-const EXPECTED_GUIDED_VR_RUNTIME_COMMIT =
-  '43627cf0a77741556f4e701711e55612a739799b';
-const EXPECTED_GUIDED_VR_RUNTIME_TREE =
-  'eb3e830f68d537c4a54d6dda6df7d52a61f9c87b';
+/* Historical runtime provenance remains pinned, but the operative lifecycle is
+ * now the accepted technical Production source commit plus a manual-promotion
+ * boundary for every future main deployment. */
+/**
+ * PURE: reject a contradictory CURRENT claim even when the required truthful
+ * claim also appears elsewhere. Properly past-bounded history remains allowed.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function currentDeploymentAuthorityContradictionProblems(value) {
+  const text = String(value == null ? '' : value);
+  const problems = [];
+  const rules = [
+    {
+      message: 'a current claim denies that the authorized push automatically triggered Production',
+      pattern: /\b(?:authorized|separately authorized) push\b[^]{0,160}\b(?:did not|didn't|failed to|never)\b[^]{0,80}\b(?:automatically\s+)?trigger(?:ed)?\b[^]{0,60}\b(?:Vercel\s+)?Production\b/i,
+    },
+    {
+      message: 'a current claim contradicts the passed post-deployment verification',
+      pattern: /\bpost-deployment verification\b[^]{0,120}\b(?:failed|did not pass|has not passed|was not (?:performed|run|executed|completed)|remains? (?:pending|open|unverified)|is (?:pending|open|unverified))\b/i,
+    },
+    {
+      message: 'a current claim says Auto-assign Custom Production Domains is enabled',
+      pattern: /\bAuto-assign Custom Production Domains\b[^]{0,80}\b(?:(?:is|was|remains?|stays?)\s+(?:still\s+)?enabled|is not disabled)\b/i,
+    },
+    {
+      message: 'a current claim denies the manual-promotion boundary for future main deployments',
+      pattern: /(?:\bfuture\s+\bmain\b[^]{0,160}\b(?:do not|does not|don't|need not|no longer)\s+(?:require|need)\b[^]{0,60}\bmanual promotion\b|\bmanual promotion\b[^]{0,100}\b(?:is|remains)\s+not required\b[^]{0,100}\bfuture\s+\bmain\b|\bfuture\s+\bmain\b[^]{0,160}\b(?:automatically|directly)\s+(?:replace|updates?|take over)\b[^]{0,60}\b(?:the\s+)?live alias\b)/i,
+    },
+  ];
 
-/** PURE: validate current Git/deployment/R8 lifecycle authority. */
+  for (const claim of splitEvidenceClaims(text)) {
+    const properlyHistorical = CLAIM_HISTORY_RE.test(claim) &&
+      CLAIM_PAST_BOUND_RE.test(claim) && !CLAIM_PRESENT_DEPLOYED_RE.test(claim);
+    if (properlyHistorical) continue;
+    for (const rule of rules) {
+      if (rule.pattern.test(claim) && !problems.includes(rule.message)) {
+        problems.push(rule.message);
+      }
+    }
+  }
+  return problems;
+}
+
+/** PURE: validate current Git/deployment/promotion authority. */
 function currentGitLifecycleProblems(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   const problems = [];
-  if (!t.includes(EXPECTED_GUIDED_VR_RUNTIME_COMMIT)) {
-    problems.push('missing exact committed Guided-VR runtime candidate');
-  }
-  if (!t.includes(EXPECTED_GUIDED_VR_RUNTIME_TREE)) {
-    problems.push('missing exact Guided-VR runtime Git tree');
-  }
-  if (!/committed and pushed[\s\S]{0,120}43627cf/i.test(t) ||
-      !/(?:origin\/main[\s\S]{0,120}(?:matched|contains|at)|pushed to origin\/main)/i.test(t)) {
-    problems.push('runtime candidate is not truthfully bound to pushed origin/main state');
-  }
   if (!t.includes(EXPECTED_SEC51_DEPLOYED_BASELINE) ||
-      !/(?:neither 43627cf[^.]{0,180}(?:is|are) deployed|43627cf[^.]{0,120}(?:not|is not) deployed)/i.test(t)) {
-    problems.push('production baseline is not separated from the undeployed runtime candidate');
+      claimsBindingCurrentDeployedBaseline(t).length === 0) {
+    problems.push('missing exact accepted technical Production baseline binding');
   }
-  if (!/first integrated (?:read-only )?M12\.P1-R8 review[\s\S]{0,900}returned R8 NO-GO solely/i.test(t)) {
-    problems.push('missing first integrated R8 review and sole authority-finding disposition');
+  if (!/(?:authorized|separately authorized) push[\s\S]{0,120}automatically triggered[\s\S]{0,80}(?:Vercel )?Production/i.test(t)) {
+    problems.push('automatic Production trigger disclosure is missing');
   }
-  if (!/live Git[\s\S]{0,220}latest external review report|latest external review report[\s\S]{0,220}live Git/i.test(t) ||
-      !/(?:commit, push, and R8 disposition|commit\/push\/R8 disposition|Git and review disposition)/i.test(t)) {
-    problems.push('mutable follow-up lifecycle is not delegated to live Git and the latest external review report');
+  if (!/post-deployment verification[\s\S]{0,140}(?:passed|PASS)/i.test(t) ||
+      !/anonymous[\s\S]{0,80}read-only[\s\S]{0,80}GET-only/i.test(t)) {
+    problems.push('bounded anonymous GET-only post-deployment PASS is missing');
   }
-  if (!/independent commit-readiness review\s*->\s*local commit\s*->\s*separately authorized push\s*->\s*clean-commit R8 re-review/i.test(t)) {
-    problems.push('required review/commit/push/R8-re-review order is missing');
+  if (!/Auto-assign Custom Production Domains[\s\S]{0,80}(?:disabled|Disabled)/i.test(t) ||
+      !/(?:future )?`?main`?[\s\S]{0,160}(?:manual promotion|Promote to Production)/i.test(t)) {
+    problems.push('future main deployments are not bound to manual promotion');
+  }
+  if (!/human pilot|pilot readiness/i.test(t) || !/OFF\.2-OFF\.6/i.test(t) ||
+      !/offline work|offline implementation/i.test(t) || !/final Milestone 12/i.test(t)) {
+    problems.push('remaining pilot, offline, OFF.2-OFF.6, or final M12 boundary is missing');
+  }
+  for (const problem of currentDeploymentAuthorityContradictionProblems(t)) {
+    problems.push(problem);
   }
   const stale = [
     /current worktree is intentionally dirty/i,
@@ -4331,6 +4364,8 @@ function currentGitLifecycleProblems(value) {
     /next boundary is independent commit-readiness review/i,
     /(?:present|current) \d+-file working tree[^.]{0,120}(?:unstaged|uncommitted)/i,
     /clean starting Git baseline[^.]{0,180}5076e1316cf68e9d05c78a61b2362d1727873a09[^.]{0,120}(?:HEAD|origin\/main)/i,
+    /neither 43627cf[^.]{0,180}(?:is|are) deployed/i,
+    /Production remains[^.]{0,180}0627bf7/i,
   ];
   if (stale.some((re) => re.test(t))) {
     problems.push('obsolete dirty/uncommitted/unpushed lifecycle authority remains');
@@ -4460,33 +4495,16 @@ function reusablePromptsAreCurrent(doc) {
   return reusablePromptIsCurrent(prompts.codex) && reusablePromptIsCurrent(prompts.claude);
 }
 
-const EXPECTED_HANDOFF_CANDIDATE_PATHS = Object.freeze([
-  'AGENTS.md',
-  'CLAUDE.md',
-  'CLAUDE_HANDOFF.md',
-  'CODEX_HANDOFF.md',
-  'ROADMAP.md',
-  'docs/deployment.md',
-  'docs/new-session-grounding-prompts.md',
-  'docs/security-checklist.md',
-  'docs/test-evidence.md',
-  'plan.md',
-  'scripts/quality-gates.js',
-]);
-
-/** PURE: Codex alone performs the final independent read-only R8 review. */
-function reusableCodexPromptHasReviewBoundary(body) {
+/** PURE: Codex grounds current truth and waits without performing a review. */
+function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   return reusablePromptIsCurrent(t) &&
-    /fresh context-only grounding plus final independent read-only R8 review/i.test(t) &&
+    /fresh context-only grounding session that does not authorize implementation or review/i.test(t) &&
     /load and follow the installed code-reviewer skill/i.test(t) &&
-    /compute the current 11-file manifest from sorted path \+ NUL \+ per-file SHA-256 \+ LF records/i.test(t) &&
-    EXPECTED_HANDOFF_CANDIDATE_PATHS.every((name) => t.includes(name)) &&
-    /perform one independent read-only review of the exact live candidate/i.test(t) &&
-    /do not rerun tests/i.test(t) &&
-    /return findings ordered by severity and an R8 GO\/NO-GO/i.test(t) &&
-    /R8 GO may authorize only a later separate owner decision/i.test(t) &&
-    /do not infer that offline mode, deployment, or pilot work is automatically next/i.test(t);
+    /Do not perform a code review/i.test(t) &&
+    /Stop and wait for the owner/i.test(t) &&
+    /Deployment is not authorized by this prompt/i.test(t) &&
+    /(?:do not )?infer that (?:pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)/i.test(t);
 }
 
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
@@ -4494,9 +4512,10 @@ function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   return reusablePromptIsCurrent(t) &&
     /fresh context-only grounding session that does not authorize implementation/i.test(t) &&
-    /Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review/i.test(t) &&
+    /Do not review, edit, test, implement, stage, commit, push, deploy(?:, promote)?, or perform an R8 review/i.test(t) &&
     /After the grounding report, stop and wait for the owner/i.test(t) &&
-    /do not infer that offline mode, deployment, or pilot work is automatically next/i.test(t);
+    /Deployment is not authorized by this prompt/i.test(t) &&
+    /(?:do not )?infer that (?:pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)/i.test(t);
 }
 
 /* The R7 execution prompt is SPENT: R7 later received independent Codex GO,
@@ -4725,7 +4744,7 @@ function analyzeProvenanceRemediationRow(md) {
    legitimate citation, while the same figure sitting in a STATUS cell is a
    current disposition. Only the latter is a defect. */
 
-/* The current candidate package inventory, pinned HERE independently of the
+/* The accepted technical Production source-package inventory, pinned HERE independently of the
    probe and of both evidence documents, so a document edit alone cannot move
    what "current" means. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
@@ -4776,13 +4795,15 @@ const EXPECTED_CURRENT_DEMO_ROUTING = Object.freeze({
 });
 
 const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
-  'candidate remediation and verification',
-  'independent commit-readiness review',
-  'local commit',
-  'separately authorized push',
-  'separately authorized read-only R8',
-  'separate owner deployment decision',
-  'limited pilot',
+  'technical production baseline',
+  'authorized push automatically triggered production',
+  'bounded anonymous read-only get-only post-deployment verification passed',
+  'future main deployments require manual promotion',
+  'human pilot evidence remains open',
+  'separate owner authorization',
+  'off.2-off.6',
+  'offline work',
+  'final milestone 12 go',
 ]);
 
 /* The exact current candidate total is pinned independently of both evidence
@@ -4978,9 +4999,9 @@ function analyzeDemoRoutingContract(md, expected) {
 }
 
 /**
- * PURE: the facilitator's readiness section must preserve every remaining
- * authorization boundary in order and must not promote the limited pilot as
- * the immediate next step while candidate review and R8 remain open.
+ * PURE: the facilitator's readiness section must preserve the accepted
+ * Production result, manual-promotion control, and every remaining owner
+ * authorization boundary without promoting the limited pilot as automatic.
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeDemoReadinessSequence(md, expectedSteps) {
@@ -5008,19 +5029,20 @@ function analyzeDemoReadinessSequence(md, expectedSteps) {
  * name SEC-51, and must never claim PASS.
  * @returns {string[]} problems (empty = compliant)
  */
-/* SEC-51 production smoke, pinned INDEPENDENTLY of both evidence documents.
-   The smoke was executed and independently accepted by the owner against the
-   deployed baseline below; the local harness cannot execute it, so the row must
-   name BOTH the production host and the exact deployed baseline rather than
-   claiming a bare PASS. Any later correction commit is NOT deployed, so the
-   baseline recorded here must stay the deployed one. */
+/* Production identity is pinned independently of both evidence documents. The
+   post-deployment check is external to the local harness, so every current row
+   must bind the production host to the exact accepted technical baseline. */
 const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
-/* The CURRENT deployed and independently accepted production baseline. The
-   pilot-surface correction is live on this SHA. */
-const EXPECTED_SEC51_DEPLOYED_BASELINE = '0627bf78228148e3f989275810c333c16a1f3356';
-/* The FIRST accepted production baseline. It remains legitimate history, but it
-   must never be presented as the current deployed baseline. */
-const EXPECTED_SEC51_SUPERSEDED_BASELINE = 'd422b54393f659125912ec5c84ae7927c2533288';
+const EXPECTED_SEC51_DEPLOYED_BASELINE =
+  'fea3b2e11c6331eddc1ee091b165427d8e0218d7';
+const EXPECTED_SEC51_PREVIOUS_BASELINE =
+  '0627bf78228148e3f989275810c333c16a1f3356';
+const EXPECTED_SEC51_LEGACY_BASELINE =
+  'd422b54393f659125912ec5c84ae7927c2533288';
+const EXPECTED_SEC51_SUPERSEDED_BASELINES = Object.freeze([
+  EXPECTED_SEC51_PREVIOUS_BASELINE,
+  EXPECTED_SEC51_LEGACY_BASELINE,
+]);
 
 /* ---- claim-scoped SEC-51 analysis ------------------------------------------
    A row-wide or paragraph-wide "historical/superseded" test is FAIL-OPEN: one
@@ -5087,10 +5109,10 @@ function claimBindsShaToDeployedBaseline(claim, expectedSha) {
   // Grammatical attachment to the deployed production baseline.
   const S = '[`\'"(\\s]*' + expectedSha;
   const patterns = [
-    new RegExp('(?:deployed|current(?:ly)?[- ]deployed|production(?:\\s+runtime)?|deployed\\s+runtime)\\s+baseline(?:\\s+(?:is|was|of))?\\s*:?' + S, 'i'),
-    new RegExp('production\\s+(?:currently\\s+)?serves' + S, 'i'),
+    new RegExp('(?:deployed|current(?:ly)?[- ]deployed|production(?:\\s+runtime)?|deployed\\s+runtime)\\s+(?:technical\\s+production\\s+)?baseline(?:\\s+(?:is|was|of))?\\s*:?' + S, 'i'),
+    new RegExp('production(?:\\s+at\\s+[`\'"(]*\\S{1,180}[`\'")]*?)?\\s+(?:(?:currently|now)\\s+)?serves' + S, 'i'),
     new RegExp('deployed\\s+(?:on|at)' + S, 'i'),
-    new RegExp(expectedSha + '[`\'")\\s]*(?:is|as)\\s+the\\s+(?:current(?:ly)?\\s+)?(?:deployed|production)(?:\\s+runtime)?\\s+baseline', 'i'),
+    new RegExp(expectedSha + '[`\'")\\s]*(?:is|as)\\s+the\\s+(?:current(?:ly)?\\s+)?(?:technical\\s+)?(?:deployed|production)(?:\\s+runtime)?\\s+baseline', 'i'),
   ];
   return patterns.some((re) => re.test(claim));
 }
@@ -5203,10 +5225,10 @@ function splitEvidenceClaims(text) {
 
 /** History framing, evaluated per claim. */
 const CLAIM_HISTORY_RE =
-  /\bhistorical\b|\bsuperseded\b|\bearlier\b|\bprevious(?:ly)?\b|\bfirst[- ]accepted\b|\bformer(?:ly)?\b|\bprior\b/i;
+  /\bhistorical\b|\bsuperseded\b|\bearlier\b|\bprevious(?:ly)?\b|\boriginally\b|\bfirst[- ]accepted\b|\bformer(?:ly)?\b|\bprior\b/i;
 /** Explicit past-bounding, required before a stale claim counts as history. */
 const CLAIM_PAST_BOUND_RE =
-  /\bat that time\b|\bat the time\b|\bpreviously\b|\bthen\b|\bbefore\b|\bprior to\b|\bformerly\b|\bused to\b|\bfirst[- ]accepted\b|\bearlier accepted\b/i;
+  /\bat that time\b|\bat the time\b|\bpreviously\b|\boriginally\b|\bthen\b|\bbefore\b|\bprior(?: to)?\b|\bformerly\b|\bused to\b|\bfirst[- ]accepted\b|\bearlier(?: accepted)?\b/i;
 /** Present-tense deployment semantics: what the OLD SHA must never carry. */
 const CLAIM_PRESENT_DEPLOYED_RE =
   /\bcurrent(?:ly)?[- ]deployed\b|\bcurrent deployed baseline\b|\bproduction (?:currently )?serves\b|\bnow serves\b|\bright now\b|\bis live\b|\b(?:is|are|remains?)\b[^]{0,40}\b(?:deployed|currently served|live)\b/i;
@@ -5235,7 +5257,9 @@ function supersededBaselineClaimProblems(text) {
   if (typeof text !== 'string') return ['superseded-baseline input is not text'];
   const problems = [];
   for (const c of splitEvidenceClaims(text)) {
-    if (!c.includes(EXPECTED_SEC51_SUPERSEDED_BASELINE) && !/\bd422b54\b/.test(c)) continue;
+    const citesSuperseded = EXPECTED_SEC51_SUPERSEDED_BASELINES.some((sha) =>
+      c.includes(sha)) || /\b(?:0627bf7|d422b54)\b/i.test(c);
+    if (!citesSuperseded) continue;
     if (!CLAIM_HISTORY_RE.test(c)) {
       problems.push('a claim cites the superseded baseline without history framing in that same claim');
     }
@@ -5391,63 +5415,22 @@ const CLAIM_NON_RUNTIME_RE =
   /\bnot a runtime deployment\b|\bnot the deployed runtime\b|\bis not deployed\b|\bdoes not change production\b/i;
 
 /**
- * PURE: does ONE scope carry a CLAIM-SCOPED documentation-only-commit
- * disclaimer?
- *
- * The former test was a whole-document regex for "not a runtime deployment".
- * That was FAIL-OPEN in exactly the way the rest of this analyzer family was
- * rewritten to prevent: a purely HISTORICAL sentence about some earlier
- * synchronization satisfied it, so a document could drop every current
- * disclaimer — or never name the documentation commit at all — and still be
- * credited with distinguishing the deployed runtime from it.
- *
- * Two independent requirements now apply. The scope must NAME the
- * documentation/gate candidate commit, and the disclaimer must sit in a claim of
- * THAT SAME scope which is neither history-framed nor past-bounded. A disclaimer
- * stranded in another paragraph or table row no longer counts, and neither does
- * one written as "was not a runtime deployment at that time".
+ * PURE: current evidence binds the accepted technical Production baseline to
+ * the bounded post-deployment result and future manual-promotion boundary.
  * @returns {boolean}
  */
-function scopeMarksDocCommit(scope) {
-  if (typeof scope !== 'string' || scope === '') return false;
-  /* Identity is mandatory: a floating "not a runtime deployment" in a document
-     that never names the documentation commit proves nothing about it. */
-  const namesDocCommit =
-    scope.includes(EXPECTED_SEC51_DOC_COMMIT) || /\bbbb25d0\b/i.test(scope);
-  if (!namesDocCommit) return false;
-  return splitEvidenceClaims(scope).some((c) =>
-    CLAIM_NON_RUNTIME_RE.test(c) &&
-    !CLAIM_HISTORY_RE.test(c) &&
-    !CLAIM_PAST_BOUND_RE.test(c));
-}
-
-/**
- * PURE: some scope of the document carries the claim-scoped disclaimer.
- * @returns {boolean}
- */
-function marksDocCommitClaimScoped(text) {
-  if (typeof text !== 'string' || text === '') return false;
-  return splitEvidenceScopes(text).some(scopeMarksDocCommit);
-}
-
-/**
- * PURE: the current evidence must distinguish the DEPLOYED runtime baseline from
- * the later documentation-only commit, so a reader cannot mistake this
- * synchronization for a new deployment.
- * @returns {boolean}
- */
-function distinguishesDeployedRuntimeFromDocCommit(text) {
+function recordsPostDeploymentAuthority(text) {
   if (typeof text !== 'string' || text === '') return false;
   /* Claim-scoped: the current SHA must be BOUND to the deployed result by a
      non-historical claim. Naming it only inside a historical label — while the
      old SHA is presented as current — no longer satisfies this. */
   const bindsCurrent = claimsBindingCurrentDeployedBaseline(text).length > 0;
-  const marksDocCommit = marksDocCommitClaimScoped(text);
   const oldStaysHistorical = supersededBaselineClaimProblems(text).length === 0;
   /* A valid binding elsewhere must not excuse a contradictory deployment claim
      in the same scope. */
   const noConflict = documentConflictingDeployedShaProblems(text).length === 0;
-  return bindsCurrent && marksDocCommit && oldStaysHistorical && noConflict;
+  return bindsCurrent && oldStaysHistorical && noConflict &&
+    currentGitLifecycleProblems(text).length === 0;
 }
 
 /**
@@ -5469,7 +5452,7 @@ function analyzeSupersededCandidateRows(md) {
 }
 
 /**
- * PURE: exactly ONE current candidate package inventory row, stating the independently
+ * PURE: exactly ONE current package inventory row, stating the independently
  * pinned file count, byte count, and aggregate SHA-256 in its STATUS cell.
  * @returns {string[]} problems (empty = compliant)
  */
@@ -6207,7 +6190,7 @@ function runDocsCurrentGate() {
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized Last updated date');
     }
     const headings = {
-      'docs/deployment.md': 'Current Deployment And Guided-VR Candidate Status',
+      'docs/deployment.md': 'Current Production And Post-Deployment Status',
       'docs/security-checklist.md': 'Current Security And Pilot Status',
       'docs/test-evidence.md': 'Current Evidence Classification',
     };
@@ -6232,7 +6215,7 @@ function runDocsCurrentGate() {
     'plan.md': '**CURRENT STATUS (2026-08-12 candidate).**',
     'ROADMAP.md': '**CURRENT STATUS (2026-08-12 candidate).**',
     'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-12 (Asia/Manila)',
-    'docs/deployment.md': '## 2026-08-12 Current Deployment And Guided-VR Candidate Status',
+    'docs/deployment.md': '## 2026-08-12 Current Production And Post-Deployment Status',
     'docs/security-checklist.md': '## 2026-08-12 Current Security And Pilot Status',
     'docs/test-evidence.md': '## 2026-08-12 Current Evidence Classification',
   };
@@ -6633,9 +6616,10 @@ function runDocsCurrentGate() {
     return /\bR3\b[\s\S]{0,300}\b(complete|completed)\b[\s\S]{0,100}\bCodex GO\b/i.test(t);
   }
 
-  /* ---- post-R6 authority consistency ----
-     R1-R6, D1-D5, and dependency-security remediation are complete and Codex
-     GO. R7 is the next owner-authorized code section and is not started.
+  /* ---- current M12.P1 authority consistency ----
+     R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete. The
+     accepted technical Production baseline is deployed, while pilot readiness,
+     offline work, OFF.2-OFF.6, and final Milestone 12 acceptance remain open.
 
      Each authority document carries one delimited CURRENT block. Validating
      only that block prevents historical candidate evidence and the future-state
@@ -6656,10 +6640,10 @@ function runDocsCurrentGate() {
     return text.slice(start, end).replace(/^>\s?/gm, '').replace(/\s+/g, ' ').trim();
   }
 
-  /* RETARGETED FOR ACCEPTED D7 CODEX GO (M12.P1-D7).
-     R1-R7, D1-D5, and expanded D7 must be complete and Codex GO, accepted R7
-     and D7 evidence must be explicit, and R8 must be next while remaining
-     read-only and unauthorized by this synchronization. */
+  /* RETARGETED FOR ACCEPTED TECHNICAL PRODUCTION AUTHORITY.
+     R1-R7, D1-D5, and expanded D7 must remain complete and Codex GO; accepted
+     R7/D7 evidence, the completed R8 lifecycle, current Production baseline,
+     and future manual-promotion boundary must all remain explicit. */
   function declaresR7GoAuthority(value) {
     const t = String(value == null ? '' : value).replace(/\s+/g, ' ');
     return (
@@ -6871,10 +6855,9 @@ function runDocsCurrentGate() {
     ['remaining order starts at R3', 'The remaining implementation order is R3, R4, R5.'],
   ];
   /* Canonical CURRENT authority: R1-R7, D1-D5, and expanded D7 are complete and
-     Codex GO; accepted/superseded R7 evidence and accepted D7 evidence are
-     explicit; the first integrated R8 review returned NO-GO only for stale
-     lifecycle prose; and live Git plus the latest external review report must
-     control mutable follow-up state while the required lifecycle stays fixed. */
+     Codex GO; the final R8 synchronization is the accepted technical Production
+     baseline; the authorized push auto-triggered Production; bounded anonymous
+     verification passed; and future main deployments require manual promotion. */
   const CANONICAL_R7_GO_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
     'M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
@@ -6885,9 +6868,9 @@ function runDocsCurrentGate() {
     'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. ' +
     'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
     'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
-    'The Guided-VR runtime/catalog remediation is committed and pushed as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b; local HEAD and origin/main matched it at the first integrated R8 review. Production remains on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this authority-only follow-up is deployed. ' +
-    'The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ' +
-    'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized.';
+    'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production serves fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production baseline. ' +
+    'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
+    'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. M12.P1 remains NO-GO for pilot readiness and final acceptance; deployment is not authorized by this synchronization.';
   /* Superseded states retained only as negative fixtures. */
   const SUPERSEDED_R7_CANDIDATE_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
@@ -7014,7 +6997,7 @@ function runDocsCurrentGate() {
       CANONICAL_R7_GO_STATUS.replace('M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ', '')
     ) === false &&
     declaresR7GoAuthority(
-      CANONICAL_R7_GO_STATUS.replace('The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ', '')
+      CANONICAL_R7_GO_STATUS.replace('The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ', '')
     ) === false);
 
   const STALE_POST_R6_FIXTURES = [
@@ -7137,19 +7120,19 @@ function runDocsCurrentGate() {
     currentM12Statuses.push(status);
     ok(`${name} carries exactly one ordered M12.P1 current-status block`,
       status !== null);
-    ok(`${name} current status records R1-R7/D1-D5/D7 GO, accepted R7/D7 evidence, and the R8 read-only stop`,
+    ok(`${name} current status records R1-R7/D1-D5/D7 GO, accepted evidence, and completed Production lifecycle`,
       status !== null && declaresR7GoAuthority(status));
-    ok(`${name} current status keeps M12.P1 deployment/pilot readiness at NO-GO`,
+    ok(`${name} current status keeps pilot/final acceptance at NO-GO and new deployment or promotion separately authorized`,
       status !== null && keepsM12P1NoGo(status));
-    ok(`${name} current status records the exact matrix and state-neutral Git/R8 lifecycle`,
+    ok(`${name} current status records the exact matrix and post-deployment Git/promotion lifecycle`,
       status !== null &&
       currentCandidateVerificationProblems(status, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
       currentGitLifecycleProblems(status).length === 0);
     ok(`${name} contains no stale forward-looking post-R4 instruction`,
       !declaresStalePostR4Instruction(docs[name]));
-    ok(`${name} contains no stale pre-D7-GO authority or premature R8 promotion`,
+    ok(`${name} contains no stale pre-D7-GO authority or premature lifecycle promotion`,
       !declaresStalePostR7GoInstruction(docs[name]));
-    ok(`${name} names no spent prompt as current authority and no stale pre-R8 sequence`,
+    ok(`${name} names no spent prompt as current authority and no stale lifecycle sequence`,
       !declaresSpentPromptAuthority(docs[name]));
   }
   ok('all current authority blocks and the evidence ledger preserve one transcript-faithful rejected-run account',
@@ -7160,7 +7143,7 @@ function runDocsCurrentGate() {
       .every((name) => currentGitLifecycleProblems(docs[name]).length === 0) &&
     operativePlanLifecycleProblems(docs['plan.md']).length === 0);
 
-  /* M12.P1-R8: the deployment guide must carry the COMPLETE Vercel checklist. */
+  /* Post-deployment authority: the guide must retain the COMPLETE Vercel checklist. */
   ok('docs/deployment.md lists all 14 fail-closed profile entries plus SESSION_SECRET, the OAuth trio, the /auth/callback URI, and the Google Form',
     vercelChecklistIsComplete(docs['docs/deployment.md']));
   ok('fixture: a checklist missing RATE_LIMIT_KEY_SECRET is flagged',
@@ -7169,19 +7152,19 @@ function runDocsCurrentGate() {
   ok('fixture: a checklist missing the /auth/callback URI is flagged',
     vercelChecklistIsComplete(
       docs['docs/deployment.md'].split('/auth/callback').join('/auth/redacted')) === false);
-  ok('docs/deployment.md records completed candidate verification with state-neutral lifecycle authority',
+  ok('docs/deployment.md records completed verification and post-deployment authority',
     currentCandidateVerificationProblems(
       docs['docs/deployment.md'], EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
   const LIFECYCLE_OK =
-    'The Guided-VR runtime/catalog remediation is committed and pushed as ' +
-    EXPECTED_GUIDED_VR_RUNTIME_COMMIT + ', tree ' + EXPECTED_GUIDED_VR_RUNTIME_TREE +
-    '; local HEAD and origin/main matched it at the first integrated R8 review. ' +
-    'Production remains on deployed baseline ' + EXPECTED_SEC51_DEPLOYED_BASELINE +
-    '; neither 43627cf nor this authority-only follow-up is deployed. ' +
-    'The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. ' +
-    'The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
-    'The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review.';
-  ok('fixture: current candidate verification and Git lifecycle accept current authority and reject stale lifecycle/pending/session authority',
+    'Production serves ' + EXPECTED_SEC51_DEPLOYED_BASELINE +
+    ' as the current technical Production baseline. ' +
+    'The separately authorized push automatically triggered Vercel Production. ' +
+    'Post-deployment verification passed within bounded anonymous read-only GET-only scope. ' +
+    'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
+    'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. ' +
+    'Historical/superseded: before this deployment, Production served ' +
+    EXPECTED_SEC51_PREVIOUS_BASELINE + '.';
+  ok('fixture: verification and post-deployment lifecycle accept current authority and reject stale, missing, or contradictory authority',
     currentCandidateVerificationProblems(
       'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Live Git and the latest external review report control the later commit/push/R8 disposition.',
       4641).length === 0 &&
@@ -7199,15 +7182,25 @@ function runDocsCurrentGate() {
     currentGitLifecycleProblems(
       LIFECYCLE_OK + ' The Guided-VR candidate is uncommitted and unpushed.').length > 0 &&
     currentGitLifecycleProblems(
-      LIFECYCLE_OK.replace('The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events.', 'Independent commit-readiness review remains open.')).length > 0 &&
+      LIFECYCLE_OK.replace('automatically triggered Vercel Production', 'was pushed')).length > 0 &&
     operativePlanLifecycleProblems(
       '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD START -->\n**HISTORICAL/SUPERSEDED snapshot; not current authority.** db034e5581e6f409083a43dcb80fb82b473e0127\n<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD END -->\nCurrent requirements only.').length === 0 &&
     operativePlanLifecycleProblems(
       '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD START -->\n**HISTORICAL/SUPERSEDED snapshot; not current authority.** db034e5581e6f409083a43dcb80fb82b473e0127\n<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD END -->\n**Current correction candidate.** The present 12-file working tree remains unstaged and uncommitted.').length > 0 &&
     currentGitLifecycleProblems(
-      LIFECYCLE_OK.replace('neither 43627cf nor this authority-only follow-up is deployed', '43627cf is deployed')).length > 0 &&
+      LIFECYCLE_OK.replace('Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion.', 'Auto-assign Custom Production Domains is enabled.')).length > 0 &&
     currentGitLifecycleProblems(
-      LIFECYCLE_OK.replace('independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review', 'local commit -> R8')).length > 0);
+      LIFECYCLE_OK.replace(EXPECTED_SEC51_DEPLOYED_BASELINE, EXPECTED_SEC51_PREVIOUS_BASELINE)).length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' The separately authorized push did not automatically trigger Vercel Production.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' Post-deployment verification failed.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' Auto-assign Custom Production Domains is enabled.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' Future main deployments do not require manual promotion.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' Historical/superseded: before the setting change, Auto-assign Custom Production Domains was enabled.').length === 0);
   const REJECTED_HISTORY_OK =
     'Historical/rejected: a freshly counted suite attempt stopped at its 20-minute wrapper bound and produced no completion count. ' +
     'The bounded retry exited 1 at 4,628 PASS with nine current-authority wording failures and the residue failure from one orphaned canonical MySQL student session. ' +
@@ -7340,7 +7333,7 @@ function runDocsCurrentGate() {
       r7ExecutionPromptIsValid(R7_PROMPT_FIXTURE_BODY.replace('Do not deploy', 'Deploy after verification')) === false);
   }
 
-  /* ---- reusable grounding prompts (D7 GO; R8 read-only next, unauthorized) ----
+  /* ---- reusable grounding prompts (post-deployment; grounding only) ----
      These fenced blocks are copy-paste guidance for the NEXT session, so unlike
      the archived prompts inside the handoffs they must always be current. They
      are validated by content, never skipped as fenced text. */
@@ -7351,10 +7344,10 @@ function runDocsCurrentGate() {
     const livePrompts = extractReusablePrompts(promptsDoc);
     ok('docs/new-session-grounding-prompts.md exposes exactly one Codex and one Claude prompt block',
       livePrompts !== null);
-    ok('the reusable Codex grounding prompt carries the current M12.P1 authority',
+    ok('the reusable Codex grounding prompt carries current grounding-only authority',
       livePrompts !== null && reusablePromptIsCurrent(livePrompts.codex) &&
-      reusableCodexPromptHasReviewBoundary(livePrompts.codex));
-    ok('the reusable Claude grounding prompt carries the current M12.P1 authority',
+      reusableCodexPromptHasWaitBoundary(livePrompts.codex));
+    ok('the reusable Claude grounding prompt carries current grounding-only authority',
       livePrompts !== null && reusablePromptIsCurrent(livePrompts.claude) &&
       reusableClaudePromptHasWaitBoundary(livePrompts.claude));
     ok('docs/new-session-grounding-prompts.md records an Asia/Manila last-updated date',
@@ -7373,12 +7366,10 @@ function runDocsCurrentGate() {
       'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. ' +
       'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
-      'The Guided-VR runtime/catalog remediation is committed and pushed as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b; local HEAD and origin/main matched it at the first integrated R8 review. Production remains on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this authority-only follow-up is deployed. ' +
+      'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
       'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
-      'The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. This context-only prompt authorizes none of those actions. ' +
-      'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized. ' +
-      'Production at https://campusphere-cspc.vercel.app is on deployed runtime baseline 0627bf78228148e3f989275810c333c16a1f3356. ' +
-      'The preceding evidence commit bbb25d0dee5917e4704da35784421c840f825afb is not the deployed runtime.';
+      'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. This context-only prompt authorizes none of those actions. ' +
+      'M12.P1 remains NO-GO for pilot readiness and final acceptance; deployment is not authorized by this prompt.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
       'M12.P1-R6 is complete and Codex GO.',
@@ -7412,7 +7403,7 @@ function runDocsCurrentGate() {
        replaced; the repository-HEAD SHA is left intact. */
     const FAKE_DEPLOYED_SHA = '0f1e2d3c4b5a69788796a5b4c3d2e1f009182736';
     const WRONG_BASELINE_BODY = CURRENT_BODY.split(
-      '0627bf78228148e3f989275810c333c16a1f3356').join(FAKE_DEPLOYED_SHA);
+      'fea3b2e11c6331eddc1ee091b165427d8e0218d7').join(FAKE_DEPLOYED_SHA);
 
     // kind: 'ok' | 'missing-heading' | 'duplicate-heading' | 'no-fence' |
     //       'unclosed' | 'duplicate-block' | 'empty' | 'bare-open' | 'js-open' |
@@ -7437,21 +7428,19 @@ function runDocsCurrentGate() {
       section(H.codex, codexBody, codexKind || 'ok') + '\n\n' +
       section(H.claude, claudeBody, claudeKind || 'ok') + '\n';
 
-    ok('fixture: two current reusable prompts pass, including the review/commit/push/R8 sequence and deployed-baseline binding',
+    ok('fixture: two current reusable prompts pass with production-baseline and manual-promotion authority',
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, CURRENT_BODY)) === true &&
-      /independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review/.test(CURRENT_BODY) &&
+      /Auto-assign Custom Production Domains is disabled/.test(CURRENT_BODY) &&
       reusablePromptIsCurrent(CURRENT_BODY) === true &&
       declaresStaleOrPrematureAuthority(CURRENT_BODY) === false &&
       deploymentDocumentClaimsAreCurrent(CURRENT_BODY.replace(/\s+/g, ' ').trim()) === true &&
       FAKE_DEPLOYED_SHA !== EXPECTED_SEC51_DEPLOYED_BASELINE &&
-      FAKE_DEPLOYED_SHA !== EXPECTED_SEC51_SUPERSEDED_BASELINE &&
+      !EXPECTED_SEC51_SUPERSEDED_BASELINES.includes(FAKE_DEPLOYED_SHA) &&
       reusablePromptIsCurrent(WRONG_BASELINE_BODY) === false &&
       reusablePromptsAreCurrent(buildDoc(WRONG_BASELINE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, WRONG_BASELINE_BODY)) === false);
-    const CODEX_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding plus final independent read-only R8 review. Load and follow the installed code-reviewer skill. ' +
-      'Expected paths: ' + EXPECTED_HANDOFF_CANDIDATE_PATHS.join(', ') + '. Compute the current 11-file manifest from sorted path + NUL + per-file SHA-256 + LF records. ' +
-      'Then perform one independent read-only review of the exact live candidate. Do not rerun tests. Return findings ordered by severity and an R8 GO/NO-GO. ' +
-      'An R8 GO may authorize only a later separate owner decision. Do not infer that offline mode, deployment, or pilot work is automatically next.';
+    const CODEX_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation or review. Load and follow the installed code-reviewer skill. ' +
+      'Do not perform a code review. Stop and wait for the owner. Do not infer that offline mode, deployment, or pilot work is automatically next.';
     const CLAUDE_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation. ' +
       'Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review. After the grounding report, stop and wait for the owner. ' +
       'Do not infer that offline mode, deployment, or pilot work is automatically next.';
@@ -7470,12 +7459,12 @@ function runDocsCurrentGate() {
         ' The independent review is still required.') === false &&
       reusablePromptIsCurrent(CURRENT_BODY +
         ' The new independent review remains pending.') === false &&
-      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK) === true &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK) === true &&
       reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK) === true &&
-      reusableCodexPromptHasReviewBoundary(CLAUDE_ROLE_OK) === false &&
+      reusableCodexPromptHasWaitBoundary(CLAUDE_ROLE_OK) === false &&
       reusableClaudePromptHasWaitBoundary(CODEX_ROLE_OK) === false &&
-      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK.replace('Do not rerun tests.', 'Run npm test.')) === false &&
-      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK.replace('AGENTS.md, ', '')) === false &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK.replace('Do not perform a code review.', 'Perform a code review.')) === false &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK.replace('Stop and wait for the owner.', 'Continue to implementation.')) === false &&
       reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK.replace('stop and wait for the owner', 'begin offline implementation')) === false);
     ok('fixture: a stale Codex prompt body fails (direct + inverse + qualified R5-next)',
       reusablePromptsAreCurrent(buildDoc(STALE_BODY, CURRENT_BODY)) === false &&
@@ -7624,7 +7613,7 @@ function runDocsCurrentGate() {
     ok('docs/test-evidence.md Manual Black-Box Checklist is fully dispositioned and binds current route/pathfinding evidence to the expanded BE.6 truth',
       analyzeManualBlackBoxRows(te).length === 0 &&
       analyzeCurrentRoutePathfindingEvidence(te, EXPECTED_CURRENT_BE6_EVIDENCE).length === 0);
-    ok('docs/demo-script.md binds routing to the backend freeze and preserves the ordered review-to-pilot authorization sequence',
+    ok('docs/demo-script.md binds routing to the backend freeze and preserves post-deployment authorization boundaries',
       analyzeDemoRoutingContract(demo, EXPECTED_CURRENT_DEMO_ROUTING).length === 0 &&
       analyzeDemoReadinessSequence(demo, EXPECTED_CURRENT_DEMO_SEQUENCE).length === 0);
     ok('docs/test-evidence.md deployment smoke records the accepted SEC-51 result with its host and deployed baseline',
@@ -7634,7 +7623,7 @@ function runDocsCurrentGate() {
     ok('docs/security-checklist.md presents no superseded R8 status and exactly one independently pinned current package claim',
       analyzeSupersededCandidateRows(sc).length === 0 &&
       analyzeSecurityChecklistPackageBoundaryRow(sc, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
-    ok('docs/test-evidence.md exposes exactly one current candidate package inventory row with the pinned figures',
+    ok('docs/test-evidence.md exposes exactly one current source-package inventory row with the pinned figures',
       analyzeCurrentPackageInventoryRow(te, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
     ok('docs/test-evidence.md exposes exactly one current full-suite evidence-snapshot row',
       analyzeCurrentCandidateSuiteRow(te).length === 0);
@@ -7683,9 +7672,9 @@ function runDocsCurrentGate() {
       '',
       'Remaining sequence: ' + EXPECTED_CURRENT_DEMO_SEQUENCE.join(' -> ') + '.',
     ].join('\n');
-    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
-    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; historical/superseded: before that deployment, the earlier baseline was d422b54393f659125912ec5c84ae7927c2533288 |';
-    const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
+    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
+    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; historical/superseded: before that deployment, the earlier baseline was 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
     const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
@@ -8024,10 +8013,10 @@ function runDocsCurrentGate() {
       supersededBaselineAlwaysMarkedHistorical(te));
     ok('docs/security-checklist.md keeps every superseded-baseline mention framed as history',
       supersededBaselineAlwaysMarkedHistorical(sc));
-    ok('docs/test-evidence.md distinguishes the deployed runtime baseline from the documentation-only commit',
-      distinguishesDeployedRuntimeFromDocCommit(te));
-    ok('docs/security-checklist.md distinguishes the deployed runtime baseline from the documentation-only commit',
-      distinguishesDeployedRuntimeFromDocCommit(sc));
+    ok('docs/test-evidence.md records the accepted Production baseline and manual-promotion boundary',
+      recordsPostDeploymentAuthority(te));
+    ok('docs/security-checklist.md records the accepted Production baseline and manual-promotion boundary',
+      recordsPostDeploymentAuthority(sc));
     ok('docs/test-evidence.md makes no stale undeployed pilot-surface claim',
       !declaresStalePilotSurfaceDeploymentClaim(te));
     ok('docs/security-checklist.md makes no stale undeployed pilot-surface claim',
@@ -8042,10 +8031,10 @@ function runDocsCurrentGate() {
 
     /* ---- fixtures: pinned independently of the live documents ---- */
     const SEC51_HDR = '| Case | Title | Steps | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
-    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; historical/superseded: before that deployment, the earlier baseline was d422b54393f659125912ec5c84ae7927c2533288 |';
-    const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline d422b54393f659125912ec5c84ae7927c2533288 |';
-    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
+    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; historical/superseded: before that deployment, the earlier baseline was 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
     const SEC51_NO_SHA = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app |';
     const SEC51_DEFERRED = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **DEFERRED - separate owner deployment decision** | not executed |';
 
@@ -8061,53 +8050,39 @@ function runDocsCurrentGate() {
       analyzeSec51ChecklistRow(SEC51_HDR + SEC51_OK + '\n' + SEC51_OK).length > 0 &&
       analyzeSec51ChecklistRow(SEC51_HDR).length > 0);
 
-    /* Claim-scoped: the binding claim must tie the SHA to the DEPLOYED BASELINE,
-       not merely mention it beside the word "deployed". */
-    const PROSE_OK = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. The preceding evidence synchronization at bbb25d0dee5917e4704da35784421c840f825afb is not the deployed runtime.';
-    /* Forward-chronology doc-commit discriminator fixtures. The documentation/
-       gate commit is the CHILD of the deployed baseline, so a truthful
-       disclaimer is PRESENT tense and names that commit in the same scope.
-       DOC_COMMIT_UNNAMED is the OLD accepted PROSE_OK verbatim: it satisfied the
-       former whole-document regex while never identifying the commit it claimed
-       to distinguish. */
-    const DOC_COMMIT_UNNAMED = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.';
-    const DOC_COMMIT_HISTORY_ONLY = 'The SEC-51 production smoke ran against the deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Historical/superseded: before the current deployment, the earlier synchronization at bbb25d0dee5917e4704da35784421c840f825afb was not a runtime deployment at that time.';
-    const DOC_COMMIT_SPLIT_SCOPE =
-      'The preceding evidence synchronization is bbb25d0dee5917e4704da35784421c840f825afb.' +
-      '\n\nThis evidence synchronization is not a runtime deployment.';
-    const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was d422b54393f659125912ec5c84ae7927c2533288.';
+    const PROSE_OK =
+      'Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. ' +
+      'The separately authorized push automatically triggered Vercel Production. ' +
+      'Post-deployment verification passed within bounded anonymous read-only GET-only scope. ' +
+      'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
+      'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. ' +
+      'Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
+    const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was 0627bf78228148e3f989275810c333c16a1f3356.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',
       supersededBaselineAlwaysMarkedHistorical(PROSE_HISTORICAL_OLD) === true &&
       supersededBaselineAlwaysMarkedHistorical(
-        'Historical/superseded: production baseline d422b54393f659125912ec5c84ae7927c2533288.') === false &&
+        'Historical/superseded: production baseline 0627bf78228148e3f989275810c333c16a1f3356.') === false &&
       supersededBaselineAlwaysMarkedHistorical(
-        'Production serves d422b54393f659125912ec5c84ae7927c2533288 right now.') === false);
-    ok('fixture: prose naming the deployed baseline and separating the documentation commit is accepted',
-      distinguishesDeployedRuntimeFromDocCommit(PROSE_OK) === true);
-    ok('fixture: prose that omits the deployed SHA, never names the documentation commit, strands the disclaimer in another scope, or frames it as history is rejected',
-      distinguishesDeployedRuntimeFromDocCommit(
-        'The corrections are deployed. This evidence synchronization is not a runtime deployment.') === false &&
-      distinguishesDeployedRuntimeFromDocCommit(
-        'SEC-51 passed against 0627bf78228148e3f989275810c333c16a1f3356.') === false &&
-      /* (2) the deployed baseline is named and a disclaimer is present, but no
-         scope ever identifies the documentation commit. This string is the OLD
-         accepted fixture, so it also proves the fail-open closed. */
-      distinguishesDeployedRuntimeFromDocCommit(DOC_COMMIT_UNNAMED) === false &&
-      marksDocCommitClaimScoped(DOC_COMMIT_UNNAMED) === false &&
-      /* (1) the same scope names the documentation commit AND carries the
-         disclaimer, but only as past-bounded history — precisely the sentence
-         that used to satisfy this check. */
-      distinguishesDeployedRuntimeFromDocCommit(DOC_COMMIT_HISTORY_ONLY) === false &&
-      marksDocCommitClaimScoped(DOC_COMMIT_HISTORY_ONLY) === false &&
-      /* the identity and the disclaimer sit in different paragraphs */
-      marksDocCommitClaimScoped(DOC_COMMIT_SPLIT_SCOPE) === false &&
-      scopeMarksDocCommit('') === false &&
-      marksDocCommitClaimScoped(null) === false &&
-      /* (3) the truthful forward-chronology current-candidate disclaimer is
-         accepted, and the pinned documentation commit is NOT either baseline. */
-      marksDocCommitClaimScoped(PROSE_OK) === true &&
-      EXPECTED_SEC51_DOC_COMMIT !== EXPECTED_SEC51_DEPLOYED_BASELINE &&
-      EXPECTED_SEC51_DOC_COMMIT !== EXPECTED_SEC51_SUPERSEDED_BASELINE);
+        'Production serves 0627bf78228148e3f989275810c333c16a1f3356 right now.') === false);
+    ok('fixture: prose naming the deployed baseline and manual-promotion boundary is accepted',
+      recordsPostDeploymentAuthority(PROSE_OK) === true);
+    ok('fixture: post-deployment authority missing or contradicting the SHA, trigger, verification scope, or promotion control is rejected',
+      recordsPostDeploymentAuthority(
+        PROSE_OK.replace('fea3b2e11c6331eddc1ee091b165427d8e0218d7', 'baseline-redacted')) === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK.replace('automatically triggered Vercel Production', 'was pushed')) === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK.replace('Post-deployment verification passed within bounded anonymous read-only GET-only scope.', 'Verification was discussed.')) === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK.replace('Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion.', 'Git settings were reviewed.')) === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' The separately authorized push did not automatically trigger Vercel Production.') === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' Post-deployment verification remains pending.') === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' Auto-assign Custom Production Domains is enabled.') === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' Future main deployments automatically replace the live alias.') === false);
     ok('fixture: each stale undeployed pilot-surface claim is rejected',
       declaresStalePilotSurfaceDeploymentClaim(
         'The SEC-51 pilot-surface correction is not deployed.') === true &&
@@ -8130,10 +8105,10 @@ function runDocsCurrentGate() {
        deployment claim elsewhere in the same row or paragraph. Each case below
        satisfies every substring check (both SHAs and the host are present) and
        was accepted before the analyzers became claim-scoped. ---- */
-    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356 |';
-    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
+    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
     const MIXED_STALE_PARAGRAPH = 'Historical/superseded: the earlier accepted baseline was d422b54393f659125912ec5c84ae7927c2533288. The SEC-51 pilot-surface correction is not deployed.';
-    const SWAP_PROSE = 'Production currently serves d422b54393f659125912ec5c84ae7927c2533288. Historical/superseded: 0627bf78228148e3f989275810c333c16a1f3356. The evidence synchronization is not a runtime deployment.';
+    const SWAP_PROSE = 'Production currently serves d422b54393f659125912ec5c84ae7927c2533288. Historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a semantic baseline swap inside a row is rejected even though both SHAs, the host, and a historical marker are present',
       analyzeDeploymentSmokeRow(M_HDR + SWAP_SMOKE_ROW + M_TAIL).length > 0 &&
@@ -8142,7 +8117,7 @@ function runDocsCurrentGate() {
       declaresStalePilotSurfaceDeploymentClaim(MIXED_STALE_PARAGRAPH) === true);
     ok('fixture: combined prose presenting the superseded baseline as current is rejected despite a historical label on the current SHA',
       supersededBaselineAlwaysMarkedHistorical(SWAP_PROSE) === false &&
-      distinguishesDeployedRuntimeFromDocCommit(SWAP_PROSE) === false);
+      recordsPostDeploymentAuthority(SWAP_PROSE) === false);
 
     /* ---- five adversarial cases from the independent re-review. The first two
        escaped topic detection by not repeating the topic after a semicolon or
@@ -8150,9 +8125,9 @@ function runDocsCurrentGate() {
        DIFFERENT SHA as the deployed baseline while mentioning the expected SHA
        for comparison. Each is asserted separately. ---- */
     const FAKE_SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
-    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 0627bf78228148e3f989275810c333c16a1f3356 for reference |';
-    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 0627bf78228148e3f989275810c333c16a1f3356 for reference |';
-    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than 0627bf78228148e3f989275810c333c16a1f3356. The evidence synchronization is not a runtime deployment.';
+    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with fea3b2e11c6331eddc1ee091b165427d8e0218d7 for reference |';
+    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with fea3b2e11c6331eddc1ee091b165427d8e0218d7 for reference |';
+    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than fea3b2e11c6331eddc1ee091b165427d8e0218d7. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a stale claim after a semicolon is rejected even though only the FIRST clause names the topic',
       declaresStalePilotSurfaceDeploymentClaim(
@@ -8165,20 +8140,20 @@ function runDocsCurrentGate() {
     ok('fixture: a deployment-smoke row naming a DIFFERENT SHA as the deployed baseline is rejected despite mentioning the expected SHA for comparison',
       analyzeDeploymentSmokeRow(M_HDR + CMP_SMOKE_ROW + M_TAIL).length > 0);
     ok('fixture: prose stating production serves a DIFFERENT SHA is rejected despite an unrelated mention of the expected SHA and a truthful documentation-commit disclaimer',
-      distinguishesDeployedRuntimeFromDocCommit(CMP_PROSE) === false);
+      recordsPostDeploymentAuthority(CMP_PROSE) === false);
 
     /* ---- contradictory-deployed-SHA scope attacks. Each scope contains a
        PERFECTLY VALID binding claim for the expected SHA, alongside a
        neighbouring claim asserting production serves a different SHA. Requiring
        only "at least one valid binding" accepted all three. ---- */
-    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
+    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
     /* Scope-skipping attack: the contradictory claim sits in its OWN paragraph
        with no SEC-51 / pilot-surface wording, so a topic-gated document scan
        never audited it. Every scope is audited now. */
     const CONFLICT_SEPARATE_PARAGRAPH =
-      'SEC-51 ran against deployed baseline 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.' +
+      'SEC-51 ran against deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. This evidence synchronization is not a runtime deployment.' +
       '\n\nProduction currently serves ' + FAKE_SHA + '.';
     /* History framing WITHOUT an explicit past boundary must not license a
        wrong deployed SHA; the same claim, properly past-bounded, still may. */
@@ -8191,14 +8166,14 @@ function runDocsCurrentGate() {
     ok('fixture: a deployment-smoke row is rejected when a neighbouring claim says production serves a different SHA, despite a valid expected-SHA binding in the same row',
       analyzeDeploymentSmokeRow(M_HDR + CONFLICT_SMOKE_ROW + M_TAIL).length > 0);
     ok('fixture: prose is rejected when a contradictory current-serves claim follows a valid expected-SHA binding, including when it sits in its own paragraph carrying no SEC-51 or pilot-surface wording',
-      distinguishesDeployedRuntimeFromDocCommit(CONFLICT_PROSE) === false &&
+      recordsPostDeploymentAuthority(CONFLICT_PROSE) === false &&
       declaresStalePilotSurfaceDeploymentClaim(CONFLICT_PROSE) === true &&
       documentConflictingDeployedShaProblems(CONFLICT_SEPARATE_PARAGRAPH).length > 0 &&
       deploymentDocumentClaimsAreCurrent(CONFLICT_SEPARATE_PARAGRAPH) === false &&
-      distinguishesDeployedRuntimeFromDocCommit(CONFLICT_SEPARATE_PARAGRAPH) === false);
+      recordsPostDeploymentAuthority(CONFLICT_SEPARATE_PARAGRAPH) === false);
     ok('fixture: a neighbouring wrong-baseline claim is rejected in the inverse order, a history-framed deployed SHA without an explicit same-claim past boundary is rejected, the past-bounded equivalent is accepted, and an unrelated bare commit SHA stays accepted',
-      distinguishesDeployedRuntimeFromDocCommit(
-        'SEC-51 status: production currently serves ' + FAKE_SHA + '. The deployed baseline is 0627bf78228148e3f989275810c333c16a1f3356. This evidence synchronization is not a runtime deployment.') === false &&
+      recordsPostDeploymentAuthority(
+        'SEC-51 status: production currently serves ' + FAKE_SHA + '. The deployed baseline is fea3b2e11c6331eddc1ee091b165427d8e0218d7. This evidence synchronization is not a runtime deployment.') === false &&
       documentConflictingDeployedShaProblems(HIST_DEPLOYED_NO_PAST_BOUND).length > 0 &&
       documentConflictingDeployedShaProblems(HIST_DEPLOYED_PAST_BOUNDED).length === 0 &&
       deploymentDocumentClaimsAreCurrent(PROSE_OK) === true &&
@@ -8208,8 +8183,8 @@ function runDocsCurrentGate() {
       declaresStalePilotSurfaceDeploymentClaim('') === false &&
       declaresStalePilotSurfaceDeploymentClaim(null) === false &&
       supersededBaselineAlwaysMarkedHistorical(null) === false &&
-      distinguishesDeployedRuntimeFromDocCommit('') === false &&
-      distinguishesDeployedRuntimeFromDocCommit(null) === false);
+      recordsPostDeploymentAuthority('') === false &&
+      recordsPostDeploymentAuthority(null) === false);
   }
 
   return rec.failures;

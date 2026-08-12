@@ -12,28 +12,48 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-12 Current Deployment And Guided-VR Candidate Status
+## 2026-08-12 Current Production And Post-Deployment Status
 
-- The Guided-VR runtime/catalog remediation is committed and pushed as Git
-  commit SHA-1 `43627cf0a77741556f4e701711e55612a739799b`, Git tree SHA-1
-  `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`; local HEAD and origin/main
-  matched that commit at the first integrated R8 review. The owner-observed
-  Vercel Production alias remains `https://campusphere-cspc.vercel.app` on
-  deployed baseline `0627bf78228148e3f989275810c333c16a1f3356`. Neither
-  `43627cf` nor this authority-only follow-up is deployed. Live Git truth,
-  rather than this document, controls later working-tree state.
-- The preceding SEC-51/R8 Git commit SHA-1 is
-  `bbb25d0dee5917e4704da35784421c840f825afb`. The five-file deployed follow-up
-  changes only this document, `public/css/styles.css`,
-  `public/js/profile-script.js`, `scripts/quality-gates.js`, and `server.js`.
-  It fixes the narrow/mobile edit-profile overlay, full modal focus containment
-  and restoration, adversarial gate coverage, and pre-session favicon routing.
-- Fresh deployed-candidate verification passed logout `75/75`, `npm test`
-  `3777/3777` with `QUALITY-GATES OK`, all five `npm run qa` stages, and final
-  `24/24 -> 18/18 -> 46/46`, with byte-identical preflight/postflight files.
-  The five-file review returned GO with low/advisory findings and disclosed a
-  same-author/self-review limitation. A public anonymous smoke subsequently
-  passed `31/31`; it did not exercise authenticated schedule-audit behavior.
+- The Guided-VR runtime/catalog remediation remains recorded as Git commit
+  SHA-1 `43627cf0a77741556f4e701711e55612a739799b`, Git tree SHA-1
+  `eb3e830f68d537c4a54d6dda6df7d52a61f9c87b`. The final R8 authority
+  synchronization is committed and pushed as Git commit SHA-1
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; live Git at the
+  post-deployment review confirmed branch `main`, local HEAD, and origin/main
+  all matched that commit.
+- The separately authorized push automatically triggered Vercel Production
+  through the Git integration while automatic production-domain assignment
+  was still enabled. The owner accepts
+  `https://campusphere-cspc.vercel.app` on deployed technical Production
+  baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Owner-observed Vercel
+  evidence showed `Ready`, `Production`, `Current`, branch `main`, and source
+  commit `fea3b2e`; the build completed in 17 seconds. Its only disclosed
+  warning was that `engines.node` is `>=22`, which permits a future major Node
+  version to be selected automatically.
+- Post-deployment verification passed within a bounded anonymous read-only
+  GET-only scope. The production alias served the expected public pages and
+  static assets; sampled deployed bytes matched the pushed source; protected
+  HTML routes redirected to `/auth`; protected JSON routes returned `401`; and
+  the checked responses set no session cookie. `/auth` was deliberately not
+  requested because it may create an anonymous identity-free session. No
+  authentication, schedule-audit path, database/session mutation, or vendor
+  management operation was exercised. The accepted source package identity is
+  158 files, 6,245,074 bytes, aggregate SHA-256
+  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`.
+- The owner then disabled Vercel `Auto-assign Custom Production Domains` under
+  Production Branch Tracking. Future `main` pushes may create staged
+  Production deployments, but an explicit later `Promote to Production`
+  action is required before a staged deployment replaces the live alias. The
+  saved dashboard state showed this control as `Disabled`; it was not tested
+  with a dummy push.
+- Historical/superseded: before `fea3b2e` became Current, Production served
+  technical Production baseline `0627bf78228148e3f989275810c333c16a1f3356`.
+  Its five-file verification passed
+  logout `75/75`, `npm test` `3777/3777` with `QUALITY-GATES OK`, all five
+  `npm run qa` stages, final `24/24 -> 18/18 -> 46/46`, and anonymous smoke
+  `31/31`. The review had low/advisory findings and a disclosed
+  same-author/self-review limitation; that evidence remains historical and did
+  not authenticate or exercise schedule auditing.
 - The automated frozen-data production rehearsal PASSed with isolated admin,
   student, and guest Playwright MCP contexts. It created and removed exactly one
   temporary student and guest through supported interfaces, restored the
@@ -214,12 +234,12 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   remained. The focused probe then passed immediately in both runtime modes.
   No repository, database, session, package, or vendor correction was required
   for that transient harness-start failure.
-- Fresh-session authority is role-specific: Codex grounds and performs one
-  final independent read-only R8 review of the exact live 11-file candidate;
-  Claude Code grounds only and then waits. Neither prompt authorizes edits,
-  tests, Git mutation, deployment, pilot, offline implementation, or Milestone
-  12 GO. After R8, the owner separately chooses the next workstream.
-- Human pilot evidence, OFF.2-OFF.6, and final Milestone 12 GO remain open.
+- Fresh-session authority is state-neutral: Codex and Claude Code both ground
+  current truth and then wait for the owner. Neither prompt authorizes review,
+  edits, tests, Git mutation, a new deployment or promotion, pilot activity,
+  offline implementation, or Milestone 12 GO.
+- Human pilot evidence remains open. OFF.2-OFF.6 remain deferred, not
+  cancelled, and mandatory before final Milestone 12 GO.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
 
@@ -666,11 +686,11 @@ postconditions `24/24 -> 18/18 -> 46/46` with fingerprint
 unchanged. The post-D7 logout-output hygiene remediation is independently
 Codex-accepted as additive evidence: `3529/3529` with `QUALITY-GATES OK`, zero
 escaped logout-error lines, audit zero, and postconditions
-`24/24 -> 18/18 -> 46/46`; it does not supersede D7. `M12.P1-R8` is the next
-potential section and is read-only; it
-requires a separate owner-authorized review prompt, and even R8 GO authorizes
-only a separate owner deployment decision. M12.P1 remains NO-GO for deployment
-and pilot readiness.
+`24/24 -> 18/18 -> 46/46`; it does not supersede D7. The later R8 lifecycle
+completed and culminated in accepted technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Human pilot evidence, OFF.2-OFF.6,
+offline work, and final Milestone 12 GO remain open. No new deployment or
+manual promotion is authorized by this section.
 
 **Upload boundary.** The root `.vercelignore` is an allowlist: it begins with
 `/*`, re-includes only `server.js`, `package.json`, `package-lock.json`,
@@ -1123,13 +1143,14 @@ Vercel is a **demo/UAT** target only — **not** the full production path (Docke
 remains that, per `ROADMAP.md`). Because Vercel cannot rely on a local MySQL, the
 demo must use the Supabase session store:
 
-BE.6 and OFF.1 are complete and Codex GO. The owner has authorized `M12.P1`, a
-limited pilot exception, but deployment still requires a separate readiness GO
-and owner authorization. The pilot exposes the full authenticated application
-while facilitators guide students and guests to routing; it is not a technical
-routing-only mode and must not claim offline readiness. Feedback uses an
-owner-created Google Form. OFF.2 through OFF.6 resume after pilot review and
-remain mandatory before final Milestone 12 GO. The selected 13-building demo
+BE.6 and OFF.1 are complete and Codex GO. Technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted, but the human pilot
+remains unopened and requires separate owner authorization. Future `main`
+deployments also require explicit manual promotion. If authorized, the pilot
+exposes the full authenticated application while facilitators guide students
+and guests to routing; it is not a routing-only mode and must not claim offline
+readiness. Feedback uses an owner-created Google Form. OFF.2 through OFF.6
+remain open and mandatory before final Milestone 12 GO. The selected 13-building demo
 roster is not the complete campus; later admin edits and additions require
 refreshed freeze evidence rather than being prohibited.
 
@@ -1252,36 +1273,43 @@ independently pinned gate.
 | --- | --- | --- |
 | First accepted production smoke (historical/superseded) | `78d9053` | Before the later baselines were deployed, this was externally executed and accepted |
 | Detailed browser smoke (historical/superseded) | `d422b54` | Before `0627bf7`, this read-only smoke was independently completed and accepted |
-| **Current deployed baseline** | **`0627bf7`** | **Anonymous production smoke `31/31`; deployment identity owner-observed** |
+| Anonymous production smoke (historical/superseded) | `0627bf7` | Before `fea3b2e`, anonymous smoke `31/31` passed; deployment identity was owner-observed |
+| **Current technical Production baseline** | **Git commit SHA-1 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`** | **Ready/Current source commit confirmed in owner-observed Vercel evidence; bounded anonymous read-only GET-only post-deployment verification passed** |
 
-The current `31/31` smoke established that the exact production hostname serves
-deployed runtime baseline `0627bf78228148e3f989275810c333c16a1f3356`; scoped
-public pages and static assets retained CSP nonce, indexing, and crawl-denial
-contracts with zero scoped 4xx/5xx responses. It did not perform an
-authenticated login or exercise schedule auditing. Historical/superseded:
-before this deployment, the detailed independent browser smoke on historical
-deployed runtime baseline `d422b54393f659125912ec5c84ae7927c2533288` covered the OAuth start and viewport
-interaction matrix.
+The current bounded post-deployment verification established that the exact
+production hostname serves deployed technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Anonymous GET-only checks covered
+public pages, static assets, sampled byte identity, anonymous protected-route
+denial, and zero checked `Set-Cookie` responses. It deliberately avoided
+`/auth`, did not authenticate, and did not exercise schedule auditing.
+Historical/superseded: before this deployment, anonymous smoke `31/31` ran on
+technical Production baseline `0627bf78228148e3f989275810c333c16a1f3356`; the
+earlier detailed browser smoke ran on technical Production baseline
+`d422b54393f659125912ec5c84ae7927c2533288`.
 
 The three pilot-surface corrections — landing role-mapping copy, the shared
 accessible anonymous navbar, and the auth-scoped in-card theme control — remain
-deployed on deployed runtime baseline
-`0627bf78228148e3f989275810c333c16a1f3356`. Historical/superseded: before this
-deployment, their detailed independent browser acceptance ran against historical
-deployed runtime baseline `d422b54393f659125912ec5c84ae7927c2533288`.
+present in deployed technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Historical/superseded: before
+`fea3b2e`, they were deployed on technical Production baseline
+`0627bf78228148e3f989275810c333c16a1f3356`; their detailed independent browser
+acceptance originally ran against technical Production baseline
+`d422b54393f659125912ec5c84ae7927c2533288`.
 
 The smoke was **read-only**: no authenticated production login was performed, so
 the M12.P1-R2 and M12.P1-R3 session-store and bootstrap evidence stands
 unchanged and is not restated as new. The correction changed no session-store or
 bootstrap implementation.
 
-The preceding SEC-51 evidence synchronization at Git commit SHA-1
-`bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
-Guided-VR runtime/catalog remediation is commit `43627cf`, pushed to
-origin/main and not deployed. The authority follow-up's later Git and review
-disposition must be read from live Git and the latest external review report.
-Nothing in this subsection is an R8 GO, a deployment
-GO, a pilot GO, or a Milestone 12 GO.
+Historical/superseded: the preceding SEC-51 evidence synchronization was Git
+commit SHA-1 `bbb25d0dee5917e4704da35784421c840f825afb`; the Guided-VR runtime/catalog
+remediation was commit `43627cf`. Previously, before `fea3b2e`, Production
+served technical Production baseline `0627bf78228148e3f989275810c333c16a1f3356`.
+Production now serves accepted technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`. This acceptance is not a pilot GO,
+offline-work authorization, or
+Milestone 12 GO. `Auto-assign Custom Production Domains` is disabled, and no
+new staged deployment may be promoted without a separate owner decision.
 
 #### Pilot indexing protection (M12.P1-R8)
 

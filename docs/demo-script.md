@@ -126,12 +126,14 @@ Explain:
 - RF.6 road-following routing is Codex GO. CampuSphere computes routes from its
   own campus graph and owner-managed road geometry; it does not integrate Google
   Maps, Google Earth, Strava, SIS, or another external routing engine.
-- The remaining sequence is candidate remediation and verification ->
-  independent commit-readiness review -> local commit -> separately authorized
-  push -> separately authorized read-only R8 -> separate owner deployment
-  decision -> limited pilot. The full authenticated app is exposed only after
-  those gates while facilitators focus student/guest feedback on routing. OFF.6
-  remains required before final M12 GO.
+- Technical Production baseline
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. The authorized push
+  automatically triggered Production, and bounded anonymous read-only GET-only
+  post-deployment verification passed. Vercel `Auto-assign Custom Production
+  Domains` is disabled, so future `main` deployments require manual promotion.
+  Human pilot evidence remains open and requires separate owner authorization;
+  OFF.2-OFF.6, offline work, and final Milestone 12 GO also remain open. Do not
+  infer that the pilot, offline work, or another deployment is automatically next.
 - Docker packaging exists; Docker full deployment finalization is Milestone 13
   and must be verified on a Docker-enabled machine.
 

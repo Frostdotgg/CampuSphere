@@ -143,7 +143,7 @@ caching remains available, and browser Back/reload after logout cannot replay
 the authenticated map or retain CampuSphere dynamic caches/catalog records.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 Guided-VR authority-remediation candidate).**
+**CURRENT STATUS (2026-08-12 post-deployment authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
 OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
@@ -166,17 +166,39 @@ Playwright BrowserContext objects, clean supported-interface teardown, npm test
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d
 unchanged at that accepted historical baseline.
 
-The Guided-VR runtime and catalog remediation is committed and pushed as
+The Guided-VR runtime and catalog remediation remains recorded as commit
 43627cf0a77741556f4e701711e55612a739799b, with Git tree
-eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Local HEAD and origin/main matched
-that commit at the first integrated R8 review. The owner-observed Vercel
-Production alias remains https://campusphere-cspc.vercel.app on deployed
-baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this
-authority-only follow-up is deployed. Live Git truth, not this narrative,
-controls whether a later working tree is clean or modified. The accepted
-0627bf7 five-file verification, anonymous production smoke 31/31, and
-automated frozen-data rehearsal remain historical evidence and do not verify
-the later Guided-VR runtime commit.
+eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority
+synchronization is committed and pushed as
+fea3b2e11c6331eddc1ee091b165427d8e0218d7; live Git at the post-deployment
+review confirmed branch `main`, local HEAD, and origin/main all matched that
+commit. The separately authorized push automatically triggered Vercel
+Production through the Git integration while automatic production-domain
+assignment was still enabled. The owner accepts
+https://campusphere-cspc.vercel.app on
+fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production
+baseline. Owner-observed Vercel evidence showed `Ready`, `Production`,
+`Current`, branch `main`, and source commit `fea3b2e`; the build completed in
+17 seconds with one advisory that `engines.node` is `>=22` and can advance to a
+future major Node release.
+
+Post-deployment verification passed within its bounded anonymous read-only
+GET-only scope: the production alias served the expected public pages and
+static assets, sampled deployed bytes matched the pushed source, protected
+HTML routes redirected to `/auth`, protected JSON routes returned `401`, and
+the checked responses set no session cookie. `/auth` was deliberately not
+requested because it may create an anonymous identity-free session; no
+authenticated flow or schedule auditing was exercised. The accepted source
+package identity remains 158 files, 6,245,074 bytes, aggregate SHA-256
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
+Future `main` pushes may create staged Production deployments, but
+they require an explicit later `Promote to Production` action before replacing
+the live alias. This control was confirmed from the saved dashboard state and
+was not tested with a dummy push. Historical/superseded: before this deployment,
+Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
+verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
+accepted historical evidence.
 
 The separately authorized backup and additive reconciliation were performed
 under one-writer control. The external backup set contains provider-supported
@@ -262,9 +284,9 @@ CAS scene-array fingerprint before scope derivation, rejects replacement,
 reorder, and hash-pin drift, validates SEC-37 against the independent package
 pin, scopes OFF.3 to the selected supported backend and all 25 active Guided-VR
 destinations, and restores review -> commit -> push -> R8 -> deployment -> pilot
-ordering. The prior manifest and its NO-GO disposition are historical; these
-corrected bytes still require a new independent read-only review and claim no
-GO.
+ordering. The prior manifest and its NO-GO disposition are historical; at that
+point the corrected bytes required a new independent read-only review and
+claimed no GO.
 
 A subsequent independent read-only review of exact 33-file manifest SHA-256
 `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
@@ -274,8 +296,9 @@ obsolete Guided-VR handoff sections were historical and not operative, but were
 not marked away from current authority, and current dates were stale. This bounded correction
 adds independent live package-pin enforcement and byte-drift fixtures, isolates
 the obsolete handoff sections as explicit history, expands authority/date
-fixtures, and synchronizes current dates. It changes no runtime or data and
-still requires another independent read-only review.
+fixtures, and synchronized the then-current dates. It changed no runtime or
+data; at that historical point another independent read-only review was
+required.
 
 Under a separate bounded authorization, a fail-closed preflight reverified
 exactly two unexpired sessions for the one intended-role canonical MySQL
@@ -417,17 +440,16 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
-Fresh-session boundary: the current Codex prompt authorizes grounding followed
-by one final independent read-only R8 review of the exact live 11-file
-candidate. The current Claude Code prompt authorizes grounding only and then
-waits. Neither prompt authorizes edits, tests, Git mutation, deployment, pilot,
-offline implementation, or Milestone 12 GO. After the R8 decision, stop and
-ask the owner which workstream to open; do not infer the next workstream.
+Fresh-session boundary: the current Codex and Claude Code prompts authorize
+grounding only and then wait for the owner. Neither prompt authorizes edits,
+tests, Git mutation, a new deployment or promotion, pilot activity, offline
+implementation, or Milestone 12 GO. The completed technical Production
+baseline acceptance does not select the next workstream.
 
-M12.P1 remains NO-GO for
-deployment and pilot readiness; deployment is not authorized. Human pilot/Form
-responses, OFF.2-OFF.6, and final Milestone 12 acceptance remain open. Do not
-claim a new GO from this candidate.
+M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
+responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+No new deployment or promotion is authorized by this status block; either
+action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
 <!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
 **HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident
@@ -716,14 +738,17 @@ Goal: support Vercel as a demo/UAT target, not as the full production deployment
 
 #### M12.P1 — Limited Routing-Focused Pilot
 
-Status: the audit is complete with Codex NO-GO; blocker remediation is in
-progress, and deployment is not authorized.
+Status: technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. Its authorized push
+automatically triggered Production, bounded anonymous read-only GET-only
+post-deployment verification passed, and future `main` deployments require
+manual promotion. Human pilot evidence and final M12 acceptance remain open.
 
 - The completed audit covered the entire exposed authenticated surface, Vercel
   configuration, Supabase-only data operation, Supabase sessions, OAuth
   redirects, cookies, CSRF/CSP/rate limits, logs/errors, secrets, Cloudinary
   delivery, service-worker behavior, rollback, and tester accounts.
-- R1-R7 and D1-D5 are complete and Codex GO. R3 (awaited Vercel runtime and
+- R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete. R3 (awaited Vercel runtime and
   session bootstrap), together with all session-hygiene/ownership/import-
   detector follow-ups, is complete and Codex GO. R4 (shared Upstash rate
   limiting) and the dependency-security remediation are complete and Codex GO.
@@ -731,8 +756,9 @@ progress, and deployment is not authorized.
   global-total follow-up, and its documentation-gate final correction are
   complete and Codex GO. `M12.P1-R6` (self-hosted browser dependencies) is
   complete and Codex GO. `M12.P1-R7` (Vercel package and static-CDN boundary)
-  and both source-auditability corrections are complete and Codex GO.
-  M12.P1 remains NO-GO for deployment and pilot readiness.
+  and both source-auditability corrections are complete and Codex GO. The
+  accepted technical Production baseline is not human-pilot evidence or final
+  Milestone 12 GO.
 - R7 adds an allowlist `.vercelignore` (`/*` first, then only `server.js`, the
   two package manifests, `vercel.json`, and the ten runtime directories, with
   `public/img/sample 360/**` denied after the `public` re-inclusion), a minimal
@@ -791,14 +817,16 @@ progress, and deployment is not authorized.
   postconditions `24/24 -> 18/18 -> 46/46` with the frozen fingerprint
   unchanged. The later logout-output hygiene remediation is accepted only as
   additive evidence at `3529/3529`; it does not replace the D7 closeout.
-- R8 is a read-only integrated readiness review. R8 GO does not deploy; it only
-  permits the owner to make a separate deployment decision.
-- Only after that separate owner authorization may the full authenticated app
-  be deployed for facilitated student/guest routing evaluation. No anonymous
-  browsing is added.
+- The final R8 lifecycle completed. Vercel `Auto-assign Custom Production
+  Domains` is disabled; a future `main` deployment cannot replace the live alias
+  without explicit manual promotion and a separate owner decision.
+- The full authenticated app is technically deployed, but facilitated
+  student/guest pilot evaluation remains unopened pending separate owner
+  authorization. No anonymous browsing is added.
 - Collect feedback through the owner-created Google Form; add no feedback
   table, API mutation, or migration.
-- Classify and review pilot findings before OFF.2–OFF.6 resume.
+- Classify and review pilot findings before OFF.2-OFF.6 resume. Offline work and
+  final Milestone 12 GO remain open.
 
 #### M12.P2 — Final Demo/UAT Closeout
 

@@ -2,12 +2,11 @@
 
 Last updated: 2026-08-12 (Asia/Manila)
 
-The first two sections are the only current copy-paste prompts. The Codex
-prompt authorizes one final independent read-only R8 review after grounding;
-the Claude Code prompt authorizes grounding only and then waits. Neither prompt
-authorizes implementation, Git mutation, deployment, pilot work, or the next
-product workstream. Earlier prompts remain below under historical headings and
-must not be used as current authority.
+The first two sections are the only current copy-paste prompts. Both authorize
+grounding only and then wait for the owner. Neither prompt authorizes review,
+implementation, Git mutation, a new deployment or promotion, pilot work,
+offline work, or the next product workstream. Earlier prompts remain below
+under historical headings and must not be used as current authority.
 
 ## Codex Grounding Prompt
 
@@ -17,8 +16,8 @@ Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
 You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
 handoff owner, and delivery coordinator.
 
-This is a fresh context-only grounding plus final independent read-only R8
-review. It does not authorize implementation. Change nothing. Do not edit,
+This is a fresh context-only grounding session that does not authorize
+implementation or review. Change nothing. Do not edit,
 format, create, delete, move, stage, commit, amend, stash, reset, clean, tag,
 push, deploy, link Vercel, apply SQL, access or mutate either database, invoke
 Cloudinary/Upstash management APIs, clear sessions, create migration 0020,
@@ -71,27 +70,34 @@ wins:
   evidence is the fresh-context BrowserContext run, 3511/3511 with
   QUALITY-GATES OK, audit zero, and 24/24 -> 18/18 -> 46/46 with historical
   aggregate a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
-- The Guided-VR runtime/catalog remediation is committed and pushed as
+- The Guided-VR runtime/catalog remediation remains recorded as
   43627cf0a77741556f4e701711e55612a739799b, tree
-  eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Local HEAD and origin/main
-  matched it at the first integrated R8 review. The owner-observed deployed
-  runtime remains on deployed production baseline
-  0627bf78228148e3f989275810c333c16a1f3356;
-  neither 43627cf nor the authority-only follow-up is deployed. It follows SEC-51/R8 evidence
-  commit bbb25d0dee5917e4704da35784421c840f825afb and baseline
-  d422b54393f659125912ec5c84ae7927c2533288. Label Vercel identity
-  owner-observed unless authorized platform evidence independently confirms it.
-- 0627bf7 changes exactly docs/deployment.md, public/css/styles.css,
-  public/js/profile-script.js, scripts/quality-gates.js, and server.js. It fixes
-  mobile/narrow overlay interaction, modal focus placement/containment/
-  recapture/restoration, gate fixtures, and favicon placement before sessions.
-- Frozen verification passed logout 75/75; npm test 3777/3777 with
-  QUALITY-GATES OK; npm run qa with exactly 3,777 contract PASS lines and five
-  green stages; and 24/24 -> 18/18 -> 46/46 with identical pre/post hashes.
-  Review returned GO with low/advisory findings and a same-author/self-review
-  caveat; never represent it as third-party independence.
-- Anonymous production smoke passed 31/31 but did not exercise authenticated
-  schedule auditing. GET /auth may create an anonymous identity-free session.
+  eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority
+  synchronization is committed and pushed as
+  fea3b2e11c6331eddc1ee091b165427d8e0218d7. Live Git at post-deployment review
+  confirmed branch main, local HEAD, and origin/main matched that commit.
+- The separately authorized push automatically triggered Vercel Production
+  while automatic production-domain assignment was enabled. The owner accepts
+  https://campusphere-cspc.vercel.app on deployed technical Production baseline
+  fea3b2e11c6331eddc1ee091b165427d8e0218d7. Owner-observed Vercel evidence
+  showed Ready, Production, Current, main, source fea3b2e, and a completed
+  17-second build. Its one disclosed warning was the open-ended node >=22 engine.
+- Bounded anonymous read-only GET-only post-deployment verification passed:
+  public pages/assets returned expected responses, sampled deployed bytes
+  matched pushed source, protected HTML routes redirected to /auth, protected
+  JSON routes returned 401, and checked responses set no cookie. /auth was
+  deliberately avoided; no authentication or schedule auditing was exercised.
+  The accepted source package identity is 158 files, 6,245,074 bytes, aggregate
+  SHA-256 b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+- Owner-observed Vercel settings now show Auto-assign Custom Production Domains
+  disabled. Future main pushes may create staged Production deployments but
+  require explicit manual promotion before replacing the live alias. This was
+  not tested with a dummy push.
+- Historical/superseded: before fea3b2e became Current, Production served
+  0627bf78228148e3f989275810c333c16a1f3356. Its 75/75, 3777/3777, five-stage
+  QA, 24/24 -> 18/18 -> 46/46, anonymous 31/31, and same-author/self-review
+  caveat remain accepted history. GET /auth may create an anonymous
+  identity-free session.
 - An automated frozen-data production rehearsal PASSed with separate isolated
   admin/student/guest Playwright MCP contexts. It created and deleted one
   temporary @my.cspc.edu.ph student and one fresh Gmail guest through supported
@@ -253,44 +259,25 @@ then passed immediately in both runtime modes. No repository, database, session,
 package, or vendor correction was required for that transient harness-start
 failure.
 
-After grounding, fail closed unless live Git confirms branch main, local HEAD
-equals origin/main, the index is empty, exactly the expected 11 tracked paths
-are modified, no untracked or stashed files exist, and migrations remain
-exactly 0001-0019. The expected modified paths are AGENTS.md, CLAUDE.md,
-CLAUDE_HANDOFF.md, CODEX_HANDOFF.md, ROADMAP.md, docs/deployment.md,
-docs/new-session-grounding-prompts.md, docs/security-checklist.md,
-docs/test-evidence.md, plan.md, and scripts/quality-gates.js. Compute the
-current 11-file manifest from sorted
-path + NUL + per-file SHA-256 + LF records; never reuse an earlier manifest as
-the current value. Then perform one independent read-only review of the exact
-live candidate. Review security first, then correctness, package/evidence and
-authority consistency. Do not rerun tests: reconcile the recorded final
-4641/4641, five-stage QA, and 24/24 -> 18/18 -> 46/46 evidence against the exact
-diff. Return findings ordered by severity and an R8 GO/NO-GO. An R8 GO may
-authorize only a later separate owner decision; it is not deployment, pilot,
-offline-work, or Milestone 12 GO.
+After grounding, report exact live Git truth against the recorded technical
+Production baseline and identify any authority inconsistency. Do not perform a
+code review, compute a candidate manifest, rerun verification, or issue a new
+GO/NO-GO. Preserve one-writer control and the external backup. Never use direct
+SQL as an operational shortcut, run syncSelectedCasVrSupabaseToMysql.js --apply
+as cleanup, invent migration 0020, or infer that pilot, offline, or deployment
+work is next.
 
-Preserve one-writer control and the external backup. Never
-use direct SQL as an operational shortcut, run
-syncSelectedCasVrSupabaseToMysql.js --apply as cleanup, invent migration 0020,
-stage/commit/push/deploy before review, or claim a new GO from candidate evidence.
+M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
+responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+This context-only prompt authorizes none of implementation, review, testing,
+Git mutation, a new deployment or promotion, pilot activity, offline work, or
+Milestone 12 actions. Deployment is not authorized by this prompt.
 
-The historical required sequence was independent commit-readiness review ->
-local commit -> separately authorized push -> clean-commit R8 re-review. Live
-Git establishes which earlier steps completed; this prompt authorizes only the
-final read-only R8 decision. After reporting that decision, stop and ask the
-owner which workstream to open next. Do not infer that offline mode, deployment,
-or pilot work is automatically next. M12.P1 remains NO-GO for deployment and
-pilot readiness unless a later separately authorized decision changes it.
-This context-only authority authorizes none of the implementation, Git mutation,
-deployment, pilot, offline-work, or Milestone 12 actions listed above.
-Deployment is not authorized by this prompt.
-
-Return inspected capabilities/files, exact live Git/manifest truth, evidence
-classification, findings ordered by severity, the R8 GO/NO-GO decision, the
-separate next owner-authorization boundary, and confirmation that nothing
-changed repository, process, database, vendor, OAuth, Cloudinary, Upstash, or
-deployment state. Stop after the review.
+Return only a grounding report: capabilities/files inspected, exact live Git
+truth versus recorded/owner-observed claims, evidence classes, inconsistencies,
+the next owner-authorization boundary, and confirmation that nothing changed
+repository, process, database, vendor, OAuth, Cloudinary, Upstash, or deployment
+state. Stop and wait for the owner.
 ```
 
 ## Claude Code Grounding Prompt
@@ -328,14 +315,17 @@ Free-Roam, and building probes source-read only; all Supabase migration
 filenames; and read-only Git branch/HEAD/origin/status/stashes/refs/recent graph.
 
 Reconcile the same current facts listed in the Codex prompt above, including
-the committed/pushed `43627cf` runtime candidate, undeployed authority
-follow-up, first integrated R8 NO-GO disposition, and required review -> commit
--> push -> R8 re-review order. Determine every later commit, push, and review
-disposition from live Git and the latest external review report. In particular:
-deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
+the committed/pushed `43627cf` runtime history; final R8 authority commit
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; the owner-accepted technical
+Production baseline at that exact commit; the disclosure that its authorized
+push automatically triggered Production; the bounded anonymous read-only
+GET-only post-deployment PASS; and the owner-observed disabled Auto-assign
+Custom Production Domains setting requiring manual promotion for future
+`main` deployments. Determine mutable Git truth live. In particular preserve:
+historical deployed commit 0627bf7; prior bbb25d0 and d422b54; accepted
 five-file evidence at 75/75, 3777/3777 plus QUALITY-GATES OK, five-stage QA,
 and 24/24 -> 18/18 -> 46/46; owner-observed Vercel identity; same-author review
-caveat; 31/31 anonymous smoke scope; automated rehearsal and its deviations;
+caveat; historical 31/31 anonymous smoke scope; automated rehearsal and its deviations;
 the backend-specific catalog at MySQL 34 buildings / 44 route
 nodes / 100 edges / 50 reverse pairs / 100 geometries / 671 scenes / 1,396
 hotspots and Supabase 25 / 26 / 50 / 25 / 50 / 664 / 1,372; shared Guided-VR
@@ -408,18 +398,25 @@ is the fresh-context BrowserContext run, 3511/3511 with QUALITY-GATES OK, audit
 zero, and 24/24 -> 18/18 -> 46/46 with historical aggregate
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
 
-The Guided-VR runtime/catalog remediation is committed and pushed to origin/main as
+The Guided-VR runtime/catalog remediation remains recorded as
 43627cf0a77741556f4e701711e55612a739799b, tree
-eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Production remains owner-observed
-on deployed production baseline 0627bf78228148e3f989275810c333c16a1f3356; neither
-43627cf nor the authority-only follow-up is deployed. The first integrated
-read-only M12.P1-R8 review reverified the package pin, 4641/4641 test,
-five-stage QA, and 24/24 -> 18/18 -> 46/46, but returned R8 NO-GO solely for
-stale operative Git-lifecycle wording and found no separate runtime, security,
-database, or package blocker. The authority follow-up's commit, push, and R8
-disposition are established only by live Git and the latest external review
-report. Determine the exact next boundary from those sources. The former
-session-residue findings are closed and historical;
+eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority
+synchronization is committed and pushed as
+fea3b2e11c6331eddc1ee091b165427d8e0218d7. The owner accepts
+https://campusphere-cspc.vercel.app on deployed technical Production baseline
+fea3b2e11c6331eddc1ee091b165427d8e0218d7. Its authorized push automatically
+triggered Production while
+automatic domain assignment was enabled. Bounded anonymous read-only GET-only
+post-deployment verification passed without requesting /auth, authenticating,
+or exercising schedule auditing. The accepted source package identity is 158
+files, 6,245,074 bytes, aggregate SHA-256
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+Owner-observed Vercel settings now show Auto-assign Custom Production Domains
+disabled, so future main deployments require explicit manual promotion before
+replacing the live alias. Historical/superseded: Production previously served
+0627bf78228148e3f989275810c333c16a1f3356. The first integrated read-only
+M12.P1-R8 review and its lifecycle corrections remain historical evidence. The
+former session-residue findings are closed and historical;
 The first verification of this state-neutral lifecycle correction is
 historical/rejected at 4639/4641: two static documentation checks failed while
 runtime, database, Guided-VR, BE.6, and embedded 18/18 residue checks were green.
@@ -472,19 +469,15 @@ failure.
 do not repeat cleanup. Preserve the backup and one-writer boundary. Never
 blanket-delete, use direct SQL, run syncSelectedCasVrSupabaseToMysql.js --apply
 as cleanup, create 0020 without a reviewed schema need, or stage/push/deploy
-before the separate review and owner decision.
+without separate owner authorization.
 
-Determine the current candidate and every later lifecycle disposition from live
-Git rather than the historical sequence. Do not review, edit, test, implement,
-stage, commit, push, deploy, or perform an R8 review. M12.P1 remains NO-GO for deployment
-and pilot readiness. After the grounding report, stop and wait for the owner;
-do not infer that offline mode, deployment, or pilot work is automatically next.
-Deployment is not authorized by this prompt.
-The historical lifecycle order was independent commit-readiness review -> local
-commit -> separately authorized push -> clean-commit R8 re-review -> separate
-owner deployment decision. Live Git and the latest external review report
-determine which earlier steps completed. This context-only prompt authorizes
-none of those actions.
+Determine mutable Git truth live. Do not review, edit, test, implement, stage,
+commit, push, deploy, promote, or perform an R8 review. M12.P1 remains NO-GO for
+pilot readiness and final acceptance. Human pilot/Form responses, OFF.2-OFF.6,
+offline work, and final Milestone 12 GO remain open. After the grounding report,
+stop and wait for the owner; do not infer that offline mode, deployment, or
+pilot work is automatically next. Deployment is not authorized by this prompt.
+This context-only prompt authorizes none of those actions.
 
 Return only a grounding report: capabilities/files; exact verified truth versus
 recorded/owner-observed claims; evidence classes; inconsistencies; blockers and

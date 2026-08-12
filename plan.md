@@ -7,7 +7,7 @@ Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Desti
 Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 Guided-VR authority-remediation candidate).**
+**CURRENT STATUS (2026-08-12 post-deployment authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
 OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
@@ -30,17 +30,39 @@ Playwright BrowserContext objects, clean supported-interface teardown, npm test
 a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d
 unchanged at that accepted historical baseline.
 
-The Guided-VR runtime and catalog remediation is committed and pushed as
+The Guided-VR runtime and catalog remediation remains recorded as commit
 43627cf0a77741556f4e701711e55612a739799b, with Git tree
-eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. Local HEAD and origin/main matched
-that commit at the first integrated R8 review. The owner-observed Vercel
-Production alias remains https://campusphere-cspc.vercel.app on deployed
-baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this
-authority-only follow-up is deployed. Live Git truth, not this narrative,
-controls whether a later working tree is clean or modified. The accepted
-0627bf7 five-file verification, anonymous production smoke 31/31, and
-automated frozen-data rehearsal remain historical evidence and do not verify
-the later Guided-VR runtime commit.
+eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority
+synchronization is committed and pushed as
+fea3b2e11c6331eddc1ee091b165427d8e0218d7; live Git at the post-deployment
+review confirmed branch `main`, local HEAD, and origin/main all matched that
+commit. The separately authorized push automatically triggered Vercel
+Production through the Git integration while automatic production-domain
+assignment was still enabled. The owner accepts
+https://campusphere-cspc.vercel.app on
+fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production
+baseline. Owner-observed Vercel evidence showed `Ready`, `Production`,
+`Current`, branch `main`, and source commit `fea3b2e`; the build completed in
+17 seconds with one advisory that `engines.node` is `>=22` and can advance to a
+future major Node release.
+
+Post-deployment verification passed within its bounded anonymous read-only
+GET-only scope: the production alias served the expected public pages and
+static assets, sampled deployed bytes matched the pushed source, protected
+HTML routes redirected to `/auth`, protected JSON routes returned `401`, and
+the checked responses set no session cookie. `/auth` was deliberately not
+requested because it may create an anonymous identity-free session; no
+authenticated flow or schedule auditing was exercised. The accepted source
+package identity remains 158 files, 6,245,074 bytes, aggregate SHA-256
+b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
+After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
+Future `main` pushes may create staged Production deployments, but
+they require an explicit later `Promote to Production` action before replacing
+the live alias. This control was confirmed from the saved dashboard state and
+was not tested with a dummy push. Historical/superseded: before this deployment,
+Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
+verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
+accepted historical evidence.
 
 The separately authorized backup and additive reconciliation were performed
 under one-writer control. The external backup set contains provider-supported
@@ -126,9 +148,9 @@ CAS scene-array fingerprint before scope derivation, rejects replacement,
 reorder, and hash-pin drift, validates SEC-37 against the independent package
 pin, scopes OFF.3 to the selected supported backend and all 25 active Guided-VR
 destinations, and restores review -> commit -> push -> R8 -> deployment -> pilot
-ordering. The prior manifest and its NO-GO disposition are historical; these
-corrected bytes still require a new independent read-only review and claim no
-GO.
+ordering. The prior manifest and its NO-GO disposition are historical; at that
+point the corrected bytes required a new independent read-only review and
+claimed no GO.
 
 A subsequent independent read-only review of exact 33-file manifest SHA-256
 `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
@@ -138,8 +160,9 @@ obsolete Guided-VR handoff sections were historical and not operative, but were
 not marked away from current authority, and current dates were stale. This bounded correction
 adds independent live package-pin enforcement and byte-drift fixtures, isolates
 the obsolete handoff sections as explicit history, expands authority/date
-fixtures, and synchronizes current dates. It changes no runtime or data and
-still requires another independent read-only review.
+fixtures, and synchronized the then-current dates. It changed no runtime or
+data; at that historical point another independent read-only review was
+required.
 
 Under a separate bounded authorization, a fail-closed preflight reverified
 exactly two unexpired sessions for the one intended-role canonical MySQL
@@ -281,17 +304,16 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
-Fresh-session boundary: the current Codex prompt authorizes grounding followed
-by one final independent read-only R8 review of the exact live 11-file
-candidate. The current Claude Code prompt authorizes grounding only and then
-waits. Neither prompt authorizes edits, tests, Git mutation, deployment, pilot,
-offline implementation, or Milestone 12 GO. After the R8 decision, stop and
-ask the owner which workstream to open; do not infer the next workstream.
+Fresh-session boundary: the current Codex and Claude Code prompts authorize
+grounding only and then wait for the owner. Neither prompt authorizes edits,
+tests, Git mutation, a new deployment or promotion, pilot activity, offline
+implementation, or Milestone 12 GO. The completed technical Production
+baseline acceptance does not select the next workstream.
 
-M12.P1 remains NO-GO for
-deployment and pilot readiness; deployment is not authorized. Human pilot/Form
-responses, OFF.2-OFF.6, and final Milestone 12 acceptance remain open. Do not
-claim a new GO from this candidate.
+M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
+responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+No new deployment or promotion is authorized by this status block; either
+action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
 <!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
 **HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident
@@ -472,9 +494,10 @@ missing-library matrix green. Production dependency
 audit is zero after the compatible lockfile-only
 resolutions to `body-parser@2.3.0` and `brace-expansion@2.1.2`; `package.json`
 was unchanged. D6 remains the least-priority post-pilot implementation after
-OFF.2-OFF.5 and before OFF.6. The eventual online pilot still requires R8 GO
-plus separate owner deployment authorization and exposes the full authenticated
-app. OFF.2-OFF.6 are deferred until pilot feedback review, not cancelled. The
+OFF.2-OFF.5 and before OFF.6. The technical Production baseline is accepted,
+but any human pilot still requires separate owner authorization and exposes the
+full authenticated app. OFF.2-OFF.6 are deferred until pilot feedback review,
+not cancelled. The
 13-building roster remains editable selected-demo data, not a complete-campus
 claim; any post-freeze data change requires replacement evidence. Guided VR
 reports arrival only when the final available scene maps to the selected
@@ -493,13 +516,13 @@ Milestone 11 must preserve the approved architecture:
 - CSRF, CSP, rate limits, PWA privacy, sanitized error contracts, role authorization, and session-store behavior remain preserved.
 - Schedule data must be real admin-managed data served from the configured runtime data source.
 
-Do not deploy merely because this plan records the pilot exception. The
-`M12.P1` readiness audit remains NO-GO for deployment and pilot readiness.
-R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The R7 and D7
-execution prompts are spent. `M12.P1-R8` is the next potential section; it is
-read-only and requires a separate owner-authorized read-only review prompt.
-Even R8 GO authorizes only a separate owner deployment decision. The pilot is
-not final Milestone 12 GO; OFF.2-OFF.6 and D6 remain required afterward.
+Do not deploy or promote merely because this plan records the pilot exception.
+R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete; technical
+Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted,
+and future `main` deployments require manual promotion. M12.P1 remains NO-GO
+for pilot readiness and final acceptance. Human pilot evidence, OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and require separate
+owner authorization.
 
 ## Sections
 
@@ -1549,8 +1572,8 @@ historical/superseded.
 
 ### M12.P1-D: Authenticated-App Pilot Defect Remediation
 
-**Status: D1-D5 AND EXPANDED D7 COMPLETE — CODEX GO; R8 IS THE NEXT
-READ-ONLY SECTION AND REQUIRES SEPARATE OWNER AUTHORIZATION.**
+**Status: D1-D5 AND EXPANDED D7 COMPLETE — CODEX GO; THE LATER R8 LIFECYCLE
+COMPLETED AND TECHNICAL PRODUCTION BASELINE `fea3b2e` IS ACCEPTED.**
 
 These defects were reported during owner testing of the authenticated app.
 Claude receives exactly one D-section per prompt, reproduces the behavior before
@@ -1758,15 +1781,18 @@ unchanged. Both backends were restored to 13 buildings, topology
 A later logout-output hygiene remediation is independently Codex-accepted as
 additive evidence (`3529/3529`, `QUALITY-GATES OK`, zero escaped logout-error
 lines, audit zero, and `24/24 -> 18/18 -> 46/46`) and does not supersede D7.
-D7 GO authorizes only the read-only R8 review; do not begin D6 or deploy.
+D7 GO was a prerequisite to the completed R8 lifecycle. Do not begin D6,
+pilot, offline work, or another deployment/promotion without separate owner
+authorization.
 
 **M12.P1-D6: Real Admin Dashboard Analytics**
 
 **Status: LOWEST PRIORITY — DEFERRED UNTIL STUDENT/GUEST PILOT REVIEW; RUN AFTER
 OFF.5 AND BEFORE OFF.6.**
 
-The limited participant pilot may proceed after R8 without this admin-only
-analytics repair. Until D6 GO, hard-coded admin chart values are known
+The completed R8 lifecycle no longer blocks the limited participant pilot, but
+the pilot remains unopened pending a separate owner decision. Until D6 GO,
+hard-coded admin chart values are known
 non-authoritative placeholders and must not be presented as pilot evidence,
 usage analytics, or decision data. Student and guest roles remain unable to
 access the admin dashboard.
@@ -2054,12 +2080,12 @@ Do not implement or reintroduce:
   Codex GO, including the R3 follow-ups, R4 follow-up, dependency-security
   remediation, both R5 follow-ups, R6, R7, both R7 source-auditability
   corrections, and the expanded D7 cross-role regression gate.
-  `M12.P1-R8` is the next potential section and is read-only; it requires a
-  separate owner-authorized read-only review prompt, and even R8 GO authorizes
-  only a separate owner deployment decision.
-  Pilot deployment still requires R8 readiness GO and a separate
-  authorization; OFF.2 through OFF.6 and D6 are post-pilot work and remain
-  mandatory before final Milestone 12 GO.
+  The final R8 lifecycle completed and technical Production baseline
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. Future `main`
+  deployments require manual promotion and a separate owner decision.
+  Human pilot evidence remains open and requires separate authorization;
+  OFF.2 through OFF.6, offline work, and D6 remain mandatory before final
+  Milestone 12 GO.
 - The owner reports that the primary administrator, demo instructor, sample
   student, and sample guest are retained as local-login regression identities;
   the previously deleted student and guest were recreated, so their numeric IDs
