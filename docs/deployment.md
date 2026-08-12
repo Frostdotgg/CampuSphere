@@ -82,8 +82,9 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   SEC-37 package claim, obsolete OFF.3 scope, and premature pilot sequencing.
   The bounded follow-up pins the ordered CAS hash, extends rejecting fixtures,
   binds SEC-37 to the independent package pin, and restores the complete
-  review-to-pilot authorization order. The prior manifest is historical; the
-  corrected bytes still require a new independent read-only review.
+  review-to-pilot authorization order. The prior manifest and its then-required
+  independent review are historical; the latest external report controls the
+  corrected bytes' disposition.
 - A subsequent independent read-only review of exact 33-file manifest SHA-256
   `2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8`
   returned commit-readiness NO-GO because the exact package inventory was not
@@ -91,16 +92,16 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   but not isolated from current authority, and current dates were stale. This
   bounded correction adds independent live package pins and byte-drift
   fixtures, explicit handoff-history boundaries, authority/date fixtures, and
-  synchronized current dates. It changes no runtime or data and still requires
-  independent read-only review.
+  synchronized current dates. It changed no runtime or data; that candidate's
+  later disposition is historical.
 - The independent read-only review of exact 34-file manifest SHA-256
   `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
   returned commit-readiness NO-GO because six current-authority documents
   repeated the rejected 4,628-PASS retry with an incorrect lower failure count
   after already recording the transcript-faithful nine wording failures plus
   residue. This bounded correction removes the duplicate claim and adds a
-  cross-document analyzer with accepting/rejecting fixtures. It changes no
-  runtime or data and still requires independent read-only review.
+  cross-document analyzer with accepting/rejecting fixtures. It changed no
+  runtime or data; the latest external report controls its later disposition.
 - The first verification of that correction is historical/rejected at
   `4640/4641`: the new analyzer stopped at the evidence ledger's first 4,628
   mention, so one combined documentation assertion failed while runtime probes
@@ -133,8 +134,8 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   role; one supported `revokeUserSessions()` call restored the count to zero.
   No direct session-row delete, account/application-data change, or broad
   cleanup occurred. The wrapper timeout and bounded red rerun remain
-  historical/rejected. Independent read-only review remains open; R8,
-  deployment, and GO remain unclaimed.
+  historical/rejected. Live Git and the latest external review report establish
+  the later commit/push/R8 disposition; deployment and GO remain unclaimed.
 - The current Vercel allowlist candidate is 158 files, 6,245,074 bytes,
   aggregate SHA-256
   `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`;
@@ -154,10 +155,70 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   uncommitted, and unpushed; it found no separate runtime, security, database,
   or package blocker. The bounded follow-up corrects that lifecycle wording,
   preserves current R7 `72/72` versus accepted historical `71/71`, and adds
-  accepting/rejecting fixtures. Independent commit-readiness review of the
-  exact follow-up bytes remains open. The required order is independent
-  commit-readiness review -> local commit -> separately authorized push ->
-  clean-commit R8 re-review.
+  accepting/rejecting fixtures. The follow-up's commit, push, and R8 disposition
+  are established only by live Git and the latest external review report; this
+  repository snapshot deliberately makes no self-referential claim about those
+  later events. The required lifecycle is independent commit-readiness review ->
+  local commit -> separately authorized push -> clean-commit R8 re-review.
+- The first verification of this state-neutral lifecycle correction is
+  historical/rejected at `4639/4641`: one combined lifecycle/history assertion
+  still detected self-expiring review claims outside the primary current blocks,
+  and one evidence-row classifier required the obsolete word `candidate`.
+  Runtime, database, Guided-VR, BE.6, and embedded `18/18` residue checks were
+  green. Those static contracts were corrected; the definitive rerun passed
+  `4641/4641` with `QUALITY-GATES OK`, the five-stage QA rerun was green at the
+  same total, and final postconditions were `24/24 -> 18/18 -> 46/46`. No session
+  or data correction was required.
+- The independent read-only review of exact 11-file manifest SHA-256
+  `4d37507071089be4f6ce92404465a28334f9a03dbad82d02dfde2b013c3183ad`
+  returned R8 NO-GO solely because the current reusable Claude prompt retained
+  self-expiring review claims and the Git-lifecycle analyzer did not cover their
+  original open-before-review word order. This bounded correction makes both current copy-paste prompts
+  state-neutral and extends the existing assertion with lifecycle fixtures. It
+  changes no runtime, database, session, or package bytes; live Git and the
+  latest external review report control its disposition.
+- Its first verification execution is historical/rejected at `4640/4641`:
+  the new negative-fixture group exposed that the lifecycle analyzer rejected
+  qualified review phrases but not the generic `independent review`
+  equivalent. All application, backend, Guided-VR, BE.6, and final embedded
+  residue checks were green. The matcher now rejects both forms; no runtime,
+  database, session, or package correction was required.
+- The first verification of the exact original-phrase coverage is
+  historical/rejected at `4639/4641`: the reverse-order matcher was initially
+  too broad and treated clearly historical `pending`/`required` review prose as
+  operative. Every executed runtime/backend probe and the final embedded
+  `18/18` residue gate were green. The matcher is now confined to the original
+  `open independent ... review` word order plus the already covered forward
+  forms; no runtime, database, session, or package correction was required.
+- The subsequent independent read-only review of exact 11-file manifest
+  SHA-256 `c4a4c2b5bd592c00126f06736e8f8587d0de3dde189b506177bd764fddf3a192`
+  returned R8 NO-GO solely for the uncovered exact open-before-review phrase;
+  it found no other blocker. The narrowed correction passed `npm test`
+  `4641/4641`, full five-stage QA, and final `24/24 -> 18/18 -> 46/46`.
+  Its verified pre-handoff Manifest SHA-256
+  `bd9a68ea8b7d2094d9fad54b561ed773852e30686646fcb446e9a3febfba2499`.
+  That hash is predecessor evidence, not a pin for the later handoff bytes;
+  live Git and a fresh manifest control the new candidate.
+- The first full verification of the fresh-session handoff synchronization is
+  historical/rejected at `4638/4641`: three static documentation checks failed
+  because the new manifest values were not all presented with the analyzer's
+  explicit `SHA-256` label and both reusable prompts omitted the literal
+  deployment-authorization denial required by the current prompt contract.
+  All executed runtime/backend probes and the final embedded `18/18` residue
+  gate were green. The labels and prompt denials are corrected; no runtime,
+  database, session, package, or vendor correction was required.
+- A subsequent full-suite attempt is historical/rejected because the temporary
+  server for `publicRoadRouteRendering-probe.js` did not become ready on its
+  dedicated port. All earlier checks in that run and the final embedded
+  `18/18` residue gate were green; no listener or CampuSphere Node process
+  remained. The focused probe then passed immediately in both runtime modes.
+  No repository, database, session, package, or vendor correction was required
+  for that transient harness-start failure.
+- Fresh-session authority is role-specific: Codex grounds and performs one
+  final independent read-only R8 review of the exact live 11-file candidate;
+  Claude Code grounds only and then waits. Neither prompt authorizes edits,
+  tests, Git mutation, deployment, pilot, offline implementation, or Milestone
+  12 GO. After R8, the owner separately chooses the next workstream.
 - Human pilot evidence, OFF.2-OFF.6, and final Milestone 12 GO remain open.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
@@ -198,10 +259,9 @@ The backup, isolated restore proofs, additive reconciliation, and duplicate-link
 correction described above have been performed. Focused catalog and BE.6 probes
 are green; the exact synchronized full contract/QA matrix and final ordered
 postconditions recorded above passed on the candidate bytes. Bounded
-independent-review findings were remediated and the corrected matrix passed;
-another independent read-only review of the fresh exact manifest remains
-required. Commit, push, and deployment
-remain separate and are not authorized by this documentation record.
+independent-review findings were remediated and the corrected matrix passed.
+Live Git and the latest external review report control the later disposition;
+deployment remains separate and is not authorized by this documentation record.
 
 ## Historical/Superseded — 2026-07-30 R8 Continuity Status
 
@@ -259,9 +319,9 @@ incident traceability and does not override the August 12 status above.
   application failure or retry. That `3777` figure is a transcript-wide
   PASS-line reconciliation across parent and inherited spawned-probe stdout,
   not an in-process `makeRecorder` counter.
-- The byte-consistent result is current candidate evidence only. It remains
-  unaccepted pending independent read-only review and establishes no R8,
-  SEC-51, deployment, pilot, or Milestone 12 GO.
+- The byte-consistent result was candidate evidence at that historical point;
+  its disposition is preserved by the corresponding external review. It
+  establishes no current R8, SEC-51, deployment, pilot, or Milestone 12 GO.
 - The local-candidate Vercel package inventory is 158 files, 6,201,747 bytes,
   aggregate SHA-256
   `acfb1696de0c8855e02aa82e243fec959aefec637f29bdf033bc34ffda42e8b1`.
@@ -1218,8 +1278,8 @@ bootstrap implementation.
 The preceding SEC-51 evidence synchronization at Git commit SHA-1
 `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed runtime. The
 Guided-VR runtime/catalog remediation is commit `43627cf`, pushed to
-origin/main and not deployed; this authority-only follow-up is also not
-deployed and still requires independent commit-readiness review.
+origin/main and not deployed. The authority follow-up's later Git and review
+disposition must be read from live Git and the latest external review report.
 Nothing in this subsection is an R8 GO, a deployment
 GO, a pilot GO, or a Milestone 12 GO.
 

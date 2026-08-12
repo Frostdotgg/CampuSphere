@@ -213,8 +213,8 @@ exactly once for that student and restored the count from one to zero. No direct
 session-row delete, account/application-data change, or broad cleanup occurred.
 pre-remediation `4629/4629`, `4624/4624`, `4609/4609`, `4599/4599`, 615-pass,
 `4608/4609`, `4623/4624`, and 4,512-pass executions remain historical,
-superseded, or rejected. Independent read-only review remains open; these
-results establish candidate-review readiness only.
+superseded, or rejected. These results established candidate-review readiness;
+the latest external review report controls every later disposition.
 
 The independent read-only review of exact 34-file manifest SHA-256
 `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4`
@@ -223,8 +223,8 @@ described once with the exact nine current-authority wording failures plus
 residue and again with an incorrect lower failure count. This bounded correction
 removes the stale duplicate account and adds one cross-document analyzer with accepting and
 rejecting fixtures. It changes no runtime or data. The prior `4639/4639` matrix
-and manifest are historical candidate evidence; the corrected bytes require a
-new independent read-only review and claim no GO.
+and manifest are historical candidate evidence; the latest external review
+report controls the corrected bytes' disposition, and this snapshot claims no GO.
 The first verification execution of this correction is historical/rejected at
 `4640/4641`: the new analyzer inspected only the evidence ledger's first 4,628
 mention, so its one combined live assertion failed even though all runtime
@@ -249,10 +249,90 @@ because operative authority falsely described the committed and pushed
 candidate as dirty, uncommitted, and unpushed; it found no separate runtime,
 security, database, or package blocker. This bounded follow-up corrects that
 lifecycle authority, preserves the current 72/72 versus accepted historical
-71/71 R7 classification, and adds accepting/rejecting fixtures. Independent
-commit-readiness review of the exact follow-up bytes remains open. The required
-order is independent commit-readiness review -> local commit -> separately
-authorized push -> clean-commit R8 re-review. M12.P1 remains NO-GO for
+71/71 R7 classification, and adds accepting/rejecting fixtures. The follow-up's
+commit, push, and R8 disposition are established only by live Git and the latest
+external review report; this repository snapshot deliberately makes no
+self-referential claim about those later events. The required lifecycle is
+independent commit-readiness review -> local commit -> separately authorized
+push -> clean-commit R8 re-review.
+
+The first verification of this state-neutral lifecycle correction is
+historical/rejected at `4639/4641`: one combined lifecycle/history assertion
+still detected self-expiring review claims outside the primary current blocks,
+and one evidence-row classifier required the obsolete word `candidate`.
+Runtime, database, Guided-VR, BE.6, and embedded `18/18` residue checks were
+green. Those static contracts were corrected; the definitive rerun passed
+`4641/4641` with `QUALITY-GATES OK`, the five-stage QA rerun was green at the
+same total, and final postconditions were `24/24 -> 18/18 -> 46/46`. No session
+or data correction was required.
+
+The independent read-only review of exact 11-file manifest SHA-256
+`4d37507071089be4f6ce92404465a28334f9a03dbad82d02dfde2b013c3183ad`
+returned R8 NO-GO solely because the current reusable Claude prompt retained
+self-expiring review claims and the Git-lifecycle analyzer did not cover their
+original open-before-review word order. This bounded correction makes both current copy-paste
+prompts state-neutral and extends the existing reusable-prompt assertion with
+accepting/rejecting lifecycle fixtures. It changes no runtime, database, session,
+or package bytes; live Git and the latest external review report control its
+disposition.
+
+The first verification execution of that prompt-lifecycle correction is
+historical/rejected at `4640/4641`: the new negative-fixture group exposed that
+the lifecycle analyzer rejected qualified review phrases but not the generic
+`independent review` equivalent. All application, backend, Guided-VR, BE.6,
+and final embedded residue checks were green. The matcher now rejects qualified
+and generic forms; no runtime, database, session, or package correction was
+required.
+
+The first verification of the exact original-phrase coverage is
+historical/rejected at `4639/4641`: the reverse-order matcher was initially too
+broad and treated clearly historical `pending`/`required` review prose as
+operative. Every executed runtime/backend probe and the final embedded `18/18`
+residue gate were green. The matcher is now confined to the original
+`open independent ... review` word order plus the already covered forward
+forms; no runtime, database, session, or package correction was required.
+
+The subsequent independent read-only review of exact 11-file manifest SHA-256
+`c4a4c2b5bd592c00126f06736e8f8587d0de3dde189b506177bd764fddf3a192`
+returned R8 NO-GO solely because the guard did not yet reject that exact
+open-before-review phrase; it found no other security, runtime, database,
+package-boundary, or evidence blocker. The bounded correction added the exact
+rejecting fixture and corrected the synchronized root-cause wording. Its first
+over-broad execution is the historical `4639/4641` run above. The narrowed
+definitive bytes passed `npm test` at exactly `4641/4641` with
+`QUALITY-GATES OK`, full five-stage `npm run qa` with all five exact markers,
+and final ordered postconditions `24/24 -> 18/18 -> 46/46`. That verified
+pre-handoff manifest was
+`bd9a68ea8b7d2094d9fad54b561ed773852e30686646fcb446e9a3febfba2499`.
+It is predecessor evidence for this continuity synchronization, not a pin for
+the later edited bytes. Live Git and a freshly computed manifest control the
+new candidate; the latest external review report alone controls R8 disposition.
+
+The first full verification of the fresh-session handoff synchronization is
+historical/rejected at `4638/4641`: three static documentation checks failed
+because the new manifest values were not all presented with the analyzer's
+explicit `SHA-256` label and both reusable prompts omitted the literal
+deployment-authorization denial required by the current prompt contract. All
+executed runtime/backend probes and the final embedded `18/18` residue gate
+were green. The labels and prompt denials are corrected; no runtime, database,
+session, package, or vendor correction was required.
+
+A subsequent full-suite attempt is historical/rejected because the temporary
+server for `publicRoadRouteRendering-probe.js` did not become ready on its
+dedicated port. All earlier checks in that run and the final embedded `18/18`
+residue gate were green; no listener or CampuSphere Node process remained.
+The focused probe then passed immediately in both runtime modes. No repository,
+database, session, package, or vendor correction was required for that transient
+harness-start failure.
+
+Fresh-session boundary: the current Codex prompt authorizes grounding followed
+by one final independent read-only R8 review of the exact live 11-file
+candidate. The current Claude Code prompt authorizes grounding only and then
+waits. Neither prompt authorizes edits, tests, Git mutation, deployment, pilot,
+offline implementation, or Milestone 12 GO. After the R8 decision, stop and
+ask the owner which workstream to open; do not infer the next workstream.
+
+M12.P1 remains NO-GO for
 deployment and pilot readiness; deployment is not authorized. Human pilot/Form
 responses, OFF.2-OFF.6, and final Milestone 12 acceptance remain open. Do not
 claim a new GO from this candidate.

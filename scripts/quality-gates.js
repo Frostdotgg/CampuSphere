@@ -4238,8 +4238,9 @@ function recordsAcceptedD7EvidenceText(value) {
 /**
  * PURE: require the completed candidate matrix in one live authority scope and
  * reject the exact pending/session-remediation regressions found by independent
- * review. Historical failures may remain when clearly framed; only a live
- * instruction that still makes them the next boundary is rejected here.
+ * review. Historical failures may remain when clearly framed. Lifecycle state
+ * comes from live Git and the latest external review report, never a repository
+ * sentence that expires as soon as it is committed or reviewed.
  * @returns {string[]} problems (empty = compliant)
  */
 function currentCandidateVerificationProblems(value, expectedTotal) {
@@ -4271,8 +4272,8 @@ function currentCandidateVerificationProblems(value, expectedTotal) {
   if (!/24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(t)) {
     problems.push('current scope does not record the final ordered postconditions');
   }
-  if (!/(?:independent (?:(?:read-only )?(?:re-)?review|commit-readiness review)[^.]{0,300}(?:remain|remains|is|stays)(?: still)? (?:open|pending|required)|review itself remains open)/i.test(t)) {
-    problems.push('current scope does not keep independent review open');
+  if (!/live Git[\s\S]{0,180}latest external review report|latest external review report[\s\S]{0,180}live Git/i.test(t)) {
+    problems.push('current scope does not defer mutable lifecycle state to live Git and the latest external review report');
   }
   if (/(?:matrix|contract\/QA total|ordered postconditions?)[^.]{0,140}\b(?:remain|remains|are|is) pending\b/i.test(t)) {
     problems.push('current scope still declares completed verification pending');
@@ -4283,10 +4284,10 @@ function currentCandidateVerificationProblems(value, expectedTotal) {
   return problems;
 }
 
-/* The runtime/catalog candidate is already a pushed Git commit. This authority
- * follow-up is deliberately uncommitted, but current prose must not collapse
- * those two lifecycle states or imply that production moved. These pins are
- * independent of every authority document. */
+/* The runtime/catalog candidate is a pushed Git commit. Later authority commits
+ * and reviews are intentionally not pinned as mutable "current" prose: live Git
+ * and the latest external review report control those states. Production remains
+ * independently pinned and must never be implied to have moved. */
 const EXPECTED_GUIDED_VR_RUNTIME_COMMIT =
   '43627cf0a77741556f4e701711e55612a739799b';
 const EXPECTED_GUIDED_VR_RUNTIME_TREE =
@@ -4313,8 +4314,9 @@ function currentGitLifecycleProblems(value) {
   if (!/first integrated (?:read-only )?M12\.P1-R8 review[\s\S]{0,900}returned R8 NO-GO solely/i.test(t)) {
     problems.push('missing first integrated R8 review and sole authority-finding disposition');
   }
-  if (!/independent commit-readiness review[\s\S]{0,100}(?:remain|remains|is|stays)(?: still)? open/i.test(t)) {
-    problems.push('independent commit-readiness review is not kept open');
+  if (!/live Git[\s\S]{0,220}latest external review report|latest external review report[\s\S]{0,220}live Git/i.test(t) ||
+      !/(?:commit, push, and R8 disposition|commit\/push\/R8 disposition|Git and review disposition)/i.test(t)) {
+    problems.push('mutable follow-up lifecycle is not delegated to live Git and the latest external review report');
   }
   if (!/independent commit-readiness review\s*->\s*local commit\s*->\s*separately authorized push\s*->\s*clean-commit R8 re-review/i.test(t)) {
     problems.push('required review/commit/push/R8-re-review order is missing');
@@ -4324,10 +4326,39 @@ function currentGitLifecycleProblems(value) {
     /worktree is now intentionally dirty/i,
     /nothing from (?:this|the) candidate[^.]{0,120}(?:committed|pushed)/i,
     /(?:Guided-VR|remediation) candidate[^.]{0,120}uncommitted[^.]{0,80}unpushed/i,
+    /(?:\bopen\s+independent(?: commit-readiness| read-only)? review|(?:new )?independent(?: commit-readiness| read-only)? review[^.]{0,180}(?:remain|remains|is|stays)(?: still)? (?:open|pending|required))/i,
+    /review itself remains open/i,
+    /next boundary is independent commit-readiness review/i,
+    /(?:present|current) \d+-file working tree[^.]{0,120}(?:unstaged|uncommitted)/i,
     /clean starting Git baseline[^.]{0,180}5076e1316cf68e9d05c78a61b2362d1727873a09[^.]{0,120}(?:HEAD|origin\/main)/i,
   ];
   if (stale.some((re) => re.test(t))) {
     problems.push('obsolete dirty/uncommitted/unpushed lifecycle authority remains');
+  }
+  return problems;
+}
+
+/** PURE: keep the old db034e R8 narrative fenced as history, never authority. */
+function operativePlanLifecycleProblems(value) {
+  const t = String(value == null ? '' : value);
+  const startMarker = '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD START -->';
+  const endMarker = '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD END -->';
+  const starts = t.split(startMarker).length - 1;
+  const ends = t.split(endMarker).length - 1;
+  const start = t.indexOf(startMarker);
+  const end = t.indexOf(endMarker);
+  if (starts !== 1 || ends !== 1 || start < 0 || end <= start) {
+    return ['missing or malformed historical R8 execution record'];
+  }
+  const history = t.slice(start + startMarker.length, end);
+  const operative = (t.slice(0, start) + t.slice(end + endMarker.length)).replace(/\s+/g, ' ');
+  const problems = [];
+  if (!/HISTORICAL\/SUPERSEDED[\s\S]{0,100}not current authority/i.test(history) ||
+      !/db034e5581e6f409083a43dcb80fb82b473e0127/i.test(history)) {
+    problems.push('db034e R8 record is not explicitly historical');
+  }
+  if (/(?:\*\*Current correction candidate\.\*\*|(?:present|current) \d+-file working tree[^.]{0,120}(?:unstaged|uncommitted)|independent commit-readiness review[^.]{0,180}(?:remain|remains|is|stays)(?: still)? open|next boundary is independent commit-readiness review)/i.test(operative)) {
+    problems.push('operative long-form plan retains self-expiring lifecycle authority');
   }
   return problems;
 }
@@ -4417,6 +4448,7 @@ function reusablePromptIsCurrent(body) {
      baseline that every other authority document is already checked against. */
   return carriesCurrentAuthority &&
     currentCandidateVerificationProblems(t, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
+    currentGitLifecycleProblems(t).length === 0 &&
     !declaresStaleOrPrematureAuthority(t) &&
     deploymentDocumentClaimsAreCurrent(t);
 }
@@ -4426,6 +4458,45 @@ function reusablePromptsAreCurrent(doc) {
   const prompts = extractReusablePrompts(doc);
   if (!prompts) return false;
   return reusablePromptIsCurrent(prompts.codex) && reusablePromptIsCurrent(prompts.claude);
+}
+
+const EXPECTED_HANDOFF_CANDIDATE_PATHS = Object.freeze([
+  'AGENTS.md',
+  'CLAUDE.md',
+  'CLAUDE_HANDOFF.md',
+  'CODEX_HANDOFF.md',
+  'ROADMAP.md',
+  'docs/deployment.md',
+  'docs/new-session-grounding-prompts.md',
+  'docs/security-checklist.md',
+  'docs/test-evidence.md',
+  'plan.md',
+  'scripts/quality-gates.js',
+]);
+
+/** PURE: Codex alone performs the final independent read-only R8 review. */
+function reusableCodexPromptHasReviewBoundary(body) {
+  const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  return reusablePromptIsCurrent(t) &&
+    /fresh context-only grounding plus final independent read-only R8 review/i.test(t) &&
+    /load and follow the installed code-reviewer skill/i.test(t) &&
+    /compute the current 11-file manifest from sorted path \+ NUL \+ per-file SHA-256 \+ LF records/i.test(t) &&
+    EXPECTED_HANDOFF_CANDIDATE_PATHS.every((name) => t.includes(name)) &&
+    /perform one independent read-only review of the exact live candidate/i.test(t) &&
+    /do not rerun tests/i.test(t) &&
+    /return findings ordered by severity and an R8 GO\/NO-GO/i.test(t) &&
+    /R8 GO may authorize only a later separate owner decision/i.test(t) &&
+    /do not infer that offline mode, deployment, or pilot work is automatically next/i.test(t);
+}
+
+/** PURE: Claude grounds the exact state, performs no review, and waits. */
+function reusableClaudePromptHasWaitBoundary(body) {
+  const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  return reusablePromptIsCurrent(t) &&
+    /fresh context-only grounding session that does not authorize implementation/i.test(t) &&
+    /Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review/i.test(t) &&
+    /After the grounding report, stop and wait for the owner/i.test(t) &&
+    /do not infer that offline mode, deployment, or pilot work is automatically next/i.test(t);
 }
 
 /* The R7 execution prompt is SPENT: R7 later received independent Codex GO,
@@ -5444,22 +5515,22 @@ function analyzeSecurityChecklistPackageBoundaryRow(md, expected) {
 }
 
 /**
- * PURE: exactly ONE current full-suite/QA correction-candidate row once the
- * final totals are recorded. A candidate row is one whose STATUS cell both
- * calls itself a candidate and carries a four-digit suite total.
+ * PURE: exactly ONE current full-suite evidence-snapshot row once the final
+ * totals are recorded. The status must explicitly identify a candidate or
+ * evidence snapshot and carry a four-digit suite total.
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeCurrentCandidateSuiteRow(md) {
   const rows = markdownTableRows(md).filter((r) => {
     const status = evidenceStatusCell(r.cells);
-    return /\bcandidate\b/i.test(status) && /\b\d{4}\/\d{4}\b/.test(status);
+    return /\b(?:candidate|evidence snapshot)\b/i.test(status) && /\b\d{4}\/\d{4}\b/.test(status);
   });
   const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
   const problems = [];
-  if (current.length === 0) problems.push('no current full-suite candidate row');
-  if (current.length > 1) problems.push('duplicate current full-suite candidate rows');
+  if (current.length === 0) problems.push('no current full-suite evidence-snapshot row');
+  if (current.length > 1) problems.push('duplicate current full-suite evidence-snapshot rows');
   for (const r of current) {
-    if (/\bpending\b/i.test(evidenceStatusCell(r.cells))) problems.push('current full-suite candidate row is Pending');
+    if (/\bpending\b/i.test(evidenceStatusCell(r.cells))) problems.push('current full-suite evidence-snapshot row is Pending');
   }
   return problems;
 }
@@ -6802,7 +6873,8 @@ function runDocsCurrentGate() {
   /* Canonical CURRENT authority: R1-R7, D1-D5, and expanded D7 are complete and
      Codex GO; accepted/superseded R7 evidence and accepted D7 evidence are
      explicit; the first integrated R8 review returned NO-GO only for stale
-     lifecycle prose; and the correction must follow review/commit/push/R8. */
+     lifecycle prose; and live Git plus the latest external review report must
+     control mutable follow-up state while the required lifecycle stays fixed. */
   const CANONICAL_R7_GO_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
     'M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
@@ -6814,7 +6886,7 @@ function runDocsCurrentGate() {
     'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
     'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
     'The Guided-VR runtime/catalog remediation is committed and pushed as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b; local HEAD and origin/main matched it at the first integrated R8 review. Production remains on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this authority-only follow-up is deployed. ' +
-    'The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. Independent commit-readiness review remains open. The required order is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ' +
+    'The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ' +
     'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized.';
   /* Superseded states retained only as negative fixtures. */
   const SUPERSEDED_R7_CANDIDATE_STATUS =
@@ -6942,7 +7014,7 @@ function runDocsCurrentGate() {
       CANONICAL_R7_GO_STATUS.replace('M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ', '')
     ) === false &&
     declaresR7GoAuthority(
-      CANONICAL_R7_GO_STATUS.replace('The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. Independent commit-readiness review remains open. The required order is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ', '')
+      CANONICAL_R7_GO_STATUS.replace('The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review. ', '')
     ) === false);
 
   const STALE_POST_R6_FIXTURES = [
@@ -7069,7 +7141,7 @@ function runDocsCurrentGate() {
       status !== null && declaresR7GoAuthority(status));
     ok(`${name} current status keeps M12.P1 deployment/pilot readiness at NO-GO`,
       status !== null && keepsM12P1NoGo(status));
-    ok(`${name} current status records the exact matrix and truthful Git/R8 lifecycle while keeping independent review open`,
+    ok(`${name} current status records the exact matrix and state-neutral Git/R8 lifecycle`,
       status !== null &&
       currentCandidateVerificationProblems(status, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
       currentGitLifecycleProblems(status).length === 0);
@@ -7085,7 +7157,8 @@ function runDocsCurrentGate() {
       status !== null && rejectedVerificationHistoryProblems(status).length === 0) &&
     rejectedVerificationHistoryProblems(docs['docs/test-evidence.md']).length === 0 &&
     ['docs/deployment.md', 'docs/security-checklist.md', 'docs/test-evidence.md']
-      .every((name) => currentGitLifecycleProblems(docs[name]).length === 0));
+      .every((name) => currentGitLifecycleProblems(docs[name]).length === 0) &&
+    operativePlanLifecycleProblems(docs['plan.md']).length === 0);
 
   /* M12.P1-R8: the deployment guide must carry the COMPLETE Vercel checklist. */
   ok('docs/deployment.md lists all 14 fail-closed profile entries plus SESSION_SECRET, the OAuth trio, the /auth/callback URI, and the Google Form',
@@ -7096,7 +7169,7 @@ function runDocsCurrentGate() {
   ok('fixture: a checklist missing the /auth/callback URI is flagged',
     vercelChecklistIsComplete(
       docs['docs/deployment.md'].split('/auth/callback').join('/auth/redacted')) === false);
-  ok('docs/deployment.md records completed candidate verification and keeps independent review open',
+  ok('docs/deployment.md records completed candidate verification with state-neutral lifecycle authority',
     currentCandidateVerificationProblems(
       docs['docs/deployment.md'], EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
   const LIFECYCLE_OK =
@@ -7106,16 +7179,17 @@ function runDocsCurrentGate() {
     'Production remains on deployed baseline ' + EXPECTED_SEC51_DEPLOYED_BASELINE +
     '; neither 43627cf nor this authority-only follow-up is deployed. ' +
     'The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. ' +
-    'Independent commit-readiness review remains open. The required order is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review.';
+    'The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
+    'The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review.';
   ok('fixture: current candidate verification and Git lifecycle accept current authority and reject stale lifecycle/pending/session authority',
     currentCandidateVerificationProblems(
-      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Independent read-only review remains open.',
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Live Git and the latest external review report control the later commit/push/R8 disposition.',
       4641).length === 0 &&
     currentCandidateVerificationProblems(
-      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions remain pending. Independent read-only review remains open.',
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions remain pending. Live Git and the latest external review report control the later commit/push/R8 disposition.',
       4641).length > 0 &&
     currentCandidateVerificationProblems(
-      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Independent read-only review remains open. The next boundary is owner-directed resolution of session-residue findings.',
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Live Git and the latest external review report control the later commit/push/R8 disposition. The next boundary is owner-directed resolution of session-residue findings.',
       4641).length > 0 &&
     currentGitLifecycleProblems(LIFECYCLE_OK).length === 0 &&
     currentGitLifecycleProblems(
@@ -7124,6 +7198,12 @@ function runDocsCurrentGate() {
       LIFECYCLE_OK + ' Nothing from this candidate has been committed or pushed.').length > 0 &&
     currentGitLifecycleProblems(
       LIFECYCLE_OK + ' The Guided-VR candidate is uncommitted and unpushed.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK.replace('The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events.', 'Independent commit-readiness review remains open.')).length > 0 &&
+    operativePlanLifecycleProblems(
+      '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD START -->\n**HISTORICAL/SUPERSEDED snapshot; not current authority.** db034e5581e6f409083a43dcb80fb82b473e0127\n<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD END -->\nCurrent requirements only.').length === 0 &&
+    operativePlanLifecycleProblems(
+      '<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD START -->\n**HISTORICAL/SUPERSEDED snapshot; not current authority.** db034e5581e6f409083a43dcb80fb82b473e0127\n<!-- M12.P1-R8 HISTORICAL EXECUTION RECORD END -->\n**Current correction candidate.** The present 12-file working tree remains unstaged and uncommitted.').length > 0 &&
     currentGitLifecycleProblems(
       LIFECYCLE_OK.replace('neither 43627cf nor this authority-only follow-up is deployed', '43627cf is deployed')).length > 0 &&
     currentGitLifecycleProblems(
@@ -7272,9 +7352,11 @@ function runDocsCurrentGate() {
     ok('docs/new-session-grounding-prompts.md exposes exactly one Codex and one Claude prompt block',
       livePrompts !== null);
     ok('the reusable Codex grounding prompt carries the current M12.P1 authority',
-      livePrompts !== null && reusablePromptIsCurrent(livePrompts.codex));
+      livePrompts !== null && reusablePromptIsCurrent(livePrompts.codex) &&
+      reusableCodexPromptHasReviewBoundary(livePrompts.codex));
     ok('the reusable Claude grounding prompt carries the current M12.P1 authority',
-      livePrompts !== null && reusablePromptIsCurrent(livePrompts.claude));
+      livePrompts !== null && reusablePromptIsCurrent(livePrompts.claude) &&
+      reusableClaudePromptHasWaitBoundary(livePrompts.claude));
     ok('docs/new-session-grounding-prompts.md records an Asia/Manila last-updated date',
       /^Last updated:\s*\d{4}-\d{2}-\d{2}\s*\(Asia\/Manila\)\s*$/m.test(promptsDoc));
 
@@ -7292,8 +7374,8 @@ function runDocsCurrentGate() {
       'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
       'The Guided-VR runtime/catalog remediation is committed and pushed as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b; local HEAD and origin/main matched it at the first integrated R8 review. Production remains on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356; neither 43627cf nor this authority-only follow-up is deployed. ' +
-      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. Independent commit-readiness review remains open. ' +
-      'The required sequence is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. This context-only prompt authorizes none of those actions. ' +
+      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
+      'The required lifecycle is independent commit-readiness review -> local commit -> separately authorized push -> clean-commit R8 re-review -> separate owner deployment decision -> pilot review -> OFF.2-OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout. This context-only prompt authorizes none of those actions. ' +
       'M12.P1 remains NO-GO for deployment and pilot readiness; deployment is not authorized. ' +
       'Production at https://campusphere-cspc.vercel.app is on deployed runtime baseline 0627bf78228148e3f989275810c333c16a1f3356. ' +
       'The preceding evidence commit bbb25d0dee5917e4704da35784421c840f825afb is not the deployed runtime.';
@@ -7366,12 +7448,35 @@ function runDocsCurrentGate() {
       reusablePromptIsCurrent(WRONG_BASELINE_BODY) === false &&
       reusablePromptsAreCurrent(buildDoc(WRONG_BASELINE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, WRONG_BASELINE_BODY)) === false);
-    ok('fixture: reusable prompts reject completed-verification pending wording and stale session-remediation sequencing',
+    const CODEX_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding plus final independent read-only R8 review. Load and follow the installed code-reviewer skill. ' +
+      'Expected paths: ' + EXPECTED_HANDOFF_CANDIDATE_PATHS.join(', ') + '. Compute the current 11-file manifest from sorted path + NUL + per-file SHA-256 + LF records. ' +
+      'Then perform one independent read-only review of the exact live candidate. Do not rerun tests. Return findings ordered by severity and an R8 GO/NO-GO. ' +
+      'An R8 GO may authorize only a later separate owner decision. Do not infer that offline mode, deployment, or pilot work is automatically next.';
+    const CLAUDE_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation. ' +
+      'Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review. After the grounding report, stop and wait for the owner. ' +
+      'Do not infer that offline mode, deployment, or pilot work is automatically next.';
+    ok('fixture: reusable prompts reject completed-verification pending wording and stale session/remediation/role sequencing',
       reusablePromptIsCurrent(CURRENT_BODY.replace(
         'Final ordered postconditions are 24/24 -> 18/18 -> 46/46.',
         'Final ordered postconditions remain pending.')) === false &&
       reusablePromptIsCurrent(CURRENT_BODY +
-        ' The next boundary is owner-directed resolution of session-residue findings.') === false);
+        ' The next boundary is owner-directed resolution of session-residue findings.') === false &&
+      reusablePromptIsCurrent(CURRENT_BODY.replace(
+        'The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events.',
+        'The independent commit-readiness review remains open.')) === false &&
+      reusablePromptIsCurrent(CURRENT_BODY +
+        ' The next boundary is an open independent commit-readiness review.') === false &&
+      reusablePromptIsCurrent(CURRENT_BODY +
+        ' The independent review is still required.') === false &&
+      reusablePromptIsCurrent(CURRENT_BODY +
+        ' The new independent review remains pending.') === false &&
+      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK) === true &&
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK) === true &&
+      reusableCodexPromptHasReviewBoundary(CLAUDE_ROLE_OK) === false &&
+      reusableClaudePromptHasWaitBoundary(CODEX_ROLE_OK) === false &&
+      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK.replace('Do not rerun tests.', 'Run npm test.')) === false &&
+      reusableCodexPromptHasReviewBoundary(CODEX_ROLE_OK.replace('AGENTS.md, ', '')) === false &&
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK.replace('stop and wait for the owner', 'begin offline implementation')) === false);
     ok('fixture: a stale Codex prompt body fails (direct + inverse + qualified R5-next)',
       reusablePromptsAreCurrent(buildDoc(STALE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY + ' The next implementation section is R5.', CURRENT_BODY)) === false &&
@@ -7531,7 +7636,7 @@ function runDocsCurrentGate() {
       analyzeSecurityChecklistPackageBoundaryRow(sc, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
     ok('docs/test-evidence.md exposes exactly one current candidate package inventory row with the pinned figures',
       analyzeCurrentPackageInventoryRow(te, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
-    ok('docs/test-evidence.md exposes exactly one current full-suite correction-candidate row',
+    ok('docs/test-evidence.md exposes exactly one current full-suite evidence-snapshot row',
       analyzeCurrentCandidateSuiteRow(te).length === 0);
     ok('current npm-test and full-QA dispositions bind one exact pinned total across both evidence documents',
       analyzeExactCurrentQualityTotals(te, sc, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);

@@ -85,7 +85,7 @@ defense evidence. Record pass/fail and sanitized notes only.
   carried a transcript-faithful nine-failure account and a duplicate lower-count
   account in current authority. The correction removes that duplicate and adds
   a cross-document analyzer with accepting/rejecting fixtures. Runtime and data
-  are unchanged; independent review remains open.
+  are unchanged; the latest external review report controls its disposition.
 - The correction's first verification is historical/rejected at `4640/4641`:
   one combined documentation assertion failed because the analyzer stopped at
   the first 4,628 mention. Runtime probes and embedded `18/18` residue were
@@ -118,8 +118,8 @@ defense evidence. Record pass/fail and sanitized notes only.
   role; one supported `revokeUserSessions()` call restored the count to zero.
   No direct session-row delete, account/application-data change, or broad
   cleanup occurred. The wrapper timeout and bounded red rerun remain
-  historical/rejected. Independent commit-readiness review of this bounded
-  authority follow-up remains open.
+  historical/rejected. Live Git and the latest external review report control
+  the bounded authority follow-up's commit/push/R8 disposition.
 - The first authority-follow-up execution is historical/rejected at
   `4635/4641`: six static lifecycle/documentation checks failed, while all
   runtime, database, catalog, BE.6, and embedded residue probes were green,
@@ -131,9 +131,67 @@ defense evidence. Record pass/fail and sanitized notes only.
   `npm test` `4641/4641` with `QUALITY-GATES OK`, five-stage QA at the same
   contract total, and final `24/24 -> 18/18 -> 46/46`. It returned R8 NO-GO
   solely for stale operative Git-lifecycle wording and found no separate
-  runtime, security, database, or package blocker. Required order is
+  runtime, security, database, or package blocker. Required lifecycle is
   independent commit-readiness review -> local commit -> separately authorized
   push -> clean-commit R8 re-review.
+- The first verification of this state-neutral lifecycle correction is
+  historical/rejected at `4639/4641`: one combined lifecycle/history assertion
+  still detected self-expiring review claims outside the primary current blocks,
+  and one evidence-row classifier required the obsolete word `candidate`.
+  Runtime, database, Guided-VR, BE.6, and embedded `18/18` residue checks were
+  green. Those static contracts were corrected; the definitive rerun passed
+  `4641/4641` with `QUALITY-GATES OK`, the five-stage QA rerun was green at the
+  same total, and final postconditions were `24/24 -> 18/18 -> 46/46`. No session
+  or data correction was required.
+- The independent read-only review of exact 11-file manifest SHA-256
+  `4d37507071089be4f6ce92404465a28334f9a03dbad82d02dfde2b013c3183ad`
+  returned R8 NO-GO solely for self-expiring lifecycle authority in the current
+  reusable Claude prompt and incomplete lifecycle-matcher coverage. The bounded
+  correction makes both current prompts state-neutral and adds lifecycle
+  rejection fixtures to the existing reusable-prompt assertion. It changes no
+  runtime, data, session, or package bytes.
+- Its first verification execution is historical/rejected at `4640/4641`:
+  the new negative-fixture group exposed that the analyzer rejected qualified
+  review phrases but not the generic `independent review` equivalent. All
+  application, backend, Guided-VR, BE.6, and final embedded residue checks were
+  green. The matcher now rejects both forms; no runtime, data, session, or
+  package correction was required.
+- The first verification of the exact original-phrase coverage is
+  historical/rejected at `4639/4641`: the reverse-order matcher was initially
+  too broad and treated clearly historical `pending`/`required` review prose as
+  operative. Every executed runtime/backend probe and the final embedded
+  `18/18` residue gate were green. The matcher is now confined to the original
+  `open independent ... review` word order plus the already covered forward
+  forms; no runtime, data, session, or package correction was required.
+- The subsequent independent read-only review of exact 11-file manifest
+  SHA-256 `c4a4c2b5bd592c00126f06736e8f8587d0de3dde189b506177bd764fddf3a192`
+  returned R8 NO-GO solely for the uncovered exact open-before-review phrase;
+  it found no other blocker. The narrowed correction passed `npm test`
+  `4641/4641`, full five-stage QA, and final `24/24 -> 18/18 -> 46/46`.
+  Its verified pre-handoff manifest was
+  `bd9a68ea8b7d2094d9fad54b561ed773852e30686646fcb446e9a3febfba2499`.
+  That hash is predecessor evidence, not a pin for the later handoff bytes;
+  live Git and a fresh manifest control the new candidate.
+- The first full verification of the fresh-session handoff synchronization is
+  historical/rejected at `4638/4641`: three static documentation checks failed
+  because the new manifest values were not all presented with the analyzer's
+  explicit `SHA-256` label and both reusable prompts omitted the literal
+  deployment-authorization denial required by the current prompt contract.
+  All executed runtime/backend probes and the final embedded `18/18` residue
+  gate were green. The labels and prompt denials are corrected; no runtime,
+  database, session, package, or vendor correction was required.
+- A subsequent full-suite attempt is historical/rejected because the temporary
+  server for `publicRoadRouteRendering-probe.js` did not become ready on its
+  dedicated port. All earlier checks in that run and the final embedded
+  `18/18` residue gate were green; no listener or CampuSphere Node process
+  remained. The focused probe then passed immediately in both runtime modes.
+  No repository, database, session, package, or vendor correction was required
+  for that transient harness-start failure.
+- Fresh-session authority is role-specific: Codex grounds and performs one
+  final independent read-only R8 review of the exact live 11-file candidate;
+  Claude Code grounds only and then waits. Neither prompt authorizes edits,
+  tests, Git mutation, deployment, pilot, offline implementation, or Milestone
+  12 GO. After R8, the owner separately chooses the next workstream.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
@@ -186,9 +244,9 @@ wrapper-only overmatches caused no application failure or retry. That `3777`
 figure is a transcript-wide PASS-line reconciliation across parent and inherited
 spawned-probe stdout, not an in-process `makeRecorder` counter.
 
-This byte-consistent result is current candidate evidence only and remains
-unaccepted; independent read-only review remains required. No R8, SEC-51,
-deployment, pilot, or Milestone 12 GO is current.
+This byte-consistent result was candidate evidence at that historical point;
+its disposition is preserved by the corresponding external review. No current
+R8, SEC-51, deployment, pilot, or Milestone 12 GO follows from that record.
 
 Accepted readiness evidence remains explicit. The dependency-security
 remediation is complete and Codex GO: a subsequent 2026-07-26 advisory drift
@@ -314,8 +372,8 @@ disposition are retained as history.
 `0627bf78228148e3f989275810c333c16a1f3356`. The preceding evidence
 synchronization at `bbb25d0dee5917e4704da35784421c840f825afb` is not the deployed
 runtime. The Guided-VR runtime/catalog remediation is commit `43627cf`, pushed
-to origin/main and not deployed; this authority-only follow-up is also not
-deployed and still requires independent commit-readiness review.
+to origin/main and not deployed. The authority follow-up's later Git and review
+disposition must be read from live Git and the latest external review report.
 
 **SEC-52 — pilot-surface correction (deployed and independently accepted under
 SEC-51).** Three findings were raised against the pilot surface and
@@ -345,7 +403,7 @@ unchanged. No Milestone 12 GO is claimed.
 
 | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- |
-| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **4641/4641 PASS — rejected-run authority-consistency correction candidate; exit 0** | Fresh standalone transcript count: exactly 4,641 `[PASS]` lines and `QUALITY-GATES OK`; zero failed assertions; independent review remains open |
+| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **4641/4641 PASS — authority-consistency evidence snapshot; exit 0** | Fresh standalone transcript count: exactly 4,641 `[PASS]` lines and `QUALITY-GATES OK`; zero failed assertions; live Git and the latest external review report control the later disposition |
 | `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **72/72 current candidate**; accepted R7 history remains **71/71** (and **70/70** before the literal-NUL remediation) — standalone, never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
 | Local authenticated exposure matrix (clean bounded re-execution) | Browser-driven in both runtime modes, one bounded server per backend on its own free port | Every scenario in SEC-49 passes with a separate fresh browser context per role and no unsupported cleanup | **126/126 PASS — MySQL 34/34 + 14/14 supplement; Supabase 64/64 + 14/14 supplement; zero failures** | Each role context proved zero carried-over cookies and zero carried-over web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once via `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429`; no retried logout; `services/sessionRevocation.js` never imported or called; no direct session-row deletion and no database cleanup. Final ordered postconditions `24/24 -> 18/18 -> 46/46` |
 | Local authenticated exposure matrix, first execution — historical/superseded | Browser-driven in both runtime modes | Same scenario set | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Retained so the defect is not erased. Repeated runs exhausted the in-memory `preParseAuthLimiter` budget; the run started receiving `429` with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY rather than through the supported logout interface. Direct revocation falls outside the supported-interface rule this evidence class depends on, so the run is not accepted on its numbers. Superseded by the clean bounded re-execution above |
@@ -354,4 +412,4 @@ unchanged. No Milestone 12 GO is claimed.
 | `node scripts/boundedAnonymousAccessDenial-probe.js` | Zero audit rows from anonymous denials (authoritative global total AND filtered count both flat); exactly one authenticated role-denial row; exactly one login-failure row, in both backends | PASS | **90/90** — standalone (M12.P1-R5), never counted in the `npm test` total; accepted Codex GO |
 | `npm run qa:identity` | Identity/profile uniqueness enforced | PASS | `IDENTITY-CONSTRAINTS OK`, exit 0: no duplicate non-null `(oauth_provider, oauth_subject)` groups, and duplicate `student_profiles` / `instructor_profiles` / `guest_profiles` `user_id` rows are rejected |
 | `npm run qa:audit` | 0 production dependency vulnerabilities | PASS | Accepted compatible remediation, 2026-07-22; subsequent 2026-07-26 advisory drift remediated with exact `ejs@6.0.1` and the `jake/filelist/minimatch/brace-expansion` chain absent |
-| `npm run qa` | Aggregate security and smoke gates pass | **4641/4641 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the superseded scorer-only exit 97 required nonexistent `SUPABASE-SMOKE OK` even though the inner command exited 0; the later 20-minute standalone-suite wrapper timeout is historical/rejected; independent review remains open |
+| `npm run qa` | Aggregate security and smoke gates pass | **4641/4641 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the superseded scorer-only exit 97 required nonexistent `SUPABASE-SMOKE OK` even though the inner command exited 0; the later 20-minute standalone-suite wrapper timeout is historical/rejected; live Git and the latest external review report control the later disposition |

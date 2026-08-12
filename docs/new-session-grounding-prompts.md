@@ -2,9 +2,12 @@
 
 Last updated: 2026-08-12 (Asia/Manila)
 
-The first two sections are the only current copy-paste prompts. They authorize
-repository reads and status reconciliation only. Earlier prompts remain below
-under historical headings and must not be used as current authority.
+The first two sections are the only current copy-paste prompts. The Codex
+prompt authorizes one final independent read-only R8 review after grounding;
+the Claude Code prompt authorizes grounding only and then waits. Neither prompt
+authorizes implementation, Git mutation, deployment, pilot work, or the next
+product workstream. Earlier prompts remain below under historical headings and
+must not be used as current authority.
 
 ## Codex Grounding Prompt
 
@@ -14,8 +17,8 @@ Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
 You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
 handoff owner, and delivery coordinator.
 
-This is a fresh context-only grounding session that does not authorize
-implementation. Change nothing. Do not edit,
+This is a fresh context-only grounding plus final independent read-only R8
+review. It does not authorize implementation. Change nothing. Do not edit,
 format, create, delete, move, stage, commit, amend, stash, reset, clean, tag,
 push, deploy, link Vercel, apply SQL, access or mutate either database, invoke
 Cloudinary/Upstash management APIs, clear sessions, create migration 0020,
@@ -129,23 +132,24 @@ wins:
   contradictory SEC-37 package evidence, obsolete OFF.3 catalog scope, and
   premature pilot sequencing. The bounded follow-up pins the ordered hash,
   expands rejection coverage, validates the package claim, and restores the
-  review-to-pilot authorization order. The prior manifest is historical; the
-  corrected bytes still require another independent read-only review.
+  review-to-pilot authorization order. The prior manifest and its then-required
+  independent review are historical; the corresponding external report controls
+  the corrected bytes' disposition.
 - The next independent read-only review of exact 33-file manifest SHA-256
   2f78d9754094572ac2b6a2bec02786d66b35a651141cd8c0f5705ac85d1282a8
   returned commit-readiness NO-GO because the exact package pin was not enforced
   live, obsolete handoff policy was not isolated from current authority, and
-  current dates were stale. This bounded correction adds independent live pins,
+  current dates were stale. This bounded correction added independent live pins,
   byte-drift/authority/date fixtures, and explicit historical boundaries. It
-  changes no runtime or data and still requires independent read-only review.
+  changed no runtime or data; that candidate's later disposition is historical.
 - The independent read-only review of exact 34-file manifest SHA-256
   ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4
   returned commit-readiness NO-GO because six current-authority documents
   repeated the rejected 4,628-PASS retry with an incorrect lower failure count
   after recording the transcript-faithful nine wording failures plus residue.
-  The bounded correction removes the duplicate account and adds a
-  cross-document analyzer with accepting/rejecting fixtures. It changes no
-  runtime or data and still requires independent read-only review.
+  The bounded correction removed the duplicate account and added a
+  cross-document analyzer with accepting/rejecting fixtures. It changed no
+  runtime or data; the corresponding external report controls its disposition.
 - The first verification of that correction is historical/rejected at
   4640/4641: one documentation assertion failed because the analyzer stopped at
   the evidence ledger's first 4,628 mention. Runtime probes and embedded 18/18
@@ -191,30 +195,102 @@ wins:
   review of clean commit 43627cf reverified the package pin, 4641/4641 test,
   five-stage QA, and 24/24 -> 18/18 -> 46/46, but returned R8 NO-GO solely for
   stale operative Git-lifecycle wording. It found no separate runtime,
-  security, database, or package blocker. Independent commit-readiness review
-  of the bounded authority follow-up remains open. Human pilot/Form responses,
+  security, database, or package blocker. The authority follow-up's commit,
+  push, and R8 disposition are established only by live Git and the latest
+  external review report. Human pilot/Form responses,
   OFF.2-OFF.6, and final Milestone 12 GO
   remain open.
+  The first verification of this state-neutral lifecycle correction is
+  historical/rejected at 4639/4641: one combined lifecycle/history assertion
+  still detected self-expiring review claims outside the primary current blocks,
+  and one evidence-row classifier required the obsolete word candidate. Runtime,
+  database, Guided-VR, BE.6, and embedded 18/18 residue checks were green. Those
+  static contracts were corrected; the definitive rerun passed 4641/4641 with
+  QUALITY-GATES OK, the five-stage QA rerun was green at the same total, and final
+  postconditions were 24/24 -> 18/18 -> 46/46. No session or data correction was
+  required.
+  The independent review of exact 11-file manifest
+  4d37507071089be4f6ce92404465a28334f9a03dbad82d02dfde2b013c3183ad returned
+  R8 NO-GO solely for self-expiring lifecycle authority in the current reusable
+  Claude prompt and incomplete lifecycle-matcher coverage. Its first correction run
+  is historical/rejected at 4640/4641 because the analyzer rejected qualified
+  review phrases but not the generic independent-review equivalent. All
+  application, backend, Guided-VR, BE.6, and final embedded residue checks were
+  green; the matcher now rejects both forms. The first exact original-phrase
+  verification is historical/rejected at 4639/4641 because its reverse-order
+  matcher was initially too broad and treated clearly historical
+  pending/required review prose as operative. Every executed runtime/backend
+  probe and the final embedded 18/18 residue gate were green. The matcher is now
+  confined to the original open-before-review word order plus the already
+  covered forward forms; no data or session correction was required. Live Git
+  and the latest external review report control the corrected bytes' disposition.
   URLs and secrets stay outside Git.
 
-The next boundary is independent commit-readiness review of the exact
-authority-follow-up candidate.
+The subsequent independent read-only review of exact 11-file manifest
+c4a4c2b5bd592c00126f06736e8f8587d0de3dde189b506177bd764fddf3a192 returned
+R8 NO-GO solely because the guard did not reject the exact original
+open-before-review phrase; it found no other blocker. The narrowed correction
+then passed npm test exactly 4641/4641 with QUALITY-GATES OK, full five-stage QA
+with all five exact markers, and final 24/24 -> 18/18 -> 46/46. Its verified
+pre-handoff manifest was
+bd9a68ea8b7d2094d9fad54b561ed773852e30686646fcb446e9a3febfba2499.
+That hash is predecessor evidence, not a pin for these later handoff bytes.
+
+The first full verification of these fresh-session handoff bytes is
+historical/rejected at 4638/4641: three static documentation checks failed
+because the new manifest values were not all presented with the analyzer's
+explicit SHA-256 label and both reusable prompts omitted the literal
+deployment-authorization denial required by the prompt contract. All executed
+runtime/backend probes and the final embedded 18/18 residue gate were green.
+The labels and prompt denials are corrected; no runtime, database, session,
+package, or vendor correction was required.
+
+A subsequent full-suite attempt is historical/rejected because the temporary
+server for publicRoadRouteRendering-probe.js did not become ready on its
+dedicated port. All earlier checks and the final embedded 18/18 residue gate
+were green; no listener or CampuSphere Node process remained. The focused probe
+then passed immediately in both runtime modes. No repository, database, session,
+package, or vendor correction was required for that transient harness-start
+failure.
+
+After grounding, fail closed unless live Git confirms branch main, local HEAD
+equals origin/main, the index is empty, exactly the expected 11 tracked paths
+are modified, no untracked or stashed files exist, and migrations remain
+exactly 0001-0019. The expected modified paths are AGENTS.md, CLAUDE.md,
+CLAUDE_HANDOFF.md, CODEX_HANDOFF.md, ROADMAP.md, docs/deployment.md,
+docs/new-session-grounding-prompts.md, docs/security-checklist.md,
+docs/test-evidence.md, plan.md, and scripts/quality-gates.js. Compute the
+current 11-file manifest from sorted
+path + NUL + per-file SHA-256 + LF records; never reuse an earlier manifest as
+the current value. Then perform one independent read-only review of the exact
+live candidate. Review security first, then correctness, package/evidence and
+authority consistency. Do not rerun tests: reconcile the recorded final
+4641/4641, five-stage QA, and 24/24 -> 18/18 -> 46/46 evidence against the exact
+diff. Return findings ordered by severity and an R8 GO/NO-GO. An R8 GO may
+authorize only a later separate owner decision; it is not deployment, pilot,
+offline-work, or Milestone 12 GO.
+
 Preserve one-writer control and the external backup. Never
 use direct SQL as an operational shortcut, run
 syncSelectedCasVrSupabaseToMysql.js --apply as cleanup, invent migration 0020,
 stage/commit/push/deploy before review, or claim a new GO from candidate evidence.
 
-The required sequence is independent commit-readiness review -> local commit ->
-separately authorized push -> clean-commit R8 re-review -> separate owner
-deployment decision. This context-only prompt authorizes none of those actions.
-M12.P1 remains NO-GO, and deployment is not authorized.
+The historical required sequence was independent commit-readiness review ->
+local commit -> separately authorized push -> clean-commit R8 re-review. Live
+Git establishes which earlier steps completed; this prompt authorizes only the
+final read-only R8 decision. After reporting that decision, stop and ask the
+owner which workstream to open next. Do not infer that offline mode, deployment,
+or pilot work is automatically next. M12.P1 remains NO-GO for deployment and
+pilot readiness unless a later separately authorized decision changes it.
+This context-only authority authorizes none of the implementation, Git mutation,
+deployment, pilot, offline-work, or Milestone 12 actions listed above.
+Deployment is not authorized by this prompt.
 
-Return only a grounding report with inspected files/capabilities; exact live
-Git/repository truth; separately classified accepted, rehearsal, historical,
-and open evidence; inconsistencies; safe backup/cutover gates; the exact next
-authorization boundary; and confirmation that nothing changed repository,
-process, database, vendor, OAuth, Cloudinary, Upstash, or deployment state.
-Do not claim a new GO. Stop after the report.
+Return inspected capabilities/files, exact live Git/manifest truth, evidence
+classification, findings ordered by severity, the R8 GO/NO-GO decision, the
+separate next owner-authorization boundary, and confirmation that nothing
+changed repository, process, database, vendor, OAuth, Cloudinary, Upstash, or
+deployment state. Stop after the review.
 ```
 
 ## Claude Code Grounding Prompt
@@ -253,9 +329,10 @@ filenames; and read-only Git branch/HEAD/origin/status/stashes/refs/recent graph
 
 Reconcile the same current facts listed in the Codex prompt above, including
 the committed/pushed `43627cf` runtime candidate, undeployed authority
-follow-up, first integrated R8 NO-GO disposition, open independent
-commit-readiness review, and required review -> commit -> push -> R8 re-review
-order. In particular: deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
+follow-up, first integrated R8 NO-GO disposition, and required review -> commit
+-> push -> R8 re-review order. Determine every later commit, push, and review
+disposition from live Git and the latest external review report. In particular:
+deployed Git commit 0627bf7; prior bbb25d0 and d422b54; accepted
 five-file evidence at 75/75, 3777/3777 plus QUALITY-GATES OK, five-stage QA,
 and 24/24 -> 18/18 -> 46/46; owner-observed Vercel identity; same-author review
 caveat; 31/31 anonymous smoke scope; automated rehearsal and its deviations;
@@ -304,14 +381,14 @@ prior 4609/4609, 4599/4599,
 initializer-order 615-pass stop, 4608/4609
 ROADMAP-wording failure, 4623/4624 reusable-prompt failure, and 4,512-pass QA
 attempt are historical/superseded or rejected. Independent review readiness is
-established, but review itself remains open.
-The independent review of exact 34-file manifest
+established; the latest external review report controls the later disposition.
+Historically, the independent review of exact 34-file manifest
 ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4 returned
 commit-readiness NO-GO because current authority repeated the rejected
 4,628-PASS retry with an incorrect lower failure count. The bounded correction
 removes that duplicate account and adds cross-document accepting/rejecting
-coverage; runtime and data remain unchanged, and a new independent review is
-still required.
+coverage; runtime and data remain unchanged. That record does not determine the
+current review boundary; live Git and the latest external review report do.
 The correction's first verification is historical/rejected at 4640/4641: the
 analyzer stopped at the first 4,628 evidence mention, so its one combined
 documentation assertion failed while runtime probes and embedded 18/18 residue
@@ -339,19 +416,75 @@ on deployed production baseline 0627bf78228148e3f989275810c333c16a1f3356; neithe
 read-only M12.P1-R8 review reverified the package pin, 4641/4641 test,
 five-stage QA, and 24/24 -> 18/18 -> 46/46, but returned R8 NO-GO solely for
 stale operative Git-lifecycle wording and found no separate runtime, security,
-database, or package blocker. Independent commit-readiness review remains open.
-The next boundary is independent
-commit-readiness review of the exact authority-follow-up manifest. The former
+database, or package blocker. The authority follow-up's commit, push, and R8
+disposition are established only by live Git and the latest external review
+report. Determine the exact next boundary from those sources. The former
 session-residue findings are closed and historical;
+The first verification of this state-neutral lifecycle correction is
+historical/rejected at 4639/4641: two static documentation checks failed while
+runtime, database, Guided-VR, BE.6, and embedded 18/18 residue checks were green.
+The corrected definitive rerun passed 4641/4641 with QUALITY-GATES OK,
+five-stage QA was green at the same total, and final postconditions were
+24/24 -> 18/18 -> 46/46. No session or data correction was required.
+The independent read-only review of exact 11-file manifest
+4d37507071089be4f6ce92404465a28334f9a03dbad82d02dfde2b013c3183ad returned
+R8 NO-GO solely because this current reusable Claude prompt retained
+self-expiring review claims and the Git-lifecycle analyzer did not cover their
+original open-before-review word order. This bounded correction makes both current prompts
+state-neutral and adds accepting/rejecting lifecycle fixtures to the existing
+assertion. Live Git and the latest external review report control its
+disposition.
+Its first verification execution is historical/rejected at 4640/4641: the new
+negative-fixture group exposed that the analyzer rejected qualified review
+phrases but not the generic independent-review equivalent. All application,
+backend, Guided-VR, BE.6, and final embedded residue checks were green. The
+matcher now rejects both forms; no runtime, database, session, or package
+correction was required.
+The first exact original-phrase verification is historical/rejected at
+4639/4641 because its reverse-order matcher was initially too broad and treated
+clearly historical pending/required review prose as operative. Every executed
+runtime/backend probe and the final embedded 18/18 residue gate were green. The
+matcher is now confined to the original open-before-review word order plus the
+already covered forward forms; no data or session correction was required.
+The subsequent independent read-only review of exact 11-file manifest
+c4a4c2b5bd592c00126f06736e8f8587d0de3dde189b506177bd764fddf3a192 returned
+R8 NO-GO solely for the uncovered exact original phrase and found no other
+blocker. The narrowed correction passed npm test exactly 4641/4641 with
+QUALITY-GATES OK, full five-stage QA, and final 24/24 -> 18/18 -> 46/46. Its
+verified pre-handoff manifest was
+bd9a68ea8b7d2094d9fad54b561ed773852e30686646fcb446e9a3febfba2499;
+that hash is predecessor evidence, not a pin for the later handoff bytes.
+The first full verification of these fresh-session handoff bytes is
+historical/rejected at 4638/4641: three static documentation checks failed
+because the new manifest values were not all presented with the analyzer's
+explicit SHA-256 label and both reusable prompts omitted the literal
+deployment-authorization denial required by the prompt contract. All executed
+runtime/backend probes and the final embedded 18/18 residue gate were green.
+The labels and prompt denials are corrected; no runtime, database, session,
+package, or vendor correction was required.
+A subsequent full-suite attempt is historical/rejected because the temporary
+server for publicRoadRouteRendering-probe.js did not become ready on its
+dedicated port. All earlier checks and the final embedded 18/18 residue gate
+were green; no listener or CampuSphere Node process remained. The focused probe
+then passed immediately in both runtime modes. No repository, database, session,
+package, or vendor correction was required for that transient harness-start
+failure.
 do not repeat cleanup. Preserve the backup and one-writer boundary. Never
 blanket-delete, use direct SQL, run syncSelectedCasVrSupabaseToMysql.js --apply
 as cleanup, create 0020 without a reviewed schema need, or stage/push/deploy
 before the separate review and owner decision.
 
-The required sequence is independent commit-readiness review -> local commit ->
-separately authorized push -> clean-commit R8 re-review -> separate owner
-deployment decision. This context-only prompt authorizes none of those actions.
-M12.P1 remains NO-GO, and deployment is not authorized.
+Determine the current candidate and every later lifecycle disposition from live
+Git rather than the historical sequence. Do not review, edit, test, implement,
+stage, commit, push, deploy, or perform an R8 review. M12.P1 remains NO-GO for deployment
+and pilot readiness. After the grounding report, stop and wait for the owner;
+do not infer that offline mode, deployment, or pilot work is automatically next.
+Deployment is not authorized by this prompt.
+The historical lifecycle order was independent commit-readiness review -> local
+commit -> separately authorized push -> clean-commit R8 re-review -> separate
+owner deployment decision. Live Git and the latest external review report
+determine which earlier steps completed. This context-only prompt authorizes
+none of those actions.
 
 Return only a grounding report: capabilities/files; exact verified truth versus
 recorded/owner-observed claims; evidence classes; inconsistencies; blockers and
