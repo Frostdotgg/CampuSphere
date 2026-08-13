@@ -7,12 +7,12 @@ Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Desti
 Supabase migrations are exactly `0001` through `0019`; migrations `0014` through `0019` are owner-applied and verified, and no `0020` exists. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 post-deployment authority).**
+**CURRENT STATUS (2026-08-13 post-pilot authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
-OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
-deferred until the limited human-pilot review, not cancelled, and remain
-mandatory before final Milestone 12 GO.
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
+limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
+remain open, not cancelled, and mandatory before final Milestone 12 GO.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -59,7 +59,14 @@ After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
 Future `main` pushes may create staged Production deployments, but
 they require an explicit later `Promote to Production` action before replacing
 the live alias. This control was confirmed from the saved dashboard state and
-was not tested with a dummy push. Historical/superseded: before this deployment,
+was not tested with a dummy push. The later documentation/static-assertion-only
+authority synchronization is committed and pushed as
+`db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+`main`, local HEAD, and origin/main all matched that commit with a clean index
+and worktree. Vercel built it as `Ready` / `Production` / `Staged`; custom-domain
+assignment was `Skipped`, it was not promoted or made `Current`, and
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remained on the live alias.
+Historical/superseded: before this deployment,
 Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
 verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
 accepted historical evidence.
@@ -304,14 +311,20 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
-tests, Git mutation, a new deployment or promotion, pilot activity, offline
-implementation, or Milestone 12 GO. The completed technical Production
-baseline acceptance does not select the next workstream.
+tests, Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, or Milestone 12 GO.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance.
 No new deployment or promotion is authorized by this status block; either
 action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
@@ -494,10 +507,12 @@ missing-library matrix green. Production dependency
 audit is zero after the compatible lockfile-only
 resolutions to `body-parser@2.3.0` and `brace-expansion@2.1.2`; `package.json`
 was unchanged. D6 remains the least-priority post-pilot implementation after
-OFF.2-OFF.5 and before OFF.6. The technical Production baseline is accepted,
-but any human pilot still requires separate owner authorization and exposes the
-full authenticated app. OFF.2-OFF.6 are deferred until pilot feedback review,
-not cancelled. The
+OFF.2-OFF.5 and before OFF.6. The technical Production baseline is accepted.
+The owner accepts the 2026-08-05 human pilot with zero reported findings;
+participant/Form evidence remains external and the tested build's full
+source-commit identity was not independently verified. Pilot review is complete
+for sequencing purposes. OFF.2 is next; OFF.2-OFF.6 remain open, not cancelled.
+The
 13-building roster remains editable selected-demo data, not a complete-campus
 claim; any post-freeze data change requires replacement evidence. Guided VR
 reports arrival only when the final available scene maps to the selected
@@ -520,9 +535,9 @@ Do not deploy or promote merely because this plan records the pilot exception.
 R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete; technical
 Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted,
 and future `main` deployments require manual promotion. M12.P1 remains NO-GO
-for pilot readiness and final acceptance. Human pilot evidence, OFF.2-OFF.6,
-offline work, D6, and final Milestone 12 GO remain open and require separate
-owner authorization.
+for final acceptance. Pilot review is complete by owner acceptance; OFF.2 is
+the next workstream. OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO
+remain open and require separate owner authorization.
 
 ## Sections
 
@@ -1057,7 +1072,7 @@ arrival.
 
 **OFF.2: Installability, Offline Shell, and Update Lifecycle**
 
-**Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
+**Status: NEXT WORKSTREAM — NOT AUTHORIZED BY THIS SYNCHRONIZATION.**
 
 The post-pilot implementation order is OFF.2, OFF.3, OFF.4, OFF.5,
 `M12.P1-D6`, then OFF.6. D6 remains a separate Claude prompt and Codex gate; it
@@ -1072,7 +1087,7 @@ Do not cache personalized EJS pages or weaken existing service-worker privacy bo
 
 **OFF.3: Privacy-Safe Public Data Availability**
 
-**Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
+**Status: OPEN — AFTER OFF.2 CODEX GO.**
 
 Make the frozen public building catalog, approved route data and road geometry, selected read-only room/facility schedules, and required VR metadata available offline through bounded, versioned caches.
 
@@ -1080,7 +1095,7 @@ Never cache authenticated HTML, admin APIs, user/profile responses, session iden
 
 **OFF.4: Offline Map and Destination Routing**
 
-**Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
+**Status: OPEN — AFTER OFF.3 CODEX GO.**
 
 Render the frozen campus destinations and their road-following routes while disconnected. The offline route line and steps must represent the same frozen graph path and must preserve clear unavailable states for anything not cached.
 
@@ -1088,7 +1103,7 @@ Use a bounded set of demo-critical map assets instead of attempting to mirror th
 
 **OFF.5: Offline Guided-VR Catalog and Free Roam State**
 
-**Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
+**Status: OPEN — AFTER OFF.4 CODEX GO.**
 
 Represent every configured active destination in the offline catalog. Cache
 only the owner-approved panoramas/assets selected by the explicit download
@@ -1105,7 +1120,7 @@ preserve truthful coverage-ended behavior for every incomplete cached chain.
 
 **OFF.6: Offline Feature, Privacy, and Final GO/NO-GO**
 
-**Status: DEFERRED UNTIL LIMITED-PILOT REVIEW.**
+**Status: OPEN — AFTER OFF.5 AND M12.P1-D6 CODEX GO.**
 
 Run the final offline acceptance matrix after an online warm-up and after a
 clean install. Test network loss, browser restart while offline, all 25 catalog
@@ -1122,20 +1137,19 @@ OFF.6 receives GO only when:
 - Online auth, sessions, CSRF, CSP, rate limits, Supabase/MySQL switches, Cloudinary delivery, schedules, routing, and admin behavior regressions remain green.
 - No probe rows, test users, temporary files, listeners, service-worker test state, or stray processes remain.
 
-OFF.6 Codex GO remains mandatory before final Milestone 12 GO. Under the
-owner-authorized exception below, a controlled online pilot may occur first,
-but it cannot be described as offline-ready or as final Milestone 12 signoff.
+OFF.6 Codex GO remains mandatory before final Milestone 12 GO. The completed
+owner-attested pilot cannot be described as offline-ready or as final Milestone
+12 signoff.
 
 ### M12.P1: Limited Vercel Routing-Focused Pilot Exception
 
-**Status: READ-ONLY AUDIT COMPLETE — CODEX NO-GO; REMEDIATION REQUIRED.**
+**Status: PILOT REVIEW COMPLETE — OWNER-ACCEPTED 2026-08-05; OFF.2 NEXT.**
 
-The limited pilot will deploy the entire currently reachable authenticated
-application. It is routing-focused by facilitation, not by a technical feature
-restriction: students and guests will be guided to evaluate building search,
-destination routing, route clarity, and usability, but other authenticated
-features remain reachable and therefore belong to the security/exposure audit.
-No anonymous browsing is introduced.
+The limited pilot exposed the entire then-reachable authenticated application.
+It was routing-focused by facilitation, not by a technical feature restriction:
+participants were guided to evaluate building search, destination routing,
+route clarity, and usability, while other authenticated features remained part
+of the reviewed security/exposure surface. No anonymous browsing was introduced.
 
 Before any deployment, Codex must review Vercel configuration, production
 environment variables, Supabase-only runtime operation, Supabase session
@@ -1152,12 +1166,17 @@ The findings above are transferred to the one-at-a-time remediation stream
 below. Passing the final readiness re-review authorizes only a separate owner
 decision to deploy the pilot; it does not itself perform deployment.
 
-Pilot feedback will be collected through an owner-created Google Form. No
-CampuSphere feedback table, mutation endpoint, or migration is introduced.
-After the pilot, consolidate student and guest findings and authorize
-corrections before resuming OFF.2 through OFF.6. The deferred real admin
-dashboard analytics repair in `M12.P1-D6` runs after OFF.5 and before the final
-OFF.6 acceptance gate.
+Pilot feedback was retained externally through the owner-created evidence path.
+No CampuSphere feedback table, mutation endpoint, or migration is introduced.
+The owner attests that the human pilot occurred on 2026-08-05 and accepts it
+with zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this disposition is owner-attested
+pilot acceptance rather than independent current-build verification. Pilot
+review is complete for sequencing purposes. OFF.2 is next but remains
+unauthorized by this synchronization. The deferred real admin dashboard
+analytics repair in `M12.P1-D6` runs after OFF.5 and before the final OFF.6
+acceptance gate.
 
 ### M12.P1-R: Limited-Pilot Readiness Remediation
 
@@ -1787,12 +1806,11 @@ authorization.
 
 **M12.P1-D6: Real Admin Dashboard Analytics**
 
-**Status: LOWEST PRIORITY — DEFERRED UNTIL STUDENT/GUEST PILOT REVIEW; RUN AFTER
-OFF.5 AND BEFORE OFF.6.**
+**Status: LOWEST PRIORITY — PILOT REVIEW COMPLETE; RUN AFTER OFF.5 AND BEFORE
+OFF.6.**
 
-The completed R8 lifecycle no longer blocks the limited participant pilot, but
-the pilot remains unopened pending a separate owner decision. Until D6 GO,
-hard-coded admin chart values are known
+The owner-accepted pilot review is complete. Until D6 GO, hard-coded admin
+chart values are known
 non-authoritative placeholders and must not be presented as pilot evidence,
 usage analytics, or decision data. Student and guest roles remain unable to
 access the admin dashboard.
@@ -1956,13 +1974,12 @@ Cloudinary operation.
 
 ### M12.P2: Final Vercel Demo/UAT Closeout
 
-**Status: BLOCKED BY `M12.P1-R8` GO, PILOT REVIEW, OFF.2–OFF.6, AND
-`M12.P1-D6` GO.**
+**Status: BLOCKED BY OFF.2–OFF.6 AND `M12.P1-D6` GO.**
 
-Final Milestone 12 GO requires the reviewed pilot findings to be resolved or
-formally accepted, D6 and OFF.2 through OFF.6 to receive Codex GO, and the final
-Vercel regression/security/deployment matrix to pass. Vercel remains the
-demo/UAT target; Docker remains the later full-deployment path.
+The owner has formally accepted the pilot with zero reported findings. Final
+Milestone 12 GO still requires D6 and OFF.2 through OFF.6 to receive Codex GO
+and the final Vercel regression/security/deployment matrix to pass. Vercel
+remains the demo/UAT target; Docker remains the later full-deployment path.
 
 ## Interfaces and Contracts
 
@@ -2083,9 +2100,11 @@ Do not implement or reintroduce:
   The final R8 lifecycle completed and technical Production baseline
   `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. Future `main`
   deployments require manual promotion and a separate owner decision.
-  Human pilot evidence remains open and requires separate authorization;
-  OFF.2 through OFF.6, offline work, and D6 remain mandatory before final
-  Milestone 12 GO.
+  The owner accepts the 2026-08-05 human pilot with zero reported findings;
+  external participant/Form evidence remains outside Git, and its full source-
+  commit identity was not independently verified. Pilot review is complete.
+  OFF.2 is next; OFF.2 through OFF.6, offline work, and D6 remain mandatory
+  before final Milestone 12 GO.
 - The owner reports that the primary administrator, demo instructor, sample
   student, and sample guest are retained as local-login regression identities;
   the previously deleted student and guest were recreated, so their numeric IDs
@@ -2118,7 +2137,7 @@ Do not implement or reintroduce:
   verification evidence; Cloudinary uploads remain owner-controlled.
 - Future Supabase migrations after owner-applied `0019` must use the next sequential number, remain unapplied until Codex review, and be applied only by the project owner.
 - The road-following routing repair, BE.5 parity/regression, BE.6 freeze, and
-  OFF.1 privacy/domain audit are complete and Codex GO. The owner-authorized
-  pilot exception permits controlled online testing before OFF.2–OFF.6, but
-  the remaining offline package is still required before final M12 signoff.
+  OFF.1 privacy/domain audit are complete and Codex GO. The owner-attested pilot
+  is accepted, but the remaining OFF.2–OFF.6 offline package is still required
+  before final M12 signoff.
 - Vercel demo support remains Milestone 12; Docker full deployment finalization remains Milestone 13.

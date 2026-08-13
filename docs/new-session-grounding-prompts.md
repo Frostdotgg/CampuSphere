@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-12 (Asia/Manila)
+Last updated: 2026-08-13 (Asia/Manila)
 
 The first two sections are the only current copy-paste prompts. Both authorize
 grounding only and then wait for the owner. Neither prompt authorizes review,
@@ -93,6 +93,12 @@ wins:
   disabled. Future main pushes may create staged Production deployments but
   require explicit manual promotion before replacing the live alias. This was
   not tested with a dummy push.
+- Documentation/static-assertion-only authority commit
+  db05b549807535840968bf28cdefac4154a6d59d is committed and pushed on main;
+  live Git confirmed local HEAD and origin/main matched with a clean index and
+  worktree. Owner-observed Vercel evidence showed it Ready, Production, Staged,
+  with custom-domain assignment Skipped. It was not promoted or made Current, and
+  fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias.
 - Historical/superseded: before fea3b2e became Current, Production served
   0627bf78228148e3f989275810c333c16a1f3356. Its 75/75, 3777/3777, five-stage
   QA, 24/24 -> 18/18 -> 46/46, anonymous 31/31, and same-author/self-review
@@ -203,9 +209,14 @@ wins:
   stale operative Git-lifecycle wording. It found no separate runtime,
   security, database, or package blocker. The authority follow-up's commit,
   push, and R8 disposition are established only by live Git and the latest
-  external review report. Human pilot/Form responses,
-  OFF.2-OFF.6, and final Milestone 12 GO
-  remain open.
+  external review report. The owner attests that a human pilot occurred on
+  2026-08-05 and accepts it with zero reported findings. Participant/Form
+  evidence remains external and no participant PII is recorded in Git. The
+  tested build's full source-commit identity was not independently verified, so
+  this is owner-attested pilot acceptance rather than independent current-build
+  verification. Pilot review is complete for sequencing purposes. OFF.2 is the
+  next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO
+  remain open and separately gated.
   The first verification of this state-neutral lifecycle correction is
   historical/rejected at 4639/4641: one combined lifecycle/history assertion
   still detected self-expiring review claims outside the primary current blocks,
@@ -264,14 +275,16 @@ Production baseline and identify any authority inconsistency. Do not perform a
 code review, compute a candidate manifest, rerun verification, or issue a new
 GO/NO-GO. Preserve one-writer control and the external backup. Never use direct
 SQL as an operational shortcut, run syncSelectedCasVrSupabaseToMysql.js --apply
-as cleanup, invent migration 0020, or infer that pilot, offline, or deployment
-work is next.
+as cleanup, invent migration 0020, or infer that OFF.2 implementation, another
+pilot, offline work, or deployment is authorized.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance. Pilot review is complete by owner
+acceptance. OFF.2 is next; OFF.2-OFF.6, offline work, D6, and final Milestone 12
+GO remain open.
 This context-only prompt authorizes none of implementation, review, testing,
-Git mutation, a new deployment or promotion, pilot activity, offline work, or
-Milestone 12 actions. Deployment is not authorized by this prompt.
+Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, offline work, or Milestone 12 actions. Deployment is not
+authorized by this prompt.
 
 Return only a grounding report: capabilities/files inspected, exact live Git
 truth versus recorded/owner-observed claims, evidence classes, inconsistencies,
@@ -413,7 +426,13 @@ files, 6,245,074 bytes, aggregate SHA-256
 b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4.
 Owner-observed Vercel settings now show Auto-assign Custom Production Domains
 disabled, so future main deployments require explicit manual promotion before
-replacing the live alias. Historical/superseded: Production previously served
+replacing the live alias. Documentation/static-assertion-only authority commit
+db05b549807535840968bf28cdefac4154a6d59d is committed and pushed on main;
+live Git confirmed local HEAD and origin/main matched with a clean index and
+worktree. Owner-observed Vercel evidence showed it Ready, Production, Staged,
+with custom-domain assignment Skipped. It was not promoted or made Current, and
+fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias.
+Historical/superseded: Production previously served
 0627bf78228148e3f989275810c333c16a1f3356. The first integrated read-only
 M12.P1-R8 review and its lifecycle corrections remain historical evidence. The
 former session-residue findings are closed and historical;
@@ -471,12 +490,19 @@ blanket-delete, use direct SQL, run syncSelectedCasVrSupabaseToMysql.js --apply
 as cleanup, create 0020 without a reviewed schema need, or stage/push/deploy
 without separate owner authorization.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Determine mutable Git truth live. Do not review, edit, test, implement, stage,
 commit, push, deploy, promote, or perform an R8 review. M12.P1 remains NO-GO for
-pilot readiness and final acceptance. Human pilot/Form responses, OFF.2-OFF.6,
-offline work, and final Milestone 12 GO remain open. After the grounding report,
-stop and wait for the owner; do not infer that offline mode, deployment, or
-pilot work is automatically next. Deployment is not authorized by this prompt.
+final acceptance. After the grounding report, stop and wait for the owner; do
+not infer that OFF.2 implementation, offline mode, deployment, or another pilot
+is authorized. Deployment is not authorized by this prompt.
 This context-only prompt authorizes none of those actions.
 
 Return only a grounding report: capabilities/files; exact verified truth versus

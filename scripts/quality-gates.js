@@ -4328,7 +4328,59 @@ function currentDeploymentAuthorityContradictionProblems(value) {
   return problems;
 }
 
-/** PURE: validate current Git/deployment/promotion authority. */
+/**
+ * PURE: validate the owner-attested pilot disposition without upgrading it to
+ * independently verified current-build evidence. Historical pilot-open claims
+ * remain allowed only when the same claim is explicitly historical and
+ * past-bounded.
+ * @returns {string[]} problems (empty = compliant)
+ */
+function currentPilotAuthorityProblems(value) {
+  const text = String(value == null ? '' : value);
+  const t = text.replace(/\s+/g, ' ').trim();
+  const problems = [];
+
+  if (!/\bhuman pilot\b[\s\S]{0,180}\b2026-08-05\b|\b2026-08-05\b[\s\S]{0,180}\bhuman pilot\b/i.test(t)) {
+    problems.push('owner-attested 2026-08-05 human pilot is missing');
+  }
+  if (!/(?:\bowner(?:-attested)?\b[\s\S]{0,100}\baccept(?:s|ed|ance)\b|\bOWNER-ACCEPTED\b)[\s\S]{0,160}\bzero reported findings\b/i.test(t)) {
+    problems.push('owner acceptance with zero reported findings is missing');
+  }
+  if (!/(?:Participant\/Form evidence|participant\/Form evidence|pilot evidence)[\s\S]{0,120}\b(?:remains?|retained)\s+external\b|\bevidence\b[\s\S]{0,100}\boutside Git\b/i.test(t)) {
+    problems.push('external pilot-evidence boundary is missing');
+  }
+  if (!/(?:tested build(?:'s)? full source-commit identity|full source-commit identity|tested build identity)[\s\S]{0,100}\bwas not independently verified\b/i.test(t)) {
+    problems.push('unverified pilot build-identity disclosure is missing');
+  }
+  if (!/\bpilot review\b[\s\S]{0,80}\bcomplete\b/i.test(t)) {
+    problems.push('pilot review is not complete for sequencing');
+  }
+  if (!/\bOFF\.2\b[\s\S]{0,60}\b(?:is\s+)?(?:the\s+)?next\b|\bnext workstream\b[\s\S]{0,40}\bOFF\.2\b/i.test(t)) {
+    problems.push('OFF.2 is not identified as the next workstream');
+  }
+  if (!/\bOFF\.2-OFF\.6\b/i.test(t) || !/\boffline work\b/i.test(t) ||
+      !/\bfinal Milestone 12\b/i.test(t)) {
+    problems.push('open OFF.2-OFF.6, offline, or final M12 boundary is missing');
+  }
+
+  const contradictoryRules = [
+    /\bhuman pilot(?: evidence|\/Form responses)?\b[^]{0,140}\bremains?\s+open\b/i,
+    /\bpilot(?: evaluation| review)?\b[^]{0,140}\bremains?\s+(?:unopened|open|pending|incomplete)\b/i,
+    /\bpilot review\b[^]{0,100}\b(?:is\s+not complete|has not completed|must still occur)\b/i,
+    /\b(?:tested build(?:'s)? full source-commit identity|full source-commit identity|tested build identity)\b[^]{0,100}\b(?:was|is)\s+independently verified\b/i,
+    /\b2026-08-05\b[^]{0,200}\bhuman pilot\b[^]{0,180}\b(?:reported|found)\s+(?:one|[1-9]\d*)\s+(?:problem|finding|issue)s?\b/i,
+  ];
+  for (const claim of splitEvidenceClaims(text)) {
+    if (CLAIM_HISTORY_RE.test(claim) && CLAIM_PAST_BOUND_RE.test(claim)) continue;
+    if (contradictoryRules.some((rule) => rule.test(claim))) {
+      problems.push('contradictory current pilot disposition remains');
+      break;
+    }
+  }
+  return problems;
+}
+
+/** PURE: validate current Git/deployment/promotion/pilot authority. */
 function currentGitLifecycleProblems(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   const problems = [];
@@ -4347,9 +4399,15 @@ function currentGitLifecycleProblems(value) {
       !/(?:future )?`?main`?[\s\S]{0,160}(?:manual promotion|Promote to Production)/i.test(t)) {
     problems.push('future main deployments are not bound to manual promotion');
   }
-  if (!/human pilot|pilot readiness/i.test(t) || !/OFF\.2-OFF\.6/i.test(t) ||
-      !/offline work|offline implementation/i.test(t) || !/final Milestone 12/i.test(t)) {
-    problems.push('remaining pilot, offline, OFF.2-OFF.6, or final M12 boundary is missing');
+  if (!t.includes(EXPECTED_CURRENT_AUTHORITY_COMMIT) ||
+      !/documentation\/static-assertion(?:-only)?(?: authority)? (?:synchronization|commit)[\s\S]{0,160}\b(?:committed and pushed|is committed and pushed)\b/i.test(t) ||
+      !/\bReady\b[\s\S]{0,80}\bProduction\b[\s\S]{0,80}\bStaged\b/i.test(t) ||
+      !/custom-domain assignment[\s\S]{0,60}\bSkipped\b/i.test(t) ||
+      !/(?:not promoted|was not promoted)[\s\S]{0,100}\b(?:not |made )?Current\b/i.test(t)) {
+    problems.push('pushed db05b54 staged/unpromoted authority is missing');
+  }
+  for (const problem of currentPilotAuthorityProblems(t)) {
+    problems.push(problem);
   }
   for (const problem of currentDeploymentAuthorityContradictionProblems(t)) {
     problems.push(problem);
@@ -4495,6 +4553,30 @@ function reusablePromptsAreCurrent(doc) {
   return reusablePromptIsCurrent(prompts.codex) && reusablePromptIsCurrent(prompts.claude);
 }
 
+/* A grounding prompt may identify OFF.2 as the next workstream without
+   authorizing it. Require either Claude's direct "do not infer" construction
+   or Codex's bounded "Never use direct SQL ... or infer" construction, and
+   reject an additive permission that would contradict an otherwise valid
+   denial. The two OFF.2 forms match the current prompt word orders; the older
+   state-neutral forms remain accepted for historical fixture coverage. */
+const REUSABLE_PROMPT_WAIT_DENIAL_RE =
+  /\b(?:do not infer that|never use direct SQL[\s\S]{0,400}\bor infer that) (?:OFF\.2 implementation, another pilot, offline work, or deployment is authorized|OFF\.2 implementation, offline mode, deployment, or another pilot is authorized|pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)\b/i;
+
+function reusablePromptHasExplicitWaitBoundary(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const denial = REUSABLE_PROMPT_WAIT_DENIAL_RE.exec(t);
+  if (!denial) return false;
+
+  const remainder = t.slice(0, denial.index) + t.slice(denial.index + denial[0].length);
+  const contradictoryRules = [
+    /\b(?:OFF\.2 implementation|another pilot|offline (?:work|mode)|deployment)\b[\s\S]{0,80}\b(?:is|are)\s+(?!not\b)(?:now\s+)?authorized\b/i,
+    /\b(?:this (?:context-only )?prompt\s+)?authorizes(?!\s+none\b)[\s\S]{0,80}\b(?:OFF\.2 implementation|another pilot|offline (?:work|mode)|deployment)\b/i,
+    /\b(?:begin|start|implement|execute)\s+OFF\.2(?:\s+implementation)?\b/i,
+    /\b(?:another pilot|offline (?:work|mode)|deployment)\b[\s\S]{0,60}\b(?:is|are)\s+(?:automatically\s+)?next\b/i,
+  ];
+  return !contradictoryRules.some((rule) => rule.test(remainder));
+}
+
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
@@ -4504,7 +4586,7 @@ function reusableCodexPromptHasWaitBoundary(body) {
     /Do not perform a code review/i.test(t) &&
     /Stop and wait for the owner/i.test(t) &&
     /Deployment is not authorized by this prompt/i.test(t) &&
-    /(?:do not )?infer that (?:pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)/i.test(t);
+    reusablePromptHasExplicitWaitBoundary(t);
 }
 
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
@@ -4515,7 +4597,7 @@ function reusableClaudePromptHasWaitBoundary(body) {
     /Do not review, edit, test, implement, stage, commit, push, deploy(?:, promote)?, or perform an R8 review/i.test(t) &&
     /After the grounding report, stop and wait for the owner/i.test(t) &&
     /Deployment is not authorized by this prompt/i.test(t) &&
-    /(?:do not )?infer that (?:pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)/i.test(t);
+    reusablePromptHasExplicitWaitBoundary(t);
 }
 
 /* The R7 execution prompt is SPENT: R7 later received independent Codex GO,
@@ -4799,8 +4881,14 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
   'authorized push automatically triggered production',
   'bounded anonymous read-only get-only post-deployment verification passed',
   'future main deployments require manual promotion',
-  'human pilot evidence remains open',
-  'separate owner authorization',
+  'db05b54',
+  'staged',
+  'human pilot occurred on 2026-08-05',
+  'owner accepts it with zero reported findings',
+  'participant/form evidence remains external',
+  'full source-commit identity was not independently verified',
+  'pilot review is complete',
+  'off.2 is next',
   'off.2-off.6',
   'offline work',
   'final milestone 12 go',
@@ -5000,8 +5088,8 @@ function analyzeDemoRoutingContract(md, expected) {
 
 /**
  * PURE: the facilitator's readiness section must preserve the accepted
- * Production result, manual-promotion control, and every remaining owner
- * authorization boundary without promoting the limited pilot as automatic.
+ * Production result, staged-authority commit, owner-attested pilot boundary,
+ * and the remaining OFF.2/final-acceptance sequence.
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeDemoReadinessSequence(md, expectedSteps) {
@@ -5021,6 +5109,12 @@ function analyzeDemoReadinessSequence(md, expectedSteps) {
   if (/m12\.p1\s+limited-pilot readiness is next/i.test(section)) {
     problems.push('limited-pilot readiness is incorrectly promoted as the immediate next step');
   }
+  if (/human pilot evidence remains open|pilot (?:evaluation|review) remains (?:unopened|open|pending)/i.test(section)) {
+    problems.push('readiness section retains a stale pilot-open disposition');
+  }
+  if (/(?:full source-commit identity|tested build identity)[^]{0,100}(?:was|is) independently verified/i.test(section)) {
+    problems.push('readiness section overstates the pilot build identity');
+  }
   return problems;
 }
 
@@ -5035,6 +5129,8 @@ function analyzeDemoReadinessSequence(md, expectedSteps) {
 const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
 const EXPECTED_SEC51_DEPLOYED_BASELINE =
   'fea3b2e11c6331eddc1ee091b165427d8e0218d7';
+const EXPECTED_CURRENT_AUTHORITY_COMMIT =
+  'db05b549807535840968bf28cdefac4154a6d59d';
 const EXPECTED_SEC51_PREVIOUS_BASELINE =
   '0627bf78228148e3f989275810c333c16a1f3356';
 const EXPECTED_SEC51_LEGACY_BASELINE =
@@ -6175,7 +6271,7 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-12';
+  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-13';
   /** PURE: all current authority surfaces must carry one synchronized date. */
   function currentCandidateDateProblems(sourceMap, expectedDate = EXPECTED_CURRENT_CANDIDATE_DATE) {
     const problems = [];
@@ -6208,16 +6304,16 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '**CURRENT STATUS (2026-08-12 candidate).**',
-    'CLAUDE.md': '**CURRENT STATUS (2026-08-12 candidate).**',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-12 (Asia/Manila)\n**CURRENT STATUS (2026-08-12 candidate).**',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-12 (Asia/Manila)\n**CURRENT STATUS (2026-08-12 candidate).**',
-    'plan.md': '**CURRENT STATUS (2026-08-12 candidate).**',
-    'ROADMAP.md': '**CURRENT STATUS (2026-08-12 candidate).**',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-12 (Asia/Manila)',
-    'docs/deployment.md': '## 2026-08-12 Current Production And Post-Deployment Status',
-    'docs/security-checklist.md': '## 2026-08-12 Current Security And Pilot Status',
-    'docs/test-evidence.md': '## 2026-08-12 Current Evidence Classification',
+    'AGENTS.md': '**CURRENT STATUS (2026-08-13 candidate).**',
+    'CLAUDE.md': '**CURRENT STATUS (2026-08-13 candidate).**',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-13 (Asia/Manila)\n**CURRENT STATUS (2026-08-13 candidate).**',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-13 (Asia/Manila)\n**CURRENT STATUS (2026-08-13 candidate).**',
+    'plan.md': '**CURRENT STATUS (2026-08-13 candidate).**',
+    'ROADMAP.md': '**CURRENT STATUS (2026-08-13 candidate).**',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-13 (Asia/Manila)',
+    'docs/deployment.md': '## 2026-08-13 Current Production And Post-Deployment Status',
+    'docs/security-checklist.md': '## 2026-08-13 Current Security And Pilot Status',
+    'docs/test-evidence.md': '## 2026-08-13 Current Evidence Classification',
   };
   ok('fixture: synchronized current dates are accepted and any single stale current date is rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -6618,8 +6714,9 @@ function runDocsCurrentGate() {
 
   /* ---- current M12.P1 authority consistency ----
      R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete. The
-     accepted technical Production baseline is deployed, while pilot readiness,
-     offline work, OFF.2-OFF.6, and final Milestone 12 acceptance remain open.
+     accepted technical Production baseline is deployed and pilot review is
+     owner-accepted, while offline work, OFF.2-OFF.6, and final Milestone 12
+     acceptance remain open.
 
      Each authority document carries one delimited CURRENT block. Validating
      only that block prevents historical candidate evidence and the future-state
@@ -6856,8 +6953,8 @@ function runDocsCurrentGate() {
   ];
   /* Canonical CURRENT authority: R1-R7, D1-D5, and expanded D7 are complete and
      Codex GO; the final R8 synchronization is the accepted technical Production
-     baseline; the authorized push auto-triggered Production; bounded anonymous
-     verification passed; and future main deployments require manual promotion. */
+     baseline; db05b54 is staged/unpromoted; the pilot is owner-accepted with an
+     unverified build-identity caveat; and OFF.2 is next but still gated. */
   const CANONICAL_R7_GO_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
     'M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
@@ -6870,7 +6967,8 @@ function runDocsCurrentGate() {
     'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
     'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production serves fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production baseline. ' +
     'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
-    'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. M12.P1 remains NO-GO for pilot readiness and final acceptance; deployment is not authorized by this synchronization.';
+    'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
+    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this synchronization.';
   /* Superseded states retained only as negative fixtures. */
   const SUPERSEDED_R7_CANDIDATE_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
@@ -7122,7 +7220,7 @@ function runDocsCurrentGate() {
       status !== null);
     ok(`${name} current status records R1-R7/D1-D5/D7 GO, accepted evidence, and completed Production lifecycle`,
       status !== null && declaresR7GoAuthority(status));
-    ok(`${name} current status keeps pilot/final acceptance at NO-GO and new deployment or promotion separately authorized`,
+    ok(`${name} current status keeps final acceptance at NO-GO and OFF.2/deployment/promotion separately authorized`,
       status !== null && keepsM12P1NoGo(status));
     ok(`${name} current status records the exact matrix and post-deployment Git/promotion lifecycle`,
       status !== null &&
@@ -7161,10 +7259,15 @@ function runDocsCurrentGate() {
     'The separately authorized push automatically triggered Vercel Production. ' +
     'Post-deployment verification passed within bounded anonymous read-only GET-only scope. ' +
     'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
-    'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. ' +
+    'The documentation/static-assertion-only authority synchronization ' + EXPECTED_CURRENT_AUTHORITY_COMMIT +
+    ' is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. ' +
+    'It was not promoted or made Current, and ' + EXPECTED_SEC51_DEPLOYED_BASELINE + ' remained on the live alias. ' +
+    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
+    'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
+    'Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. ' +
     'Historical/superseded: before this deployment, Production served ' +
     EXPECTED_SEC51_PREVIOUS_BASELINE + '.';
-  ok('fixture: verification and post-deployment lifecycle accept current authority and reject stale, missing, or contradictory authority',
+  ok('fixture: verification, staged authority, and pilot lifecycle accept current authority and reject stale, missing, or contradictory authority',
     currentCandidateVerificationProblems(
       'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Live Git and the latest external review report control the later commit/push/R8 disposition.',
       4641).length === 0 &&
@@ -7199,6 +7302,14 @@ function runDocsCurrentGate() {
       LIFECYCLE_OK + ' Auto-assign Custom Production Domains is enabled.').length > 0 &&
     currentGitLifecycleProblems(
       LIFECYCLE_OK + ' Future main deployments do not require manual promotion.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' Human pilot evidence remains open.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK + ' The tested build identity was independently verified.').length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK.replace('zero reported findings', 'one reported finding')).length > 0 &&
+    currentGitLifecycleProblems(
+      LIFECYCLE_OK.replace('It was not promoted or made Current', 'It was promoted and made Current')).length > 0 &&
     currentGitLifecycleProblems(
       LIFECYCLE_OK + ' Historical/superseded: before the setting change, Auto-assign Custom Production Domains was enabled.').length === 0);
   const REJECTED_HISTORY_OK =
@@ -7366,10 +7477,10 @@ function runDocsCurrentGate() {
       'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. ' +
       'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
-      'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
+      'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
       'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
-      'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. This context-only prompt authorizes none of those actions. ' +
-      'M12.P1 remains NO-GO for pilot readiness and final acceptance; deployment is not authorized by this prompt.';
+      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. This context-only prompt authorizes none of those actions. ' +
+      'M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this prompt.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
       'M12.P1-R6 is complete and Codex GO.',
@@ -7440,10 +7551,10 @@ function runDocsCurrentGate() {
       reusablePromptsAreCurrent(buildDoc(WRONG_BASELINE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY, WRONG_BASELINE_BODY)) === false);
     const CODEX_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation or review. Load and follow the installed code-reviewer skill. ' +
-      'Do not perform a code review. Stop and wait for the owner. Do not infer that offline mode, deployment, or pilot work is automatically next.';
+      'Do not perform a code review. Stop and wait for the owner. Never use direct SQL or infer that OFF.2 implementation, another pilot, offline work, or deployment is authorized.';
     const CLAUDE_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation. ' +
       'Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review. After the grounding report, stop and wait for the owner. ' +
-      'Do not infer that offline mode, deployment, or pilot work is automatically next.';
+      'Do not infer that OFF.2 implementation, offline mode, deployment, or another pilot is authorized.';
     ok('fixture: reusable prompts reject completed-verification pending wording and stale session/remediation/role sequencing',
       reusablePromptIsCurrent(CURRENT_BODY.replace(
         'Final ordered postconditions are 24/24 -> 18/18 -> 46/46.',
@@ -7465,7 +7576,13 @@ function runDocsCurrentGate() {
       reusableClaudePromptHasWaitBoundary(CODEX_ROLE_OK) === false &&
       reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK.replace('Do not perform a code review.', 'Perform a code review.')) === false &&
       reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK.replace('Stop and wait for the owner.', 'Continue to implementation.')) === false &&
-      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK.replace('stop and wait for the owner', 'begin offline implementation')) === false);
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK.replace('stop and wait for the owner', 'begin offline implementation')) === false &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK.replace('Never use direct SQL or infer that', 'Infer that')) === false &&
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK.replace('Do not infer that', 'Infer that')) === false &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK + ' OFF.2 implementation is authorized.') === false &&
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK + ' This prompt authorizes offline work.') === false &&
+      reusableCodexPromptHasWaitBoundary(CODEX_ROLE_OK + ' Begin OFF.2 implementation now.') === false &&
+      reusableClaudePromptHasWaitBoundary(CLAUDE_ROLE_OK + ' Deployment is automatically next.') === false);
     ok('fixture: a stale Codex prompt body fails (direct + inverse + qualified R5-next)',
       reusablePromptsAreCurrent(buildDoc(STALE_BODY, CURRENT_BODY)) === false &&
       reusablePromptsAreCurrent(buildDoc(CURRENT_BODY + ' The next implementation section is R5.', CURRENT_BODY)) === false &&
@@ -8055,7 +8172,12 @@ function runDocsCurrentGate() {
       'The separately authorized push automatically triggered Vercel Production. ' +
       'Post-deployment verification passed within bounded anonymous read-only GET-only scope. ' +
       'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
-      'Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open. ' +
+      'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. ' +
+      'Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. ' +
+      'It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
+      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
+      'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
+      'Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. ' +
       'Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
     const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was 0627bf78228148e3f989275810c333c16a1f3356.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',
@@ -8064,9 +8186,9 @@ function runDocsCurrentGate() {
         'Historical/superseded: production baseline 0627bf78228148e3f989275810c333c16a1f3356.') === false &&
       supersededBaselineAlwaysMarkedHistorical(
         'Production serves 0627bf78228148e3f989275810c333c16a1f3356 right now.') === false);
-    ok('fixture: prose naming the deployed baseline and manual-promotion boundary is accepted',
+    ok('fixture: prose naming the deployed baseline, staged authority, pilot acceptance, and manual-promotion boundary is accepted',
       recordsPostDeploymentAuthority(PROSE_OK) === true);
-    ok('fixture: post-deployment authority missing or contradicting the SHA, trigger, verification scope, or promotion control is rejected',
+    ok('fixture: post-deployment authority missing or contradicting the SHA, staged state, pilot, trigger, verification, or promotion control is rejected',
       recordsPostDeploymentAuthority(
         PROSE_OK.replace('fea3b2e11c6331eddc1ee091b165427d8e0218d7', 'baseline-redacted')) === false &&
       recordsPostDeploymentAuthority(
@@ -8082,7 +8204,13 @@ function runDocsCurrentGate() {
       recordsPostDeploymentAuthority(
         PROSE_OK + ' Auto-assign Custom Production Domains is enabled.') === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK + ' Future main deployments automatically replace the live alias.') === false);
+        PROSE_OK + ' Future main deployments automatically replace the live alias.') === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK.replace('db05b549807535840968bf28cdefac4154a6d59d', 'authority-commit-redacted')) === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' Human pilot evidence remains open.') === false &&
+      recordsPostDeploymentAuthority(
+        PROSE_OK + ' The tested build identity was independently verified.') === false);
     ok('fixture: each stale undeployed pilot-surface claim is rejected',
       declaresStalePilotSurfaceDeploymentClaim(
         'The SEC-51 pilot-surface correction is not deployed.') === true &&

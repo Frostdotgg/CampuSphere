@@ -143,12 +143,12 @@ caching remains available, and browser Back/reload after logout cannot replay
 the authenticated map or retain CampuSphere dynamic caches/catalog records.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 post-deployment authority).**
+**CURRENT STATUS (2026-08-13 post-pilot authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
-OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
-deferred until the limited human-pilot review, not cancelled, and remain
-mandatory before final Milestone 12 GO.
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
+limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
+remain open, not cancelled, and mandatory before final Milestone 12 GO.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -195,7 +195,14 @@ After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
 Future `main` pushes may create staged Production deployments, but
 they require an explicit later `Promote to Production` action before replacing
 the live alias. This control was confirmed from the saved dashboard state and
-was not tested with a dummy push. Historical/superseded: before this deployment,
+was not tested with a dummy push. The later documentation/static-assertion-only
+authority synchronization is committed and pushed as
+`db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+`main`, local HEAD, and origin/main all matched that commit with a clean index
+and worktree. Vercel built it as `Ready` / `Production` / `Staged`; custom-domain
+assignment was `Skipped`, it was not promoted or made `Current`, and
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remained on the live alias.
+Historical/superseded: before this deployment,
 Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
 verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
 accepted historical evidence.
@@ -440,14 +447,20 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
-tests, Git mutation, a new deployment or promotion, pilot activity, offline
-implementation, or Milestone 12 GO. The completed technical Production
-baseline acceptance does not select the next workstream.
+tests, Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, or Milestone 12 GO.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance.
 No new deployment or promotion is authorized by this status block; either
 action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
@@ -674,17 +687,19 @@ owner-authorized supported cleanup/restoration was performed and independently
 reproduced, and the R6 session re-verified safety `24/24`, residue `18/18`, and
 BE.6 `46/46` before editing and again after its full-suite run.
 
-The eventual pilot exposes the full authenticated application while
-facilitators guide students and guests to evaluate routing. Feedback uses an
-owner-created Google Form; no CampuSphere feedback table, API mutation, or
-migration is added. OFF.2 through OFF.6 resume after pilot review and remain
-mandatory before final Milestone 12 GO. D6 remains the lowest-priority item and
-runs post-pilot after OFF.2-OFF.5 and before OFF.6.
+The owner attests that the human pilot occurred on 2026-08-05 and accepts it
+with zero reported findings. Participant/Form evidence remains external, no
+participant PII is recorded in Git, and the tested build's full source-commit
+identity was not independently verified. Pilot review is complete for
+sequencing purposes. No CampuSphere feedback table, API mutation, or migration
+is added. OFF.2 is next; OFF.2 through OFF.6 remain open and mandatory before
+final Milestone 12 GO. D6 remains the lowest-priority item and runs after
+OFF.2-OFF.5 and before OFF.6.
 
-### Deferred Offline Campus Navigation Package
+### Open Offline Campus Navigation Package
 
-The following work is deferred, not cancelled. It must resume after the
-limited-pilot findings are reviewed.
+The following work is open, not cancelled. Pilot review is complete; OFF.2 is
+the next workstream but still requires a separate implementation authorization.
 
 **OFF.2 — Installability, Offline Shell, and Update Lifecycle**
 
@@ -742,7 +757,10 @@ Status: technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. Its authorized push
 automatically triggered Production, bounded anonymous read-only GET-only
 post-deployment verification passed, and future `main` deployments require
-manual promotion. Human pilot evidence and final M12 acceptance remain open.
+manual promotion. The owner accepts the 2026-08-05 human pilot with zero
+reported findings; its external evidence remains outside Git and its full
+source-commit identity was not independently verified. Pilot review is complete.
+Final M12 acceptance remains open.
 
 - The completed audit covered the entire exposed authenticated surface, Vercel
   configuration, Supabase-only data operation, Supabase sessions, OAuth
@@ -820,17 +838,18 @@ manual promotion. Human pilot evidence and final M12 acceptance remain open.
 - The final R8 lifecycle completed. Vercel `Auto-assign Custom Production
   Domains` is disabled; a future `main` deployment cannot replace the live alias
   without explicit manual promotion and a separate owner decision.
-- The full authenticated app is technically deployed, but facilitated
-  student/guest pilot evaluation remains unopened pending separate owner
-  authorization. No anonymous browsing is added.
-- Collect feedback through the owner-created Google Form; add no feedback
-  table, API mutation, or migration.
-- Classify and review pilot findings before OFF.2-OFF.6 resume. Offline work and
-  final Milestone 12 GO remain open.
+- The owner-attested human pilot occurred on 2026-08-05 and is accepted with
+  zero reported findings. Participant/Form evidence remains external and no
+  participant PII is recorded in Git. Its tested build identity was not
+  independently verified, so this is not independent current-build evidence.
+- Pilot review is complete for sequencing purposes. OFF.2 is the next
+  separately authorized workstream; add no feedback table, API mutation, or
+  migration. No anonymous browsing is added.
+- OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open.
 
 #### M12.P2 — Final Demo/UAT Closeout
 
-Status: blocked by pilot review and OFF.2–OFF.6.
+Status: pilot review complete; blocked by OFF.2–OFF.6 and D6.
 
 Concrete tasks:
 

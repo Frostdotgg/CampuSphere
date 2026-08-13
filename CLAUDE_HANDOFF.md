@@ -1,16 +1,16 @@
 # CampuSphere Claude Continuity Handoff
 
-Last updated: 2026-08-12 (Asia/Manila)
+Last updated: 2026-08-13 (Asia/Manila)
 
 Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 post-deployment authority).**
+**CURRENT STATUS (2026-08-13 post-pilot authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
-OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
-deferred until the limited human-pilot review, not cancelled, and remain
-mandatory before final Milestone 12 GO.
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
+limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
+remain open, not cancelled, and mandatory before final Milestone 12 GO.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -57,7 +57,14 @@ After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
 Future `main` pushes may create staged Production deployments, but
 they require an explicit later `Promote to Production` action before replacing
 the live alias. This control was confirmed from the saved dashboard state and
-was not tested with a dummy push. Historical/superseded: before this deployment,
+was not tested with a dummy push. The later documentation/static-assertion-only
+authority synchronization is committed and pushed as
+`db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+`main`, local HEAD, and origin/main all matched that commit with a clean index
+and worktree. Vercel built it as `Ready` / `Production` / `Staged`; custom-domain
+assignment was `Skipped`, it was not promoted or made `Current`, and
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remained on the live alias.
+Historical/superseded: before this deployment,
 Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
 verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
 accepted historical evidence.
@@ -302,14 +309,20 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
-tests, Git mutation, a new deployment or promotion, pilot activity, offline
-implementation, or Milestone 12 GO. The completed technical Production
-baseline acceptance does not select the next workstream.
+tests, Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, or Milestone 12 GO.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance.
 No new deployment or promotion is authorized by this status block; either
 action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
@@ -810,20 +823,22 @@ D6 -> OFF.6 -> M12.P2 final closeout.
   scene link for every adjacent pair. Incomplete or ambiguous coverage fails
   closed and never reports arrival.
 
-## Owner-Authorization Boundary After Technical Production Acceptance
+## Owner-Authorization Boundary After Pilot Acceptance
 
-- The full authenticated app is now on accepted technical Production baseline
-  `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. This technical acceptance is not
-  human-pilot evidence or pilot authorization.
-- Facilitators will guide student/guest testers toward building search and
-  routing. All other reachable features remain part of the exposed security
-  surface. Existing authentication/role gates stay unchanged; no anonymous
+- The full authenticated app remains on accepted technical Production baseline
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
+- The owner attests that a human pilot occurred on 2026-08-05 and accepts it
+  with zero reported findings. Participant/Form evidence remains external and
+  no participant PII is recorded in Git. The tested build's full source-commit
+  identity was not independently verified, so this is owner-attested pilot
+  acceptance rather than independent current-build verification.
+- Pilot review is complete for sequencing purposes. OFF.2 is the next
+  workstream but still requires a separate implementation authorization.
+  OFF.2-OFF.6 remain open and required before final Milestone 12 GO. Never
+  describe the accepted pilot as offline readiness or final M12 signoff.
+- Do not build feedback persistence, an API mutation, or a migration without
+  new scope. Existing authentication/role gates stay unchanged; no anonymous
   browsing is added.
-- Feedback uses an owner-created Google Form whose external readiness evidence
-  is accepted; its responder URL stays outside Git. Do not build feedback
-  persistence, an API mutation, or migration without new scope.
-- OFF.2 through OFF.6 resume after pilot review and remain required for final
-  Milestone 12 GO. Never claim that the pilot is offline-ready.
 
 ## Remaining Owner Decisions
 
@@ -836,12 +851,12 @@ D6 -> OFF.6 -> M12.P2 final closeout.
    `Auto-assign Custom Production Domains` is disabled, so future `main`
    deployments require explicit manual promotion. This handoff authorizes no
    new deployment or promotion.
-3. Human pilot evidence, OFF.2 through OFF.6, offline work, D6, and M12.P2
-   final closeout remain open. The owner must select and separately authorize
-   the next workstream; no sequence is inferred here.
+3. Pilot review is complete by owner acceptance. OFF.2 is the next workstream;
+   OFF.2 through OFF.6, offline work, D6, and M12.P2 final closeout remain open
+   and separately gated. This handoff does not authorize OFF.2 implementation.
 
-The pilot exception changes sequencing, not the offline product obligation.
-OFF.2 through OFF.6 are deferred, not cancelled.
+The pilot acceptance changes sequencing, not the offline product obligation.
+OFF.2 through OFF.6 remain open, not cancelled.
 Vercel remains a demo/UAT target; Docker remains the Milestone 13 full
 deployment finalization path.
 

@@ -12,7 +12,7 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-12 Current Production And Post-Deployment Status
+## 2026-08-13 Current Production And Post-Deployment Status
 
 - The Guided-VR runtime/catalog remediation remains recorded as Git commit
   SHA-1 `43627cf0a77741556f4e701711e55612a739799b`, Git tree SHA-1
@@ -46,6 +46,14 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   action is required before a staged deployment replaces the live alias. The
   saved dashboard state showed this control as `Disabled`; it was not tested
   with a dummy push.
+- The later documentation/static-assertion-only authority synchronization is
+  committed and pushed as Git commit SHA-1
+  `db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+  `main`, local HEAD, and origin/main all matched that commit with a clean index
+  and worktree. Owner-observed Vercel evidence showed its deployment as
+  `Ready` / `Production` / `Staged`, with custom-domain assignment `Skipped`.
+  It was not promoted or made `Current`; the live alias remained on technical
+  Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
 - Historical/superseded: before `fea3b2e` became Current, Production served
   technical Production baseline `0627bf78228148e3f989275810c333c16a1f3356`.
   Its five-file verification passed
@@ -62,6 +70,13 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   human pilot or Google Form response. Its PII/transcript, temporary-file,
   misclick, and human sign-in sequencing deviations remain disclosed in the
   authority handoffs and are not repeated with sensitive values here.
+- The owner attests that a human pilot occurred on 2026-08-05 and accepts it
+  with zero reported findings. Participant/Form evidence remains external and
+  no participant PII is recorded in Git. The tested build's full source-commit
+  identity was not independently verified, so this is owner-attested pilot
+  acceptance rather than independent current-build verification. Pilot review
+  is complete for sequencing purposes. OFF.2 is the next workstream, but this
+  document authorizes no implementation.
 - The 13-building `models/data.js` roster remains the reproducible seed
   baseline, not the complete live catalog. MySQL currently has 34 buildings,
   44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid
@@ -236,10 +251,11 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   for that transient harness-start failure.
 - Fresh-session authority is state-neutral: Codex and Claude Code both ground
   current truth and then wait for the owner. Neither prompt authorizes review,
-  edits, tests, Git mutation, a new deployment or promotion, pilot activity,
-  offline implementation, or Milestone 12 GO.
-- Human pilot evidence remains open. OFF.2-OFF.6 remain deferred, not
-  cancelled, and mandatory before final Milestone 12 GO.
+  edits, tests, Git mutation, a new deployment or promotion, another pilot,
+  OFF.2 implementation, or Milestone 12 GO.
+- Pilot review is complete by owner acceptance. OFF.2-OFF.6 remain open, not
+  cancelled, and mandatory before final Milestone 12 GO. OFF.2 is next and
+  requires a separate implementation authorization.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
 
@@ -689,8 +705,10 @@ escaped logout-error lines, audit zero, and postconditions
 `24/24 -> 18/18 -> 46/46`; it does not supersede D7. The later R8 lifecycle
 completed and culminated in accepted technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Human pilot evidence, OFF.2-OFF.6,
-offline work, and final Milestone 12 GO remain open. No new deployment or
-manual promotion is authorized by this section.
+offline work, and final Milestone 12 GO were open at the R8 closeout. The owner
+later accepted the 2026-08-05 pilot with zero reported findings; OFF.2 is now
+the next workstream. No new deployment or manual promotion is authorized by
+this section.
 
 **Upload boundary.** The root `.vercelignore` is an allowlist: it begins with
 `/*`, re-includes only `server.js`, `package.json`, `package-lock.json`,
@@ -1144,13 +1162,14 @@ remains that, per `ROADMAP.md`). Because Vercel cannot rely on a local MySQL, th
 demo must use the Supabase session store:
 
 BE.6 and OFF.1 are complete and Codex GO. Technical Production baseline
-`fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted, but the human pilot
-remains unopened and requires separate owner authorization. Future `main`
-deployments also require explicit manual promotion. If authorized, the pilot
-exposes the full authenticated application while facilitators guide students
-and guests to routing; it is not a routing-only mode and must not claim offline
-readiness. Feedback uses an owner-created Google Form. OFF.2 through OFF.6
-remain open and mandatory before final Milestone 12 GO. The selected 13-building demo
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted. The owner accepts the
+2026-08-05 human pilot with zero reported findings; participant/Form evidence
+remains external and the tested build's full source-commit identity was not
+independently verified. Pilot review is complete for sequencing purposes.
+Future `main` deployments still require explicit manual promotion. The pilot
+must not be represented as a routing-only technical mode, offline readiness, or
+final M12 signoff. OFF.2 is next; OFF.2 through OFF.6 remain open and mandatory
+before final Milestone 12 GO. The selected 13-building demo
 roster is not the complete campus; later admin edits and additions require
 refreshed freeze evidence rather than being prohibited.
 

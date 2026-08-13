@@ -99,9 +99,10 @@ otherwise the route remains unavailable and no arrival is reported.
    profile update APIs are never cached by the service worker.
 
 Expected: current PWA behavior improves resilience without storing private
-pages. BE.6 and OFF.1 are Codex GO; OFF.2 through OFF.6 are deferred until the
-limited-pilot review and remain required before final Milestone 12 GO. During
-the pilot, explicitly say that offline navigation is not complete.
+pages. BE.6 and OFF.1 are Codex GO. Pilot review is complete by owner
+acceptance; OFF.2 is next but not authorized by this script. OFF.2 through
+OFF.6 remain open and required before final Milestone 12 GO. Explicitly say
+that offline navigation is not complete.
 
 ### 6. Security And Deployment Readiness
 
@@ -131,9 +132,14 @@ Explain:
   automatically triggered Production, and bounded anonymous read-only GET-only
   post-deployment verification passed. Vercel `Auto-assign Custom Production
   Domains` is disabled, so future `main` deployments require manual promotion.
-  Human pilot evidence remains open and requires separate owner authorization;
-  OFF.2-OFF.6, offline work, and final Milestone 12 GO also remain open. Do not
-  infer that the pilot, offline work, or another deployment is automatically next.
+  Documentation/static-assertion commit `db05b54` is `Ready` / `Production` /
+  `Staged`, was not promoted, and did not replace the live alias. The human pilot
+  occurred on 2026-08-05; the owner accepts it with zero reported findings,
+  participant/Form evidence remains external, and its full source-commit
+  identity was not independently verified. Pilot review is complete. OFF.2 is
+  next, while OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain
+  open. Do not infer that OFF.2 implementation or another deployment is
+  authorized by this script.
 - Docker packaging exists; Docker full deployment finalization is Milestone 13
   and must be verified on a Docker-enabled machine.
 

@@ -3,7 +3,7 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## 2026-08-12 Current Security And Pilot Status
+## 2026-08-13 Current Security And Pilot Status
 
 - The Guided-VR runtime/catalog remediation remains recorded as
   `43627cf0a77741556f4e701711e55612a739799b`, Git tree
@@ -25,6 +25,13 @@ defense evidence. Record pass/fail and sanitized notes only.
   Domains` disabled. Future `main` pushes may create staged Production
   deployments, but replacing the live alias requires explicit manual
   promotion. This saved-state control was not tested with a dummy push.
+- The documentation/static-assertion-only authority synchronization is
+  committed and pushed as `db05b549807535840968bf28cdefac4154a6d59d`.
+  Live Git then confirmed `main`, local HEAD, and origin/main matched with a
+  clean index/worktree. Owner-observed Vercel evidence showed its deployment as
+  `Ready` / `Production` / `Staged` with custom-domain assignment `Skipped`.
+  It was not promoted or made `Current`; the live alias remained on
+  `fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
 - Historical/superseded: before this deployment, Production served
   `0627bf78228148e3f989275810c333c16a1f3356`; its accepted five-file and
   anonymous `31/31` evidence remain history.
@@ -204,14 +211,21 @@ defense evidence. Record pass/fail and sanitized notes only.
   for that transient harness-start failure.
 - Fresh-session authority is state-neutral: Codex and Claude Code both ground
   current truth and then wait for the owner. Neither prompt authorizes review,
-  edits, tests, Git mutation, a new deployment or promotion, pilot activity,
-  offline implementation, or Milestone 12 GO.
+  edits, tests, Git mutation, a new deployment or promotion, another pilot,
+  OFF.2 implementation, or Milestone 12 GO.
+- The owner attests that a human pilot occurred on 2026-08-05 and accepts it
+  with zero reported findings. Participant/Form evidence remains external and
+  no participant PII is recorded in Git. The tested build's full source-commit
+  identity was not independently verified, so this is owner-attested pilot
+  acceptance rather than independent current-build verification. Pilot review
+  is complete for sequencing purposes; OFF.2 is next but remains separately
+  gated.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
 
-Human pilot evidence, OFF.2-OFF.6, offline work, and final Milestone 12 GO
-remain open. This checklist records evidence only and authorizes no mutation.
+OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. This
+checklist records evidence only and authorizes no mutation.
 
 ## Historical/Superseded — 2026-07-30 R8 Review Status
 

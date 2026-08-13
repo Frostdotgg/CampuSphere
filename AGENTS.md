@@ -50,12 +50,12 @@ the registered list, but proves source patterns only.
 The same contract suite also runs the road-routing probes for topology, stored geometry, API assembly, public Leaflet/MapLibre rendering, admin geometry editing, map-to-guided-VR flow, Free Roam, VR schedule hotspots, and the BE.6 expanded Guided-VR freeze. BE.6 and OFF.1 are complete and Codex GO. The current candidate freezes MySQL at 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid geometries; and the shared Guided-VR catalog at 25 active destinations, 472 configured steps, and 99 unique scene keys. The 13-building `models/data.js` roster is the reproducible seed baseline, not the complete campus; admin edits and later additions remain supported but invalidate freeze evidence until it is deliberately refreshed.
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 post-deployment authority).**
+**CURRENT STATUS (2026-08-13 post-pilot authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
-OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
-deferred until the limited human-pilot review, not cancelled, and remain
-mandatory before final Milestone 12 GO.
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
+limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
+remain open, not cancelled, and mandatory before final Milestone 12 GO.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -102,7 +102,14 @@ After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
 Future `main` pushes may create staged Production deployments, but
 they require an explicit later `Promote to Production` action before replacing
 the live alias. This control was confirmed from the saved dashboard state and
-was not tested with a dummy push. Historical/superseded: before this deployment,
+was not tested with a dummy push. The later documentation/static-assertion-only
+authority synchronization is committed and pushed as
+`db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+`main`, local HEAD, and origin/main all matched that commit with a clean index
+and worktree. Vercel built it as `Ready` / `Production` / `Staged`; custom-domain
+assignment was `Skipped`, it was not promoted or made `Current`, and
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remained on the live alias.
+Historical/superseded: before this deployment,
 Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
 verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
 accepted historical evidence.
@@ -347,14 +354,20 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
-tests, Git mutation, a new deployment or promotion, pilot activity, offline
-implementation, or Milestone 12 GO. The completed technical Production
-baseline acceptance does not select the next workstream.
+tests, Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, or Milestone 12 GO.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance.
 No new deployment or promotion is authorized by this status block; either
 action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
@@ -675,8 +688,11 @@ are complete and Codex GO.
 R3 through R7 and expanded D7 are complete and Codex GO. The later R8 lifecycle
 completed and culminated in accepted technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; future `main` deployments require
-manual promotion. Human pilot evidence, OFF.2-OFF.6, offline work, and final
-Milestone 12 GO remain open. R7 adds an allowlist `.vercelignore`, a
+manual promotion. The owner accepts the 2026-08-05 human pilot with zero
+reported findings; its evidence remains external and its full source-commit
+identity was not independently verified. Pilot review is complete, OFF.2 is
+next, and OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open.
+R7 adds an allowlist `.vercelignore`, a
 minimal `vercel.json` with seven narrow static/PWA header rules and one fixed
 static-only CSP confined to `/offline.html`, the standalone
 `scripts/vercelPackageBoundary-probe.js`, and the in-suite
@@ -687,12 +703,12 @@ public-schedule lifecycle through supported application interfaces in both
 MySQL and Supabase, verified propagation and all-reachable-page behavior for
 student, guest, and instructor with separate fresh browser/storage contexts,
 cleaned up in reverse dependency order, and restored BE.6 plus
-credential/session safety. The eventual pilot exposes the entire authenticated
-application while facilitators direct students and guests to evaluate building
-routing. Feedback uses an owner-created Google Form. No anonymous browsing is
-added. OFF.2 through OFF.6 are deferred until pilot review, not cancelled, and
-remain mandatory before final Milestone 12 GO. D6 remains post-pilot after
-OFF.2-OFF.5 and before OFF.6.
+credential/session safety. The owner-attested pilot exposed the authenticated
+application while facilitators directed participants to evaluate building
+routing. Participant/Form evidence remains outside Git, and no anonymous
+browsing was added. OFF.2 is the next separately authorized workstream;
+OFF.2 through OFF.6 are open, not cancelled, and remain mandatory before final
+Milestone 12 GO. D6 remains after OFF.2-OFF.5 and before OFF.6.
 
 The seed script creates a default admin and a sample student for **local MySQL development only** — their deterministic local-only values live in `database/seed.js` and the shared test-only loader (`scripts/regressionCredentials.js`), not in documentation, and are not valid live credentials. Live/Supabase regression sign-ins use the test-only `SUPABASE_REGRESSION_*` variables from the ignored local `.env` (names in `.env.example`; Supabase-capable probes fail closed when they are missing). The seed connects without a database first and creates `campusphere_db` from `database/schema.sql`, so it can be re-run idempotently — every insert uses `INSERT IGNORE` or a pre-check on a natural key.
 

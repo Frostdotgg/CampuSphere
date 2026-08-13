@@ -1,16 +1,16 @@
 # CampuSphere Codex Handoff
 
-Last updated: 2026-08-12 (Asia/Manila)
+Last updated: 2026-08-13 (Asia/Manila)
 
 Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-12 post-deployment authority).**
+**CURRENT STATUS (2026-08-13 post-pilot authority).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
-OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. OFF.2-OFF.6 are
-deferred until the limited human-pilot review, not cancelled, and remain
-mandatory before final Milestone 12 GO.
+OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
+limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
+remain open, not cancelled, and mandatory before final Milestone 12 GO.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -57,7 +57,14 @@ After this review, Vercel `Auto-assign Custom Production Domains` is disabled.
 Future `main` pushes may create staged Production deployments, but
 they require an explicit later `Promote to Production` action before replacing
 the live alias. This control was confirmed from the saved dashboard state and
-was not tested with a dummy push. Historical/superseded: before this deployment,
+was not tested with a dummy push. The later documentation/static-assertion-only
+authority synchronization is committed and pushed as
+`db05b549807535840968bf28cdefac4154a6d59d`. Live Git then confirmed branch
+`main`, local HEAD, and origin/main all matched that commit with a clean index
+and worktree. Vercel built it as `Ready` / `Production` / `Staged`; custom-domain
+assignment was `Skipped`, it was not promoted or made `Current`, and
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remained on the live alias.
+Historical/superseded: before this deployment,
 Production served 0627bf78228148e3f989275810c333c16a1f3356; its five-file
 verification, anonymous smoke 31/31, and automated frozen-data rehearsal remain
 accepted historical evidence.
@@ -302,14 +309,20 @@ The focused probe then passed immediately in both runtime modes. No repository,
 database, session, package, or vendor correction was required for that transient
 harness-start failure.
 
+The owner attests that a human pilot occurred on 2026-08-05 and accepts it with
+zero reported findings. Participant/Form evidence remains external and no
+participant PII is recorded in Git. The tested build's full source-commit
+identity was not independently verified, so this is owner-attested pilot
+acceptance rather than independent current-build verification. Pilot review is
+complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
+offline work, D6, and final Milestone 12 GO remain open and separately gated.
+
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
-tests, Git mutation, a new deployment or promotion, pilot activity, offline
-implementation, or Milestone 12 GO. The completed technical Production
-baseline acceptance does not select the next workstream.
+tests, Git mutation, a new deployment or promotion, another pilot, OFF.2
+implementation, or Milestone 12 GO.
 
-M12.P1 remains NO-GO for pilot readiness and final acceptance. Human pilot/Form
-responses, OFF.2-OFF.6, offline work, and final Milestone 12 GO remain open.
+M12.P1 remains NO-GO for final acceptance.
 No new deployment or promotion is authorized by this status block; either
 action requires a separate owner authorization.
 <!-- M12.P1 CURRENT STATUS END -->
@@ -813,27 +826,22 @@ induced residue blocker and supersedes this historical green snapshot.
 
 ## Limited Vercel Pilot Decision And Next Work
 
-- The owner authorized a limited pilot exception after OFF.1. The `M12.P1`
-  readiness/exposure audit is complete with NO-GO after one critical and six
-  high findings. R1-R4 and D1-D5 have GO; dependency-security remediation is
-  also complete and Codex GO. `M12.P1-R5`, both follow-ups, and `M12.P1-R6` are
-  complete and Codex GO. This Codex handoff alone does not authorize
-  implementation, session cleanup, or deployment.
-- The eventual pilot exposes the entire currently reachable authenticated
-  application. It is routing-focused by facilitator instruction, not by a
-  technical route/feature restriction. Every exposed surface therefore remains
-  inside the security and deployment review.
-- Students and guests will be guided to evaluate campus building search and
-  routing. Existing authentication and role authorization remain mandatory;
-  no anonymous browsing is introduced.
-- Feedback uses an owner-created Google Form. Its URL is still pending, and no
-  CampuSphere feedback table, API mutation, or migration is authorized.
-- OFF.2 through OFF.6 resume after pilot feedback review and remain mandatory
-  before final Milestone 12 GO. The pilot must not claim offline readiness.
-- R3 through R7 and expanded D7 are complete and Codex GO. The remaining
-  sequence begins at the read-only R8 review, one section at a time after each
-  independent GO: read-only R8; separate owner pilot-deployment decision;
-  participant review; OFF.2-OFF.5; D6; OFF.6; and M12.P2 final closeout.
+- The owner attests that a human pilot occurred on 2026-08-05 and accepts it
+  with zero reported findings. Participant/Form evidence remains external and
+  no participant PII is recorded in Git. The tested build's full source-commit
+  identity was not independently verified, so the disposition is owner-attested
+  pilot acceptance rather than independent current-build verification.
+- Pilot review is complete for sequencing purposes. OFF.2 is the next
+  workstream, but this handoff does not authorize its implementation. OFF.2
+  through OFF.6 remain open and mandatory before final Milestone 12 GO; D6
+  remains after OFF.2-OFF.5 and before OFF.6.
+- No feedback table, API mutation, or migration is introduced. No anonymous
+  browsing is added, and the accepted pilot must not be represented as offline
+  readiness or final Milestone 12 signoff.
+- R3 through R7, expanded D7, the final R8 lifecycle, technical Production
+  acceptance, and pilot review are complete. The remaining ordered work is
+  OFF.2 -> OFF.3 -> OFF.4 -> OFF.5 -> D6 -> OFF.6 -> M12.P2 final closeout,
+  one separately authorized section and independent gate at a time.
 - Expanded D7 is the agreed full browser lifecycle in both MySQL and Supabase:
   the regression administrator creates a uniquely prefixed temporary building
   with structured details, a building-linked route node, a forward/reverse
