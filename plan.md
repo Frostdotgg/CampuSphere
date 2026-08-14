@@ -316,8 +316,22 @@ zero reported findings. Participant/Form evidence remains external and no
 participant PII is recorded in Git. The tested build's full source-commit
 identity was not independently verified, so this is owner-attested pilot
 acceptance rather than independent current-build verification. Pilot review is
-complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
-offline work, D6, and final Milestone 12 GO remain open and separately gated.
+complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5
+implementation candidate exists; it has focused evidence but no Codex GO. D6,
+OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline
+candidate must not be pushed, promoted, or deployed before the presentation and
+a later explicit owner decision.
+
+The first full verification of this offline candidate is historical/rejected at
+`4635/4641`: `npm test` exited 1 after 4,635 PASS lines and emitted no
+`QUALITY-GATES OK` because exactly six static documentation/authority assertions
+failed. Every executed runtime, database, catalog, BE.6, and final embedded
+`18/18` residue check was green. Fail-closed sequencing stopped before
+`npm run qa` and before the standalone `24/24 -> 18/18 -> 46/46`
+postconditions. This bounded correction is confined to current-authority
+documentation and existing static assertions, has focused evidence but no
+Codex GO, and requires a later independent review plus separately authorized
+replacement full verification. No session or data correction was required.
 
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
@@ -511,8 +525,9 @@ OFF.2-OFF.5 and before OFF.6. The technical Production baseline is accepted.
 The owner accepts the 2026-08-05 human pilot with zero reported findings;
 participant/Form evidence remains external and the tested build's full
 source-commit identity was not independently verified. Pilot review is complete
-for sequencing purposes. OFF.2 is next; OFF.2-OFF.6 remain open, not cancelled.
-The
+for sequencing purposes. The owner-authorized local OFF.2-OFF.5 implementation
+candidate has focused evidence but no Codex GO; D6, OFF.6 browser acceptance,
+and final Milestone 12 GO remain open. The
 13-building roster remains editable selected-demo data, not a complete-campus
 claim; any post-freeze data change requires replacement evidence. Guided VR
 reports arrival only when the final available scene maps to the selected
@@ -535,9 +550,11 @@ Do not deploy or promote merely because this plan records the pilot exception.
 R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete; technical
 Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is accepted,
 and future `main` deployments require manual promotion. M12.P1 remains NO-GO
-for final acceptance. Pilot review is complete by owner acceptance; OFF.2 is
-the next workstream. OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO
-remain open and require separate owner authorization.
+for final acceptance. Pilot review is complete by owner acceptance. An
+owner-authorized local OFF.2-OFF.5 implementation candidate exists with focused
+evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12
+GO remain open. The offline candidate must not be pushed, promoted, or deployed
+before the presentation and a later explicit owner decision.
 
 ## Sections
 
@@ -1057,22 +1074,21 @@ redirect carried the no-store policy, logout redirected to
 were empty, session-neutral shell/static caches remained, and browser Back,
 reload, and direct `/map` revisit could not replay the authenticated page.
 
-The approved future package requires an explicit **Download Offline Guide**
-action; retains the downloaded public guide until explicit logout; represents
-all 25 active Guided-VR destinations and their precomputed routes; includes
-only public `audience=all`, `status=scheduled` schedules for today through the
-next 14 days with a 100-row-per-building cap; caches only explicitly selected,
-owner-approved Guided-VR/Free-Roam media within the agreed quota; treats
-OpenStreetMap tiles as best-effort; and excludes authenticated HTML, sessions,
-CSRF tokens, credentials, user/profile data, admin/private content, mutations,
-raw errors, and unapproved media. A route whose approved media was not
-downloaded remains active online and receives a truthful offline-media-
-unavailable state; cache coverage must never redefine route policy or claim
-arrival.
+The owner-approved package is now deliberately **2D-only**. It requires an
+explicit **Download Offline Guide** action, retains one integrity-checked
+version until explicit logout, reads the current active building and route
+backends, and precomputes road-following routes from Guard House / Main Gate to
+each safely resolvable building node. It ships a bounded normal campus basemap,
+text building details, and a local generic building placeholder. It excludes
+360 images, Guided VR, Free Roam, Cloudinary media, building photos, schedules,
+authenticated HTML, sessions, CSRF tokens, credentials, user/profile data,
+admin/private content, mutations, raw errors, and backend-selector identities.
+An unmapped building remains available for details but exposes a truthful
+route-unavailable state.
 
 **OFF.2: Installability, Offline Shell, and Update Lifecycle**
 
-**Status: NEXT WORKSTREAM — NOT AUTHORIZED BY THIS SYNCHRONIZATION.**
+**Status: IMPLEMENTED CANDIDATE — FOCUSED VERIFICATION GREEN; CODEX GO OPEN.**
 
 The post-pilot implementation order is OFF.2, OFF.3, OFF.4, OFF.5,
 `M12.P1-D6`, then OFF.6. D6 remains a separate Claude prompt and Codex gate; it
@@ -1085,55 +1101,73 @@ Complete PWA installability and the versioned offline lifecycle using the existi
 
 Do not cache personalized EJS pages or weaken existing service-worker privacy boundaries. Verification must cover first install, repeat install, cache-version upgrade, interrupted install, offline launch, reconnection, and mobile installability basics.
 
-**OFF.3: Privacy-Safe Public Data Availability**
+**OFF.3: Privacy-Safe 2D Guide Data and Explicit Download**
 
-**Status: OPEN — AFTER OFF.2 CODEX GO.**
+**Status: IMPLEMENTED CANDIDATE — INTEGRATED WITH OFF.2; CODEX GO OPEN.**
 
-Make the frozen public building catalog, approved route data and road geometry, selected read-only room/facility schedules, and required VR metadata available offline through bounded, versioned caches.
+Build one authenticated, read-only, `no-store` package from the currently
+selected building and route backends. Emit only normalized building text,
+participant-safe details, Main Gate origin, route lines/steps, and the pinned
+basemap identity. Validate JSON and map hashes before replacing the active
+IndexedDB record in one transaction and reverify both when loading it.
 
-Never cache authenticated HTML, admin APIs, user/profile responses, session identifiers, cookies, credentials, private role content, mutation responses, raw errors, or unapproved URLs. Offline content must be read-only, clearly identified as cached, and refreshed only through safe GET behavior when connectivity returns.
+Never cache or package authenticated HTML, admin APIs, user/profile responses,
+session identifiers, cookies, credentials, private role content, mutation
+responses, schedules, VR metadata/media, Cloudinary URLs, backend names, raw
+errors, or unapproved URLs. Download/update occurs only from an explicit user
+action while connected; the service worker never intercepts or caches the
+package endpoint or PMTiles archive.
 
 **OFF.4: Offline Map and Destination Routing**
 
-**Status: OPEN — AFTER OFF.3 CODEX GO.**
+**Status: IMPLEMENTED CANDIDATE — CODEX GO OPEN.**
 
-Render the frozen campus destinations and their road-following routes while disconnected. The offline route line and steps must represent the same frozen graph path and must preserve clear unavailable states for anything not cached.
+Render the downloaded current-backend destinations and their road-following
+routes while disconnected, always beginning at Guard House / Main Gate. Use the
+self-hosted MapLibre runtime and a bounded, content-addressed local PMTiles
+campus extract as the normal map background. The route line and steps must
+represent the same selected graph path and preserve clear unavailable states.
 
-Use a bounded set of demo-critical map assets instead of attempting to mirror the complete OpenStreetMap tile service. Tile absence must degrade to a readable campus/destination/route experience rather than a blank or broken page. Preserve route clearing, stale-request protection, and desktop/mobile usability.
+Never mirror the public OpenStreetMap tile service. If MapLibre, PMTiles, or
+WebGL cannot render, degrade to a keyboard-operable simplified campus map plus
+the complete building list and route directions. Preserve route clearing and
+desktop/mobile usability.
 
-**OFF.5: Offline Guided-VR Catalog and Free Roam State**
+**OFF.5: Offline Building Details, Integrity, and Recovery**
 
-**Status: OPEN — AFTER OFF.4 CODEX GO.**
+**Status: IMPLEMENTED CANDIDATE — CODEX GO OPEN.**
 
-Represent every configured active destination in the offline catalog. Cache
-only the owner-approved panoramas/assets selected by the explicit download
-flow and admitted by the agreed quota, including the required Free Roam entry
-path. When an active route's media is not cached or a download is incomplete,
-show a distinct offline-media-unavailable state without changing its online
-active status or claiming arrival.
+Clicking a building node or list item opens a nonmodal details window with the
+current description, category, walk-time text, offices/services, floors/rooms,
+entrances, landmarks, and the local generic placeholder. Render every database
+string through safe text nodes. Support Escape close, keyboard node activation,
+focus placement/restoration, searching, route selection, and truthful
+details-only behavior for an unroutable building.
 
-Handle storage quota pressure, unavailable media, partial coverage,
-cache-version replacement, and interrupted downloads without corrupting the
-online Cloudinary path. Keep room-door schedule hotspots functional only when
-their approved read-only schedule data and required media are cached, and
-preserve truthful coverage-ended behavior for every incomplete cached chain.
+An interrupted or corrupt update must leave the prior valid record usable.
+Reject wrong schema, destination collisions, invalid map identity, byte/hash
+drift, and partial IndexedDB writes. Explicit logout deletes only the exact
+offline-guide IndexedDB database while leaving the session-neutral PWA shell
+and unrelated browser storage alone.
 
 **OFF.6: Offline Feature, Privacy, and Final GO/NO-GO**
 
 **Status: OPEN — AFTER OFF.5 AND M12.P1-D6 CODEX GO.**
 
 Run the final offline acceptance matrix after an online warm-up and after a
-clean install. Test network loss, browser restart while offline, all 25 catalog
-entries and road routes, at least one fully cached Guided-VR chain, an active
-route whose media was not cached, an interrupted/partial chain, Free Roam,
-selected schedules, unavailable resources, reconnect refresh, cache upgrades,
-logout/shared-device privacy, quota/error handling, and desktop/mobile layouts.
+clean install. Test network loss, browser restart while offline, every current
+building entry and every available Main Gate route, node/list details windows,
+the normal PMTiles campus background, the keyboard fallback map, unroutable and
+missing-coordinate buildings, interrupted/corrupt replacement, reconnect
+refresh, cache upgrades, logout/shared-device privacy, storage/error handling,
+and desktop/mobile layouts. Assert explicitly that no 360/Guided-VR/Free-Roam,
+schedule, building-photo, or Cloudinary payload is present.
 
 OFF.6 receives GO only when:
 
 - No private, authenticated, admin, session, credential, mutation, or personalized HTML response exists in Cache Storage.
-- Offline public data matches the frozen BE.6 dataset and cannot mutate server state.
-- Required offline workflows pass without blank maps, false VR arrival, stale data leaks, relevant console failures, horizontal overflow, or intermittent tests.
+- Offline public data matches the selected current backend at download time and cannot mutate server state.
+- Required offline workflows pass without blank maps, wrong routes, stale data leaks, relevant console failures, horizontal overflow, or intermittent tests.
 - Online auth, sessions, CSRF, CSP, rate limits, Supabase/MySQL switches, Cloudinary delivery, schedules, routing, and admin behavior regressions remain green.
 - No probe rows, test users, temporary files, listeners, service-worker test state, or stray processes remain.
 
@@ -1173,8 +1207,9 @@ with zero reported findings. Participant/Form evidence remains external and no
 participant PII is recorded in Git. The tested build's full source-commit
 identity was not independently verified, so this disposition is owner-attested
 pilot acceptance rather than independent current-build verification. Pilot
-review is complete for sequencing purposes. OFF.2 is next but remains
-unauthorized by this synchronization. The deferred real admin dashboard
+review is complete for sequencing purposes. The owner-authorized local
+OFF.2-OFF.5 implementation candidate has focused evidence but no Codex GO. The
+deferred real admin dashboard
 analytics repair in `M12.P1-D6` runs after OFF.5 and before the final OFF.6
 acceptance gate.
 
@@ -2103,8 +2138,9 @@ Do not implement or reintroduce:
   The owner accepts the 2026-08-05 human pilot with zero reported findings;
   external participant/Form evidence remains outside Git, and its full source-
   commit identity was not independently verified. Pilot review is complete.
-  OFF.2 is next; OFF.2 through OFF.6, offline work, and D6 remain mandatory
-  before final Milestone 12 GO.
+  The owner-authorized local OFF.2-OFF.5 implementation candidate has focused
+  evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12
+  GO remain open.
 - The owner reports that the primary administrator, demo instructor, sample
   student, and sample guest are retained as local-login regression identities;
   the previously deleted student and guest were recreated, so their numeric IDs

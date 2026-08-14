@@ -92,21 +92,23 @@ otherwise the route remains unavailable and no arrival is reported.
 
 ### 5. PWA And Offline Boundary
 
-1. Show the manifest/offline support.
-2. Demonstrate only the currently verified offline fallback. Do not claim that
-   the full Offline Campus Navigation Package is complete yet.
+1. Show the manifest/offline support and explicitly download the local guide.
+2. Demonstrate the candidate normal campus map, Guard House/Main Gate routes,
+   route directions, and the details window opened from a building node/list
+   item. Do not claim that independent acceptance or final OFF.6 is complete.
 3. Explain that authenticated HTML, admin routes, auth routes, logout, and
    profile update APIs are never cached by the service worker.
 
 Expected: current PWA behavior improves resilience without storing private
 pages. BE.6 and OFF.1 are Codex GO. Pilot review is complete by owner
-acceptance; OFF.2 is next but not authorized by this script. OFF.2 through
-OFF.6 remain open and required before final Milestone 12 GO. Explicitly say
-that offline navigation is not complete.
+acceptance. The owner-authorized local OFF.2-OFF.5 implementation candidate has
+focused evidence but no Codex GO. It contains only 2D Main Gate routing and
+text building details—no 360/Guided VR/Free Roam, schedules, or building
+photos. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open.
 
 ### 6. Security And Deployment Readiness
 
-Show final pass lines from:
+Show the accepted pre-offline baseline pass lines from:
 
 ```bash
 npm run qa
@@ -136,10 +138,19 @@ Explain:
   `Staged`, was not promoted, and did not replace the live alias. The human pilot
   occurred on 2026-08-05; the owner accepts it with zero reported findings,
   participant/Form evidence remains external, and its full source-commit
-  identity was not independently verified. Pilot review is complete. OFF.2 is
-  next, while OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain
-  open. Do not infer that OFF.2 implementation or another deployment is
-  authorized by this script.
+  identity was not independently verified. Pilot review is complete. The
+  owner-authorized local OFF.2-OFF.5 implementation candidate has focused
+  evidence but no Codex GO.
+  D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
+  offline candidate must not be pushed, promoted, or deployed before the
+  presentation and a later explicit owner decision.
+- The first full verification of that offline candidate is
+  historical/rejected at `4635/4641`: `npm test` exited 1 after 4,635 PASS
+  lines and emitted no `QUALITY-GATES OK` because exactly six static
+  documentation/authority checks failed. All executed runtime, database,
+  catalog, BE.6, and final embedded `18/18` residue checks were green; QA and
+  the standalone `24/24 -> 18/18 -> 46/46` postconditions did not run. Do not
+  present the offline candidate as fully verified or independently accepted.
 - Docker packaging exists; Docker full deployment finalization is Milestone 13
   and must be verified on a Docker-enabled machine.
 

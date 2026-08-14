@@ -76,9 +76,9 @@ const VERCEL_JSON_FILE = 'vercel.json';
    pin local to the standalone probe so a coordinated documentation or
    quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 158,
-  bytes: 6245074,
-  sha256: 'b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4',
+  files: 165,
+  bytes: 6971229,
+  sha256: 'e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b',
 });
 
 /* M12.P1-R8 label correction.
@@ -191,10 +191,12 @@ const EXPECTED_PUBLIC_ASSET_CLASSES = Object.freeze([
   ['web app manifest', (p) => p === 'public/manifest.webmanifest'],
   ['offline shell', (p) => p === 'public/offline.html'],
   ['service worker', (p) => p === 'public/sw.js'],
+  ['offline campus map', (p) => /^public\/maps\/cspc-campus-[0-9a-f]{64}\.pmtiles$/.test(p)],
+  ['offline campus map manifest', (p) => p === 'public/maps/manifest.json'],
   ['self-hosted vendor assets', (p) => /^public\/vendor\//.test(p)],
 ]);
 
-/** The 18 vendored runtime files R6 self-hosts, pinned again here. */
+/** The 20 vendored runtime files self-hosted by R6 plus OFF.3, pinned again here. */
 const EXPECTED_VENDOR_RUNTIME_FILES = Object.freeze([
   'public/vendor/iconify-icon/iconify-icon.min.js',
   'public/vendor/iconify-icon/license.txt',
@@ -214,8 +216,15 @@ const EXPECTED_VENDOR_RUNTIME_FILES = Object.freeze([
   'public/vendor/pannellum/COPYING',
   'public/vendor/pannellum/pannellum.css',
   'public/vendor/pannellum/pannellum.js',
+  'public/vendor/pmtiles/LICENSE',
+  'public/vendor/pmtiles/pmtiles.js',
 ]);
 const EXPECTED_VENDOR_MANIFEST_FILE = 'public/vendor/manifest.json';
+
+const EXPECTED_OFFLINE_MAP_RUNTIME_FILES = Object.freeze([
+  'public/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles',
+  'public/maps/manifest.json',
+]);
 
 /** Representative non-vendor assets the static boundary must serve byte-exact. */
 const REPRESENTATIVE_STATIC_ASSETS = Object.freeze([
@@ -233,8 +242,9 @@ const NOSNIFF = Object.freeze({ key: 'X-Content-Type-Options', value: 'nosniff' 
 /** The fixed static-only CSP for the session-neutral offline shell. */
 const EXPECTED_OFFLINE_CSP =
   "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
-  "form-action 'self'; script-src 'none'; style-src 'self'; img-src 'self' data:; " +
-  "manifest-src 'self'; connect-src 'none'; worker-src 'none'";
+  "frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; " +
+  "style-src 'self'; img-src 'self' data: blob:; manifest-src 'self'; " +
+  "connect-src 'self'; worker-src 'self' blob:";
 
 const EXPECTED_SCHEMA = 'https://openapi.vercel.sh/vercel.json';
 const EXPECTED_VERCEL_JSON_KEYS = Object.freeze(['$schema', 'headers']);
@@ -269,6 +279,13 @@ const EXPECTED_HEADER_RULES = Object.freeze([
       { key: 'Content-Security-Policy', value: EXPECTED_OFFLINE_CSP },
     ],
   },
+  {
+    source: '/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles',
+    headers: [
+      NOSNIFF,
+      { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+    ],
+  },
 ]);
 
 /** Only the offline shell may carry a static CSP. */
@@ -296,6 +313,13 @@ function isBroadHeaderSource(source) {
   if (s[0] !== '/') return true; // a non-anchored source is not narrowly scoped
   const rest = s.slice(1).replace(/\/$/, '');
   return rest === '' || /^(\*{1,2}|:[^/]*\*|\([^)]*\)[?*]?)$/.test(rest);
+}
+
+/** PURE: only an exact filename carrying a 64-hex content hash may be immutable. */
+function isContentHashedAssetSource(source) {
+  return /^\/[A-Za-z0-9._~/-]*-[0-9a-f]{64}\.[A-Za-z0-9]+$/.test(
+    String(source == null ? '' : source).trim()
+  );
 }
 
 /**
@@ -582,7 +606,8 @@ function evaluateHeaderContract(config) {
       if (h.key.toLowerCase() === 'content-security-policy' && rule.source !== CSP_ALLOWED_SOURCE) {
         problems.push(`a Content-Security-Policy is defined outside ${CSP_ALLOWED_SOURCE}: ${rule.source}`);
       }
-      if (/^cache-control$/i.test(h.key) && /immutable|max-age=[1-9]\d{4,}/i.test(String(h.value))) {
+      if (/^cache-control$/i.test(h.key) && /immutable|max-age=[1-9]\d{4,}/i.test(String(h.value)) &&
+          !isContentHashedAssetSource(rule.source)) {
         problems.push(`long-lived immutable caching on a non-content-hashed URL: ${rule.source}`);
       }
     }
@@ -718,6 +743,9 @@ function evaluatePackageContract(files) {
   }
   for (const file of EXPECTED_VENDOR_RUNTIME_FILES) {
     if (!set.has(file)) problems.push(`required vendor runtime file missing from the package: ${file}`);
+  }
+  for (const file of EXPECTED_OFFLINE_MAP_RUNTIME_FILES) {
+    if (!set.has(file)) problems.push(`required offline map runtime file missing from the package: ${file}`);
   }
   if (!set.has(EXPECTED_VENDOR_MANIFEST_FILE)) {
     problems.push(`required vendor manifest missing from the package: ${EXPECTED_VENDOR_MANIFEST_FILE}`);
@@ -1102,6 +1130,7 @@ module.exports = {
   EXPECTED_PUBLIC_ASSET_CLASSES,
   EXPECTED_VENDOR_RUNTIME_FILES,
   EXPECTED_VENDOR_MANIFEST_FILE,
+  EXPECTED_OFFLINE_MAP_RUNTIME_FILES,
   EXPECTED_HEADER_RULES,
   EXPECTED_VERCEL_JSON_KEYS,
   FORBIDDEN_VERCEL_JSON_KEYS,
@@ -1111,6 +1140,7 @@ module.exports = {
   REPRESENTATIVE_STATIC_ASSETS,
   toPosix,
   isBroadHeaderSource,
+  isContentHashedAssetSource,
   parseVercelIgnore,
   ruleMatches,
   matchDecision,

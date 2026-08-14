@@ -18,7 +18,10 @@
      - the response CSP drops the obsolete executable/style origins while
        keeping the per-request nonce, the approved data/media/font origins and
        the worker boundary MapLibre needs;
-     - the service worker still approves only tiles + Cloudinary media.
+     - the service worker declares NO cache-eligible external host at all (OSM
+       tiles and Cloudinary media are network-only, and CSP still permits both),
+       while OFF.3 self-hosts its renderer and stores the explicitly downloaded
+       guide outside Cache Storage.
 
    Harness: scripts/with-server.js only (self-terminating; never a foreground
    server). MySQL runs on dedicated port 3383, Supabase on 3384; the probe
@@ -63,6 +66,7 @@ const EXPECTED_PACKAGES = Object.freeze({
   'maplibre-gl': '4.7.1',
   'pannellum': '2.5.6',
   'iconify-icon': '1.0.7',
+  'pmtiles': '4.4.1',
   'lucide': '1.25.0',
 });
 
@@ -159,6 +163,20 @@ const EXPECTED_VENDOR_INVENTORY = Object.freeze([
     ]),
   }),
   Object.freeze({
+    name: 'pmtiles',
+    version: '4.4.1',
+    license: 'BSD-3-Clause',
+    globalInterface: 'pmtiles',
+    tarball: 'https://registry.npmjs.org/pmtiles/-/pmtiles-4.4.1.tgz',
+    integrity: 'sha512-5oTeQc/yX/ft1evbpIlnoCZugQuug/iYIAj/ZTqIqzdGek4uZEho99En890EE6NOSI3JTI3IG8R7r8+SltphxA==',
+    gitHead: '0cebcaeade40034b86facb6e7da4ec726b9053fb',
+    fileCount: 2,
+    files: Object.freeze([
+      Object.freeze({ source: 'package/dist/pmtiles.js', destination: '/vendor/pmtiles/pmtiles.js', bytes: 19668, sha256: '36bcbe1ba97cc07b3fc90cee9cba11729b04e25ec8790cf65a0787d5b38e091b', transformations: Object.freeze([]) }),
+      Object.freeze({ source: 'https://raw.githubusercontent.com/protomaps/PMTiles/0cebcaeade40034b86facb6e7da4ec726b9053fb/LICENSE', destination: '/vendor/pmtiles/LICENSE', bytes: 1713, sha256: '0371c38f338835f7fc13ed71176f3d92144e22c8b736a31cced57adbbeb647b3', transformations: Object.freeze([]) }),
+    ]),
+  }),
+  Object.freeze({
     name: 'lucide',
     version: '1.25.0',
     license: 'ISC',
@@ -173,9 +191,9 @@ const EXPECTED_VENDOR_INVENTORY = Object.freeze([
   }),
 ]);
 
-/* Total shipped files across all packages (18). Pinned so a missing/extra file
+/* Total shipped files across all packages (20). Pinned so a missing/extra file
    anywhere is caught even if per-package counts were tampered to compensate. */
-const EXPECTED_VENDOR_FILE_TOTAL = 18;
+const EXPECTED_VENDOR_FILE_TOTAL = 20;
 
 /** PURE: flatten EXPECTED_VENDOR_INVENTORY to a per-file list for disk/HTTP
     verification against the independently pinned SHA-256 (never the manifest). */
@@ -247,6 +265,7 @@ function compareManifestToInventory(manifest) {
     if (mp.tarball !== ep.tarball) problems.push(`${ep.name}: tarball URL mismatch`);
     if (mp.integrity !== ep.integrity) problems.push(`${ep.name}: sha512 integrity mismatch`);
     if (mp.globalInterface !== ep.globalInterface) problems.push(`${ep.name}: globalInterface mismatch`);
+    if (ep.gitHead && mp.gitHead !== ep.gitHead) problems.push(`${ep.name}: gitHead mismatch`);
 
     const mFiles = Array.isArray(mp.files) ? mp.files : [];
     if (mFiles.length !== ep.fileCount) problems.push(`${ep.name}: file count ${mFiles.length} != expected ${ep.fileCount}`);
@@ -754,17 +773,61 @@ async function runRendererLeg(mode, renderer, base, full) {
         !r.headers.get('location'));
     }
 
-    /* ---- service-worker privacy/offline boundary is unchanged ---- */
+    /* ---- service-worker privacy boundary remains intact ---- */
     {
       const r = await get(base, '/sw.js', null, '*/*');
       const sw = await r.text();
       check(scope, '/sw.js is served from this origin', r.status === 200);
-      check(scope, 'sw.js still approves ONLY tiles + Cloudinary as external hosts',
-        /res\.cloudinary\.com/.test(sw) && /tile\.openstreetmap\.org/.test(sw));
+      // 2D-only correction: NO cross-origin host is cache-eligible. OSM tiles
+      // and Cloudinary media are network-only and the external cache machinery
+      // is removed. This changes only the SERVICE-WORKER caching expectation —
+      // the CSP checks above still require OSM/Cloudinary to remain permitted
+      // so the ONLINE Leaflet/MapLibre map and media delivery are unaffected.
+      /* Mirrors the OFF.2 probe's exact guard: no external host or strategy, no
+         API cache machinery, EXACTLY ONE '/api' network-only prefix, the full
+         classifier truth table evaluated behaviourally, CURRENT_CACHES
+         tokenizing to exactly [SHELL_CACHE, STATIC_CACHE], and the guard before
+         every remaining same-origin strategy. Fails closed on any error. The
+         CSP checks above are untouched, so online OSM/Cloudinary stay allowed. */
+      check(scope, 'sw.js declares no external host, no API cache, exactly two caches, and the exact /api network-only classifier',
+        (() => {
+          try {
+            const code = sw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+            if (/function isApprovedExternalHost/.test(sw) || /function externalStrategy/.test(sw)) return false;
+            if (/EXTERNAL_CACHE/.test(code)) return false;
+            if (/function isApprovedApi/.test(sw) || /function apiStrategy/.test(sw)) return false;
+            if (/API_CACHE/.test(code) || /API_MAX/.test(code)) return false;
+            const fnMatch = sw.match(/function isNetworkOnlyPath[\s\S]*?\n}/);
+            const listMatch = code.match(/NETWORK_ONLY_PREFIXES\s*=\s*\[([\s\S]*?)\]/);
+            const fetchListener = (sw.match(/addEventListener\('fetch'[\s\S]*$/) || [''])[0];
+            if (!fnMatch || !listMatch || fetchListener === '') return false;
+            const prefixes = (listMatch[1].match(/'([^']*)'/g) || []).map((s) => s.slice(1, -1));
+            if (prefixes.length !== 1 || prefixes[0] !== '/api') return false;
+            const vm = require('vm');
+            const box = Object.create(null);
+            vm.createContext(box);
+            vm.runInContext('var NETWORK_ONLY_PREFIXES = ' + JSON.stringify(prefixes) + ';\n' +
+              fnMatch[0] + '\n__f = isNetworkOnlyPath;', box, { timeout: 1000 });
+            const f = box.__f;
+            if (typeof f !== 'function') return false;
+            const yes = ['/api', '/api/buildings', '/api/routes', '/api/routes/1',
+              '/api/vr/routes/1', '/api/search', '/api/pathfind'];
+            const no = ['/apiary', '/apis', '/auth', '/map', '/'];
+            if (!yes.every((p) => f(p) === true) || !no.every((p) => f(p) === false)) return false;
+            const cc = code.match(/CURRENT_CACHES\s*=\s*\[([^\]]*)\]/);
+            if (!cc) return false;
+            const tok = cc[1].split(',').map((t) => t.trim()).filter(Boolean);
+            if (tok.length !== 2 || tok[0] !== 'SHELL_CACHE' || tok[1] !== 'STATIC_CACHE') return false;
+            const guard = fetchListener.search(/isNetworkOnlyPath\(\s*url\.pathname\s*\)/);
+            const strategies = ['navigationFallbackStrategy(', 'staticStrategy(']
+              .map((n) => fetchListener.indexOf(n));
+            return guard !== -1 && strategies.every((i) => i !== -1) && strategies.every((i) => guard < i);
+          } catch (e) { return false; }
+        })());
       check(scope, 'sw.js still never caches HTML navigations',
         /function navigationFallbackStrategy/.test(sw) && !/\bvar\s+PAGE_CACHE\s*=/.test(sw));
       check(scope, 'sw.js still refuses the authenticated/forbidden prefixes',
-        /FORBIDDEN_PREFIXES/.test(sw) && /'\/admin'/.test(sw));
+        /FORBIDDEN_PREFIXES/.test(sw) && /'\/admin'/.test(sw) && /'\/api\/offline-guide'/.test(sw));
     }
 
     /* ---- the eight affected administrator pages ---- */

@@ -123,14 +123,18 @@ async function loadRouteSource() {
     return { nodes, edges, buildings, vrByBuildingId };
   }
 
+  // ORDER BY id ASC on every read so ONE snapshot is deterministic and matches
+  // the ordering the Supabase repositories already guarantee. Callers that share
+  // this snapshot for both availability and route generation then see identical
+  // node/edge sequences on either backend.
   const [[nodes], [edges], [buildings], [routes]] = await Promise.all([
-    db.query('SELECT id, node_key, label, node_type, building_id, lat, lng FROM route_nodes'),
+    db.query('SELECT id, node_key, label, node_type, building_id, lat, lng FROM route_nodes ORDER BY id ASC'),
     db.query(
       `SELECT from_node_id, to_node_id, distance_meters, walk_time_seconds,
               path_label, is_accessible, path_geometry
-         FROM route_edges`
+         FROM route_edges ORDER BY id ASC`
     ),
-    db.query('SELECT id, name FROM buildings'),
+    db.query('SELECT id, name FROM buildings ORDER BY id ASC'),
     db.query('SELECT id, destination_building_id FROM campus_routes ORDER BY id ASC')
   ]);
 
@@ -351,12 +355,21 @@ function availabilityDecorationForDestination({
 
    Computed once per request; never throws.
 --------------------------------------------------------------------------- */
-async function buildAvailabilityIndex() {
+async function buildAvailabilityIndex(preloaded) {
   let src;
   let buildingRoster;
+  const pre = (preloaded && typeof preloaded === 'object') ? preloaded : null;
   try {
-    // Both rosters are needed before any verdict: the collision check spans them.
-    [src, buildingRoster] = await Promise.all([loadRouteSource(), loadBuildingSourceRoster()]);
+    if (pre && pre.routeSource && Array.isArray(pre.buildingRoster)) {
+      // A caller that already read BOTH datasets for this request passes its
+      // immutable snapshot in, so one request never reads them twice. Omitting
+      // it keeps every existing caller byte-for-byte unchanged.
+      src = pre.routeSource;
+      buildingRoster = pre.buildingRoster;
+    } else {
+      // Both rosters are needed before any verdict: the collision check spans them.
+      [src, buildingRoster] = await Promise.all([loadRouteSource(), loadBuildingSourceRoster()]);
+    }
   } catch (e) {
     // FAIL CLOSED. The caller logs one fixed sanitized diagnostic; the raw
     // backend error never leaves this module.
@@ -433,9 +446,12 @@ async function buildAvailabilityIndex() {
 
    Mutates and returns the same array (callers already rely on that pattern).
 --------------------------------------------------------------------------- */
-async function decorateBuildings(buildings) {
+async function decorateBuildings(buildings, options) {
   const list = Array.isArray(buildings) ? buildings : [];
-  const index = await buildAvailabilityIndex();
+  const opts = (options && typeof options === 'object') ? options : null;
+  // An already-built index (from this request's single snapshot) is reused as-is;
+  // omitting it preserves the existing read-per-call behaviour exactly.
+  const index = (opts && opts.index) ? opts.index : await buildAvailabilityIndex();
 
   if (!index.ok) {
     for (const b of list) Object.assign(b, unavailable(REASON.ROUTE_DATA_UNAVAILABLE));
@@ -489,6 +505,7 @@ module.exports = {
   groupByCanonical,
   resolveAvailabilityDestinationNode,
   availabilityDecorationForDestination,
+  loadRouteSource,
   loadBuildingSourceRoster,
   canonicalNameCollides,
   buildAvailabilityIndex,

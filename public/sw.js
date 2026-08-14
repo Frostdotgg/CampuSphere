@@ -3,14 +3,64 @@
    CampuSphere Service Worker
    Milestone 6, Section 6.4 (bounded caching).
 
-   Scope: offline DEMO navigation only — NOT a full offline app.
+   Scope: a session-neutral offline SHELL only — NOT a full offline app.
    No Workbox, no dependencies. Plain, readable, capstone-scoped.
 
-   Caches (all under the campusphere-pwa-* prefix, versioned):
-     - shell     : minimal precached app-shell assets (install time)
-     - static    : same-origin CSS/JS/img/icon/manifest (runtime, capped)
-     - api       : approved JSON APIs (runtime, network-first, capped)
-     - external  : approved CDN/tiles/media (runtime, capped, opaque allowed)
+   Update lifecycle (OFF.2):
+     - install NEVER calls skipWaiting(). An updated worker deliberately enters
+       the waiting state and activates only after the user accepts the update.
+     - The shell precache is ATOMIC. A partially precached shell is never
+       activated: a failed entry rejects the install, the half-written shell
+       cache is dropped, and the currently ACTIVE worker keeps serving.
+     - The only accepted message is the narrow { type: 'SKIP_WAITING' } sent by
+       public/js/pwa.js from an explicit user action.
+     - activate() advances the cache version once and deletes ONLY stale
+       campusphere-pwa-* caches; unrelated Cache Storage entries are untouched.
+     - No route, schedule, VR, panorama, basemap, or media payload is precached.
+       OFF.3 adds the guide only after explicit user consent and stores it in a
+       dedicated IndexedDB database; the service worker never captures it.
+
+   Offline-scope boundary (2D-only correction):
+     - EXACT SHELL ALLOWLIST. The only same-origin requests eligible for Cache
+       Storage are the reviewed shell assets themselves, matched by exact
+       pathname PLUS query string against PRECACHE_URLS. There is no
+       extension-wide or directory-wide rule, so '/css/styles.css?v=5' is
+       cacheable while '/css/styles.css?v=6' is not.
+     - Every other same-origin static or media request is NETWORK-ONLY: local
+       database-selected building photos, '/img/campus-hero.jpg', arbitrary
+       '/img/*.jpg', local panorama paths under '/img/vr/', and non-shell
+       admin CSS/JS are never intercepted and never written to any cache.
+     - EVERY cross-origin request is NETWORK-ONLY. There is no external cache,
+       no approved-host list, and no cross-origin strategy left to re-enable:
+       OpenStreetMap tiles, res.cloudinary.com, and every other host go
+       straight to the browser's normal network path. OSM remains permitted by
+       CSP and the ONLINE Leaflet/MapLibre map is unchanged; the OFFLINE map
+       renders from the bundled content-addressed PMTiles archive, which the
+       explicit IndexedDB manager owns and the worker never touches.
+     - EVERY same-origin API request is NETWORK-ONLY. /api/buildings,
+       /api/routes, /api/routes/*, /api/vr/routes/*, every query-string variant,
+       and the whole remaining '/api' surface are never intercepted and never
+       cached. Automatic API caching was removed because those payloads carry
+       Cloudinary image URLs and local building-photo references, which would
+       retain media the user never consented to download; the explicit
+       /api/offline-guide download into IndexedDB is the ONLY owner of offline
+       campus data.
+     - NETWORK-ONLY means the worker DECLINES to handle a request. It never
+       blocks, redirects, rewrites, or synthesizes a response, so online
+       delivery is byte-for-byte unchanged.
+
+   Caches — EXACTLY TWO exist, both under the campusphere-pwa-* prefix and
+   versioned. Neither holds anything but the exact reviewed shell assets:
+     - shell   : the reviewed app-shell assets, precached atomically at install
+     - static  : the SAME exact reviewed shell assets, refreshed at runtime
+                 (stale-while-revalidate, FIFO-capped by STATIC_MAX)
+
+   There is no api cache and no external cache. API_CACHE, API_MAX,
+   EXTERNAL_CACHE, EXTERNAL_MAX, approved-host cross-origin caching, the
+   approved-API classifier/strategy, and the synthesized offline JSON fallback
+   response DO NOT EXIST — each was removed outright rather than disabled, so
+   there is no dormant branch to re-enable. CURRENT_CACHES is exactly
+   [SHELL_CACHE, STATIC_CACHE].
 
    Privacy boundary (R2 — Authenticated PWA Privacy):
      - HTML navigations are NEVER cached. Authenticated pages embed
@@ -22,29 +72,44 @@
        PAGE_CACHE). This does not rely on logout cleanup as the privacy boundary.
 
    Hard security rules (do NOT relax):
-     - Only same-origin GET (or approved cross-origin GET) is ever handled.
+     - The ONLY request the worker ever answers is a same-origin GET that is
+       either a navigation or an EXACT reviewed shell asset. Nothing else is
+       handled at all.
+     - EVERY cross-origin request is network-only, without exception and
+       without a host allowlist.
+     - EVERY same-origin /api request is network-only, including
+       /api/buildings, /api/routes, /api/routes/*, /api/vr/routes/*,
+       /api/search, /api/pathfind and every query-string variant.
      - Never intercept/cache: /auth, /login, /register, /logout,
        /admin (+ /admin/*, /admin/api/*), /api/update-profile,
-       any non-GET request, or any POST/PUT/PATCH/DELETE response.
-     - Only successful responses are cached. Redirected responses are never
-       cached (prevents an auth-redirect leaking into an approved cache key).
-     - Cross-origin caching is opaque-allowed ONLY for the approved host list,
-       and every runtime cache is CAPPED so this cannot become a tile/panorama
-       mirror. /img/vr/ media is never cached.
+       /api/offline-guide, any non-GET request, or any
+       POST/PUT/PATCH/DELETE response.
+     - The successful-response and never-cache-a-redirect rules apply ONLY to
+       reviewed shell/static caching — the sole caching path that still exists.
+       They prevent an auth-redirect leaking into a shell cache key.
+     - The one runtime cache is FIFO-capped by STATIC_MAX, and because only
+       exact reviewed shell URLs are eligible it cannot grow into a tile,
+       panorama, photo, or API mirror. /img/vr/ media is never cached.
      - No logging of request URLs or response bodies (avoids leaking data).
    ======================================== */
 
 var CACHE_PREFIX = 'campusphere-pwa';
-var CACHE_VERSION = 'v10'; // 11.8 map repair: purge pre-repair external/static caches; the /map page owns its local fallback if the map engine or tiles fail. (M12.P1-R6 self-hosted the map/VR/icon engines under /vendor, so they are now ordinary same-origin static assets — a caching-behaviour change was neither needed nor made, hence the version is unchanged. v9/10.8: jsdelivr removed from approved external hosts and externalStrategy made pass-through-safe; v6/R2: network-only authenticated navigations.)
+var CACHE_VERSION = 'v15'; // Consent-boundary correction: advanced ONCE so activation removes the unaccepted local v14 shell/static/API caches. The v14 API cache could still hold /api/buildings and /api/routes* responses carrying Cloudinary image URLs and local building-photo references, retained without the user's explicit download consent. Unrelated Cache Storage entries are preserved. (v14: exact shell allowlist; all cross-origin network-only. v13: Guided-VR route JSON and Cloudinary made network-only. v12/OFF.3: session-neutral offline guide UI/runtime added to the atomic shell; guide JSON + PMTiles archive remain explicit-download IndexedDB data. OFF.2 lifecycle rules are unchanged.)
 
 var SHELL_CACHE = CACHE_PREFIX + '-shell-' + CACHE_VERSION;
 var STATIC_CACHE = CACHE_PREFIX + '-static-' + CACHE_VERSION;
-var API_CACHE = CACHE_PREFIX + '-api-' + CACHE_VERSION;
-var EXTERNAL_CACHE = CACHE_PREFIX + '-external-' + CACHE_VERSION;
 
-// No page cache: authenticated HTML is never stored (R2). Any campusphere-pwa-*
-// cache not in this set (including every prior -page-* cache) is deleted on activate.
-var CURRENT_CACHES = [SHELL_CACHE, STATIC_CACHE, API_CACHE, EXTERNAL_CACHE];
+/* Exactly TWO caches exist, and both hold only the reviewed static shell.
+
+   No page cache: authenticated HTML is never stored (R2).
+   No EXTERNAL cache: every cross-origin request is network-only.
+   No API cache: every same-origin API request is network-only.
+
+   In each case the constant, its size cap, its classifier, and its strategy
+   were REMOVED rather than left dormant where they could be re-enabled by
+   accident. Any campusphere-pwa-* cache outside this set — including every
+   prior -page-*, -external-* and -api-* generation — is deleted on activate. */
+var CURRENT_CACHES = [SHELL_CACHE, STATIC_CACHE];
 
 var OFFLINE_URL = '/offline.html';
 
@@ -55,18 +120,45 @@ var PRECACHE_URLS = [
   '/manifest.webmanifest',
   '/css/styles.css?v=5',
   '/js/pwa.js',
+  '/js/offline-guide-manager.js',
   '/js/nav-role.js',
   '/js/profile-script.js',
+  '/vendor/maplibre/maplibre-gl.css',
+  '/vendor/maplibre/maplibre-gl.js',
+  '/vendor/pmtiles/pmtiles.js',
   '/img/cspc-logo.png',
+  '/img/Camarines-sur-polytechnic-colleges.png',
   '/img/icons/icon-192.png',
   '/img/icons/icon-512.png',
   '/img/icons/apple-touch-icon.png'
 ];
 
-// Bounded cache sizes (FIFO trim). Keep small — demo scope only.
+/* EXACT same-origin shell allowlist.
+
+   DERIVED FROM PRECACHE_URLS so the runtime-cacheable set and the reviewed
+   shell can never drift apart: adding a runtime-cacheable asset now requires
+   adding it to the reviewed precache list, which is what review inspects.
+
+   Keys are the exact 'pathname + search' string. Object.create(null) is used
+   deliberately — a plain object would let a request for '/constructor' or
+   '__proto__' inherit a truthy prototype member and be treated as shell. */
+var SHELL_ASSET_SET = (function () {
+  var set = Object.create(null);
+  for (var i = 0; i < PRECACHE_URLS.length; i++) set[PRECACHE_URLS[i]] = true;
+  return set;
+})();
+
+/* The ONLY same-origin cache-eligibility test. There is deliberately no
+   extension rule and no directory rule, so local building photos,
+   /img/campus-hero.jpg, arbitrary /img/*.jpg, /img/vr/ panoramas, non-shell
+   admin CSS/JS, and a query-modified shell asset all return false and fall
+   through to the network untouched. */
+function isExactShellAsset(pathWithQuery) {
+  return SHELL_ASSET_SET[pathWithQuery] === true;
+}
+
+// Bounded cache size (FIFO trim) for the one runtime cache that remains.
 var STATIC_MAX = 60;
-var API_MAX = 30;
-var EXTERNAL_MAX = 80; // tiles dominate; cap prevents a full map-tile mirror
 
 /* ---------- path / host classification ---------- */
 
@@ -76,7 +168,8 @@ var FORBIDDEN_PREFIXES = [
   '/register',
   '/logout',
   '/admin',             // covers /admin, /admin/*, /admin/api/*
-  '/api/update-profile'
+  '/api/update-profile',
+  '/api/offline-guide'  // explicit no-store download; IndexedDB manager owns it
 ];
 
 function isForbiddenPath(pathname) {
@@ -89,36 +182,59 @@ function isForbiddenPath(pathname) {
   return false;
 }
 
-// Approved JSON APIs (network-first JSON). Excludes /api/search, /api/pathfind,
-// /api/update-profile (forbidden), and all admin APIs (forbidden via /admin).
-function isApprovedApi(pathname) {
-  if (pathname === '/api/buildings') return true;
-  if (pathname === '/api/routes' || pathname.indexOf('/api/routes/') === 0) return true;
-  if (pathname.indexOf('/api/vr/routes/') === 0) return true;
+/* NETWORK-ONLY, but NOT sensitive.
+
+   These paths are never intercepted and never Cache Storage eligible, yet they
+   are deliberately kept OUT of FORBIDDEN_PREFIXES: that list mirrors the
+   sensitive-path classifier in public/js/pwa.js, and these are ordinary public
+   application requests, not authentication/admin surfaces.
+
+   Declining to handle them leaves them on the browser's normal network path, so
+   ONLINE Guided-VR behaviour is completely unchanged — nothing is blocked,
+   redirected, or rewritten.
+
+   The single '/api' prefix now covers the WHOLE API surface. Automatic API
+   caching was removed: /api/buildings and /api/routes* returned building rows
+   that can carry Cloudinary image URLs and local building-photo references, so
+   caching them retained media references without the user's explicit consent,
+   contradicting the consent-driven offline-package boundary. Offline campus
+   data has exactly one owner — the explicit /api/offline-guide download stored
+   in IndexedDB by public/js/offline-guide-manager.js.
+
+   Matching is on PATHNAME, so every query-string variant of every API path is
+   covered too. This subsumes /api/buildings, /api/routes, /api/routes/*,
+   /api/vr/routes/*, /api/search and /api/pathfind. */
+var NETWORK_ONLY_PREFIXES = [
+  '/api'  // the entire API surface: never intercepted, never cached
+];
+
+function isNetworkOnlyPath(pathname) {
+  for (var i = 0; i < NETWORK_ONLY_PREFIXES.length; i++) {
+    var prefix = NETWORK_ONLY_PREFIXES[i];
+    if (pathname === prefix || pathname.indexOf(prefix + '/') === 0) {
+      return true;
+    }
+  }
   return false;
 }
 
-// Same-origin static assets we may runtime-cache. Never mirror /img/vr/ media.
-function isCacheableStatic(pathname) {
-  if (pathname.indexOf('/img/vr/') === 0) return false;
-  return /\.(css|js|mjs|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|webmanifest)$/i.test(pathname);
-}
+/* Same-origin cache eligibility is decided ONLY by isExactShellAsset() above.
+   The former extension-wide isCacheableStatic() rule was REMOVED: it made every
+   .png/.jpg/.webp outside /img/vr/ cacheable, which silently admitted local
+   database-selected building photos and other non-shell media that are outside
+   the approved 2D-only offline scope. /img/vr/ panoramas are excluded by the
+   same allowlist, by construction rather than by a special case.
 
-// Approved cross-origin hosts (opaque allowed, capped). Only map tiles and
-// Cloudinary media are approved; both are bounded by EXTERNAL_MAX.
-//
-// M12.P1-R6: every browser vendor library (Leaflet, MapLibre, Pannellum,
-// Iconify component, Lucide) is now served SAME-ORIGIN from /vendor, so no CDN
-// host is involved in runtime UI assets at all. Those requests are ordinary
-// same-origin static assets handled by staticStrategy below. Any other
-// cross-origin host still falls through respondWith-free to the browser's
-// normal network path — this remains a service-worker caching decision only.
-function isApprovedExternalHost(hostname) {
-  if (hostname === 'res.cloudinary.com') return true;   // Cloudinary media (bounded)
-  if (hostname === 'tile.openstreetmap.org') return true;
-  if (/\.tile\.openstreetmap\.org$/.test(hostname)) return true; // a/b/c + any subdomain
-  return false;
-}
+   There is no approved cross-origin host list. Every cross-origin request —
+   tile.openstreetmap.org and its a/b/c subdomains, res.cloudinary.com, and any
+   other host — is network-only. OSM is still permitted by CSP and the ONLINE
+   Leaflet/MapLibre map is untouched; only the mirroring of the public tile
+   service into Cache Storage is gone, because OFF.4 renders the offline map
+   from the bundled PMTiles archive instead.
+
+   M12.P1-R6: every browser vendor library (Leaflet, MapLibre, Pannellum,
+   Iconify component, Lucide) is served SAME-ORIGIN from /vendor, so no CDN
+   host is involved in runtime UI assets at all. */
 
 /* ---------- cache helpers ---------- */
 
@@ -142,12 +258,9 @@ function putWithCap(cacheName, request, response, max) {
   });
 }
 
-function offlineJsonResponse() {
-  return new Response(
-    JSON.stringify({ success: false, offline: true, message: 'You are offline. Reconnect to refresh this data.' }),
-    { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
-  );
-}
+/* There is no synthesized offline JSON response any more. The worker never
+   answers an API request at all, so it can neither transform a live response
+   nor fabricate one — the browser surfaces its own ordinary network error. */
 
 function offlinePageResponse() {
   return caches.match(OFFLINE_URL).then(function (cached) {
@@ -174,25 +287,20 @@ function navigationFallbackStrategy(event) {
   });
 }
 
-// Network-first for approved JSON APIs; fall back to cached JSON, then safe 503 JSON.
-function apiStrategy(event) {
-  var req = event.request;
-  return fetch(req).then(function (res) {
-    if (isCacheableSameOrigin(res)) {
-      var ct = res.headers.get('content-type') || '';
-      if (ct.indexOf('application/json') !== -1) {
-        event.waitUntil(putWithCap(API_CACHE, req, res.clone(), API_MAX));
-      }
-    }
-    return res;
-  }).catch(function () {
-    return caches.match(req).then(function (cached) {
-      return cached || offlineJsonResponse();
-    });
-  });
-}
+/* There is intentionally NO API strategy.
 
-// Stale-while-revalidate for same-origin static assets (capped).
+   The former network-first apiStrategy() cached /api/buildings and /api/routes*
+   JSON. Those payloads carry building rows including Cloudinary image URLs and
+   local building-photo references, so caching them retained media references
+   the user never consented to download — the exact boundary the explicit
+   /api/offline-guide flow exists to enforce. API_CACHE, API_MAX,
+   isApprovedApi(), apiStrategy() and the synthesized offline JSON response were
+   REMOVED rather than disabled, so there is no branch left to re-enable.
+
+   Online API behaviour is untouched: response schemas, headers and status codes
+   are exactly what the server sends, because the worker never responds. */
+
+// Stale-while-revalidate for EXACT reviewed shell assets only (capped).
 function staticStrategy(event) {
   var req = event.request;
   return caches.match(req).then(function (cached) {
@@ -212,66 +320,90 @@ function staticStrategy(event) {
   });
 }
 
-// A cached response may only answer a request whose mode it can legally
-// satisfy: answering a no-cors request (e.g. <img>) with a cors-type cached
-// copy — or a cors request with an opaque copy — makes the browser fail the
-// load with a TypeError (surfaces as net::ERR_FAILED). Cache entries are keyed
-// by URL only, so the same asset fetched via XHR (cors) and <img> (no-cors)
-// can collide; skip incompatible entries (the network branch then refreshes
-// the entry with a compatible response type).
-function cachedTypeMatchesMode(res, req) {
-  if (req.mode === 'no-cors') return res.type !== 'cors';
-  return res.type !== 'opaque';
-}
+/* There is intentionally NO cross-origin strategy.
 
-// Cache-first (capped) for approved cross-origin assets; opaque responses
-// allowed. 10.8 repair: PASS-THROUGH-SAFE — this strategy must never do worse
-// than the raw network. Every Cache-API step is guarded so an unexpected
-// rejection degrades to a plain fetch(req) (the browser's normal path) instead
-// of surfacing as net::ERR_FAILED, and the synthesized 504 "Offline" response
-// is a LAST resort used only when the network fetch itself fails.
-function externalStrategy(event) {
-  var req = event.request;
-  return caches.open(EXTERNAL_CACHE).then(function (cache) {
-    return cache.match(req).then(function (cached) {
-      if (cached && !cachedTypeMatchesMode(cached, req)) cached = undefined;
-      var network = fetch(req).then(function (res) {
-        if (res && (res.ok || res.type === 'opaque')) {
-          var copy = res.clone();
-          event.waitUntil(putWithCap(EXTERNAL_CACHE, req, copy, EXTERNAL_MAX).catch(function () {}));
-        }
-        return res;
-      });
-      if (cached) {
-        // Serve cached; refresh in the background, ignoring failures (offline).
-        event.waitUntil(network.catch(function () {}));
-        return cached;
-      }
-      return network.catch(function () {
-        return new Response('', { status: 504, statusText: 'Offline' });
-      });
-    });
-  }).catch(function () {
-    // Cache API failure must never take down the request: plain network.
-    return fetch(req);
-  });
-}
+   The former cache-first externalStrategy() and its cachedTypeMatchesMode()
+   helper were REMOVED together with EXTERNAL_CACHE and EXTERNAL_MAX. Leaving a
+   dormant strategy behind an empty host list would be one edit away from
+   re-mirroring the public OpenStreetMap tile service or Cloudinary media, so
+   the machinery is gone rather than disabled. Cross-origin requests are handled
+   by returning early in the fetch listener — the browser's normal network path.
+
+   Consequence for response modes: because no cross-origin response is ever
+   stored, an opaque/cors mode mismatch can no longer arise, which is why the
+   mode-compatibility helper is unnecessary. */
 
 /* ---------- lifecycle ---------- */
 
+/* ATOMIC shell installation (OFF.2).
+
+   Cache.addAll() is all-or-nothing by specification: if any entry fails to
+   fetch, NONE are committed. That is the primary guarantee that an interrupted
+   installation can never leave a half-usable shell behind. Two deliberate
+   additions harden it:
+
+     1. A post-write verification re-reads the cache and requires EVERY shell
+        entry to be present, so a browser that deviates from the atomicity rule
+        still cannot produce a partial shell.
+     2. On any failure the half-written shell cache is DELETED before the
+        install is failed, so the next installation attempt starts from a clean
+        slate and recovers deterministically instead of inheriting fragments.
+
+   Failing the install rejects the new worker. The previously ACTIVE worker is
+   left untouched and keeps serving — a broken update never degrades a working
+   installation.
+
+   There is deliberately NO self.skipWaiting() here: an updated worker enters
+   the waiting state and waits for the user (see the message handler below). */
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(SHELL_CACHE).then(function (cache) {
-      // Resilient precache: one missing asset must not fail the whole install.
-      return Promise.allSettled(PRECACHE_URLS.map(function (u) {
-        return cache.add(new Request(u, { cache: 'reload' }));
-      }));
-    }).then(function () {
-      return self.skipWaiting();
+      return cache.addAll(PRECACHE_URLS.map(function (u) {
+        return new Request(u, { cache: 'reload' });
+      })).then(function () {
+        return Promise.all(PRECACHE_URLS.map(function (u) {
+          return cache.match(u).then(function (hit) { return hit ? null : u; });
+        }));
+      }).then(function (results) {
+        for (var i = 0; i < results.length; i++) {
+          if (results[i] !== null) {
+            throw new Error('shell precache incomplete');
+          }
+        }
+        return undefined;
+      });
+    }).catch(function (err) {
+      // Deterministic recovery: drop the partial shell, then fail the install.
+      return caches.delete(SHELL_CACHE).catch(function () {
+        return undefined;
+      }).then(function () {
+        throw err;
+      });
     })
   );
 });
 
+/* User-controlled activation (OFF.2).
+
+   The ONLY message this worker accepts is the narrow { type: 'SKIP_WAITING' }
+   posted by public/js/pwa.js after the user explicitly selects the update
+   action. Every other message shape is ignored. Nothing carried by the message
+   is logged, echoed, cached, or used to build a request, so this cannot become
+   a data channel. */
+self.addEventListener('message', function (event) {
+  var data = event && event.data;
+  if (!data || typeof data !== 'object') return;
+  if (data.type !== 'SKIP_WAITING') return;
+  self.skipWaiting();
+});
+
+/* Versioned cleanup runs only AFTER a successful activation, and only for this
+   application's own prefix: any campusphere-pwa-* cache outside the current
+   version set is removed, while the current caches and every unrelated Cache
+   Storage entry (other apps, other tools) are left completely untouched.
+
+   clients.claim() is what lets an already-open page observe the swap through
+   its single controllerchange listener. */
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -305,12 +437,10 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Cross-origin: only approved hosts are runtime-cached; everything else
-  // (e.g. api.iconify.design icon data) is left entirely to the network.
+  // Cross-origin: ALWAYS network-only. OpenStreetMap tiles, res.cloudinary.com,
+  // the Iconify data API and every other host are left entirely to the browser.
+  // Nothing is blocked or rewritten — the worker simply does not respond.
   if (url.origin !== self.location.origin) {
-    if (isApprovedExternalHost(url.hostname)) {
-      event.respondWith(externalStrategy(event));
-    }
     return;
   }
 
@@ -319,10 +449,12 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Approved JSON APIs (handled before navigation so a direct visit still
-  // returns JSON, never an HTML page).
-  if (isApprovedApi(url.pathname)) {
-    event.respondWith(apiStrategy(event));
+  // Network-only public paths: the ENTIRE '/api' surface. Checked BEFORE the
+  // navigation and shell branches so neither an XHR, a query-string variant,
+  // nor a direct navigation can route API data into any cache. There is no
+  // API branch after this one — falling through leaves the request untouched on
+  // the browser's normal network path.
+  if (isNetworkOnlyPath(url.pathname)) {
     return;
   }
 
@@ -334,8 +466,11 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Same-origin static assets (excludes /img/vr/ media).
-  if (isCacheableStatic(url.pathname)) {
+  // EXACT reviewed shell assets only, matched on pathname PLUS query string.
+  // Anything else same-origin — local building photos, /img/campus-hero.jpg,
+  // /img/vr/ panoramas, non-shell admin CSS/JS, or a shell path carrying an
+  // unreviewed query — falls through untouched to the network below.
+  if (isExactShellAsset(url.pathname + url.search)) {
     event.respondWith(staticStrategy(event));
     return;
   }

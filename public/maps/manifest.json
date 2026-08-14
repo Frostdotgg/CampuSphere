@@ -1,0 +1,20 @@
+{
+  "schema": "campusphere.offline-basemap/1",
+  "asset": "/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles",
+  "bytes": 614046,
+  "sha256": "ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd",
+  "bounds": [123.37, 13.4025, 123.38, 13.409],
+  "center": [123.375, 13.40575],
+  "minzoom": 0,
+  "maxzoom": 15,
+  "source": {
+    "provider": "Protomaps Basemap",
+    "archive": "https://build.protomaps.com/20260812.pmtiles",
+    "version": "4.15.2",
+    "extractTool": "go-pmtiles 1.31.2",
+    "extractBbox": "123.3700,13.4025,123.3800,13.4090",
+    "extractMaxzoom": 15
+  },
+  "attribution": "Protomaps © OpenStreetMap contributors",
+  "license": "ODbL Produced Work; OpenStreetMap attribution required"
+}

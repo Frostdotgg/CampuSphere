@@ -91,6 +91,32 @@
       "notes": "Self-hosting moves only the COMPONENT SCRIPT on-origin. The component still fetches icon DATA from https://api.iconify.design at runtime, which remains an approved connect-src data origin. The executable script origin https://code.iconify.design is removed."
     },
     {
+      "name": "pmtiles",
+      "version": "4.4.1",
+      "license": "BSD-3-Clause",
+      "globalInterface": "pmtiles",
+      "tarball": "https://registry.npmjs.org/pmtiles/-/pmtiles-4.4.1.tgz",
+      "integrity": "sha512-5oTeQc/yX/ft1evbpIlnoCZugQuug/iYIAj/ZTqIqzdGek4uZEho99En890EE6NOSI3JTI3IG8R7r8+SltphxA==",
+      "gitHead": "0cebcaeade40034b86facb6e7da4ec726b9053fb",
+      "files": [
+        {
+          "source": "package/dist/pmtiles.js",
+          "destination": "/vendor/pmtiles/pmtiles.js",
+          "bytes": 19668,
+          "sha256": "36bcbe1ba97cc07b3fc90cee9cba11729b04e25ec8790cf65a0787d5b38e091b",
+          "transformations": []
+        },
+        {
+          "source": "https://raw.githubusercontent.com/protomaps/PMTiles/0cebcaeade40034b86facb6e7da4ec726b9053fb/LICENSE",
+          "destination": "/vendor/pmtiles/LICENSE",
+          "bytes": 1713,
+          "sha256": "0371c38f338835f7fc13ed71176f3d92144e22c8b736a31cced57adbbeb647b3",
+          "transformations": []
+        }
+      ],
+      "notes": "OFF.3 self-hosted PMTiles browser reader. The package archive omits its license file, so LICENSE is pinned to the npm artifact's exact gitHead. The offline manager reads a user-downloaded, integrity-checked local Blob; no remote executable or tile host is contacted while offline."
+    },
+    {
       "name": "lucide",
       "version": "1.25.0",
       "license": "ISC",

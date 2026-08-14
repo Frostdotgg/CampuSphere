@@ -1157,33 +1157,96 @@ function runPwaPrivacyGate() {
     /function navigationFallbackStrategy[\s\S]*?fetch\(event\.request\)/.test(sw)
     && !/\bvar\s+PAGE_CACHE\s*=/.test(sw)
     && !/function\s+pageStrategy/.test(sw));
-  // Approved API list excludes sensitive endpoints.
-  const approved = (sw.match(/function isApprovedApi[\s\S]*?\n}/) || [''])[0];
-  ok('sw.js approved APIs exclude /api/update-profile', !approved.includes('/api/update-profile'));
-  ok('sw.js approved APIs exclude /api/search', !approved.includes('/api/search'));
-  ok('sw.js approved APIs exclude admin APIs', !/\/admin\/api/.test(approved));
+  /* Consent-boundary correction: there is NO approved-API list any more,
+     because no API response is cached at all. /api/buildings and /api/routes*
+     returned building rows carrying Cloudinary image URLs and local
+     building-photo references, so caching them retained media the user never
+     consented to download. The explicit /api/offline-guide download into
+     IndexedDB is the only owner of offline campus data.
+
+     Scanned on CODE (comments stripped) so the prose recording the removal
+     cannot satisfy — or falsely break — these contracts. */
+  const swCode = sw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  ok('sw.js caches no API response at all (no classifier, strategy, or cache constants)',
+    !/function isApprovedApi/.test(sw) && !/function apiStrategy/.test(sw) &&
+    !/API_CACHE/.test(swCode) && !/API_MAX/.test(swCode) &&
+    sw.includes("'/api/offline-guide'"));
+  /* Mirrors the OFF.2 probe's exact guard: EXACTLY ONE '/api' network-only
+     prefix, the complete classifier truth table evaluated behaviourally in an
+     isolated vm, CURRENT_CACHES tokenizing to exactly [SHELL_CACHE,
+     STATIC_CACHE], and the guard running before every remaining same-origin
+     strategy. Fails closed on any extraction or evaluation error. */
+  ok('sw.js treats the ENTIRE /api surface as network-only with the exact classifier behaviour and exactly two caches',
+    (() => {
+      try {
+        const fnMatch = sw.match(/function isNetworkOnlyPath[\s\S]*?\n}/);
+        const listMatch = swCode.match(/NETWORK_ONLY_PREFIXES\s*=\s*\[([\s\S]*?)\]/);
+        const fetchListener = (sw.match(/addEventListener\('fetch'[\s\S]*$/) || [''])[0];
+        if (!fnMatch || !listMatch || fetchListener === '') return false;
+        const prefixes = (listMatch[1].match(/'([^']*)'/g) || []).map((s) => s.slice(1, -1));
+        if (prefixes.length !== 1 || prefixes[0] !== '/api') return false;
+        const vm = require('vm');
+        const box = Object.create(null);
+        vm.createContext(box);
+        vm.runInContext('var NETWORK_ONLY_PREFIXES = ' + JSON.stringify(prefixes) + ';\n' +
+          fnMatch[0] + '\n__f = isNetworkOnlyPath;', box, { timeout: 1000 });
+        const f = box.__f;
+        if (typeof f !== 'function') return false;
+        const yes = ['/api', '/api/buildings', '/api/routes', '/api/routes/1',
+          '/api/vr/routes/1', '/api/search', '/api/pathfind'];
+        const no = ['/apiary', '/apis', '/auth', '/map', '/'];
+        if (!yes.every((p) => f(p) === true) || !no.every((p) => f(p) === false)) return false;
+        const cc = swCode.match(/CURRENT_CACHES\s*=\s*\[([^\]]*)\]/);
+        if (!cc) return false;
+        const tok = cc[1].split(',').map((t) => t.trim()).filter(Boolean);
+        if (tok.length !== 2 || tok[0] !== 'SHELL_CACHE' || tok[1] !== 'STATIC_CACHE') return false;
+        const guard = fetchListener.search(/isNetworkOnlyPath\(\s*url\.pathname\s*\)/);
+        const strategies = ['navigationFallbackStrategy(', 'staticStrategy(']
+          .map((n) => fetchListener.indexOf(n));
+        return guard !== -1 && strategies.every((i) => i !== -1) && strategies.every((i) => guard < i);
+      } catch (e) { return false; }
+    })());
+  ok('sw.js never intercepts admin APIs and retains no API cache/classifier/strategy machinery',
+    /FORBIDDEN_PREFIXES/.test(sw) && /'\/admin'/.test(swCode) &&
+    !/respondWith\([^)]*apiStrategy/.test(swCode) &&
+    !/function isApprovedApi/.test(sw) && !/function apiStrategy/.test(sw) &&
+    !/API_CACHE/.test(swCode) && !/API_MAX/.test(swCode));
   // VR media is never mirrored.
   ok('sw.js never caches /img/vr/ media', /\/img\/vr\//.test(sw));
-  // Milestone 10 (10.4): Cloudinary delivery is approved ONLY as a bounded
-  // external runtime cache (FIFO-capped), never an unbounded panorama mirror.
-  ok('sw.js approves res.cloudinary.com as external host', /isApprovedExternalHost[\s\S]*?res\.cloudinary\.com/.test(sw));
-  ok('sw.js caps external runtime cache (EXTERNAL_MAX + trim)', /EXTERNAL_MAX\s*=\s*\d+/.test(sw) && /trimCache\s*\(/.test(sw));
-  // 10.8 repair: Pannellum's CDN must NOT be SW-intercepted — the external
-  // strategy's offline catch can synthesize a 504 for the viewer's own CSS/JS
-  // and break VR rendering. The approved-host function must not name jsdelivr.
+  /* 2D-only correction. This supersedes the Milestone 10.4 bounded-Cloudinary
+     cache AND the 11.8 bounded OSM tile cache: NO cross-origin request is cache
+     eligible any more, and the machinery that made it possible is removed
+     rather than disabled. Online delivery is unchanged — an unhandled request
+     stays on the browser's normal network path, and CSP still permits OSM,
+     Cloudinary and the Iconify data API (asserted separately below). */
+  ok('sw.js declares no approved cross-origin host (Cloudinary and OSM are never cached)',
+    !/function isApprovedExternalHost/.test(sw) && !/function externalStrategy/.test(sw));
+  ok('sw.js removed the external cache constants rather than leaving them dormant',
+    !/EXTERNAL_CACHE/.test(sw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')) &&
+    !/EXTERNAL_MAX/.test(sw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')) &&
+    /trimCache\s*\(/.test(sw));
   {
-    const approvedFn = (sw.match(/function isApprovedExternalHost[\s\S]*?\n}/) || [''])[0];
-    ok('sw.js does NOT approve cdn.jsdelivr.net (Pannellum loads via network)',
-      approvedFn !== '' && !/return true/.test((approvedFn.split('\n').filter((l) => /jsdelivr/.test(l)).join('\n'))));
+    // No CDN can be SW-intercepted at all now, so the old jsdelivr-specific
+    // carve-out is subsumed: the cross-origin branch must return bare.
+    const fetchListener = (sw.match(/addEventListener\('fetch'[\s\S]*$/) || [''])[0];
+    const crossOriginBranch = fetchListener.slice(
+      fetchListener.indexOf('url.origin !== self.location.origin'),
+      fetchListener.indexOf('isForbiddenPath')
+    );
+    ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
+      crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
     ok('sw.js cache version >= v9 (purges pre-repair external caches)', Number(ver) >= 9);
-    // externalStrategy must be pass-through-safe: a Cache API failure degrades
-    // to plain fetch (never ERR_FAILED), and cached responses are mode-checked
-    // before answering (a cors copy must not answer a no-cors <img>).
-    const extFn = (sw.match(/function externalStrategy[\s\S]*?\n}/) || [''])[0];
-    ok('sw.js externalStrategy has a pass-through failsafe (catch -> fetch(req))',
-      /\.catch\(function \(\) \{[\s\S]*?return fetch\(req\);/.test(extFn));
-    ok('sw.js externalStrategy guards cached type vs request mode', /cachedTypeMatchesMode/.test(extFn) && /function cachedTypeMatchesMode/.test(sw));
+    /* Same-origin eligibility is now an EXACT allowlist derived from the
+       reviewed PRECACHE_URLS and matched on pathname + query, replacing the
+       extension-wide rule that silently admitted local building photos. */
+    const shellFn = (sw.match(/function isExactShellAsset[\s\S]*?\n}/) || [''])[0];
+    ok('sw.js gates same-origin caching on an exact shell allowlist derived from PRECACHE_URLS',
+      shellFn !== '' && /SHELL_ASSET_SET\[pathWithQuery\] === true/.test(shellFn) &&
+      /SHELL_ASSET_SET[\s\S]{0,400}PRECACHE_URLS/.test(sw));
+    ok('sw.js no longer classifies same-origin assets by file extension',
+      !/function isCacheableStatic/.test(sw) &&
+      /isExactShellAsset\(url\.pathname \+ url\.search\)/.test(sw));
   }
 
   return rec.failures;
@@ -1477,7 +1540,7 @@ async function runSelfHostedVendorGate() {
   ok('the vendor manifest passes fail-closed structural validation', analysis.ok === true);
   if (!analysis.ok) analysis.problems.forEach((p) => console.error('    - manifest: ' + p));
 
-  ok('the manifest pins EXACTLY the five reviewed package versions',
+  ok('the manifest pins EXACTLY the six reviewed package versions',
     r6VersionsMatch(analysis.versions, R6.EXPECTED_PACKAGES) &&
     Object.keys(analysis.versions).length === Object.keys(R6.EXPECTED_PACKAGES).length);
 
@@ -1493,10 +1556,10 @@ async function runSelfHostedVendorGate() {
     ok('the manifest matches the independently pinned reviewed inventory EXACTLY',
       invMismatch.length === 0);
     if (invMismatch.length) invMismatch.forEach((m) => console.error('    - inventory: ' + m));
-    ok('the independently pinned inventory records exactly 18 files across 5 packages',
-      R6.EXPECTED_VENDOR_INVENTORY.length === 5 &&
+    ok('the independently pinned inventory records exactly 20 files across 6 packages',
+      R6.EXPECTED_VENDOR_INVENTORY.length === 6 &&
       R6.flattenExpectedInventory().length === R6.EXPECTED_VENDOR_FILE_TOTAL &&
-      R6.EXPECTED_VENDOR_FILE_TOTAL === 18);
+      R6.EXPECTED_VENDOR_FILE_TOTAL === 20);
   }
 
   /* Disk verification against BOTH the manifest AND the independently pinned
@@ -1710,23 +1773,34 @@ async function runSelfHostedVendorGate() {
       !Object.keys(pkg.dependencies || {}).some((d) => Object.keys(R6.EXPECTED_PACKAGES).includes(d)));
   }
 
-  /* ---- 10. the service-worker privacy/offline boundary is unchanged ---- */
+  /* ---- 10. the service-worker privacy boundary stays intact as OFF.3 adds
+     only the session-neutral UI/runtime; guide JSON + PMTiles stay explicit
+     download data in IndexedDB, outside Cache Storage. ---- */
   {
     const sw = readIf(path.join('public', 'sw.js'));
-    const approvedFn = (sw.match(/function isApprovedExternalHost[\s\S]*?\n}/) || [''])[0];
-    ok('sw.js approves ONLY tiles + Cloudinary as external hosts',
-      /res\.cloudinary\.com/.test(approvedFn) && /tile\.openstreetmap\.org/.test(approvedFn) &&
-      !/return true/.test(approvedFn.split('\n').filter((l) => /unpkg|jsdelivr|iconify/.test(l)).join('\n')));
+    /* 2D-only correction: there is NO cache-eligible cross-origin host at all.
+       OSM tiles are no longer mirrored (OFF.4 renders the offline map from the
+       bundled PMTiles archive) and Cloudinary media is never stored, so
+       360/Guided-VR/Free-Roam media and building photos cannot enter Cache
+       Storage. Both online paths remain CSP-permitted and network-served. */
+    ok('sw.js declares no cache-eligible external host at all (OSM and Cloudinary are network-only)',
+      !/function isApprovedExternalHost/.test(sw) && !/function externalStrategy/.test(sw) &&
+      !/tile\.openstreetmap\.org/.test(sw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')));
     ok('sw.js still never caches an HTML navigation',
       /function navigationFallbackStrategy/.test(sw) && !/\bvar\s+PAGE_CACHE\s*=/.test(sw) &&
       !/function\s+pageStrategy/.test(sw));
     ok('sw.js still refuses the authenticated/forbidden prefixes',
       /FORBIDDEN_PREFIXES/.test(sw) && /'\/admin'/.test(sw) && /'\/auth'/.test(sw));
     ok('sw.js still never mirrors /img/vr/ media', /\/img\/vr\//.test(sw));
-    ok('sw.js precaches no vendor bundle (offline scope is not widened)',
-      !/PRECACHE_URLS[\s\S]*?\/vendor\//.test(sw));
-    ok('sw.js claims no offline navigation capability',
-      !/offline\s+navigation\s+(is\s+)?(supported|available|enabled)/i.test(sw));
+    const precache = (sw.match(/PRECACHE_URLS\s*=\s*\[([\s\S]*?)\]/) || [])[1] || '';
+    ok('sw.js precaches only the approved offline renderer libraries, never the guide API or map archive',
+      /\/vendor\/maplibre\/maplibre-gl\.js/.test(precache) &&
+      /\/vendor\/pmtiles\/pmtiles\.js/.test(precache) &&
+      !/\/api\/offline-guide/.test(precache) && !/\.pmtiles/.test(precache));
+    ok('sw.js adds explicit-download offline navigation while keeping every HTML navigation network-only',
+      /OFF\.3 adds the guide only after explicit user consent/i.test(sw) &&
+      /function navigationFallbackStrategy[\s\S]*?fetch\(event\.request\)/.test(sw) &&
+      !/\bvar\s+PAGE_CACHE\s*=/.test(sw));
   }
 
   /* ---- 11. standalone accounting + residue registration ---- */
@@ -2149,7 +2223,8 @@ function runCloudinaryDocsGate() {
       'Repository HEAD `89abcdef0123456789abcdef0123456789abcdef` is a later documentation-only commit.\n' +
       'Git commit\nSHA-1 `fedcba9876543210fedcba9876543210fedcba98`.\n' +
       'Git tree SHA-1 `1234567890abcdef1234567890abcdef12345678`.\n' +
-      'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.'));
+      'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.\n' +
+      'Historical candidate manifest SHA-256 `abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789`.'));
   ok('fixture: an unlabeled long-hex value is rejected',
     containsLikelyDocumentationSecret('value `0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`') &&
     containsLikelyDocumentationSecret('value `ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789`'));
@@ -3699,6 +3774,7 @@ function runVercelPackageBoundaryGate() {
     const base = R7.EXPECTED_ROOT_FILES.concat(
       DIRS.map((d) => d + '/placeholder.js'),
       R7.EXPECTED_VENDOR_RUNTIME_FILES,
+      R7.EXPECTED_OFFLINE_MAP_RUNTIME_FILES,
       [R7.EXPECTED_VENDOR_MANIFEST_FILE,
         'public/css/styles.css', 'public/js/pwa.js', 'public/img/cspc-logo.png',
         'public/img/icons/icon-192.png', 'public/manifest.webmanifest',
@@ -3714,6 +3790,7 @@ function runVercelPackageBoundaryGate() {
     ok('fixture: a missing vendored runtime file or vendor manifest is rejected',
       R7.evaluatePackageContract(base.filter((p) => p !== 'public/vendor/leaflet/leaflet.js')).length > 0 &&
       R7.evaluatePackageContract(base.filter((p) => p !== 'public/vendor/pannellum/pannellum.js')).length > 0 &&
+      R7.evaluatePackageContract(base.filter((p) => p !== R7.EXPECTED_OFFLINE_MAP_RUNTIME_FILES[0])).length > 0 &&
       R7.evaluatePackageContract(base.filter((p) => p !== R7.EXPECTED_VENDOR_MANIFEST_FILE)).length > 0);
     const forbidden = [
       '.env', '.env.example', 'plan.md', 'docs/deployment.md',
@@ -3798,7 +3875,7 @@ function runVercelPackageBoundaryGate() {
         $schema: R7.EXPECTED_SCHEMA,
         headers: canonical().headers.map((r) => (r.source === '/offline.html'
           ? { source: r.source, headers: r.headers.map((h) => (h.key === 'Content-Security-Policy'
-            ? { key: h.key, value: h.value.replace("script-src 'none'", "script-src 'self'") } : h)) } : r)),
+            ? { key: h.key, value: h.value.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'") } : h)) } : r)),
       }) === true);
     ok('fixture: a catch-all or dynamic-route CSP is rejected',
       rejectedJson({
@@ -3814,7 +3891,9 @@ function runVercelPackageBoundaryGate() {
         $schema: R7.EXPECTED_SCHEMA,
         headers: canonical().headers.map((r, i) => (i === 0
           ? { source: r.source, headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] } : r)),
-      }) === true);
+      }) === true &&
+      R7.isContentHashedAssetSource('/maps/cspc-campus-' + 'a'.repeat(64) + '.pmtiles') === true &&
+      R7.isContentHashedAssetSource('/maps/cspc-campus.pmtiles') === false);
     ok('fixture: the broad-source detector accepts narrow sources and flags wildcards',
       R7.isBroadHeaderSource('/css/:path*') === false &&
       R7.isBroadHeaderSource('/sw.js') === false &&
@@ -4355,12 +4434,14 @@ function currentPilotAuthorityProblems(value) {
   if (!/\bpilot review\b[\s\S]{0,80}\bcomplete\b/i.test(t)) {
     problems.push('pilot review is not complete for sequencing');
   }
-  if (!/\bOFF\.2\b[\s\S]{0,60}\b(?:is\s+)?(?:the\s+)?next\b|\bnext workstream\b[\s\S]{0,40}\bOFF\.2\b/i.test(t)) {
-    problems.push('OFF.2 is not identified as the next workstream');
+  if (!/\bowner-authorized local\b[\s\S]{0,220}\b(?:OFF\.2-OFF\.5|OFF\.2\b[\s\S]{0,100}\bOFF\.3-OFF\.5)\b/i.test(t)) {
+    problems.push('owner-authorized local OFF.2-OFF.5 candidate is missing');
   }
-  if (!/\bOFF\.2-OFF\.6\b/i.test(t) || !/\boffline work\b/i.test(t) ||
-      !/\bfinal Milestone 12\b/i.test(t)) {
-    problems.push('open OFF.2-OFF.6, offline, or final M12 boundary is missing');
+  if (!/\bD6\b[\s\S]{0,100}\bOFF\.6\b[\s\S]{0,120}\bfinal Milestone 12\b[\s\S]{0,60}\bremain open\b/i.test(t)) {
+    problems.push('open D6, OFF.6, or final M12 boundary is missing');
+  }
+  if (!/\b(?:OFF\.2-OFF\.5|OFF\.2\b[\s\S]{0,100}\bOFF\.3-OFF\.5)\b[\s\S]{0,650}\b(?:no Codex GO|rather than Codex GO|no section is independently Codex-accepted)\b/i.test(t)) {
+    problems.push('offline implementation candidate is not bounded away from Codex GO');
   }
 
   const contradictoryRules = [
@@ -4553,8 +4634,8 @@ function reusablePromptsAreCurrent(doc) {
   return reusablePromptIsCurrent(prompts.codex) && reusablePromptIsCurrent(prompts.claude);
 }
 
-/* A grounding prompt may identify OFF.2 as the next workstream without
-   authorizing it. Require either Claude's direct "do not infer" construction
+/* A grounding prompt may record the local offline candidate without
+   authorizing more work. Require either Claude's direct "do not infer" construction
    or Codex's bounded "Never use direct SQL ... or infer" construction, and
    reject an additive permission that would contradict an otherwise valid
    denial. The two OFF.2 forms match the current prompt word orders; the older
@@ -4826,13 +4907,14 @@ function analyzeProvenanceRemediationRow(md) {
    legitimate citation, while the same figure sitting in a STATUS cell is a
    current disposition. Only the latter is a defect. */
 
-/* The accepted technical Production source-package inventory, pinned HERE independently of the
-   probe and of both evidence documents, so a document edit alone cannot move
-   what "current" means. */
+/* The current deployable source-package candidate, pinned HERE independently
+   of the probe and both evidence documents. The accepted technical Production
+   baseline remains historical authority and is not silently relabelled by this
+   offline candidate. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 158,
-  bytes: '6,245,074',
-  sha256: 'b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4',
+  files: 165,
+  bytes: '6,971,229',
+  sha256: 'e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -4888,10 +4970,12 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
   'participant/form evidence remains external',
   'full source-commit identity was not independently verified',
   'pilot review is complete',
-  'off.2 is next',
-  'off.2-off.6',
-  'offline work',
+  'owner-authorized local off.2-off.5 implementation candidate',
+  'focused evidence but no codex go',
+  'd6',
+  'off.6 browser acceptance',
   'final milestone 12 go',
+  'offline candidate must not be pushed, promoted, or deployed before the presentation',
 ]);
 
 /* The exact current candidate total is pinned independently of both evidence
@@ -5089,7 +5173,7 @@ function analyzeDemoRoutingContract(md, expected) {
 /**
  * PURE: the facilitator's readiness section must preserve the accepted
  * Production result, staged-authority commit, owner-attested pilot boundary,
- * and the remaining OFF.2/final-acceptance sequence.
+ * and the current local OFF.2-OFF.5 / final-acceptance sequence.
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeDemoReadinessSequence(md, expectedSteps) {
@@ -6577,19 +6661,59 @@ function runDocsCurrentGate() {
     !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_START + '\n' + MARKED_GUIDED_VR_HISTORY_FIXTURE).valid &&
     !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_END + '\nold\n' + GUIDED_VR_HISTORY_START).valid);
 
-  for (const name of sequenceDocs) {
-    const doc = docs[name].replace(/\s+/g, ' ');
-    ok(`${name} records the limited pilot and deferred offline work before final M12 GO`,
-      /(M12\.P1|limited.{0,40}(Vercel )?pilot)/i.test(doc) &&
-      /OFF\.2[\s\S]{0,120}OFF\.6|OFF\.2[^.]{0,120}through[^.]{0,60}OFF\.6/i.test(doc) &&
-      /(deferred|resume|not cancelled)/i.test(doc) &&
-      /OFF\.6[\s\S]{0,260}(final )?Milestone 12.{0,80}GO|final Milestone 12.{0,200}OFF\.6/i.test(doc));
+  /** PURE: require the current post-pilot local-candidate boundary near one
+   * explicit owner-authorized OFF.2-OFF.5 claim. Historical pre-pilot prose may
+   * remain elsewhere, but it cannot satisfy this current-authority contract. */
+  function offlineCandidateAuthorityProblems(value) {
+    const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    const anchors = [...text.matchAll(/\bowner-authorized local\b/ig)].map((match) => match.index);
+    const scopes = anchors.map((index) => {
+      const candidates = [index + 25000];
+      for (const delimiter of ['<!-- M12.P1 CURRENT STATUS END -->', '```']) {
+        const at = text.indexOf(delimiter, index);
+        if (at >= 0) candidates.push(at);
+      }
+      return text.slice(Math.max(0, index - 260), Math.min(...candidates));
+    });
+    const valid = scopes.some((scope) => {
+      const contradiction = splitEvidenceClaims(scope).some((claim) => {
+        const historical = /\b(?:historical|superseded|previously|at that time)\b/i.test(claim) &&
+          /\b(?:before|previously|at that time|earlier|former|then)\b/i.test(claim);
+        if (historical) return false;
+        return /\bOFF\.2-OFF\.5\b[^.]{0,140}\b(?:has|received|is granted|is now)\s+(?:Codex )?GO\b/i.test(claim) ||
+          /\boffline candidate\b[^.]{0,180}\b(?:may|can|is authorized to|will)\b[^.]{0,80}\b(?:be )?(?:pushed|promoted|deployed)\b/i.test(claim) ||
+          /\b(?:D6|OFF\.6)\b[^.]{0,140}\b(?:is|are|has been|received)\b[^.]{0,60}\b(?:complete|Codex GO)\b/i.test(claim) ||
+          /\bfinal Milestone 12 GO\b[^.]{0,100}\b(?:is|has been)\b[^.]{0,40}\b(?:issued|granted|complete)\b/i.test(claim);
+      });
+      return !contradiction &&
+        /\bpilot review\b.{0,100}\bcomplete\b/i.test(scope) &&
+        /\bowner-authorized local\b.{0,180}\bOFF\.2-OFF\.5\b.{0,100}\bimplementation candidate\b/i.test(scope) &&
+        /\bfocused evidence\b.{0,100}\bno Codex GO\b/i.test(scope) &&
+        /\bD6\b.{0,180}\bOFF\.6\b.{0,180}\bfinal Milestone 12 GO\b.{0,100}\bremain open\b/i.test(scope) &&
+        /\boffline candidate\b.{0,160}\bmust not be pushed, promoted, or deployed\b.{0,120}\bbefore the presentation\b/i.test(scope);
+    });
+    return valid ? [] : ['current owner-authorized OFF.2-OFF.5/no-GO/open-boundary scope is missing'];
   }
 
-  ok('authoritative docs contain no stale OFF.1-next or absolute no-pilot rule',
+  for (const name of sequenceDocs) {
+    ok(`${name} records the owner-authorized local OFF.2-OFF.5 candidate and preserves every remaining boundary`,
+      offlineCandidateAuthorityProblems(docs[name]).length === 0);
+  }
+
+  const CURRENT_OFFLINE_AUTHORITY_FIXTURE =
+    'Pilot review is complete. An owner-authorized local OFF.2-OFF.5 implementation candidate exists with focused evidence but no Codex GO. ' +
+    'D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision.';
+  ok('authoritative docs contain no stale OFF.1-next rule and the current offline-candidate boundary fails closed',
     !/OFF\.1(?: Offline Baseline Audit and Domain Contract)? is (?:the )?next authorized section|OFF\.1 through OFF\.6 have not started/i.test(
       currentStatusDocs.map((name) => docs[name]).join('\n')
-    ));
+    ) &&
+    offlineCandidateAuthorityProblems(CURRENT_OFFLINE_AUTHORITY_FIXTURE).length === 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' OFF.2-OFF.5 has Codex GO.').length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' D6 and OFF.6 are complete; final Milestone 12 GO is issued.').length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' The offline candidate may be pushed, promoted, or deployed now.').length > 0);
 
   const antiStaleDocs = [
     ...currentStatusDocs,
@@ -6954,7 +7078,8 @@ function runDocsCurrentGate() {
   /* Canonical CURRENT authority: R1-R7, D1-D5, and expanded D7 are complete and
      Codex GO; the final R8 synchronization is the accepted technical Production
      baseline; db05b54 is staged/unpromoted; the pilot is owner-accepted with an
-     unverified build-identity caveat; and OFF.2 is next but still gated. */
+     unverified build-identity caveat; and the local OFF.2-OFF.5 candidate is
+     bounded away from GO, Git mutation, and deployment. */
   const CANONICAL_R7_GO_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
     'M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
@@ -6968,7 +7093,7 @@ function runDocsCurrentGate() {
     'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production serves fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production baseline. ' +
     'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
     'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
-    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this synchronization.';
+    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this synchronization.';
   /* Superseded states retained only as negative fixtures. */
   const SUPERSEDED_R7_CANDIDATE_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
@@ -7264,7 +7389,7 @@ function runDocsCurrentGate() {
     'It was not promoted or made Current, and ' + EXPECTED_SEC51_DEPLOYED_BASELINE + ' remained on the live alias. ' +
     'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
     'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
-    'Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. ' +
+    'Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
     'Historical/superseded: before this deployment, Production served ' +
     EXPECTED_SEC51_PREVIOUS_BASELINE + '.';
   ok('fixture: verification, staged authority, and pilot lifecycle accept current authority and reject stale, missing, or contradictory authority',
@@ -7479,7 +7604,7 @@ function runDocsCurrentGate() {
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
       'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
       'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
-      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. This context-only prompt authorizes none of those actions. ' +
+      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. This context-only prompt authorizes none of those actions. ' +
       'M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this prompt.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
@@ -7800,15 +7925,15 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12 Guided-VR catalog-remediation package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`; focused and in-suite gates `72/72`** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12 Guided-VR catalog-remediation package inventory (candidate) | `x` | recomputed | **158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`** | before this review remediation, the previous candidate was 158 files, 6,242,755 bytes, aggregate `3eb6296b924039e57c445400f0a958bf4b7234305a3278ea0fbcb12b99dfd653` |';
+    const INV_CURRENT = '| OFF.3-OFF.5 2D offline-navigation package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`; focused package gate `74/74`, registered in-suite package gate pending** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| OFF.3-OFF.5 2D offline-navigation package inventory (candidate) | `x` | recomputed | **165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`** | accepted technical Production predecessor: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Historical/superseded:** 157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`. **Current Guided-VR catalog-remediation candidate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
-    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('158 files, 6,245,074 bytes', '157 files, 6,194,154 bytes');
-    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |');
-    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current Guided-VR catalog-remediation candidate:**', '**Historical/superseded Guided-VR catalog-remediation candidate:**');
+    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current OFF.3-OFF.5 2D offline-navigation candidate:** 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` |';
+    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('165 files, 6,971,229 bytes', '158 files, 6,245,074 bytes');
+    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` |');
+    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current OFF.3-OFF.5 2D offline-navigation candidate:**', '**Historical/superseded OFF.3-OFF.5 2D offline-navigation candidate:**');
 
     const EXACT_SUITE_OK = '| Full contract suite (Guided-VR catalog-remediation candidate) | `npm test` | zero fail | **4641/4641 PASS - correction candidate** | `QUALITY-GATES OK` |';
     const EXACT_QA_OK = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4641/4641 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
@@ -8001,6 +8126,9 @@ function runDocsCurrentGate() {
         DEMO_OK.replace(EXPECTED_CURRENT_DEMO_SEQUENCE[0], 'limited-pilot readiness is next'),
         EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0 &&
       analyzeDemoReadinessSequence(
+        DEMO_OK.replace('owner-authorized local off.2-off.5 implementation candidate', 'off.2 is next'),
+        EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0 &&
+      analyzeDemoReadinessSequence(
         DEMO_OK.replace(
           EXPECTED_CURRENT_DEMO_SEQUENCE.join(' -> '),
           [...EXPECTED_CURRENT_DEMO_SEQUENCE].reverse().join(' -> ')),
@@ -8177,7 +8305,7 @@ function runDocsCurrentGate() {
       'It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
       'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
       'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
-      'Pilot review is complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. ' +
+      'Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
       'Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
     const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was 0627bf78228148e3f989275810c333c16a1f3356.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',

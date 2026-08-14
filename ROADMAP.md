@@ -452,8 +452,22 @@ zero reported findings. Participant/Form evidence remains external and no
 participant PII is recorded in Git. The tested build's full source-commit
 identity was not independently verified, so this is owner-attested pilot
 acceptance rather than independent current-build verification. Pilot review is
-complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
-offline work, D6, and final Milestone 12 GO remain open and separately gated.
+complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5
+implementation candidate exists; it has focused evidence but no Codex GO. D6,
+OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline
+candidate must not be pushed, promoted, or deployed before the presentation and
+a later explicit owner decision.
+
+The first full verification of this offline candidate is historical/rejected at
+`4635/4641`: `npm test` exited 1 after 4,635 PASS lines and emitted no
+`QUALITY-GATES OK` because exactly six static documentation/authority assertions
+failed. Every executed runtime, database, catalog, BE.6, and final embedded
+`18/18` residue check was green. Fail-closed sequencing stopped before
+`npm run qa` and before the standalone `24/24 -> 18/18 -> 46/46`
+postconditions. This bounded correction is confined to current-authority
+documentation and existing static assertions, has focused evidence but no
+Codex GO, and requires a later independent review plus separately authorized
+replacement full verification. No session or data correction was required.
 
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
@@ -692,55 +706,63 @@ with zero reported findings. Participant/Form evidence remains external, no
 participant PII is recorded in Git, and the tested build's full source-commit
 identity was not independently verified. Pilot review is complete for
 sequencing purposes. No CampuSphere feedback table, API mutation, or migration
-is added. OFF.2 is next; OFF.2 through OFF.6 remain open and mandatory before
-final Milestone 12 GO. D6 remains the lowest-priority item and runs after
+is added. The owner-authorized local OFF.2-OFF.5 implementation candidate has
+focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final
+Milestone 12 GO remain open. D6 remains the lowest-priority item and runs after
 OFF.2-OFF.5 and before OFF.6.
 
 ### Open Offline Campus Navigation Package
 
-The following work is open, not cancelled. Pilot review is complete; OFF.2 is
-the next workstream but still requires a separate implementation authorization.
+The following work remains outside final GO. The owner-authorized local
+implementation candidate now integrates OFF.2 through OFF.5; focused evidence
+is green, but no section is independently Codex-accepted and OFF.6 remains
+open. These bytes must not be promoted or deployed before the presentation and
+a later explicit owner decision.
 
 **OFF.2 — Installability, Offline Shell, and Update Lifecycle**
 
-- Complete manifest/installability behavior and the session-neutral shell.
+- Candidate implemented: complete manifest/installability behavior and the session-neutral shell.
 - Add visible online/offline and update-available states, safe activation,
   version cleanup, interrupted-install recovery, and reconnect handling.
 - Keep authenticated HTML and sensitive routes network-only.
 
-**OFF.3 — Privacy-Safe Public Data Availability**
+**OFF.3 — Privacy-Safe 2D Guide Data and Explicit Download**
 
-- Package the current BE.6-frozen public catalog for the selected supported
-  backend, precomputed route data/geometries, approved public schedules, and
-  Guided-VR metadata for all 25 active destinations in bounded, versioned,
-  read-only storage after explicit user download. The 13-building roster
-  remains only the reproducible seed baseline, not the complete campus.
+- Candidate implemented: package the current active building/route backends,
+  precomputed Main Gate route data/geometries, safe building details, and exact
+  content-addressed basemap identity in one bounded, versioned, read-only
+  IndexedDB record after explicit user download. The 13-building roster remains
+  only the reproducible seed baseline, not the complete campus.
 - Exclude sessions, CSRF, credentials, profiles, admin/private responses,
-  mutations, raw errors, and personalized HTML.
+  mutations, raw errors, personalized HTML, backend identities, schedules,
+  Cloudinary URLs, building photos, 360 media, Guided VR, and Free Roam.
 
 **OFF.4 — Offline Map and Destination Routing**
 
-- Render the frozen destinations, route lines, steps, and unavailable states
-  without network access.
-- Do not mirror OpenStreetMap; the route experience must remain readable when
-  tiles are absent and preserve clearing/stale-response behavior.
+- Candidate implemented: render the downloaded current-backend destinations,
+  Main Gate route lines, steps, and unavailable states without network access.
+- Use the bounded local PMTiles campus extract as the normal background; never
+  mirror OpenStreetMap. If the renderer is unavailable, preserve the list,
+  route directions, and a keyboard-operable simplified campus map.
 
-**OFF.5 — Offline Guided-VR Catalog and Free Roam State**
+**OFF.5 — Offline Building Details, Integrity, and Recovery**
 
-- Represent all 25 active destinations in the offline catalog and cache only
-  explicitly downloaded, owner-approved media plus the required Free Roam
-  entry path within the agreed quota.
-- Treat uncached or partially downloaded media as an offline availability
-  state without changing the route's online active policy or claiming arrival;
-  preserve schedule hotspots only when their bounded public data and required
-  media are cached.
+- Candidate implemented: a node/list click opens current text details for the
+  building (category, description, walk time, offices/services, floors/rooms,
+  entrances, and landmarks) with a local generic placeholder, keyboard/Escape
+  support, and focus restoration.
+- Reverify guide and map hashes on every load; atomically retain the previous
+  valid record on an interrupted update; delete only the exact guide database
+  on explicit logout.
 
 **OFF.6 — Offline Feature, Privacy, and Final GO/NO-GO**
 
 - Run clean-install and warmed-cache desktop/mobile matrices for restart,
-  network loss, all 25 catalog routes, a fully cached chain, an uncached active
-  route, interrupted/partial media, Free Roam, schedules, quota/errors,
-  upgrades, reconnect, logout, and shared-device privacy.
+  network loss, every current building and available Main Gate route, details
+  windows, normal/fallback maps, unroutable nodes, interrupted/corrupt updates,
+  storage errors, upgrades, reconnect, logout, and shared-device privacy.
+- Require explicit proof that no 360/Guided-VR/Free-Roam, schedule, building
+  photo, or Cloudinary payload enters the offline record or Cache Storage.
 - Require zero private cache data, zero server mutations, green online
   regressions, and complete fixture/service-worker/listener cleanup.
 - OFF.6 GO is required before final Milestone 12 GO.
@@ -842,14 +864,16 @@ Final M12 acceptance remains open.
   zero reported findings. Participant/Form evidence remains external and no
   participant PII is recorded in Git. Its tested build identity was not
   independently verified, so this is not independent current-build evidence.
-- Pilot review is complete for sequencing purposes. OFF.2 is the next
-  separately authorized workstream; add no feedback table, API mutation, or
-  migration. No anonymous browsing is added.
-- OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open.
+- Pilot review is complete for sequencing purposes. The owner-authorized local
+  OFF.2-OFF.5 implementation candidate has focused evidence but no Codex GO;
+  add no feedback table, API mutation, or migration. No anonymous browsing is
+  added.
+- D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open.
 
 #### M12.P2 — Final Demo/UAT Closeout
 
-Status: pilot review complete; blocked by OFF.2–OFF.6 and D6.
+Status: pilot review complete; blocked by OFF.2-OFF.5 independent acceptance,
+D6, and OFF.6 browser acceptance.
 
 Concrete tasks:
 

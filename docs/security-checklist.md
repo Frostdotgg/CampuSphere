@@ -72,10 +72,117 @@ defense evidence. Record pass/fail and sanitized notes only.
   has 25 active Guided-VR destinations, 472 configured steps, and 99 unique
   scene keys. The ordered safety postcondition is green at
   `24/24 -> 18/18 -> 46/46`.
-- The package candidate is 158 files / 6,245,074 bytes / SHA-256
-  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`;
-  the focused boundary probe and registered in-suite package gate both passed
-  `72/72`, and the independent gate pin is synchronized. The failed QA attempt
+- The current offline 2D package candidate is 165 files / 6,971,229 bytes /
+  SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`;
+  historical/blocked and never accepted: candidate manifest SHA-256
+  `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` with
+  package 165 files / 6,970,280 bytes /
+  SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`,
+  superseded because its service-worker header and API guards were incomplete;
+  historical/blocked and never accepted: 165 files / 6,969,343 bytes /
+  SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`
+  at candidate manifest SHA-256
+  `60154d93a3a3109a374a80ffeb4e20f8650aaa131b9b4ff97c16b028cade5f2d`, because
+  automatic API caching contradicted the consent-driven offline-package
+  boundary and could retain building image references; and 165 files /
+  6,968,875 bytes /
+  SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`;
+  independent probe/gate pins are synchronized and focused package execution
+  passes `74/74`; the registered in-suite package gate also passed inside the
+  rejected 4,635-PASS full-suite attempt. The
+  accepted technical Production predecessor remains 158 files /
+  6,245,074 bytes / aggregate SHA-256
+  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`.
+- The first full verification of the offline candidate is historical/rejected
+  at `4635/4641`: `npm test` exited 1 after 4,635 PASS lines and emitted no
+  `QUALITY-GATES OK` because exactly six static documentation/authority checks
+  failed. Every executed runtime, database, catalog, BE.6, and final embedded
+  `18/18` residue check was green. Fail-closed sequencing stopped before
+  `npm run qa` and before the standalone `24/24 -> 18/18 -> 46/46`
+  postconditions. The bounded correction is confined to current-authority
+  documentation and existing static assertions, has focused evidence but no
+  Codex GO, and requires a later independent review plus separately authorized
+  replacement full verification. No session or data correction was required.
+- A fourth bounded correction made the service-worker header truthful and the
+  API guards exact. The header no longer claims api/external caches or approved
+  cross-origin caching: it now states that only the shell and static caches
+  exist, that only exact reviewed shell assets are Cache Storage eligible, that
+  every cross-origin and every same-origin `/api` request is network-only, that
+  `API_CACHE`/`EXTERNAL_CACHE`/approved-host caching/synthesized API fallback
+  responses do not exist, and that the successful-response and never-cache-a-
+  redirect rules apply only to reviewed shell/static caching. The edit is
+  documentation-only — the comment-stripped `public/sw.js` SHA-256 is identical
+  before and after (`fc043eae18d05710f94539a1434131a5a8132401c3dfdd0a1f92cf1b306feb6d`),
+  so executable behaviour is unchanged. The OFF.2 analyzer, the quality gate and
+  the self-hosted probe now each require exactly one `/api` network-only prefix,
+  the complete classifier truth table evaluated behaviourally in an isolated
+  `node:vm` (true for `/api`, `/api/buildings`, `/api/routes`, `/api/routes/1`,
+  `/api/vr/routes/1`, `/api/search`, `/api/pathfind`; false for `/apiary`,
+  `/apis`, `/auth`, `/map`, `/`), `CURRENT_CACHES` tokenizing to exactly
+  `[SHELL_CACHE, STATIC_CACHE]`, absent API machinery, and the guard running
+  before every remaining same-origin strategy — failing closed on any extraction
+  or evaluation error. The compound rejecting fixture additionally rejects an
+  always-false classifier and a third cache in `CURRENT_CACHES`. No GO is
+  claimed.
+- Historical/blocked: a third bounded correction removed automatic API caching entirely. Every
+  same-origin API request is network-only: `/api/buildings`, `/api/routes`,
+  every `/api/routes/*` path, `/api/vr/routes/*`, `/api/search`,
+  `/api/pathfind`, and every query-string variant, matched by a single `/api`
+  network-only prefix on pathname. `API_CACHE`, `API_MAX`, `isApprovedApi()`,
+  `apiStrategy()`, the synthesized offline JSON response and the approved-API
+  fetch branch were removed rather than disabled, and `CURRENT_CACHES` now holds
+  only the shell and static caches. The driver is the consent boundary:
+  `/api/buildings` and `/api/routes*` return building rows carrying Cloudinary
+  image URLs and local building-photo references, so caching them retained media
+  references the user never explicitly downloaded. The worker performs no
+  `respondWith()`, no Cache Storage read or write, and no response
+  transformation on any API request, so online response shapes, headers and
+  status codes are exactly what the server sends. `CACHE_VERSION` advanced once
+  `v14` -> `v15`, evicting the unaccepted local v14 shell/static/API caches and
+  every older CampuSphere generation while preserving unrelated caches. Focused
+  evidence after this correction is OFF.2 `145/145`, 2D offline navigation
+  `35/35`, and package boundary `74/74`, with runtime proof of zero interception
+  and byte-identical cache contents across ten API requests whose JSON body
+  carried both a Cloudinary URL and a local building-photo reference. No GO is
+  claimed.
+- Historical/blocked: a second bounded correction confined Cache Storage to the approved 2D scope.
+  The ONLY same-origin requests eligible for Cache Storage are the exact
+  reviewed shell assets, matched by pathname plus query string against a set
+  derived from `PRECACHE_URLS` (`/css/styles.css?v=5` matches;
+  `/css/styles.css?v=6` does not). The former extension-wide rule is gone, so
+  local database-selected building photos, `/img/campus-hero.jpg`, arbitrary
+  `/img/*.jpg`, `/img/vr/` panoramas, and non-shell admin CSS/JS are all
+  network-only. EVERY cross-origin request is network-only, including
+  `tile.openstreetmap.org` and its a/b/c subdomains and `res.cloudinary.com`;
+  the external cache constant, size cap, host classifier, cross-origin strategy
+  and mode helper were removed rather than left dormant, and the external cache
+  is gone from `CURRENT_CACHES`. Online OSM remains CSP-permitted and the online
+  Leaflet/MapLibre map is unchanged; offline map rendering uses the bundled
+  content-addressed PMTiles archive. `CACHE_VERSION` advanced once `v13` ->
+  `v14`, evicting the unaccepted local v13 shell/static/API/external caches
+  while preserving unrelated caches. Focused evidence after this correction is
+  OFF.2 `145/145`, 2D offline navigation `35/35`, and package boundary `74/74`,
+  with runtime proof of zero interception and byte-identical cache contents for
+  same-origin photos, panoramas, non-shell scripts/styles, query-modified shell
+  paths, OSM apex and subdomain tiles, Cloudinary, and Guided-VR route JSON. No
+  GO is claimed.
+- Historical/blocked: a bounded offline-scope correction narrowed the service-worker cache boundary:
+  `/api/vr/routes/*` and every `res.cloudinary.com` request are network-only and
+  never Cache Storage eligible, leaving OpenStreetMap tiles as the only
+  cache-eligible external host. Online Guided-VR and Cloudinary delivery are
+  unchanged because the worker declines those requests rather than blocking or
+  rewriting them. `CACHE_VERSION` advanced once `v12` -> `v13` so activation
+  evicts the preceding v12 API/external caches while preserving unrelated
+  caches. Explicit-logout deletion of `campusphere-offline-guide` is now durable:
+  an exact namespaced pending marker is written before `logged_out=1` is
+  stripped, cleared only on a confirmed `deleteDatabase`, retried on later page
+  loads, and coalesced across concurrent attempts, touching no unrelated
+  database, cache, localStorage key, session, or application data. Focused
+  evidence after the correction is OFF.2 `145/145`, 2D offline navigation
+  `35/35`, and package boundary `74/74`; adversarial VR-route and Cloudinary
+  requests are proven neither intercepted nor cached, each with a rejecting
+  mutation. No GO is claimed.
+  The failed QA attempt
   that stopped at 4,512 contract passes
   after mixed-mode `ECONNRESET` remains historical/rejected. Its incomplete
   logout left exactly one canonical Supabase student session. A separately
@@ -218,14 +325,16 @@ defense evidence. Record pass/fail and sanitized notes only.
   no participant PII is recorded in Git. The tested build's full source-commit
   identity was not independently verified, so this is owner-attested pilot
   acceptance rather than independent current-build verification. Pilot review
-  is complete for sequencing purposes; OFF.2 is next but remains separately
-  gated.
+  is complete for sequencing purposes. The owner-authorized local OFF.2-OFF.5
+  implementation candidate has focused evidence but no Codex GO.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
 
-OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open. This
-checklist records evidence only and authorizes no mutation.
+D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
+offline candidate must not be pushed, promoted, or deployed before the
+presentation and a later explicit owner decision. This checklist records
+evidence only and authorizes no mutation.
 
 ## Historical/Superseded — 2026-07-30 R8 Review Status
 
@@ -347,7 +456,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only `server.js`, `package.json`, `package-lock.json`, `vercel.json`, and the ten runtime directories are re-included; `public/img/sample 360` is denied in both the directory and subtree form AFTER the `public` re-inclusion. No `.env*`, documentation/handoff, script/probe, database schema/seed/migration, screenshot, evidence document, Docker file, local agent metadata, `node_modules`, log/cache/temporary file, or Git metadata is in the package | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` and in-suite `vercel-package-boundary` `70/70` (historical/superseded: `70/70`/`67/67` at the initial R7 candidate, then `71/71`/`69/69` at the literal-NUL remediation). **Accepted R7 closeout (historical, unchanged):** 154 files, 6,166,956 bytes, aggregate SHA-256 `c7c16ed73de4b34e1989e6e6842ab897b1164477fb39ddc5862ed1901638b9ec`. **Historical/superseded R8 correction candidate:** 157 files, 6,194,154 bytes, aggregate SHA-256 `77e34105c97bf381cdd207de0b5f4a9abaf7d7d74b68e518c7365cc5e1a8551a`. **Current Guided-VR catalog-remediation candidate:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. The expected allowlist, forbidden path classes, public asset classes, and 18 vendored runtime files are pinned in probe code OUTSIDE `.vercelignore`, so a coordinated config-plus-preview edit still fails without a reviewed code change |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS — accepted M12.P1-R7 history; current offline candidate focused 74/74 with independent/full gate still open** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current OFF.3-OFF.5 2D offline-navigation candidate:** 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`. **Historical/blocked, never accepted:** 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is candidate evidence, not deployment authorization |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 

@@ -3,47 +3,84 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f2a44">
-  <title>CampuSphere — Offline</title>
+  <meta name="color-scheme" content="light">
+  <title>CampuSphere — Offline Campus Guide</title>
   <link rel="icon" type="image/png" href="/img/cspc-logo.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <!-- CSP (8.5): styles externalized (static file cannot carry a per-request
-       nonce); precached by the service worker so the offline page stays styled. -->
+  <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="/css/offline.css">
+  <script src="/vendor/maplibre/maplibre-gl.js" defer></script>
+  <script src="/vendor/pmtiles/pmtiles.js" defer></script>
+  <script src="/js/offline-guide-manager.js" defer></script>
 </head>
 
 <body>
-  <main class="card" role="main">
-    <div class="brand">
-      <img src="/img/cspc-logo.png" alt="" width="40" height="40">
-      <h1>CampuSphere is offline</h1>
+  <header class="offline-header">
+    <a class="offline-brand" href="/" aria-label="CampuSphere home">
+      <img src="/img/cspc-logo.png" alt="" width="42" height="42">
+      <span>
+        <strong>CampuSphere</strong>
+        <small>Offline Campus Guide</small>
+      </span>
+    </a>
+    <div class="offline-header__actions">
+      <span class="offline-connection" role="status">Offline-ready workspace</span>
+      <a class="offline-button offline-button--quiet" href="/map">Open online map</a>
     </div>
+  </header>
 
-    <span class="status" role="status">No internet connection</span>
+  <main class="offline-main">
+    <section class="offline-empty" id="offlineGuideEmpty" hidden aria-labelledby="offline-empty-title">
+      <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="" width="96" height="96">
+      <p class="offline-eyebrow">No downloaded guide</p>
+      <h1 id="offline-empty-title">Bring the campus map with you</h1>
+      <p>While connected and signed in, download the current CSPC buildings, building details, and Main Gate routes to this device.</p>
+      <button class="offline-button offline-button--primary" data-offline-guide-download type="button">Download Offline Guide</button>
+      <p class="offline-status" data-offline-guide-status role="status" aria-live="polite"></p>
+      <p class="offline-empty__privacy">The guide contains campus information only—no account, session, schedule, admin, photo, or 360 data.</p>
+    </section>
 
-    <p>You appear to be offline. CampuSphere needs an internet connection to load
-      the <strong>map</strong>, <strong>building directory</strong>,
-      <strong>events</strong>, and <strong>guided VR routes</strong> — and to keep
-      your information private on shared devices.</p>
+    <section class="offline-workspace" id="offlineGuideWorkspace" hidden aria-label="Offline campus navigation">
+      <aside class="offline-sidebar">
+        <div class="offline-sidebar__intro">
+          <p class="offline-eyebrow">From Guard House / Main Gate</p>
+          <h1>Choose a building</h1>
+          <p id="offlineGuidePackageSummary">Loading downloaded guide…</p>
+          <div class="offline-sidebar__actions">
+            <button class="offline-button offline-button--primary" data-offline-guide-download type="button">Update Offline Guide</button>
+            <p class="offline-status" data-offline-guide-status role="status" aria-live="polite"></p>
+          </div>
+        </div>
+        <label class="offline-search">
+          <span class="sr-only">Search downloaded buildings</span>
+          <input type="search" id="offlineBuildingSearch" placeholder="Search buildings" autocomplete="off">
+        </label>
+        <nav class="offline-building-list" id="offlineBuildingList" aria-label="Downloaded buildings"></nav>
+      </aside>
 
-    <p>The following always need an internet connection:</p>
-    <ul>
-      <li>Signing in, registering, or signing out</li>
-      <li>The map, buildings, events, and VR route pages</li>
-      <li>Admin pages and content management</li>
-      <li>Live search, live updates, and saving any changes</li>
-    </ul>
+      <section class="offline-map-shell" aria-label="CSPC offline campus map">
+        <div class="offline-map" id="offlineMap"></div>
+        <div class="offline-map-fallback" id="offlineMapFallback" hidden></div>
+        <div class="offline-map-note">
+          <strong>Offline map</strong>
+          <span>Routes always begin at the Main Gate.</span>
+        </div>
+        <section class="offline-route" id="offlineRouteSummary" hidden aria-live="polite"></section>
 
-    <nav class="links" aria-label="Try again once you reconnect">
-      <a href="/">Home</a>
-      <a href="/map" class="secondary">Map</a>
-      <a href="/buildings" class="secondary">Buildings</a>
-      <a href="/vr" class="secondary">VR Tour</a>
-    </nav>
-
-    <p class="muted">Reconnect to the internet, then reopen the page you need.</p>
+        <aside class="offline-details" id="offlineDetailsPanel" role="dialog" aria-modal="false" hidden aria-hidden="true" aria-labelledby="offline-details-title">
+          <button class="offline-details__close" id="offlineDetailsClose" type="button" aria-label="Close building details">×</button>
+          <div id="offlineDetailsBody"></div>
+        </aside>
+      </section>
+    </section>
   </main>
+
+  <footer class="offline-footer">
+    <span>Map data: Protomaps © OpenStreetMap contributors</span>
+    <span>Downloaded guide data is removed after explicit CampuSphere logout.</span>
+  </footer>
 </body>
 
 </html>

@@ -9702,3 +9702,92 @@ body.auth-body .auth-card .theme-toggle {
     height: 44px;
     z-index: 5;
 }
+
+/* ========================================
+   OFF.3 — EXPLICIT OFFLINE GUIDE DOWNLOAD
+   ======================================== */
+.map-offline-guide {
+    order: 2;
+    margin: .75rem 1rem;
+    padding: .85rem;
+    background: #f1f7f4;
+    border: 1px solid #cfe1d8;
+    border-radius: .75rem;
+}
+
+.map-offline-guide__heading {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+}
+
+.map-offline-guide__icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: #0f5b43;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.map-offline-guide h2 {
+    margin: 0;
+    color: #0f2a44;
+    font-size: .86rem;
+    line-height: 1.25;
+}
+
+.map-offline-guide__heading p,
+.map-offline-guide__status {
+    margin: .2rem 0 0;
+    color: #64748b;
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.map-offline-guide__download {
+    width: 100%;
+    min-height: 40px;
+    margin-top: .7rem;
+}
+
+.map-offline-guide__open {
+    display: inline-block;
+    margin-top: .55rem;
+    color: #0f5b43;
+    font-size: .72rem;
+    font-weight: 750;
+}
+
+.map-offline-guide__status {
+    min-height: 1em;
+}
+
+.map-offline-guide__status[data-state="ready"] { color: #0f5b43; }
+.map-offline-guide__status[data-state="error"] { color: #a12828; }
+
+/* Keep the existing building list after the planner + offline control. */
+.map-sidebar__list { order: 3; }
+
+[data-theme="dark"] .map-offline-guide {
+    background: #102b25;
+    border-color: #235849;
+}
+
+[data-theme="dark"] .map-offline-guide h2 { color: #e2edf7; }
+[data-theme="dark"] .map-offline-guide__heading p,
+[data-theme="dark"] .map-offline-guide__status { color: #b5c3d2; }
+[data-theme="dark"] .map-offline-guide__open { color: #8ed7b8; }
+
+@media (max-width: 768px) {
+    .map-offline-guide {
+        order: 2;
+        margin: .55rem .85rem;
+        padding: .7rem;
+    }
+    .map-sidebar__list { order: 1; }
+}

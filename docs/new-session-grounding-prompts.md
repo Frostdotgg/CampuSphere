@@ -214,9 +214,26 @@ wins:
   evidence remains external and no participant PII is recorded in Git. The
   tested build's full source-commit identity was not independently verified, so
   this is owner-attested pilot acceptance rather than independent current-build
-  verification. Pilot review is complete for sequencing purposes. OFF.2 is the
-  next workstream; OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO
-  remain open and separately gated.
+  verification. Pilot review is complete for sequencing purposes. An
+  owner-authorized local OFF.2-OFF.5 implementation candidate exists with
+  focused evidence but no Codex GO. It begins from clean main
+  7ec8cc6e82c3a8e1824697696311675c1d23a572 and is strictly a normal 2D
+  campus map with current-backend Main Gate routes and text building-details
+  windows; it excludes 360/Guided-VR/Free-Roam, schedules, building photos, and
+  Cloudinary media. Focused candidate evidence is 145/145 and 35/35. D6, OFF.6
+  browser acceptance, and final Milestone 12 GO remain
+  open. The offline candidate must not be pushed, promoted, or deployed before
+  the presentation and a later explicit owner decision.
+  The first full verification of this offline candidate is historical/rejected
+  at 4635/4641: npm test exited 1 after 4,635 PASS lines and emitted no
+  QUALITY-GATES OK because exactly six static documentation/authority checks
+  failed. Every executed runtime, database, catalog, BE.6, and final embedded
+  18/18 residue check was green. Fail-closed sequencing stopped before npm run
+  qa and before the standalone 24/24 -> 18/18 -> 46/46 postconditions. The
+  bounded correction has focused static evidence only and no Codex GO. Its
+  independent-review and replacement-full-verification dispositions are not
+  established by this repository text. No session or data correction was
+  required.
   The first verification of this state-neutral lifecycle correction is
   historical/rejected at 4639/4641: one combined lifecycle/history assertion
   still detected self-expiring review claims outside the primary current blocks,
@@ -279,8 +296,11 @@ as cleanup, invent migration 0020, or infer that OFF.2 implementation, another
 pilot, offline work, or deployment is authorized.
 
 M12.P1 remains NO-GO for final acceptance. Pilot review is complete by owner
-acceptance. OFF.2 is next; OFF.2-OFF.6, offline work, D6, and final Milestone 12
-GO remain open.
+acceptance. An owner-authorized local OFF.2-OFF.5 implementation candidate has
+focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final
+Milestone 12 GO remain open. The offline candidate must not be pushed,
+promoted, or deployed before the presentation and a later explicit owner
+decision.
 This context-only prompt authorizes none of implementation, review, testing,
 Git mutation, a new deployment or promotion, another pilot, OFF.2
 implementation, offline work, or Milestone 12 actions. Deployment is not
@@ -495,8 +515,26 @@ zero reported findings. Participant/Form evidence remains external and no
 participant PII is recorded in Git. The tested build's full source-commit
 identity was not independently verified, so this is owner-attested pilot
 acceptance rather than independent current-build verification. Pilot review is
-complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
-offline work, D6, and final Milestone 12 GO remain open and separately gated.
+complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5
+implementation candidate exists with focused evidence but no Codex GO. It
+begins from clean main 7ec8cc6e82c3a8e1824697696311675c1d23a572 and is
+strictly a normal 2D campus
+map with current-backend Main Gate routes and text building-details windows;
+it excludes 360/Guided-VR/Free-Roam, schedules, building photos, and Cloudinary
+media. Focused candidate evidence is 145/145 and 35/35. D6, OFF.6 browser
+  acceptance, and final Milestone 12 GO remain open. The
+  offline candidate must not be pushed, promoted, or deployed before the
+  presentation and a later explicit owner decision.
+  The first full verification of this offline candidate is historical/rejected
+  at 4635/4641: npm test exited 1 after 4,635 PASS lines and emitted no
+  QUALITY-GATES OK because exactly six static documentation/authority checks
+  failed. Every executed runtime, database, catalog, BE.6, and final embedded
+  18/18 residue check was green. Fail-closed sequencing stopped before npm run
+  qa and before the standalone 24/24 -> 18/18 -> 46/46 postconditions. The
+  bounded correction has focused static evidence only and no Codex GO. Its
+  independent-review and replacement-full-verification dispositions are not
+  established by this repository text. No session or data correction was
+  required.
 
 Determine mutable Git truth live. Do not review, edit, test, implement, stage,
 commit, push, deploy, promote, or perform an R8 review. M12.P1 remains NO-GO for

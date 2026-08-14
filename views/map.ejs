@@ -26,6 +26,7 @@
     <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
     <!-- PWA: service worker registration + connectivity banner (Milestone 6, Section 6.3) -->
     <script src="/js/pwa.js" defer></script>
+    <script src="/js/offline-guide-manager.js" defer></script>
 
 
     <%
@@ -147,6 +148,23 @@
                     disabled>Find Route</button>
                 <p class="map-route-planner__hint" id="routePlannerHint" aria-live="polite"></p>
             </div>
+
+            <!-- OFF.3: explicit, authenticated download. The manager stores one
+                 privacy-safe building/route package plus the bounded local map;
+                 it never caches this personalized /map HTML response. -->
+            <section class="map-offline-guide" aria-labelledby="offlineGuideTitle">
+                <div class="map-offline-guide__heading">
+                    <span class="map-offline-guide__icon" aria-hidden="true">↓</span>
+                    <div>
+                        <h2 id="offlineGuideTitle">Offline Campus Guide</h2>
+                        <p id="offlineGuidePackageSummary">Checking this device…</p>
+                    </div>
+                </div>
+                <button class="btn btn--secondary btn--sm map-offline-guide__download"
+                    data-offline-guide-download type="button">Download Offline Guide</button>
+                <a class="map-offline-guide__open" id="offlineGuideOpen" href="/offline.html" hidden>Open downloaded guide</a>
+                <p class="map-offline-guide__status" data-offline-guide-status role="status" aria-live="polite"></p>
+            </section>
 
             <!-- Free Roam 360 (11.8C; BE.4): opens the existing authenticated
                  VR scene browser at the Guard House (scene-guard-house — the

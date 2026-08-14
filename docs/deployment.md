@@ -75,8 +75,11 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   no participant PII is recorded in Git. The tested build's full source-commit
   identity was not independently verified, so this is owner-attested pilot
   acceptance rather than independent current-build verification. Pilot review
-  is complete for sequencing purposes. OFF.2 is the next workstream, but this
-  document authorizes no implementation.
+  is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5
+  implementation candidate exists; it has focused evidence but no Codex GO.
+  D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
+  offline candidate must not be pushed, promoted, or deployed before the
+  presentation and a later explicit owner decision.
 - The 13-building `models/data.js` roster remains the reproducible seed
   baseline, not the complete live catalog. MySQL currently has 34 buildings,
   44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid
@@ -171,12 +174,40 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   cleanup occurred. The wrapper timeout and bounded red rerun remain
   historical/rejected. Live Git and the latest external review report establish
   the later commit/push/R8 disposition; deployment and GO remain unclaimed.
-- The current Vercel allowlist candidate is 158 files, 6,245,074 bytes,
+- The current local offline 2D allowlist candidate is 165 files, 6,971,229
+  bytes, aggregate SHA-256
+  `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`
+  (historical/blocked, never accepted: candidate manifest SHA-256
+  `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` with
+  package 165 files, 6,970,280 bytes, aggregate SHA-256
+  `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, whose
+  service-worker header and API guards were incomplete)
+  (historical/blocked, never accepted: 165 files, 6,969,343 bytes, aggregate
+  SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`
+  at candidate manifest SHA-256
+  `60154d93a3a3109a374a80ffeb4e20f8650aaa131b9b4ff97c16b028cade5f2d`, because
+  automatic API caching contradicted the consent-driven offline-package
+  boundary; and 165 files, 6,968,875 bytes, aggregate SHA-256
+  `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`);
+  independent package pins are synchronized and focused execution passes
+  `74/74`; the registered in-suite package gate also passed inside the rejected
+  4,635-PASS full-suite attempt described below.
+  Accepted technical Production remains the 158-file / 6,245,074-byte /
   aggregate SHA-256
-  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`;
-  the focused boundary probe and registered in-suite package gate both passed
-  `72/72`, and `scripts/quality-gates.js` pins these candidate bytes. This is
-  not deployment authorization.
+  `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`
+  predecessor. The offline candidate is not deployment authorization and must
+  not be pushed/promoted/deployed before the presentation.
+- The first full verification of the offline candidate is
+  historical/rejected at `4635/4641`: `npm test` exited 1 after 4,635 PASS
+  lines and emitted no `QUALITY-GATES OK` because exactly six static
+  documentation/authority assertions failed. Every executed runtime, database,
+  catalog, BE.6, and final embedded `18/18` residue check was green.
+  Fail-closed sequencing stopped before `npm run qa` and before the standalone
+  `24/24 -> 18/18 -> 46/46` postconditions. The bounded correction is confined
+  to current-authority documentation and existing static assertions, has
+  focused evidence but no Codex GO, and requires a later independent review
+  plus separately authorized replacement full verification. No session or data
+  correction was required.
 - The first authority-follow-up execution is historical/rejected at
   `4635/4641`: six static lifecycle/documentation checks failed, while all
   runtime, database, catalog, BE.6, and embedded residue probes were green,
@@ -253,9 +284,9 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   current truth and then wait for the owner. Neither prompt authorizes review,
   edits, tests, Git mutation, a new deployment or promotion, another pilot,
   OFF.2 implementation, or Milestone 12 GO.
-- Pilot review is complete by owner acceptance. OFF.2-OFF.6 remain open, not
-  cancelled, and mandatory before final Milestone 12 GO. OFF.2 is next and
-  requires a separate implementation authorization.
+- Pilot review is complete by owner acceptance. OFF.2-OFF.5 now exist only as
+  an owner-authorized local implementation candidate with focused evidence;
+  independent section GO, D6, OFF.6, and final Milestone 12 GO remain open.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
 
@@ -831,10 +862,11 @@ class:
    removed twelve trailing-whitespace bytes from `views/buildings.ejs` — all
    three already inside the allowlist.
 
-The boundary contract itself is unchanged: the allowlist, the seven header
-rules, the static-only `/offline.html` CSP, and Express's sole authority over
-the per-response nonce CSP for dynamic responses are all as accepted at R7
-closeout, and the focused probe still passes `71/71`.
+Accepted R7 history retains the former seven-rule boundary. The current offline
+candidate adds one exact content-hashed PMTiles immutable-cache rule and narrows
+the static `/offline.html` CSP to the reviewed same-origin MapLibre/PMTiles/
+manager scripts plus the required self/blob worker boundary. Express remains
+sole authority over the per-response nonce CSP for dynamic responses.
 
 This inventory describes the COMPLETE clean-snapshot candidate tree — the
 committed repository state. The candidate's commit SHA is reported externally in
@@ -1168,8 +1200,9 @@ remains external and the tested build's full source-commit identity was not
 independently verified. Pilot review is complete for sequencing purposes.
 Future `main` deployments still require explicit manual promotion. The pilot
 must not be represented as a routing-only technical mode, offline readiness, or
-final M12 signoff. OFF.2 is next; OFF.2 through OFF.6 remain open and mandatory
-before final Milestone 12 GO. The selected 13-building demo
+final M12 signoff. The owner-authorized local OFF.2-OFF.5 implementation
+candidate has focused evidence but no Codex GO. D6, OFF.6 browser acceptance,
+and final Milestone 12 GO remain open. The selected 13-building demo
 roster is not the complete campus; later admin edits and additions require
 refreshed freeze evidence rather than being prohibited.
 

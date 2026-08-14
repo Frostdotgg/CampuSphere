@@ -359,8 +359,154 @@ zero reported findings. Participant/Form evidence remains external and no
 participant PII is recorded in Git. The tested build's full source-commit
 identity was not independently verified, so this is owner-attested pilot
 acceptance rather than independent current-build verification. Pilot review is
-complete for sequencing purposes. OFF.2 is the next workstream; OFF.2-OFF.6,
-offline work, D6, and final Milestone 12 GO remain open and separately gated.
+complete for sequencing purposes.
+
+The owner-authorized local OFF.2-OFF.5 implementation candidate has focused
+evidence but no Codex GO. It begins from clean main
+`7ec8cc6e82c3a8e1824697696311675c1d23a572` and integrates the preserved OFF.2
+lifecycle work with revised OFF.3-OFF.5. Offline scope is strictly a normal
+2D campus map, current-backend buildings and precomputed road-following routes
+from Guard House / Main Gate, plus a node/list building-details window using
+text and a local generic placeholder. It contains no 360 images, Guided VR,
+Free Roam, schedule data, Cloudinary media, building photos, user/session/admin
+data, or server mutation. The explicit authenticated no-store download verifies
+guide and content-addressed PMTiles hashes before one atomic IndexedDB replace;
+the service worker never caches the package API or map archive, and explicit
+logout deletes only that guide database.
+
+A bounded correction then tightened the offline cache scope, the durability of
+that logout, and the guide's read path. `/api/vr/routes/*` and every Cloudinary
+request are network-only and never Cache Storage eligible; OpenStreetMap tiles
+are the only remaining cache-eligible external host, retained because the
+existing online map depends on them. Ordinary online Guided-VR and Cloudinary
+delivery are unchanged: the worker declines to handle those requests rather than
+blocking or rewriting them, so they stay on the browser's normal network path.
+`CACHE_VERSION` advanced exactly once from `v12` to `v13`, so activation removes
+the preceding v12 API/external caches while preserving unrelated caches. Atomic
+shell installation, user-controlled `SKIP_WAITING`, no automatic reload,
+network-only personalized HTML, sensitive-route exclusions, non-GET
+pass-through, and bounded cleanup are unchanged. Logout now writes an exact
+namespaced pending-deletion marker before `logged_out=1` is stripped or any
+asynchronous cleanup begins, signals every open tab to reset the guide runtime,
+deletes only `campusphere-offline-guide`, clears the marker only after
+`deleteDatabase` succeeds, coalesces concurrent attempts, keeps blocked and
+error attempts pending, and retries on later CampuSphere page loads; no
+unrelated database, cache, localStorage key, session, or application data is
+touched. One offline-guide download now reads each required dataset once and
+drives both availability decoration and route generation from that single
+immutable snapshot — route-node and route-edge reads fell from two to one each
+and the request total from eight reads to five — while canonical-name collision
+handling, mixed `BUILDING_DATA_SOURCE`/`ROUTE_DATA_SOURCE` behaviour, the Main
+Gate origin, stored-geometry validation, unavailable reasons, and the emitted
+schema and fingerprint are preserved. No direct SQL beyond the existing
+repository/service read paths, endpoint, schema change, or migration `0020` was
+added.
+
+A second bounded correction then confined Cache Storage to the approved 2D
+scope. Same-origin cache eligibility is now an EXACT allowlist derived from the
+reviewed `PRECACHE_URLS` and matched on pathname plus query string, replacing
+the extension-wide rule that had silently admitted every same-origin
+`.png`/`.jpg`/`.webp` outside `/img/vr/`, including local database-selected
+building photos. `/css/styles.css?v=5` remains cacheable while
+`/css/styles.css?v=6` is not. Every other same-origin static or media request,
+and every cross-origin request without exception, is network-only. The external
+cache constant, its size cap, the approved-host classifier, the cross-origin
+strategy and its mode helper were REMOVED rather than left dormant, and the
+external cache is gone from `CURRENT_CACHES`. OpenStreetMap tiles are no longer
+mirrored: the offline map renders from the bundled content-addressed PMTiles
+archive, while OSM remains CSP-permitted and the ONLINE Leaflet/MapLibre map is
+untouched. `CACHE_VERSION` advanced exactly once from `v13` to `v14`, so
+activation removes the unaccepted local v13 shell/static/API/external caches and
+every other stale `campusphere-pwa-*` version while preserving unrelated caches.
+Atomic precaching, deterministic failure recovery, the waiting-worker
+user-approved activation lifecycle, network-only personalized HTML,
+sensitive-route exclusions, non-GET pass-through, `/api/offline-guide`
+network-only ownership, PMTiles download ownership by the explicit IndexedDB
+manager, Guided-VR and Cloudinary network-only behaviour, the durable logout
+deletion, and the shared route-snapshot read path are unchanged.
+
+A third bounded correction then removed automatic API caching entirely. Every
+same-origin API request — `/api/buildings`, `/api/routes`, every
+`/api/routes/*` path, `/api/vr/routes/*`, `/api/search`, `/api/pathfind`, and
+every query-string variant — is network-only, matched by a single `/api`
+network-only prefix on pathname. `API_CACHE`, `API_MAX`, `isApprovedApi()`,
+`apiStrategy()`, the synthesized offline JSON response, and the approved-API
+fetch branch were REMOVED rather than disabled, and `CURRENT_CACHES` now holds
+only the shell and static caches. The reason is the consent boundary:
+`/api/buildings` and `/api/routes*` return building rows carrying Cloudinary
+image URLs and local building-photo references, so caching them retained media
+references the user never consented to download, contradicting the
+explicit-download offline-package model. The worker issues no `respondWith()`,
+performs no Cache Storage read or write, and applies no response transformation
+to any API request, so online API response shapes, headers and status codes are
+exactly what the server sends. `CACHE_VERSION` advanced exactly once from `v14`
+to `v15`, so activation removes the unaccepted local v14 shell/static/API caches
+and every older CampuSphere generation — including prior API, external and page
+caches — while preserving unrelated caches. The exact static-shell allowlist,
+atomic precaching and failure cleanup, user-controlled `SKIP_WAITING` and single
+reload, non-GET pass-through, authenticated/admin HTML network-only behaviour,
+`/api/offline-guide` ownership, Guided-VR/Cloudinary/OSM/local-photo/panorama
+network-only behaviour, PMTiles and offline-guide IndexedDB ownership, and the
+durable logout deletion are all unchanged.
+
+Candidate-only focused evidence is green after that correction: the integrated
+OFF.2 lifecycle probe passes `145/145`, the database-free 2D offline-navigation
+probe passes `35/35`, and focused package-boundary verification passes `74/74`.
+A fourth bounded correction then made the service-worker header truthful and
+the guards exact. The header no longer claims api/external caches or approved
+cross-origin caching; it states that only the shell and static caches exist,
+that only exact reviewed shell assets are Cache Storage eligible, that every
+cross-origin and every same-origin `/api` request is network-only, that
+`API_CACHE`/`EXTERNAL_CACHE`/approved-host caching/synthesized API fallbacks do
+not exist, and that the successful-response and redirect rules apply only to
+reviewed shell/static caching. That edit is documentation-only: the
+comment-stripped `public/sw.js` hash is byte-identical before and after, so
+executable behaviour is unchanged. The OFF.2 analyzer, the quality gate, and
+the self-hosted probe now each require exactly one `/api` network-only prefix,
+the complete classifier truth table evaluated behaviourally in an isolated
+`node:vm` (true for `/api`, `/api/buildings`, `/api/routes`, `/api/routes/1`,
+`/api/vr/routes/1`, `/api/search`, `/api/pathfind`; false for `/apiary`,
+`/apis`, `/auth`, `/map`, `/`), `CURRENT_CACHES` tokenizing to exactly
+`[SHELL_CACHE, STATIC_CACHE]`, absent API machinery, and the guard running
+before every remaining same-origin strategy — failing closed on any extraction
+or evaluation error.
+
+The current deployable package candidate is 165 files, 6,971,229 bytes,
+aggregate SHA-256
+`e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`.
+Historical/blocked independent-review evidence, never accepted: candidate
+manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c`
+with package 165 files, 6,970,280 bytes, aggregate SHA-256
+`fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, superseded
+because its service-worker header and its API guards were incomplete.
+Historical/blocked and never accepted: the preceding candidate at 165 files,
+6,969,343 bytes, aggregate SHA-256
+`2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and its
+candidate manifest
+`60154d93a3a3109a374a80ffeb4e20f8650aaa131b9b4ff97c16b028cade5f2d`, are
+SUPERSEDED because automatic API caching contradicted the consent-driven
+offline-package boundary and could retain building image references. The earlier
+165-file, 6,968,875-byte candidate with aggregate SHA-256
+`115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f` remains
+historical/blocked as well, because that probe required OSM caching and never
+exercised same-origin building photos, non-shell static files, or OSM requests.
+The accepted technical Production predecessor is unchanged and separate: 158
+files, 6,245,074 bytes, aggregate SHA-256
+`b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` on
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
+The first full verification of this offline candidate is historical/rejected at
+`4635/4641`: `npm test` exited 1 after 4,635 PASS lines and emitted no
+`QUALITY-GATES OK` because exactly six static documentation/authority assertions
+failed. Every executed runtime, database, catalog, BE.6, and final embedded
+`18/18` residue check was green. Fail-closed sequencing stopped before
+`npm run qa` and before the standalone `24/24 -> 18/18 -> 46/46`
+postconditions. This bounded correction is confined to current-authority
+documentation and existing static assertions, has focused evidence but no
+Codex GO, and requires a later independent review plus separately authorized
+replacement full verification. No session or data correction was required.
+D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
+offline candidate must not be pushed, promoted, or deployed before the presentation
+and a later explicit owner decision.
 
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
@@ -690,10 +836,12 @@ completed and culminated in accepted technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; future `main` deployments require
 manual promotion. The owner accepts the 2026-08-05 human pilot with zero
 reported findings; its evidence remains external and its full source-commit
-identity was not independently verified. Pilot review is complete, OFF.2 is
-next, and OFF.2-OFF.6, offline work, D6, and final Milestone 12 GO remain open.
+identity was not independently verified. Pilot review is complete. The
+owner-authorized local OFF.2-OFF.5 implementation candidate has focused evidence
+but no Codex GO; D6, OFF.6 browser acceptance, and final Milestone 12 GO remain
+open.
 R7 adds an allowlist `.vercelignore`, a
-minimal `vercel.json` with seven narrow static/PWA header rules and one fixed
+minimal `vercel.json` with narrow static/PWA header rules and one fixed
 static-only CSP confined to `/offline.html`, the standalone
 `scripts/vercelPackageBoundary-probe.js`, and the in-suite
 `vercel-package-boundary` gate; Express's per-response nonce CSP is untouched
@@ -706,9 +854,9 @@ cleaned up in reverse dependency order, and restored BE.6 plus
 credential/session safety. The owner-attested pilot exposed the authenticated
 application while facilitators directed participants to evaluate building
 routing. Participant/Form evidence remains outside Git, and no anonymous
-browsing was added. OFF.2 is the next separately authorized workstream;
-OFF.2 through OFF.6 are open, not cancelled, and remain mandatory before final
-Milestone 12 GO. D6 remains after OFF.2-OFF.5 and before OFF.6.
+browsing was added. The owner-authorized local OFF.2-OFF.5 implementation
+candidate has focused evidence but no Codex GO. D6, OFF.6 browser acceptance,
+and final Milestone 12 GO remain open.
 
 The seed script creates a default admin and a sample student for **local MySQL development only** — their deterministic local-only values live in `database/seed.js` and the shared test-only loader (`scripts/regressionCredentials.js`), not in documentation, and are not valid live credentials. Live/Supabase regression sign-ins use the test-only `SUPABASE_REGRESSION_*` variables from the ignored local `.env` (names in `.env.example`; Supabase-capable probes fail closed when they are missing). The seed connects without a database first and creates `campusphere_db` from `database/schema.sql`, so it can be re-run idempotently — every insert uses `INSERT IGNORE` or a pre-check on a natural key.
 
