@@ -174,9 +174,16 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   cleanup occurred. The wrapper timeout and bounded red rerun remain
   historical/rejected. Live Git and the latest external review report establish
   the later commit/push/R8 disposition; deployment and GO remain unclaimed.
-- The current local offline 2D allowlist candidate is 165 files, 6,971,229
-  bytes, aggregate SHA-256
-  `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`
+- The current local M12.P1-D6 review-correction allowlist candidate is 168
+  files, 7,042,705 bytes, aggregate SHA-256
+  `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`
+  (historical/rejected after the independent review, never accepted: the first
+  D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256
+  `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file
+  manifest SHA-256 `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`)
+  (historical/blocked, never accepted: the OFF.3-OFF.5 2D offline-navigation
+  candidate at 165 files, 6,971,229 bytes, aggregate SHA-256
+  `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`)
   (historical/blocked, never accepted: candidate manifest SHA-256
   `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` with
   package 165 files, 6,970,280 bytes, aggregate SHA-256

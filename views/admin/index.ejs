@@ -488,20 +488,166 @@
             min-height: 320px;
         }
 
-        /* M12.P1-R8: the visible "this is not real data" notice attached to each
-           hard-coded dashboard chart. Kept at 0.8125rem (13px) so it clears the
-           D5 minimum readable size, and given a real border/background so it
-           reads as a notice rather than as an incidental caption. */
-        .admin-chart-sample-note {
+        /* M12.P1-D6 analytics presentation. The tables are not a fallback —
+           they are the authoritative rendering and are always visible, so the
+           exact figures are readable with or without JavaScript, and by a
+           screen reader without depending on the canvas. Every size clears the
+           D5 minimum readable threshold. */
+        .admin-analytics-note {
             margin: 0 0 0.75rem;
-            padding: 0.5rem 0.75rem;
+            color: var(--muted-foreground);
+            font-size: 0.8125rem;
+            line-height: 1.45;
+        }
+
+        .admin-analytics-unavailable {
+            margin: 0 0 0.75rem;
+            padding: 0.6rem 0.75rem;
             border: 1px solid var(--border);
             border-left: 3px solid var(--gold);
             border-radius: 0.375rem;
             background: rgba(212, 168, 67, 0.08);
             color: var(--foreground);
             font-size: 0.8125rem;
+            font-weight: 600;
             line-height: 1.45;
+        }
+
+        .admin-analytics-canvas {
+            display: block;
+            width: 100%;
+            height: 300px;
+        }
+
+        .admin-analytics-donutwrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+        }
+
+        .admin-analytics-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            justify-content: center;
+            margin: 1rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .admin-analytics-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--muted-foreground);
+            font-size: 0.8125rem;
+        }
+
+        .admin-analytics-legend-value {
+            color: var(--foreground);
+        }
+
+        /* M12.P1-D6 analytics colour tokens.
+
+           These are the SINGLE source of the data colours: the legend swatches
+           below consume them directly, and public/js/admin/dashboard-analytics.js
+           reads the same custom properties off the document element before it
+           draws, falling back to the identical built-in palette. Verified
+           contrast against each surface: light 11.28 / 6.12 / 5.93 / 7.56 on
+           #ffffff; dark 8.88 / 12.66 / 11.16 / 12.71 on #0b1220. All are far
+           above the 3:1 minimum for graphical objects. */
+        :root {
+            --analytics-surface: #ffffff;
+            --analytics-users: #1a3a6b;
+            --analytics-buildings: #8a5a00;
+            --analytics-role-1: #1a3a6b;
+            --analytics-role-2: #2563a8;
+            --analytics-role-3: #8a5a00;
+            --analytics-role-4: #4b5563;
+        }
+
+        [data-theme="dark"] {
+            --analytics-surface: #0b1220;
+            --analytics-users: #8ab4f8;
+            --analytics-buildings: #f2c14e;
+            --analytics-role-1: #8ab4f8;
+            --analytics-role-2: #5eead4;
+            --analytics-role-3: #f2c14e;
+            --analytics-role-4: #d1d5db;
+        }
+
+        /* A patterned swatch accompanies every colour so no series or segment
+           is identified by colour alone. The swatch carries the colour; the
+           LABEL text stays neutral foreground text at a readable size, rather
+           than small text tinted with a data colour. */
+        .admin-analytics-swatch {
+            width: 0.9rem;
+            height: 0.9rem;
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .admin-analytics-linekey {
+            width: 1.6rem;
+            height: 0.75rem;
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .admin-mini-legend .admin-analytics-swatch {
+            margin-right: 0.5rem;
+        }
+
+        .admin-analytics-legend-text,
+        .admin-mini-legend .admin-legend-label {
+            color: var(--foreground);
+        }
+
+        .admin-analytics-tablewrap {
+            margin-top: 1rem;
+            max-height: 20rem;
+            overflow: auto;
+        }
+
+        .admin-analytics-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+
+        .admin-analytics-table caption {
+            padding-bottom: 0.5rem;
+            color: var(--muted-foreground);
+            font-size: 0.78rem;
+            line-height: 1.45;
+            text-align: left;
+        }
+
+        .admin-analytics-table th,
+        .admin-analytics-table td {
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .admin-analytics-table thead th,
+        .admin-analytics-table tbody th {
+            color: var(--foreground);
+            font-weight: 700;
+        }
+
+        .admin-analytics-table thead th:first-child,
+        .admin-analytics-table tbody th[scope="row"] {
+            text-align: left;
+        }
+
+        .admin-analytics-table tbody td {
+            color: var(--muted-foreground);
+            font-variant-numeric: tabular-nums;
         }
 
         .admin-command-link {
@@ -692,6 +838,37 @@
 
             <main class="admin-workspace flex-1 overflow-y-auto">
                 <div class="admin-page" style="display:flex; flex-direction:column; gap:1rem;">
+                    <%
+                        /* M12.P1-D6 truthfulness helpers.
+
+                           `count` renders a REAL number (including a genuine 0)
+                           and renders the fixed word "Unavailable" for null —
+                           it never substitutes 0 for a failed read. The former
+                           `|| 0` fallbacks did exactly that, which is the defect
+                           D6 removes. Grouping is applied with a fixed regular
+                           expression rather than toLocaleString so the rendered
+                           digits are identical on every host. */
+                        const groupDigits = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                        const count = (n) => (typeof n === 'number' && isFinite(n)) ? groupDigits(n) : 'Unavailable';
+                        const analyticsReady = analytics && analytics.state === 'ready';
+                        const usersReady = analytics && analytics.status && analytics.status.users === 'ready';
+                        const buildingsReady = analytics && analytics.status && analytics.status.buildings === 'ready';
+                        const monthRows = (analytics && Array.isArray(analytics.months)) ? analytics.months : [];
+                        const roleRows = (analytics && Array.isArray(analytics.roleRows)) ? analytics.roleRows : [];
+                        const userAdditionsTotal = usersReady
+                            ? monthRows.reduce((sum, m) => sum + m.userAdditions, 0) : null;
+                        const buildingAdditionsTotal = buildingsReady
+                            ? monthRows.reduce((sum, m) => sum + m.buildingAdditions, 0) : null;
+                        const roleTotal = usersReady
+                            ? roleRows.reduce((sum, r) => sum + r.count, 0) : null;
+                        /* The four non-colour encodings, in role order. They
+                           match ROLE_PATTERNS in
+                           public/js/admin/dashboard-analytics.js, so the legend
+                           swatch and the donut segment for a role always carry
+                           the same pattern. Colours come from the
+                           --analytics-role-N tokens, never from a literal here. */
+                        const rolePatternKinds = ['solid', 'diagonal', 'crosshatch', 'dots'];
+                    %>
                     <section class="admin-kpi-grid" aria-label="Key metrics">
                         <div class="admin-kpi">
                             <div class="admin-kpi-top">
@@ -699,7 +876,7 @@
                                 <span class="admin-kpi-icon"><i data-lucide="users" class="h-5 w-5"></i></span>
                             </div>
                             <div>
-                                <div class="admin-kpi-value"><%= stats.totalUsers || 0 %></div>
+                                <div class="admin-kpi-value"><%= count(stats.totalUsers) %></div>
                                 <p class="admin-kpi-note">All registered accounts</p>
                             </div>
                         </div>
@@ -709,7 +886,7 @@
                                 <span class="admin-kpi-icon"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
                             </div>
                             <div>
-                                <div class="admin-kpi-value"><%= stats.totalStudents || 0 %></div>
+                                <div class="admin-kpi-value"><%= count(stats.totalStudents) %></div>
                                 <p class="admin-kpi-note">CSPC student role count</p>
                             </div>
                         </div>
@@ -719,7 +896,7 @@
                                 <span class="admin-kpi-icon"><i data-lucide="newspaper" class="h-5 w-5"></i></span>
                             </div>
                             <div>
-                                <div class="admin-kpi-value"><%= stats.totalNews || 0 %></div>
+                                <div class="admin-kpi-value"><%= count(stats.totalNews) %></div>
                                 <p class="admin-kpi-note">Published and draft content</p>
                             </div>
                         </div>
@@ -729,41 +906,95 @@
                                 <span class="admin-kpi-icon"><i data-lucide="map" class="h-5 w-5"></i></span>
                             </div>
                             <div>
-                                <div class="admin-kpi-value"><%= stats.totalBuildings || 0 %></div>
+                                <div class="admin-kpi-value"><%= count(stats.totalBuildings) %></div>
                                 <p class="admin-kpi-note">Campus map records</p>
                             </div>
                         </div>
                     </section>
 
-                    <section class="admin-main-grid">
+                    <%# M12.P1-D6. Both cards below render REAL data read from the
+                        currently selected backends. The semantic tables are the
+                        authoritative, always-present representation and remain
+                        complete without JavaScript; the canvas and the SVG are
+                        progressive enhancement drawn by /js/admin/dashboard-analytics.js
+                        FROM those tables. There is no interpolated JSON, no inline
+                        executable data, and no fabricated value anywhere. %>
+                    <section class="admin-main-grid" id="adminAnalytics"
+                        data-analytics-state="<%= analytics.state %>"
+                        data-analytics-timezone="<%= analytics.timezone %>">
                         <div class="admin-section">
                             <div class="admin-section-header">
                                 <div>
-                                    <h2 class="admin-section-title">Activity Overview</h2>
-                                    <p class="admin-section-subtitle">Monthly account activity and map interactions.</p>
+                                    <h2 class="admin-section-title" id="additionsChartHeading">Account and Building Additions</h2>
+                                    <p class="admin-section-subtitle">New accounts and new building records per calendar month.</p>
                                 </div>
-                                <span class="admin-pill">Sample data</span>
+                                <span class="admin-pill"><%= analytics.timezone %> months</span>
                             </div>
                             <div class="admin-body-pad admin-chart-wrap">
-                                <!-- M12.P1-R8 truthfulness: this chart is drawn from a hard-coded
-                                     illustrative series (see the activityChart script below). The
-                                     real admin-dashboard analytics repair is deferred to M12.P1-D6.
-                                     The notice is a real DOM paragraph (so assistive technology
-                                     reads it) AND is programmatically bound to the canvas through
-                                     aria-describedby, so it can never be presented as live data. -->
-                                <p id="activityChartSampleNotice" class="admin-chart-sample-note">
-                                    Sample data: these chart values are illustrative only. They are not read from MySQL or Supabase, and they are not usage, account, routing, or pilot evidence.
+                                <p id="additionsChartDescription" class="admin-analytics-note">
+                                    Counts the accounts and building records created in each of the latest
+                                    <%= analytics.monthCount %> <%= analytics.timezone %> calendar months, including the current month.
+                                    These are record-creation counts only — CampuSphere records no visits, sessions, logins, map views, or page views.
+                                    The full figures are listed in the table below the chart.
                                 </p>
-                                <canvas id="activityChart" style="width:100%; height:300px;" role="img" aria-label="Activity Overview chart showing sample data" aria-describedby="activityChartSampleNotice"></canvas>
-                                <div class="mt-4 flex items-center justify-center gap-6">
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-3 w-3 rounded-full" style="background:var(--navy-600);"></div>
-                                        <span class="text-sm text-muted-foreground">Users</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-3 w-3 rounded-full" style="background:var(--gold);"></div>
-                                        <span class="text-sm text-muted-foreground">Map Views</span>
-                                    </div>
+                                <% if (!usersReady && !buildingsReady) { %>
+                                    <p class="admin-analytics-unavailable" role="status"><%= analytics.message %></p>
+                                <% } else { %>
+                                    <canvas id="additionsChart" class="admin-analytics-canvas" height="300"
+                                        role="img"
+                                        aria-labelledby="additionsChartHeading"
+                                        aria-describedby="additionsChartDescription"></canvas>
+                                    <%# Each key repeats the SAME non-colour encoding the canvas
+                                        draws: a solid line with a round marker for accounts, a
+                                        dashed line with a square marker for buildings. Colours
+                                        come from the --analytics-* tokens; the label text stays
+                                        neutral foreground text. %>
+                                    <ul class="admin-analytics-legend" aria-hidden="true">
+                                        <li class="admin-analytics-legend-item">
+                                            <svg class="admin-analytics-linekey" viewBox="0 0 26 12" focusable="false">
+                                                <line x1="1" y1="6" x2="25" y2="6" style="stroke: var(--analytics-users);" stroke-width="2"></line>
+                                                <circle cx="13" cy="6" r="3.5" style="fill: var(--analytics-users);"></circle>
+                                            </svg>
+                                            <span class="admin-analytics-legend-text">New accounts (solid line, round marker)</span>
+                                            <strong class="admin-analytics-legend-value"><%= count(userAdditionsTotal) %></strong>
+                                        </li>
+                                        <li class="admin-analytics-legend-item">
+                                            <svg class="admin-analytics-linekey" viewBox="0 0 26 12" focusable="false">
+                                                <line x1="1" y1="6" x2="25" y2="6" style="stroke: var(--analytics-buildings);" stroke-width="2" stroke-dasharray="6 4"></line>
+                                                <rect x="10" y="3" width="6" height="6" style="fill: var(--analytics-buildings);"></rect>
+                                            </svg>
+                                            <span class="admin-analytics-legend-text">New buildings (dashed line, square marker)</span>
+                                            <strong class="admin-analytics-legend-value"><%= count(buildingAdditionsTotal) %></strong>
+                                        </li>
+                                    </ul>
+                                <% } %>
+
+                                <div class="admin-analytics-tablewrap">
+                                    <table class="admin-analytics-table" id="additionsTable">
+                                        <caption>
+                                            Accounts and buildings created per <%= analytics.timezone %> calendar month.
+                                            Totals: <%= count(userAdditionsTotal) %> new accounts, <%= count(buildingAdditionsTotal) %> new buildings.
+                                        </caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Month</th>
+                                                <th scope="col">New accounts</th>
+                                                <th scope="col">New buildings</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% monthRows.forEach(function (month) { %>
+                                                <tr data-month-key="<%= month.key %>">
+                                                    <th scope="row"><%= month.label %></th>
+                                                    <td data-series="users" data-value="<%= usersReady ? month.userAdditions : '' %>"><%= count(month.userAdditions) %></td>
+                                                    <td data-series="buildings" data-value="<%= buildingsReady ? month.buildingAdditions : '' %>"><%= count(month.buildingAdditions) %></td>
+                                                </tr>
+                                            <% }); %>
+                                            <% if (monthRows.length === 0) { %>
+                                                <tr><td colspan="3"><%= analytics.message %></td></tr>
+                                            <% } %>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -771,40 +1002,82 @@
                         <div class="admin-section">
                             <div class="admin-section-header">
                                 <div>
-                                    <h2 class="admin-section-title">Role Mix</h2>
-                                    <p class="admin-section-subtitle">Account distribution by access level.</p>
+                                    <h2 class="admin-section-title" id="roleChartHeading">Account Role Distribution</h2>
+                                    <p class="admin-section-subtitle">Exact account totals for each access level.</p>
                                 </div>
-                                <span class="admin-pill">Sample data</span>
+                                <span class="admin-pill">Current totals</span>
                             </div>
                             <div class="admin-body-pad">
-                                <!-- M12.P1-R8 truthfulness: the donut segments come from a
-                                     hard-coded illustrative array (see the roleChart script
-                                     below). The Students legend row beneath IS a real repository
-                                     count, so this notice is deliberately scoped to the chart
-                                     graphic and does not claim the legend is illustrative. -->
-                                <p id="roleChartSampleNotice" class="admin-chart-sample-note">
-                                    Sample data: these chart values are illustrative only. They are not read from MySQL or Supabase, and they are not usage, account, routing, or pilot evidence.
+                                <p id="roleChartDescription" class="admin-analytics-note">
+                                    Exact number of accounts currently held by each of the four CampuSphere roles.
+                                    Every value is listed in the table below the chart.
                                 </p>
-                                <div class="flex items-center justify-center" style="height:200px;">
-                                    <svg id="roleChart" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Role Mix chart showing sample data" aria-describedby="roleChartSampleNotice"></svg>
-                                </div>
-                                <div class="admin-mini-legend">
-                                    <div class="admin-legend-row">
-                                        <span class="admin-legend-label"><span class="admin-legend-swatch" style="background:#1a3a6b;"></span>Students</span>
-                                        <strong class="text-foreground"><%= stats.totalStudents || 0 %></strong>
+                                <% if (!usersReady) { %>
+                                    <p class="admin-analytics-unavailable" role="status"><%= analytics.message %></p>
+                                <% } else { %>
+                                    <div class="admin-analytics-donutwrap">
+                                        <svg id="roleChart" class="admin-analytics-donut" viewBox="0 0 200 200" width="180" height="180"
+                                            role="img"
+                                            aria-labelledby="roleChartHeading"
+                                            aria-describedby="roleChartDescription"></svg>
                                     </div>
-                                    <div class="admin-legend-row">
-                                        <span class="admin-legend-label"><span class="admin-legend-swatch" style="background:#d4a843;"></span>Instructors</span>
-                                        <strong class="text-foreground">Faculty</strong>
-                                    </div>
-                                    <div class="admin-legend-row">
-                                        <span class="admin-legend-label"><span class="admin-legend-swatch" style="background:#7c3aed;"></span>Admins</span>
-                                        <strong class="text-foreground">Full access</strong>
-                                    </div>
-                                    <div class="admin-legend-row">
-                                        <span class="admin-legend-label"><span class="admin-legend-swatch" style="background:#6b7280;"></span>Guests</span>
-                                        <strong class="text-foreground">View only</strong>
-                                    </div>
+                                    <%# Each swatch repeats the EXACT pattern its donut segment
+                                        uses, so a role is identifiable without perceiving hue.
+                                        The tile background is the role colour and the texture is
+                                        drawn in the surface colour, matching buildRolePattern()
+                                        in the client renderer. Label text stays neutral. %>
+                                    <ul class="admin-mini-legend" aria-hidden="true">
+                                        <% roleRows.forEach(function (row, i) { %>
+                                            <% const kind = rolePatternKinds[i]; const pid = 'legend-pattern-role-' + (i + 1); %>
+                                            <li class="admin-legend-row">
+                                                <span class="admin-legend-label">
+                                                    <svg class="admin-analytics-swatch" viewBox="0 0 16 16" focusable="false"
+                                                        data-pattern-kind="<%= kind %>">
+                                                        <defs>
+                                                            <pattern id="<%= pid %>" patternUnits="userSpaceOnUse" width="8" height="8">
+                                                                <rect width="8" height="8" style="fill: var(--analytics-role-<%= i + 1 %>);"></rect>
+                                                                <% if (kind === 'diagonal') { %>
+                                                                    <path d="M0,8 L8,0" style="stroke: var(--analytics-surface);" stroke-width="2"></path>
+                                                                    <path d="M-2,2 L2,-2" style="stroke: var(--analytics-surface);" stroke-width="2"></path>
+                                                                    <path d="M6,10 L10,6" style="stroke: var(--analytics-surface);" stroke-width="2"></path>
+                                                                <% } else if (kind === 'crosshatch') { %>
+                                                                    <path d="M4,0 L4,8" style="stroke: var(--analytics-surface);" stroke-width="1.6"></path>
+                                                                    <path d="M0,4 L8,4" style="stroke: var(--analytics-surface);" stroke-width="1.6"></path>
+                                                                <% } else if (kind === 'dots') { %>
+                                                                    <circle cx="2" cy="2" r="1.4" style="fill: var(--analytics-surface);"></circle>
+                                                                    <circle cx="6" cy="6" r="1.4" style="fill: var(--analytics-surface);"></circle>
+                                                                <% } %>
+                                                            </pattern>
+                                                        </defs>
+                                                        <rect width="16" height="16" fill="url(#<%= pid %>)"></rect>
+                                                    </svg><%= row.label %>
+                                                </span>
+                                                <strong class="text-foreground"><%= count(row.count) %></strong>
+                                            </li>
+                                        <% }); %>
+                                    </ul>
+                                <% } %>
+
+                                <div class="admin-analytics-tablewrap">
+                                    <table class="admin-analytics-table" id="roleTable">
+                                        <caption>
+                                            Accounts per role. Total accounts: <%= count(roleTotal) %>.
+                                        </caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Role</th>
+                                                <th scope="col">Accounts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% roleRows.forEach(function (row) { %>
+                                                <tr data-role-key="<%= row.role %>">
+                                                    <th scope="row"><%= row.label %></th>
+                                                    <td data-series="role" data-value="<%= usersReady ? row.count : '' %>"><%= count(row.count) %></td>
+                                                </tr>
+                                            <% }); %>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -992,131 +1265,20 @@
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
             window.lucide.createIcons();
         }
-
-        (function () {
-            const canvas = document.getElementById('activityChart');
-            if (!canvas) return;
-            const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width * dpr;
-            canvas.height = 300 * dpr;
-            canvas.style.height = '300px';
-            const ctx = canvas.getContext('2d');
-            ctx.scale(dpr, dpr);
-            const W = rect.width, H = 300;
-            const pad = { top: 20, right: 20, bottom: 30, left: 50 };
-            const data = [
-                { date: 'Jan', users: 400, mapViews: 2400 },
-                { date: 'Feb', users: 300, mapViews: 1398 },
-                { date: 'Mar', users: 520, mapViews: 3800 },
-                { date: 'Apr', users: 478, mapViews: 3908 },
-                { date: 'May', users: 589, mapViews: 4800 },
-                { date: 'Jun', users: 639, mapViews: 3800 },
-                { date: 'Jul', users: 780, mapViews: 4300 },
-                { date: 'Aug', users: 890, mapViews: 5100 },
-                { date: 'Sep', users: 720, mapViews: 4200 },
-                { date: 'Oct', users: 850, mapViews: 5500 },
-                { date: 'Nov', users: 920, mapViews: 6100 },
-                { date: 'Dec', users: 1100, mapViews: 7200 }
-            ];
-            const maxVal = 7200;
-            const cW = W - pad.left - pad.right;
-            const cH = H - pad.top - pad.bottom;
-            const xStep = cW / (data.length - 1);
-
-            function yPos(v) { return pad.top + cH - (v / maxVal) * cH; }
-            function xPos(i) { return pad.left + i * xStep; }
-
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= 5; i++) {
-                const y = pad.top + (cH / 5) * i;
-                ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-            }
-
-            ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
-            ctx.font = '12px Inter, system-ui, sans-serif';
-            ctx.textAlign = 'right';
-            for (let i = 0; i <= 5; i++) {
-                const val = Math.round((maxVal / 5) * (5 - i));
-                const y = pad.top + (cH / 5) * i;
-                ctx.fillText(val.toLocaleString(), pad.left - 8, y + 4);
-            }
-
-            ctx.textAlign = 'center';
-            data.forEach((d, i) => {
-                ctx.fillText(d.date, xPos(i), H - 8);
-            });
-
-            function drawArea(key, strokeColor, fillColorTop, fillColorBot) {
-                const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-                grad.addColorStop(0, fillColorTop);
-                grad.addColorStop(1, fillColorBot);
-                ctx.beginPath();
-                ctx.moveTo(xPos(0), yPos(data[0][key]));
-                for (let i = 1; i < data.length; i++) {
-                    const cx1 = xPos(i - 1) + xStep * 0.4;
-                    const cx2 = xPos(i) - xStep * 0.4;
-                    ctx.bezierCurveTo(cx1, yPos(data[i - 1][key]), cx2, yPos(data[i][key]), xPos(i), yPos(data[i][key]));
-                }
-                ctx.lineTo(xPos(data.length - 1), H - pad.bottom);
-                ctx.lineTo(xPos(0), H - pad.bottom);
-                ctx.closePath();
-                ctx.fillStyle = grad;
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(xPos(0), yPos(data[0][key]));
-                for (let i = 1; i < data.length; i++) {
-                    const cx1 = xPos(i - 1) + xStep * 0.4;
-                    const cx2 = xPos(i) - xStep * 0.4;
-                    ctx.bezierCurveTo(cx1, yPos(data[i - 1][key]), cx2, yPos(data[i][key]), xPos(i), yPos(data[i][key]));
-                }
-                ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-
-            drawArea('mapViews', '#d4a843', 'rgba(212,168,67,0.3)', 'rgba(212,168,67,0)');
-            drawArea('users', '#1a3a6b', 'rgba(26,58,107,0.3)', 'rgba(26,58,107,0)');
-        })();
-
-        (function () {
-            const svg = document.getElementById('roleChart');
-            if (!svg) return;
-            const roles = [
-                { value: 1845, color: '#1a3a6b' },
-                { value: 389, color: '#2563a8' },
-                { value: 156, color: '#d4a843' },
-                { value: 24, color: '#7c3aed' },
-                { value: 433, color: '#6b7280' }
-            ];
-            const total = roles.reduce((s, r) => s + r.value, 0);
-            const cx = 100, cy = 100, outerR = 80, innerR = 50, gap = 2;
-            let startAngle = -Math.PI / 2;
-            roles.forEach(r => {
-                const sliceAngle = (r.value / total) * Math.PI * 2;
-                const gapAngle = gap / outerR;
-                const a1 = startAngle + gapAngle / 2;
-                const a2 = startAngle + sliceAngle - gapAngle / 2;
-                const x1o = cx + outerR * Math.cos(a1);
-                const y1o = cy + outerR * Math.sin(a1);
-                const x2o = cx + outerR * Math.cos(a2);
-                const y2o = cy + outerR * Math.sin(a2);
-                const x2i = cx + innerR * Math.cos(a2);
-                const y2i = cy + innerR * Math.sin(a2);
-                const x1i = cx + innerR * Math.cos(a1);
-                const y1i = cy + innerR * Math.sin(a1);
-                const large = sliceAngle > Math.PI ? 1 : 0;
-                const d = `M ${x1o} ${y1o} A ${outerR} ${outerR} 0 ${large} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${innerR} ${innerR} 0 ${large} 0 ${x1i} ${y1i} Z`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('fill', r.color);
-                svg.appendChild(path);
-                startAngle += sliceAngle;
-            });
-        })();
     </script>
+
+    <%# M12.P1-D6: the dashboard charts are drawn by a dedicated same-origin
+        module that reads its numbers from the rendered tables above. No
+        analytics value is interpolated into executable script, so there is no
+        inline data payload to trust, and the tables stay authoritative when
+        this file fails to load or JavaScript is disabled. %>
+    <script src="/js/admin/dashboard-analytics.js" defer></script>
+
+    <%# M12.P1-D6 removed the two hard-coded chart scripts that used to sit
+        here: a twelve-point invented accounts/map-view series and a five-slice
+        invented role array. Nothing replaced them inline — the real values are
+        rendered into the tables above and drawn by the deferred
+        /js/admin/dashboard-analytics.js module. %>
 </body>
 
 </html>

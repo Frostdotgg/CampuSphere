@@ -2429,170 +2429,791 @@ function runLogoutOutputHygieneGate() {
   return rec.failures;
 }
 
-/* ---------------- admin dashboard truthfulness gate (M12.P1-R8) ----------------
+/* ------------- admin dashboard analytics truthfulness gate (M12.P1-D6) -------
 
-   The admin dashboard draws TWO charts from hard-coded illustrative arrays:
-   #activityChart (a 12-month users/mapViews series) and #roleChart (a five-slice
-   role donut). The real analytics repair is deferred to M12.P1-D6, so until then
-   the ONLY thing standing between an admin/facilitator/panelist and a fabricated
-   number presented as live data is the on-page notice. Before R8 the page
-   actively asserted the opposite: the Activity Overview card carried a pill
-   reading "Live preview" next to a live status dot.
+   REPLACES the R8 sample-data disclosure gate. That gate existed because the
+   dashboard drew two charts from hard-coded illustrative arrays and the only
+   protection available was an on-page notice. D6 removed the arrays, so the
+   notice is gone with them and the obligation moved: the numbers must now BE
+   real, and must never be faked back.
 
-   This gate makes the notice durable. Every check below is a precise SHAPE, not
-   a word scan, and each detector is exercised against a mutated copy of the real
-   source so a silent regression cannot pass. It also pins the KPI view-model
-   name: `stats.totalMapViews` was always a building COUNT, and reviving that
-   name would restore the misleading label D6 exists to remove.
+   Everything this gate expects is pinned HERE, independently of the service,
+   the repository, the view, and the focused probe, so no single edit can
+   redefine what "truthful" means. The behavioural checks drive the REAL
+   service with mocked adapters — no database, no server, no browser — and each
+   static detector is exercised against a mutated copy of the real source so a
+   silent regression cannot pass.
 
-   Deliberately NOT asserted here: anything about the values themselves. This
-   gate must stay green when D6 later replaces the hard-coded arrays with real
-   repository data, at which point the notices are removed with their charts. */
+   What it rejects: a re-fabricated chart array; the mapViews/totalMapViews
+   misnomer; any page-view/visit tracking or analytics persistence; a missing or
+   extra role category; a month count other than 12 or months out of order; UTC
+   or host-local month boundaries instead of Asia/Manila; an inclusive end
+   boundary or a double-counted boundary row; an error path that substitutes
+   zero for unavailable data; a missing accessible table/description; a chart
+   that cannot redraw on resize or theme change; a new public analytics
+   endpoint; analytics SQL inside the controller; and any weakening of the
+   admin-only or authenticated-no-store behaviour of GET /admin. */
 
-// The exact strings pinned INDEPENDENTLY of the view, so editing the view alone
-// cannot redefine what "disclosed" means.
-const EXPECTED_CHART_SAMPLE_PILL = 'Sample data';
-const EXPECTED_CHART_NOTICE_CLASS = 'admin-chart-sample-note';
-const FORBIDDEN_CHART_PILL = 'Live preview';
-const FORBIDDEN_KPI_PROPERTY = 'totalMapViews';
-// Each hard-coded chart, and the notice element id it must point at.
-const EXPECTED_DISCLOSED_CHARTS = Object.freeze([
-  Object.freeze({ elementId: 'activityChart', noticeId: 'activityChartSampleNotice' }),
-  Object.freeze({ elementId: 'roleChart', noticeId: 'roleChartSampleNotice' }),
+const EXPECTED_D6_TIMEZONE = 'Asia/Manila';
+const EXPECTED_D6_MANILA_OFFSET_MINUTES = 480; // UTC+08:00, no DST
+const EXPECTED_D6_MONTH_COUNT = 12;
+const EXPECTED_D6_ROLE_KEYS = Object.freeze(['student-cspc', 'instructor', 'admin', 'guest']);
+const EXPECTED_D6_UNAVAILABLE_MESSAGE = 'Analytics data is unavailable right now.';
+const EXPECTED_D6_CLIENT_SCRIPT = '/js/admin/dashboard-analytics.js';
+const EXPECTED_D6_THEME_ATTRIBUTE = 'data-theme';
+const EXPECTED_D6_PROBE_SCRIPT = 'adminDashboardAnalytics-probe.js';
+
+/* The probe's two markers, pinned here so a static-only run can never be
+   mistaken for the ordinary fail-closed run in a transcript. */
+const EXPECTED_D6_NORMAL_MARKER = 'ADMIN-DASHBOARD-ANALYTICS-PROBE OK';
+const EXPECTED_D6_STATIC_ONLY_MARKER = 'D6-STATIC-ONLY-PROBE OK';
+const FORBIDDEN_D6_STATIC_ONLY_FLAG = '--static-only';
+
+/* The four non-colour encodings, and the verified data palette. Both are
+   pinned INDEPENDENTLY of the client module and the view, so a coordinated
+   edit to those two files cannot redefine what "accessible" means here. */
+const EXPECTED_D6_ROLE_PATTERNS = Object.freeze(['solid', 'diagonal', 'crosshatch', 'dots']);
+const EXPECTED_D6_PALETTE = Object.freeze({
+  light: Object.freeze({
+    surface: '#ffffff',
+    users: '#1a3a6b',
+    buildings: '#8a5a00',
+    roles: Object.freeze(['#1a3a6b', '#2563a8', '#8a5a00', '#4b5563']),
+  }),
+  dark: Object.freeze({
+    surface: '#0b1220',
+    users: '#8ab4f8',
+    buildings: '#f2c14e',
+    roles: Object.freeze(['#8ab4f8', '#5eead4', '#f2c14e', '#d1d5db']),
+  }),
+});
+// WCAG minimum for a graphical object / non-text contrast.
+const EXPECTED_D6_MIN_CONTRAST = 3;
+// A fixed instant so every behavioural D6 assertion is reproducible.
+const D6_NOW = Date.UTC(2026, 7, 14, 4, 0, 0);
+
+/** PURE: WCAG 2.x relative luminance of an #rrggbb colour. */
+function d6RelativeLuminance(hex) {
+  const value = String(hex).trim().replace('#', '');
+  const channels = [0, 2, 4].map((i) => {
+    const c = parseInt(value.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+/** PURE: WCAG contrast ratio between two #rrggbb colours. */
+function d6ContrastRatio(foreground, background) {
+  const a = d6RelativeLuminance(foreground);
+  const b = d6RelativeLuminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/* Tokens that must not exist anywhere in the dashboard surface. The first two
+   are the fabricated series and the KPI misnomer; the last two are the removed
+   sample-data furniture, whose return would mean the fabricated charts came
+   back with it. */
+const FORBIDDEN_D6_TOKENS = Object.freeze([
+  'mapViews', 'totalMapViews', 'Sample data', 'admin-chart-sample-note', 'Live preview',
 ]);
-// The three assertions the notice must actually make.
-const EXPECTED_NOTICE_CLAIMS = Object.freeze([
-  /\billustrative only\b/i,
-  /\bnot read from MySQL or Supabase\b/i,
-  /\bnot usage, account, routing, or pilot evidence\b/i,
+
+/* Identifier-shaped tracking/persistence tokens. Deliberately identifier-shaped
+   so the truthful prose sentence that DENIES tracking cannot trip it. */
+const FORBIDDEN_D6_TRACKING =
+  /\b(page_?views?|pageview|visit_?count|visit_?log|analytics_events?|analytics_table|trackEvent|trackPageView|sendBeacon)\b/i;
+
+/* Each chart surface and the accessible apparatus it must carry. */
+const EXPECTED_D6_CHART_SURFACES = Object.freeze([
+  Object.freeze({
+    elementId: 'additionsChart', tag: 'canvas',
+    headingId: 'additionsChartHeading', descriptionId: 'additionsChartDescription',
+    tableId: 'additionsTable', rowAttribute: 'data-month-key', expectedRows: 12,
+  }),
+  Object.freeze({
+    elementId: 'roleChart', tag: 'svg',
+    headingId: 'roleChartHeading', descriptionId: 'roleChartDescription',
+    tableId: 'roleTable', rowAttribute: 'data-role-key', expectedRows: 4,
+  }),
 ]);
+
+/** PURE: drop JS comments so a detector matches CODE, never its own prose. */
+function d6StripJsComments(source) {
+  return String(source == null ? '' : source)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+/** PURE: drop EJS and HTML comments from a template. */
+function d6StripViewComments(source) {
+  return String(source == null ? '' : source)
+    .replace(/<%#[\s\S]*?%>/g, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+}
 
 /**
- * PURE: does `view` disclose `chart` as sample data?
+ * PURE: does `source` carry a hard-coded chart data series?
  *
- * Requires ALL of: the chart element still exists; it carries an
- * aria-describedby pointing at the expected notice id (so assistive technology
- * receives the disclaimer, not just sighted users); and a notice element with
- * that id exists, carries the notice class, and makes all three claims.
+ * Shape-based, not word-based: an array of objects that pairs a label with a
+ * magnitude, or a value/colour pair — the two forms the removed dashboard
+ * arrays actually took.
  */
-function chartIsDisclosedAsSampleData(view, chart) {
-  const source = String(view == null ? '' : view);
-
-  // The chart element itself, as a single tag, so attributes are read from the
-  // right element rather than from anywhere on the page.
-  const elementTag = new RegExp(
-    '<(canvas|svg)\\b[^>]*\\bid=["\']' + chart.elementId + '["\'][^>]*>', 'i');
-  const tagMatch = source.match(elementTag);
-  if (!tagMatch) return false;
-  const tag = tagMatch[0];
-  if (!new RegExp('\\baria-describedby=["\']' + chart.noticeId + '["\']', 'i').test(tag)) return false;
-
-  // The notice element, matched as an opening tag plus its text content.
-  const noticeBlock = new RegExp(
-    '<([a-z]+)\\b[^>]*\\bid=["\']' + chart.noticeId + '["\'][^>]*>([\\s\\S]{0,600}?)</\\1>', 'i');
-  const noticeMatch = source.match(noticeBlock);
-  if (!noticeMatch) return false;
-  const openTag = noticeMatch[0].slice(0, noticeMatch[0].indexOf('>') + 1);
-  if (!new RegExp('\\bclass=["\'][^"\']*\\b' + EXPECTED_CHART_NOTICE_CLASS + '\\b', 'i').test(openTag)) return false;
-
-  const text = noticeMatch[2];
-  if (!new RegExp('\\b' + EXPECTED_CHART_SAMPLE_PILL + '\\b', 'i').test(text)) return false;
-  return EXPECTED_NOTICE_CLAIMS.every((claim) => claim.test(text));
+function d6ContainsFabricatedSeries(source) {
+  const code = d6StripJsComments(d6StripViewComments(source));
+  return (
+    /\{\s*date\s*:\s*['"][A-Za-z]{3}['"]\s*,\s*\w+\s*:\s*\d+/.test(code) ||
+    /\{\s*value\s*:\s*\d+\s*,\s*color\s*:\s*['"]#/.test(code) ||
+    /\b(?:const|let|var)\s+\w*(?:data|series|roles|activity)\w*\s*=\s*\[\s*\{[\s\S]{0,240}?\d{2,}/i.test(code)
+  );
 }
 
-/** PURE: has the misleading "Live preview" pill returned anywhere in the view? */
-function viewClaimsLivePreview(view) {
-  return new RegExp('\\b' + FORBIDDEN_CHART_PILL + '\\b', 'i')
-    .test(String(view == null ? '' : view));
+/**
+ * PURE: is `surface` rendered as an accessible chart with a real table
+ * equivalent? Requires the graphic to be programmatically named AND described,
+ * and requires a semantic table with a caption, column headers, row headers,
+ * and the exact number of keyed data rows.
+ */
+function d6SurfaceIsAccessible(view, surface) {
+  const markup = d6StripViewComments(view);
+
+  const tag = markup.match(new RegExp(
+    '<' + surface.tag + '\\b[^>]*\\bid=["\']' + surface.elementId + '["\'][^>]*>', 'i'));
+  if (!tag) return false;
+  const openTag = tag[0];
+  if (!/\brole=["']img["']/i.test(openTag)) return false;
+  if (!new RegExp('\\baria-labelledby=["\']' + surface.headingId + '["\']', 'i').test(openTag)) return false;
+  if (!new RegExp('\\baria-describedby=["\']' + surface.descriptionId + '["\']', 'i').test(openTag)) return false;
+
+  // The referenced heading and description must actually exist.
+  if (!new RegExp('\\bid=["\']' + surface.headingId + '["\']', 'i').test(markup)) return false;
+  if (!new RegExp('\\bid=["\']' + surface.descriptionId + '["\']', 'i').test(markup)) return false;
+
+  // The table equivalent, matched as a whole element.
+  const table = markup.match(new RegExp(
+    '<table\\b[^>]*\\bid=["\']' + surface.tableId + '["\'][^>]*>([\\s\\S]*?)</table>', 'i'));
+  if (!table) return false;
+  const body = table[1];
+  if (!/<caption>/i.test(body)) return false;
+  if (!/<th scope="col">/i.test(body)) return false;
+  if (!/<th scope="row">/i.test(body)) return false;
+  return new RegExp('\\b' + surface.rowAttribute + '=', 'g').test(body);
 }
 
-/** PURE: does `source` still expose the building count under the D6 misnomer? */
-function usesMisleadingKpiProperty(source) {
-  return new RegExp('\\b' + FORBIDDEN_KPI_PROPERTY + '\\b')
-    .test(String(source == null ? '' : source));
+/** PURE: does the client module honour BOTH redraw triggers? */
+function d6ClientRedrawProblems(client) {
+  const code = d6StripJsComments(client);
+  const problems = [];
+  if (!/ResizeObserver/.test(code)) problems.push('no ResizeObserver');
+  if (!/addEventListener\(\s*['"]resize['"]/.test(code)) problems.push('no resize fallback');
+  if (!/MutationObserver/.test(code)) problems.push('no MutationObserver');
+  if (!new RegExp("attributeFilter\\s*:\\s*\\[\\s*['\"]" + EXPECTED_D6_THEME_ATTRIBUTE + "['\"]\\s*\\]")
+    .test(code)) problems.push('theme attribute is not the observed filter');
+  if (!/attributes\s*:\s*true/.test(code)) problems.push('attribute mutations are not observed');
+  return problems;
 }
 
-function runAdminDashboardTruthfulnessGate() {
-  const rec = makeRecorder('admin-dashboard-truthfulness');
+/** PURE: does the client module avoid every unsafe DOM/eval construct? */
+function d6ClientIsSafe(client) {
+  const code = d6StripJsComments(client);
+  return !/\binnerHTML\b|\bouterHTML\b|insertAdjacentHTML|\beval\s*\(|document\.write|new Function\(/.test(code);
+}
+
+/**
+ * PURE: does the dashboard action carry ANALYTICS SQL of its own?
+ *
+ * Scoped deliberately. The action legitimately still runs the pre-existing
+ * recent-user and news-panel reads, so a blanket "no SQL" rule would be false.
+ * What must not exist is aggregate or time-bucketed SQL over `users` /
+ * `buildings` — the queries D6 moved into the repository layer.
+ */
+function d6ControllerHasAnalyticsSql(controllerSource) {
+  const start = controllerSource.indexOf('exports.index');
+  const end = controllerSource.indexOf('exports.users');
+  if (start < 0 || end <= start) return true; // unreadable shape fails closed
+  const action = d6StripJsComments(controllerSource.slice(start, end));
+  return (
+    /COUNT\([\s\S]{0,20}\)[\s\S]{0,120}?\bFROM\s+(?:users|buildings)\b/i.test(action) ||
+    /\bGROUP\s+BY\b/i.test(action) ||
+    /UNIX_TIMESTAMP|FROM_UNIXTIME/i.test(action) ||
+    /\bFROM\s+(?:users|buildings)\b[\s\S]{0,160}?\bcreated_at\s*>=/i.test(action)
+  );
+}
+
+/** PURE: does any route file expose a public analytics endpoint? */
+function d6DeclaresAnalyticsEndpoint(routeSource) {
+  return /router\.(?:get|post|put|patch|delete)\(\s*['"][^'"]*(analytics|metrics|pageviews|telemetry)/i
+    .test(d6StripJsComments(routeSource));
+}
+
+/** A repository stand-in whose every method throws. */
+function d6ThrowingRepository() {
+  const boom = async () => { throw new Error('backend down at db.internal key=SECRET'); };
+  return {
+    MAX_WINDOW_ROWS: 20000,
+    readUserAdditionTimestamps: boom,
+    readBuildingAdditionTimestamps: boom,
+    countUsersByRole: boom,
+    countUsersTotal: boom,
+    countBuildingsTotal: boom,
+  };
+}
+
+/** A repository stand-in that returns a genuine, successful empty backend. */
+function d6EmptyRepository() {
+  return {
+    MAX_WINDOW_ROWS: 20000,
+    readUserAdditionTimestamps: async () => ({ timestampsMs: [], capped: false }),
+    readBuildingAdditionTimestamps: async () => ({ timestampsMs: [], capped: false }),
+    countUsersByRole: async () => ({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 }),
+    countUsersTotal: async () => 0,
+    countBuildingsTotal: async () => 0,
+  };
+}
+
+/**
+ * A repository stand-in that answers correctly EXCEPT for one deliberately
+ * malformed value, so the strict acceptance path can be driven case by case.
+ */
+function d6MalformedRepository(overrides) {
+  const spec = overrides || {};
+  const roleCounts = spec.roleCounts || { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 };
+  const userTotal = spec.userTotal === undefined ? 4 : spec.userTotal;
+  return {
+    MAX_WINDOW_ROWS: 20000,
+    readUserAdditionTimestamps: async (range) => (spec.userWindow === 'outside'
+      ? { timestampsMs: [range.endMs], capped: false }
+      : { timestampsMs: [], capped: false }),
+    readBuildingAdditionTimestamps: async (range) => (spec.buildingWindow === 'outside'
+      ? { timestampsMs: [range.endMs], capped: false }
+      : { timestampsMs: [], capped: false }),
+    countUsersByRole: async () => roleCounts,
+    countUsersTotal: async () => userTotal,
+    countBuildingsTotal: async () => (spec.buildingTotal === undefined ? 0 : spec.buildingTotal),
+  };
+}
+
+async function runAdminDashboardAnalyticsGate() {
+  const rec = makeRecorder('admin-dashboard-analytics');
   const { ok } = rec;
   const root = path.join(__dirname, '..');
-  const viewPath = path.join(root, 'views', 'admin', 'index.ejs');
-  const ctrlPath = path.join(root, 'controllers', 'adminController.js');
 
-  ok('admin dashboard view is present and readable', fs.existsSync(viewPath));
-  ok('admin controller is present and readable', fs.existsSync(ctrlPath));
-  if (!fs.existsSync(viewPath) || !fs.existsSync(ctrlPath)) return rec.failures;
-
-  const view = fs.readFileSync(viewPath, 'utf8');
-  const ctrl = fs.readFileSync(ctrlPath, 'utf8');
-
-  // ---- both hard-coded charts survive AND are disclosed ----
-  for (const chart of EXPECTED_DISCLOSED_CHARTS) {
-    ok(`#${chart.elementId} is disclosed as sample data (visible notice + aria-describedby + all three claims)`,
-      chartIsDisclosedAsSampleData(view, chart));
+  const paths = {
+    view: path.join(root, 'views', 'admin', 'index.ejs'),
+    controller: path.join(root, 'controllers', 'adminController.js'),
+    service: path.join(root, 'services', 'adminAnalyticsService.js'),
+    repository: path.join(root, 'repositories', 'analyticsRepository.js'),
+    client: path.join(root, 'public', 'js', 'admin', 'dashboard-analytics.js'),
+    adminRoutes: path.join(root, 'routes', 'admin.js'),
+    probe: path.join(root, 'scripts', EXPECTED_D6_PROBE_SCRIPT),
+  };
+  for (const [label, file] of Object.entries(paths)) {
+    ok(`D6 source is present: ${label}`, fs.existsSync(file));
   }
+  if (!Object.values(paths).every((file) => fs.existsSync(file))) return rec.failures;
 
-  // The charts must still be RENDERED — a passing disclosure check must not be
-  // achievable by deleting the chart the notice describes.
-  ok('#activityChart canvas is still rendered', /<canvas\b[^>]*\bid=["']activityChart["']/i.test(view));
-  ok('#roleChart svg is still rendered', /<svg\b[^>]*\bid=["']roleChart["']/i.test(view));
+  const view = fs.readFileSync(paths.view, 'utf8');
+  const controller = fs.readFileSync(paths.controller, 'utf8');
+  const service = fs.readFileSync(paths.service, 'utf8');
+  const repository = fs.readFileSync(paths.repository, 'utf8');
+  const client = fs.readFileSync(paths.client, 'utf8');
+  const adminRoutes = fs.readFileSync(paths.adminRoutes, 'utf8');
 
-  // ---- the misleading pill must not return ----
-  ok(`admin dashboard no longer claims "${FORBIDDEN_CHART_PILL}"`, !viewClaimsLivePreview(view));
-  ok(`admin dashboard shows the "${EXPECTED_CHART_SAMPLE_PILL}" pill on both chart cards`,
-    (view.match(new RegExp('<span class="admin-pill">' + EXPECTED_CHART_SAMPLE_PILL + '</span>', 'g')) || []).length === 2);
+  /* ---- 1. behavioural: the REAL service, driven with mocked adapters ---- */
+  const analytics = require('../services/adminAnalyticsService');
 
-  // ---- the KPI misnomer must not return ----
-  ok(`admin controller no longer exposes ${FORBIDDEN_KPI_PROPERTY}`, !usesMisleadingKpiProperty(ctrl));
-  ok(`admin dashboard view no longer reads ${FORBIDDEN_KPI_PROPERTY}`, !usesMisleadingKpiProperty(view));
-  ok('admin controller exposes the building KPI as totalBuildings on BOTH render paths',
-    (ctrl.match(/\btotalBuildings\b\s*(?:[,}]|:\s*0\b)/g) || []).length >= 2);
-  ok('admin dashboard view renders stats.totalBuildings', /\bstats\.totalBuildings\b/.test(view));
+  ok(`the service reports the ${EXPECTED_D6_TIMEZONE} timezone and its fixed offset`,
+    analytics.TIMEZONE === EXPECTED_D6_TIMEZONE &&
+    analytics.MANILA_UTC_OFFSET_MINUTES === EXPECTED_D6_MANILA_OFFSET_MINUTES);
+  ok(`the service reports exactly the ${EXPECTED_D6_ROLE_KEYS.length} pinned roles, in order`,
+    Array.isArray(analytics.ROLE_KEYS) &&
+    analytics.ROLE_KEYS.length === EXPECTED_D6_ROLE_KEYS.length &&
+    analytics.ROLE_KEYS.every((r, i) => r === EXPECTED_D6_ROLE_KEYS[i]));
 
-  // ---- no analytics persistence / page-view tracking was introduced (D6 stays deferred) ----
-  ok('no page-view tracking or analytics persistence was added to the controller',
-    !/\b(page_?views?|analytics_events?|track(?:PageView|Event))\b/i.test(ctrl));
+  const windows = analytics.buildMonthWindows(Date.UTC(2026, 7, 14, 4, 0, 0));
+  ok(`exactly ${EXPECTED_D6_MONTH_COUNT} month windows are produced, strictly ordered`,
+    windows.length === EXPECTED_D6_MONTH_COUNT &&
+    windows.every((w, i) => i === 0 || w.startMs > windows[i - 1].startMs));
+  ok('month windows are Asia/Manila, not UTC and not host-local',
+    windows.every((w) => {
+      // A Manila month begins at 16:00 UTC on the last day of the previous month.
+      const start = new Date(w.startMs);
+      return start.getUTCHours() === 16 && start.getUTCMinutes() === 0;
+    }) &&
+    windows[EXPECTED_D6_MONTH_COUNT - 1].key === '2026-08');
+  ok('windows tile exactly: each end is the next start (no gap, no overlap)',
+    windows.every((w, i) => i === 0 || w.startMs === windows[i - 1].endMs));
+  ok('year rollover and leap-year February are exact',
+    (() => {
+      const jan = analytics.buildMonthWindows(Date.UTC(2026, 0, 15, 4, 0, 0));
+      const leap = analytics.buildMonthWindows(Date.UTC(2024, 1, 20, 4, 0, 0));
+      const day = 24 * 60 * 60 * 1000;
+      return jan[0].key === '2025-02' && jan[11].key === '2026-01' &&
+        leap[11].key === '2024-02' && (leap[11].endMs - leap[11].startMs) === 29 * day;
+    })());
 
-  // ---- negative fixtures: each detector must REJECT a mutated real source ----
-  const pillBack = view.replace(
-    '<span class="admin-pill">' + EXPECTED_CHART_SAMPLE_PILL + '</span>',
-    '<span class="admin-pill"><span class="admin-status-dot"></span>' + FORBIDDEN_CHART_PILL + '</span>');
-  ok('fixture: a restored "Live preview" pill is flagged',
-    pillBack !== view && viewClaimsLivePreview(pillBack));
+  ok('the month boundary is HALF-OPEN: start included, end excluded, counted once',
+    (() => {
+      const onStart = analytics.bucketByMonth([windows[5].startMs], windows);
+      const onEnd = analytics.bucketByMonth([windows[5].endMs], windows);
+      return onStart.counts[5] === 1 && onStart.counts[4] === 0 &&
+        onEnd.counts[5] === 0 && onEnd.counts[6] === 1 &&
+        onEnd.counts.reduce((s, n) => s + n, 0) === 1;
+    })());
+  ok('an invalid stored timestamp is reported, never silently dropped',
+    (() => {
+      const r = analytics.bucketByMonth(['not-a-date'], windows);
+      return r.invalid === 1 && r.counts.every((n) => n === 0);
+    })());
 
-  const kpiBack = ctrl.replace(/\btotalBuildings\b(\s*[,}])/, FORBIDDEN_KPI_PROPERTY + '$1');
-  ok('fixture: a restored totalMapViews property is flagged',
-    kpiBack !== ctrl && usesMisleadingKpiProperty(kpiBack));
+  const emptyModel = await analytics.loadAdminDashboardAnalytics({
+    now: Date.UTC(2026, 7, 14, 4, 0, 0), repository: d6EmptyRepository(),
+  });
+  ok('a genuine empty backend reports real zeroes with state "ready"',
+    emptyModel.state === 'ready' && emptyModel.isZero === true && emptyModel.message === null &&
+    emptyModel.months.length === EXPECTED_D6_MONTH_COUNT &&
+    emptyModel.months.every((m) => m.userAdditions === 0 && m.buildingAdditions === 0) &&
+    emptyModel.totals.users === 0 && emptyModel.totals.buildings === 0);
 
-  for (const chart of EXPECTED_DISCLOSED_CHARTS) {
-    const noNotice = view.replace(
-      new RegExp('\\bid=["\']' + chart.noticeId + '["\']'), 'id="' + chart.noticeId + '-renamed"');
-    ok(`fixture: #${chart.elementId} with its notice element removed is flagged`,
-      noNotice !== view && !chartIsDisclosedAsSampleData(noNotice, chart));
+  const brokenModel = await analytics.loadAdminDashboardAnalytics({
+    now: Date.UTC(2026, 7, 14, 4, 0, 0), repository: d6ThrowingRepository(),
+  });
+  ok('a failed read NEVER becomes zero — every value is null and state is "unavailable"',
+    brokenModel.state === 'unavailable' && brokenModel.isZero === false &&
+    brokenModel.months.length === EXPECTED_D6_MONTH_COUNT &&
+    brokenModel.months.every((m) => m.userAdditions === null && m.buildingAdditions === null) &&
+    brokenModel.totals.users === null && brokenModel.totals.buildings === null &&
+    EXPECTED_D6_ROLE_KEYS.every((r) => brokenModel.roleCounts[r] === null));
+  ok('the unavailable message is exactly the pinned sanitized string',
+    brokenModel.message === EXPECTED_D6_UNAVAILABLE_MESSAGE);
+  ok('no raw error, host, key, or SQL reaches the failed model',
+    !/db\.internal|SECRET|backend down|Error:|SELECT /i.test(JSON.stringify(brokenModel)));
+  ok('the model always carries exactly the four role keys, ready or not',
+    Object.keys(emptyModel.roleCounts).length === EXPECTED_D6_ROLE_KEYS.length &&
+    Object.keys(brokenModel.roleCounts).length === EXPECTED_D6_ROLE_KEYS.length &&
+    EXPECTED_D6_ROLE_KEYS.every((r) =>
+      Object.prototype.hasOwnProperty.call(emptyModel.roleCounts, r) &&
+      Object.prototype.hasOwnProperty.call(brokenModel.roleCounts, r)));
 
-    const noAria = view.replace(
-      new RegExp('\\saria-describedby=["\']' + chart.noticeId + '["\']'), '');
-    ok(`fixture: #${chart.elementId} without aria-describedby is flagged`,
-      noAria !== view && !chartIsDisclosedAsSampleData(noAria, chart));
+  /* ---- 1b. strict count acceptance: nothing malformed may become a zero ---- */
+  const parseCount = analytics.parseExactCount;
+  ok('the service and repository share ONE exact count parser',
+    typeof parseCount === 'function' &&
+    parseCount === require('../repositories/analyticsRepository').parseExactCount);
+  ok('the exact count parser accepts only nonnegative safe integers and digit strings',
+    parseCount(0) === 0 && parseCount(21) === 21 && parseCount('21') === 21 &&
+    parseCount(Number.MAX_SAFE_INTEGER) === Number.MAX_SAFE_INTEGER);
+  ok('the exact count parser rejects every malformed shape, and never returns 0 for one',
+    [null, undefined, true, false, '', '  ', -1, '-1', 1.5, '1.5', NaN, Infinity,
+      'twelve', '1e3', '0x10', ' 12 ', Number.MAX_SAFE_INTEGER + 1,
+      String(Number.MAX_SAFE_INTEGER + 2), {}, []]
+      .every((value) => parseCount(value) === null));
+  ok('the strict role parser requires EXACTLY the four keys with exact values',
+    (() => {
+      const good = analytics.parseRoleCounts({ 'student-cspc': 1, instructor: 2, admin: 3, guest: 4 });
+      return good !== null && Object.keys(good).length === 4 && good.guest === 4;
+    })());
+  ok('the strict role parser rejects a missing key, an extra key, and every bad value',
+    [
+      { 'student-cspc': 1, instructor: 1, admin: 1 },
+      { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 1 },
+      { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 },
+      { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 },
+      { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 },
+      { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 1, admin: 1, guest: 1 },
+      null, 'nope', [],
+    ].every((value) => analytics.parseRoleCounts(value) === null));
+  ok('the four role counts must SUM to the total user count',
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 4) === true &&
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 5) === false &&
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 3) === false);
+  ok('a bucket result with any invalid OR any out-of-window row is unusable',
+    (() => {
+      const windows = analytics.buildMonthWindows(D6_NOW);
+      return analytics.bucketResultIsUsable(analytics.bucketByMonth([windows[2].startMs], windows)) === true &&
+        analytics.bucketResultIsUsable(analytics.bucketByMonth(['bad'], windows)) === false &&
+        analytics.bucketResultIsUsable(analytics.bucketByMonth([windows[11].endMs], windows)) === false;
+    })());
+
+  const malformedCases = [
+    ['a MISSING role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1 }, userTotal: 3 }],
+    ['an ADDITIONAL role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 2 }, userTotal: 6 }],
+    ['a NEGATIVE role count', { roleCounts: { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 }, userTotal: 2 }],
+    ['a FRACTIONAL role count', { roleCounts: { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 }, userTotal: 5 }],
+    ['a NON-NUMERIC role count', { roleCounts: { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 }, userTotal: 4 }],
+    ['an UNSAFE role count', { roleCounts: { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 0, admin: 0, guest: 0 }, userTotal: 1 }],
+    ['an INVALID user total', { userTotal: -4 }],
+    ['a role/total MISMATCH', { userTotal: 99 }],
+    ['a row OUTSIDE the requested window', { userWindow: 'outside' }],
+  ];
+  for (const [label, spec] of malformedCases) {
+    /* eslint-disable no-await-in-loop */
+    const model = await analytics.loadAdminDashboardAnalytics({
+      now: D6_NOW, repository: d6MalformedRepository(spec),
+    });
+    ok(`${label} makes the users side unavailable with nulls, never zeroes`,
+      model.status.users === 'unavailable' && model.state !== 'ready' &&
+      model.totals.users === null &&
+      model.months.every((m) => m.userAdditions === null) &&
+      EXPECTED_D6_ROLE_KEYS.every((r) => model.roleCounts[r] === null));
+    /* eslint-enable no-await-in-loop */
   }
+  {
+    const badBuildings = await analytics.loadAdminDashboardAnalytics({
+      now: D6_NOW, repository: d6MalformedRepository({ buildingTotal: 'many' }),
+    });
+    ok('an INVALID building total makes the buildings side unavailable',
+      badBuildings.status.buildings === 'unavailable' &&
+      badBuildings.totals.buildings === null && badBuildings.state !== 'ready');
+    const outsideBuildings = await analytics.loadAdminDashboardAnalytics({
+      now: D6_NOW, repository: d6MalformedRepository({ buildingWindow: 'outside' }),
+    });
+    ok('an out-of-window BUILDING row makes the buildings side unavailable',
+      outsideBuildings.status.buildings === 'unavailable' && outsideBuildings.state !== 'ready');
+  }
+  ok('no permissive `Number(...) || 0` coercion remains in the D6 repository or service',
+    !/Number\s*\([^)]*\)\s*\|\|\s*0/.test(d6StripJsComments(repository)) &&
+    !/Number\s*\([^)]*\)\s*\|\|\s*0/.test(d6StripJsComments(service)));
+  ok('the repository rejects an unreported role instead of discarding it',
+    /an unreported role was returned/.test(repository));
+  ok('the repository builds no backend at import time (deferred pool and client)',
+    !/^const\s+db\s*=\s*require\(/m.test(d6StripJsComments(repository)) &&
+    /function mysqlPool\(\)/.test(repository) && /function supabaseClient\(\)/.test(repository));
 
-  // A notice that no longer makes one of its three claims must fail.
-  const weakened = view.replace(/illustrative only/i, 'indicative');
-  ok('fixture: a notice that drops the "illustrative only" claim is flagged',
-    weakened !== view && !chartIsDisclosedAsSampleData(weakened, EXPECTED_DISCLOSED_CHARTS[0]));
+  /* ---- 2. static: nothing fabricated survives ---- */
+  for (const token of FORBIDDEN_D6_TOKENS) {
+    ok(`the forbidden token "${token}" appears in neither the controller nor the view`,
+      !controller.includes(token) && !view.includes(token));
+  }
+  ok('no hard-coded chart series survives in the view, controller, or client module',
+    !d6ContainsFabricatedSeries(view) && !d6ContainsFabricatedSeries(controller) &&
+    !d6ContainsFabricatedSeries(client));
+  ok('no page-view/visit tracking or analytics persistence exists in the D6 source',
+    ![service, repository, client].some((src) => FORBIDDEN_D6_TRACKING.test(d6StripJsComments(src))) &&
+    !FORBIDDEN_D6_TRACKING.test(d6StripJsComments(controller)));
+  ok('the analytics repository is SELECT-only (no write verb, DDL, or RPC)',
+    (() => {
+      const code = d6StripJsComments(repository);
+      return !/\b(INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+TABLE|ALTER\s+TABLE|TRUNCATE|DROP\s+TABLE)\b/i.test(code) &&
+        !/\.rpc\(|\.insert\(|\.upsert\(|\.delete\(/.test(code);
+    })());
+  ok('the repository pins the same four roles independently of the service',
+    (() => {
+      const repoKeys = require('../repositories/analyticsRepository').ANALYTICS_ROLE_KEYS;
+      return Array.isArray(repoKeys) && repoKeys.length === EXPECTED_D6_ROLE_KEYS.length &&
+        repoKeys.every((r, i) => r === EXPECTED_D6_ROLE_KEYS[i]);
+    })());
+  ok('the two data sources are selected independently (AUTH vs BUILDING)',
+    /authDataSource\.isSupabase\(\)/.test(repository) &&
+    /mapRuntime\.isBuildingSupabase\(\)/.test(repository));
 
-  const noBackend = view.replace(/not read from MySQL or Supabase/i, 'refreshed periodically');
-  ok('fixture: a notice that drops the "not read from MySQL or Supabase" claim is flagged',
-    noBackend !== view && !chartIsDisclosedAsSampleData(noBackend, EXPECTED_DISCLOSED_CHARTS[0]));
+  /* ---- 3. static: the dashboard stays admin-only, no-store, and SQL-free ---- */
+  ok('the dashboard action contains no analytics SQL', !d6ControllerHasAnalyticsSql(controller));
+  ok('GET /admin stays behind requireRole(\'admin\') declared before the route',
+    (() => {
+      const guard = adminRoutes.indexOf("router.use(requireRole('admin'))");
+      const route = adminRoutes.search(/router\.get\('\/',\s*adminController\.index\)/);
+      return guard >= 0 && route > guard;
+    })());
+  ok('the authenticated-HTML no-store policy is still applied',
+    (() => {
+      const middleware = path.join(root, 'middleware', 'authenticatedHtmlNoStore.js');
+      const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+      return fs.existsSync(middleware) &&
+        /no-store,\s*private/.test(fs.readFileSync(middleware, 'utf8')) &&
+        /authenticatedHtmlNoStore/.test(server);
+    })());
+  ok('no route file declares a public analytics/metrics/telemetry endpoint',
+    fs.readdirSync(path.join(root, 'routes')).filter((f) => f.endsWith('.js'))
+      .every((f) => !d6DeclaresAnalyticsEndpoint(fs.readFileSync(path.join(root, 'routes', f), 'utf8'))));
 
-  const noEvidence = view.replace(/not usage, account, routing, or pilot evidence/i, 'for reference');
-  ok('fixture: a notice that drops the "not pilot evidence" claim is flagged',
-    noEvidence !== view && !chartIsDisclosedAsSampleData(noEvidence, EXPECTED_DISCLOSED_CHARTS[0]));
+  /* ---- 4. static: accessibility and the table equivalents ---- */
+  for (const surface of EXPECTED_D6_CHART_SURFACES) {
+    ok(`#${surface.elementId} is an accessible chart with a semantic table equivalent`,
+      d6SurfaceIsAccessible(view, surface));
+  }
+  ok('the view renders the SERVER-supplied timezone and unavailable message, not literals',
+    /analytics\.timezone/.test(view) && /analytics\.message/.test(view) &&
+    !view.includes("'" + EXPECTED_D6_TIMEZONE + "'") &&
+    !view.includes('"' + EXPECTED_D6_UNAVAILABLE_MESSAGE + '"'));
+  ok('the KPI tiles no longer coerce a missing value to zero',
+    !/stats\.total\w+\s*\|\|\s*0/.test(view));
+  ok('the chart module is loaded as a deferred same-origin script, exactly once',
+    (view.match(new RegExp('<script src="' + EXPECTED_D6_CLIENT_SCRIPT + '"', 'g')) || []).length === 1 &&
+    new RegExp('<script src="' + EXPECTED_D6_CLIENT_SCRIPT + '" defer>').test(view));
+  ok('no inline script body carries a server interpolation (no executable inline data)',
+    (() => {
+      const markup = d6StripViewComments(view);
+      const blocks = markup.match(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi) || [];
+      let inline = 0;
+      for (const block of blocks) {
+        const open = block.slice(0, block.indexOf('>') + 1);
+        if (/\bsrc=/i.test(open)) continue;
+        inline += 1;
+        if (/<%/.test(block.slice(open.length, block.lastIndexOf('</script')))) return false;
+      }
+      return inline >= 1;
+    })());
 
-  // Positive control: the untouched real view must satisfy every detector.
-  ok('control: the real view passes all disclosure detectors',
-    EXPECTED_DISCLOSED_CHARTS.every((c) => chartIsDisclosedAsSampleData(view, c)) &&
-    !viewClaimsLivePreview(view) && !usesMisleadingKpiProperty(view));
+  /* ---- 5. static: the client redraw and safety contracts ---- */
+  ok('the client module redraws on container resize and on data-theme change',
+    d6ClientRedrawProblems(client).length === 0);
+  ok('the client module uses no innerHTML, eval, document.write, or Function',
+    d6ClientIsSafe(client));
+  ok('the client module reads its values from the rendered table, not from injected data',
+    /getAttribute\(['"]data-value['"]\)/.test(client) && !/JSON\.parse\(/.test(d6StripJsComments(client)));
+
+  /* ---- 6. the focused probe is registered, and is FAIL-CLOSED ---- */
+  const probeSource = fs.readFileSync(paths.probe, 'utf8');
+  const probeModule = require('./' + EXPECTED_D6_PROBE_SCRIPT);
+
+  ok('the D6 focused probe is registered in the executed spawned-probe plan',
+    flattenStagePlan(SPAWNED_PROBE_STAGES).includes(EXPECTED_D6_PROBE_SCRIPT));
+  ok('the D6 focused probe authenticates nobody (no canonical login path)',
+    !/require\(['"]\.\/regressionCredentials['"]\)/.test(probeSource) &&
+    !/['"]\/login['"]/.test(probeSource));
+
+  /* The registered stage must spawn the ORDINARY fail-closed mode. A stage that
+     passed --static-only would run the pure sections only and still exit 0,
+     which is exactly the false-green this gate exists to prevent. */
+  ok('the registered stage spawns the ORDINARY probe, never the static-only path',
+    (() => {
+      const stage = SPAWNED_PROBE_STAGES.find((s) =>
+        (s.probes || []).some((entry) => Array.isArray(entry) && entry[1] === EXPECTED_D6_PROBE_SCRIPT));
+      if (!stage) return false;
+      return stage.probes.every((entry) =>
+        !String(entry[1]).includes(FORBIDDEN_D6_STATIC_ONLY_FLAG) &&
+        !String(entry[0]).includes(FORBIDDEN_D6_STATIC_ONLY_FLAG));
+    })() && !new RegExp(EXPECTED_D6_PROBE_SCRIPT + "[^\\n]*" + FORBIDDEN_D6_STATIC_ONLY_FLAG)
+      .test(fs.readFileSync(__filename, 'utf8')));
+
+  ok('the static-only marker is distinct from the ordinary success marker',
+    probeModule.STATIC_ONLY_SUCCESS_MARKER === EXPECTED_D6_STATIC_ONLY_MARKER &&
+    probeModule.NORMAL_SUCCESS_MARKER === EXPECTED_D6_NORMAL_MARKER &&
+    !EXPECTED_D6_STATIC_ONLY_MARKER.includes(EXPECTED_D6_NORMAL_MARKER) &&
+    !EXPECTED_D6_NORMAL_MARKER.includes(EXPECTED_D6_STATIC_ONLY_MARKER));
+
+  // The pure disposition contract: BOTH backends are required in normal mode.
+  const disposition = (extra) => probeModule.resolveBackendDisposition(
+    Object.assign({ mode: probeModule.MODE_NORMAL, backend: 'mysql' }, extra));
+  ok('a required, configured, reachable backend leg EXECUTES',
+    disposition({ configured: true, reachable: true }).action === 'execute');
+  ok('an UNREACHABLE required backend leg is REJECTED, not skipped',
+    disposition({ configured: true, reachable: false }).action === 'reject');
+  ok('an UNCONFIGURED required backend leg is REJECTED',
+    disposition({ configured: false, reachable: true }).action === 'reject');
+  ok('a SKIP REQUEST in normal mode is REJECTED (PROBE_SKIP_* cannot buy a pass)',
+    disposition({ configured: true, reachable: true, skipRequested: true }).action === 'reject');
+  ok('a missing reachability or configuration flag fails closed',
+    disposition({}).action === 'reject' &&
+    disposition({ configured: true }).action === 'reject');
+  ok('only BOTH distinct backends executing makes the ordinary run successful',
+    probeModule.normalSuccessAllowed([
+      { backend: 'mysql', action: 'execute', executed: true },
+      { backend: 'supabase', action: 'execute', executed: true },
+    ]) === true &&
+    probeModule.normalSuccessAllowed([
+      { backend: 'mysql', action: 'execute', executed: true },
+      { backend: 'supabase', action: 'reject', executed: false },
+    ]) === false &&
+    probeModule.normalSuccessAllowed([
+      { backend: 'mysql', action: 'execute', executed: true },
+      { backend: 'mysql', action: 'execute', executed: true },
+    ]) === false &&
+    probeModule.normalSuccessAllowed([]) === false);
+  ok('the probe wires those helpers into its real run and treats a skip as a request',
+    /normalSuccessAllowed\(legs\)/.test(probeSource) &&
+    /skipRequested:\s*String\(process\.env\.PROBE_SKIP_SUPABASE/.test(probeSource) &&
+    /This is a FAILURE, not a skip/.test(probeSource));
+
+  /* ---- 7. deterministic Supabase pagination ---- */
+  const repoCode = d6StripJsComments(repository);
+  const d6HasCompositeOrder = (src) =>
+    /\.order\('created_at',\s*\{\s*ascending:\s*true\s*\}\)[\s\S]{0,80}\.order\('id',\s*\{\s*ascending:\s*true\s*\}\)/.test(src);
+  const d6HasPagination = (src) => /\.range\(offset,\s*offset \+ pageSize - 1\)/.test(src);
+  const d6HasCeiling = (src) => /while \(offset < range\.limit\)/.test(src) && /SUPABASE_PAGE_SIZE/.test(src);
+
+  ok('Supabase timestamp reads select id alongside created_at',
+    /\.select\('id, created_at'\)/.test(repoCode));
+  ok('Supabase paging orders by created_at ASC then id ASC (stable total order)',
+    d6HasCompositeOrder(repoCode));
+  ok('Supabase paging is bounded and page-wise, not one large limit',
+    d6HasPagination(repoCode) && d6HasCeiling(repoCode) && !/\.limit\(/.test(repoCode));
+  ok('the id is internal: the public reader returns only timestamps and the cap flag',
+    (() => {
+      const parts = [...repoCode.matchAll(/return \{ timestampsMs, capped[^}]*\}/g)];
+      return parts.length >= 2 && parts.every((m) => !/\bids?\b/.test(m[0]));
+    })());
+  ok('fixture: removing the secondary id ordering is detected',
+    !d6HasCompositeOrder(repoCode.replace(/\.order\('id',\s*\{\s*ascending:\s*true\s*\}\)/, '')));
+  ok('fixture: replacing pagination with one large limit is detected',
+    !d6HasPagination(repoCode.replace(/\.range\(offset,\s*offset \+ pageSize - 1\)/, '.limit(20000)')));
+  ok('fixture: removing the page ceiling is detected',
+    !d6HasCeiling(repoCode.replace(/while \(offset < range\.limit\)/, 'while (true)')));
+  ok('the independent comparison also pages with the same composite ordering',
+    /independentSupabasePage/.test(probeSource) &&
+    d6HasCompositeOrder(d6StripJsComments(probeSource)) &&
+    /\.range\(offset,\s*offset \+ size - 1\)/.test(probeSource));
+
+  /* ---- 8. chart colour contrast and non-colour encoding ---- */
+  const clientPalette = require('../public/js/admin/dashboard-analytics.js').ANALYTICS_PALETTE;
+  const clientPatterns = require('../public/js/admin/dashboard-analytics.js').ROLE_PATTERNS;
+
+  ok('the client palette matches this gate\'s independent pin for BOTH themes',
+    ['light', 'dark'].every((theme) => {
+      const expected = EXPECTED_D6_PALETTE[theme];
+      const actual = clientPalette[theme];
+      return actual && actual.surface === expected.surface &&
+        actual.users === expected.users && actual.buildings === expected.buildings &&
+        actual.roles.length === 4 &&
+        actual.roles.every((c, i) => c === expected.roles[i]);
+    }));
+  ok(`every pinned data colour clears ${EXPECTED_D6_MIN_CONTRAST}:1 against its own surface`,
+    ['light', 'dark'].every((theme) => {
+      const set = EXPECTED_D6_PALETTE[theme];
+      return [set.users, set.buildings].concat(set.roles)
+        .every((color) => d6ContrastRatio(color, set.surface) >= EXPECTED_D6_MIN_CONTRAST);
+    }));
+  ok('the four role colours are distinct within each theme',
+    new Set(EXPECTED_D6_PALETTE.light.roles).size === 4 &&
+    new Set(EXPECTED_D6_PALETTE.dark.roles).size === 4);
+  ok('fixture: a low-contrast colour would be rejected by the same measurement',
+    d6ContrastRatio('#d4a843', '#ffffff') < EXPECTED_D6_MIN_CONTRAST &&
+    d6ContrastRatio('#ffffff', '#ffffff') < EXPECTED_D6_MIN_CONTRAST);
+
+  ok('the view declares the analytics tokens for both themes, matching the pin',
+    (() => {
+      const tokenValue = (block, name) => {
+        const match = block.match(new RegExp('--' + name + ':\\s*(#[0-9a-fA-F]{6})'));
+        return match ? match[1].toLowerCase() : null;
+      };
+      const blocks = {
+        light: (view.match(/:root\s*\{[\s\S]*?\}/) || [''])[0],
+        dark: (view.match(/\[data-theme="dark"\]\s*\{[\s\S]*?\}/) || [''])[0],
+      };
+      return ['light', 'dark'].every((theme) => {
+        const set = EXPECTED_D6_PALETTE[theme];
+        const block = blocks[theme];
+        return tokenValue(block, 'analytics-surface') === set.surface &&
+          tokenValue(block, 'analytics-users') === set.users &&
+          tokenValue(block, 'analytics-buildings') === set.buildings &&
+          set.roles.every((color, i) => tokenValue(block, 'analytics-role-' + (i + 1)) === color);
+      });
+    })());
+  ok('the client prefers those page tokens over its built-in copy',
+    /getComputedStyle/.test(client) && /--analytics-role-/.test(client));
+
+  ok('exactly four distinct non-colour encodings are declared and pinned',
+    Array.isArray(clientPatterns) && clientPatterns.length === 4 &&
+    clientPatterns.join(',') === EXPECTED_D6_ROLE_PATTERNS.join(','));
+  ok('the donut fills every segment from its own pattern, not a flat colour',
+    /fill', 'url\(#' \+ rolePatternId\(i\) \+ '\)'/.test(client) &&
+    !/setAttribute\('fill',\s*palette\.roles\[/.test(client));
+  ok('the legend renders four swatches carrying the same four pattern kinds',
+    (() => {
+      const kinds = [...view.matchAll(/rolePatternKinds\s*=\s*\[([^\]]*)\]/g)]
+        .map((m) => m[1].replace(/['\s]/g, ''));
+      return kinds.length === 1 && kinds[0] === EXPECTED_D6_ROLE_PATTERNS.join(',') &&
+        /fill="url\(#<%= pid %>\)"/.test(view) &&
+        /var\(--analytics-role-<%= i \+ 1 %>\)/.test(view);
+    })());
+  ok('legend label text is neutral: no gold tint and no inlined data hex',
+    !/#d4a843/.test(view) &&
+    !/admin-analytics-shape/.test(view) &&
+    !/class="admin-analytics-legend-text"[^>]*style="[^"]*color/i.test(view));
+  ok('the semantic role table remains the non-JavaScript, screen-reader alternative',
+    /<table class="admin-analytics-table" id="roleTable">/.test(view) &&
+    /data-role-key="/.test(view));
+  ok('the monthly series keeps its line/marker distinction, named in legend text',
+    /stroke-dasharray="6 4"/.test(view) &&
+    /solid line, round marker/.test(view) && /dashed line, square marker/.test(view));
+
+  /* ---- 7. rejecting fixtures: every detector must flag a mutated real source -- */
+  const fabricated = view.replace('<tbody>',
+    "<tbody><script>const activityData = [{ date: 'Jan', users: 400 }];</script>");
+  ok('fixture: a reintroduced { date, users } chart array is flagged',
+    fabricated !== view && d6ContainsFabricatedSeries(fabricated));
+  ok('fixture: a reintroduced { value, color } donut array is flagged',
+    d6ContainsFabricatedSeries("const roles = [{ value: 1845, color: '#1a3a6b' }];"));
+  ok('fixture: the untouched real view carries no fabricated series (accepting control)',
+    !d6ContainsFabricatedSeries(view));
+
+  ok('fixture: a chart that loses its aria-describedby is flagged',
+    (() => {
+      const surface = EXPECTED_D6_CHART_SURFACES[0];
+      const mutated = view.replace(
+        new RegExp('\\s*aria-describedby="' + surface.descriptionId + '"'), '');
+      return mutated !== view && !d6SurfaceIsAccessible(mutated, surface);
+    })());
+  ok('fixture: a chart whose table equivalent is removed is flagged',
+    (() => {
+      const surface = EXPECTED_D6_CHART_SURFACES[1];
+      const mutated = view.replace('id="' + surface.tableId + '"', 'id="' + surface.tableId + '-gone"');
+      return mutated !== view && !d6SurfaceIsAccessible(mutated, surface);
+    })());
+  ok('fixture: a table that loses its caption or row headers is flagged',
+    (() => {
+      const surface = EXPECTED_D6_CHART_SURFACES[0];
+      const noCaption = view.replace(/<caption>/g, '<div>').replace(/<\/caption>/g, '</div>');
+      const noRowHeaders = view.replace(/<th scope="row">/g, '<td>');
+      return !d6SurfaceIsAccessible(noCaption, surface) && !d6SurfaceIsAccessible(noRowHeaders, surface);
+    })());
+  ok('fixture: the untouched real view passes both accessibility detectors (accepting control)',
+    EXPECTED_D6_CHART_SURFACES.every((s) => d6SurfaceIsAccessible(view, s)));
+
+  ok('fixture: a client module without a ResizeObserver is flagged',
+    d6ClientRedrawProblems(client.replace(/ResizeObserver/g, 'IdleObserver')).length > 0);
+  ok('fixture: a client module that stops watching data-theme is flagged',
+    d6ClientRedrawProblems(client.replace(/attributeFilter: \['data-theme'\]/, "attributeFilter: ['class']"))
+      .length > 0);
+  ok('fixture: a client module using innerHTML is flagged',
+    !d6ClientIsSafe(client + '\nnode.innerHTML = value;'));
+  ok('fixture: the untouched real client module passes both detectors (accepting control)',
+    d6ClientRedrawProblems(client).length === 0 && d6ClientIsSafe(client));
+
+  ok('fixture: analytics SQL moved back into the dashboard action is flagged',
+    d6ControllerHasAnalyticsSql(controller.replace(
+      'const analytics = await adminAnalyticsService.loadAdminDashboardAnalytics',
+      "await db.query('SELECT COUNT(*) FROM users');\n  const analytics = await adminAnalyticsService.loadAdminDashboardAnalytics")));
+  ok('fixture: a public analytics endpoint is flagged',
+    d6DeclaresAnalyticsEndpoint("router.get('/api/analytics', handler);") &&
+    !d6DeclaresAnalyticsEndpoint("router.get('/api/buildings', handler);"));
+  ok('fixture: an error path that substitutes zero would be flagged',
+    (() => {
+      // The real contract: unavailable means null. A model that reported 0 for a
+      // failed read must be recognisably different from the genuine-zero model.
+      const fabricatedZero = JSON.parse(JSON.stringify(brokenModel));
+      fabricatedZero.months.forEach((m) => { m.userAdditions = 0; m.buildingAdditions = 0; });
+      return brokenModel.months.every((m) => m.userAdditions === null) &&
+        fabricatedZero.months.every((m) => m.userAdditions === 0) &&
+        emptyModel.state === 'ready' && brokenModel.state === 'unavailable';
+    })());
+  ok('fixture: an extra or missing role category is flagged',
+    (() => {
+      const extra = EXPECTED_D6_ROLE_KEYS.concat('student-guest');
+      const missing = EXPECTED_D6_ROLE_KEYS.slice(0, 3);
+      const matches = (keys) => keys.length === EXPECTED_D6_ROLE_KEYS.length &&
+        keys.every((r, i) => r === EXPECTED_D6_ROLE_KEYS[i]);
+      return !matches(extra) && !matches(missing) && matches(analytics.ROLE_KEYS);
+    })());
+  ok('fixture: a month count other than 12 is flagged',
+    (() => {
+      const six = analytics.buildMonthWindows(Date.UTC(2026, 7, 14, 4, 0, 0), 6);
+      return six.length === 6 && six.length !== EXPECTED_D6_MONTH_COUNT &&
+        windows.length === EXPECTED_D6_MONTH_COUNT;
+    })());
+  ok('fixture: UTC month boundaries are recognisably different from Manila ones',
+    (() => {
+      // A UTC implementation would place the boundary at 00:00 UTC.
+      const utcStart = Date.UTC(2026, 7, 1, 0, 0, 0);
+      return windows[EXPECTED_D6_MONTH_COUNT - 1].startMs !== utcStart &&
+        (utcStart - windows[EXPECTED_D6_MONTH_COUNT - 1].startMs) ===
+          EXPECTED_D6_MANILA_OFFSET_MINUTES * 60000;
+    })());
+  ok('fixture: an inclusive end boundary would double-count, and does not',
+    (() => {
+      const boundary = windows[3].endMs;
+      const counts = analytics.bucketByMonth([boundary], windows).counts;
+      return counts.reduce((s, n) => s + n, 0) === 1 && counts[4] === 1 && counts[3] === 0;
+    })());
 
   return rec.failures;
 }
@@ -4912,9 +5533,9 @@ function analyzeProvenanceRemediationRow(md) {
    baseline remains historical authority and is not silently relabelled by this
    offline candidate. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 165,
-  bytes: '6,971,229',
-  sha256: 'e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b',
+  files: 168,
+  bytes: '7,042,705',
+  sha256: 'fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7925,15 +8546,15 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| OFF.3-OFF.5 2D offline-navigation package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`; focused package gate `74/74`, registered in-suite package gate pending** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| OFF.3-OFF.5 2D offline-navigation package inventory (candidate) | `x` | recomputed | **165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`** | accepted technical Production predecessor: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const INV_CURRENT = '| M12.P1-D6 admin dashboard analytics package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`; focused package gate `74/74`, registered in-suite package gate pending** | candidate evidence only |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6 admin dashboard analytics package inventory (candidate) | `x` | recomputed | **168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`** | accepted technical Production predecessor: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current OFF.3-OFF.5 2D offline-navigation candidate:** 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` |';
-    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('165 files, 6,971,229 bytes', '158 files, 6,245,074 bytes');
-    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` |');
-    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current OFF.3-OFF.5 2D offline-navigation candidate:**', '**Historical/superseded OFF.3-OFF.5 2D offline-navigation candidate:**');
+    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current M12.P1-D6 admin dashboard analytics candidate:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` |';
+    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,042,705 bytes', '158 files, 6,245,074 bytes');
+    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` |');
+    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current M12.P1-D6 admin dashboard analytics candidate:**', '**Historical/superseded M12.P1-D6 admin dashboard analytics candidate:**');
 
     const EXACT_SUITE_OK = '| Full contract suite (Guided-VR catalog-remediation candidate) | `npm test` | zero fail | **4641/4641 PASS - correction candidate** | `QUALITY-GATES OK` |';
     const EXACT_QA_OK = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4641/4641 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
@@ -9507,6 +10128,17 @@ const BUILDING_DETAILS_EDITOR_PROBES = [
   ['building additional-details editor contracts', 'buildingDetailsEditor-probe.js'],
 ];
 
+// M12.P1-D6: real admin dashboard analytics — Asia/Manila calendar-month
+// arithmetic, half-open boundary semantics, exact four-role normalisation,
+// composition over mocked MySQL/Supabase/mixed adapters, truthful zero and
+// sanitized-unavailable states, accessible rendering, non-admin denial, the
+// mock-DOM resize/theme redraw contracts, and an independent SELECT-only
+// comparison against whichever configured backends are reachable. The probe
+// authenticates nobody and owns no session.
+const ADMIN_ANALYTICS_PROBES = [
+  ['admin dashboard analytics contracts', 'adminDashboardAnalytics-probe.js'],
+];
+
 // M12.P1-D3: shared VR hotspot-navigation helper — strict same-origin /vr/
 // URL acceptance (exact guided nav_url passthrough + validated Free Roam
 // scene-key construction), native Pannellum URL + target="_self" decoration
@@ -9626,6 +10258,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Admin campus-map search/filter QA] (M12.P1-D4 bounded q + appliedFilters + graph/selector searches)' },
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,
     heading: '[Building details editor QA] (M12.P1-D5 structured details editor + preservation contracts)' },
+  { key: 'admin-analytics', prefix: 'admin-analytics', probes: ADMIN_ANALYTICS_PROBES,
+    heading: '[Admin dashboard analytics QA] (M12.P1-D6 Asia/Manila months + exact roles + truthful zero/unavailable + independent backend comparison)' },
   { key: 'guided-vr-resolution', prefix: 'guided-vr-resolution', probes: GUIDED_VR_RESOLUTION_PROBES,
     heading: '[Guided VR resolution QA] (catalog policy + stored endpoints + media-aware chain + hotspot nav)' },
   { key: 'be4-repair-safety', prefix: 'be4-repair-safety', probes: BE4_REPAIR_SAFETY_PROBES,
@@ -10310,8 +10944,8 @@ async function main() {
   allFailures.push(...runLogoutOutputHygieneGate().map((f) => 'logout-output-hygiene :: ' + f));
   console.log('');
 
-  console.log('[Admin dashboard truthfulness] (M12.P1-R8 static view/controller analysis + mutated-source rejecting fixtures)');
-  allFailures.push(...runAdminDashboardTruthfulnessGate().map((f) => 'admin-dashboard-truthfulness :: ' + f));
+  console.log('[Admin dashboard analytics truthfulness] (M12.P1-D6 real-data contract: Asia/Manila months, exact roles, no fabricated or zeroed values + mutated-source rejecting fixtures)');
+  allFailures.push(...(await runAdminDashboardAnalyticsGate()).map((f) => 'admin-dashboard-analytics :: ' + f));
   console.log('');
 
   console.log('[Pilot readiness] (M12.P1-R8 privacy notice, footer links, indexing protection, pilot-doc truth + rejecting fixtures)');

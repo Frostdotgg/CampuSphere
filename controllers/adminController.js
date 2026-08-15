@@ -12,35 +12,54 @@ const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
 const auditRepository = require('../repositories/auditRepository');
 const routeAvailability = require('../services/routeAvailability');
+const adminAnalyticsService = require('../services/adminAnalyticsService');
 const { logServerError } = require('../utils/serverLog');
 
 /**
  * GET /admin — Admin Dashboard
+ *
+ * M12.P1-D6. The dashboard's analytics are REAL: account and building
+ * additions per Asia/Manila calendar month, plus exact per-role account
+ * counts, read from the currently selected backends. The hard-coded
+ * illustrative arrays and the fabricated "map views" series are gone.
+ *
+ * All analytics data access lives in services/adminAnalyticsService.js and
+ * repositories/analyticsRepository.js — this controller contains no analytics
+ * SQL, no page-view/visit/session tracking, and no analytics persistence, and
+ * there is no public analytics endpoint. The service never throws: a failed
+ * read arrives as a null series with an 'unavailable' status, which the view
+ * renders truthfully instead of substituting zero.
  */
 exports.index = async (req, res) => {
-  try {
-    const useSupabase = authDataSource.isSupabase();
+  const baseLocals = {
+    title: 'CampuSphere Admin | Dashboard',
+    description: 'CampuSphere Admin Dashboard — Manage campus data, users, and settings.',
+    activePage: 'dashboard'
+  };
 
+  // Resolved first and independently: the recent-user/news panels below must
+  // not be able to blank the analytics, and vice versa.
+  const analytics = await adminAnalyticsService.loadAdminDashboardAnalytics({ now: new Date() });
+  if (analytics.state !== adminAnalyticsService.STATE_READY) {
+    logServerError('admin.index.analytics', req);
+  }
+
+  let recentUsers = [];
+  let recentNews = [];
+  // null (not 0) so a failed read renders as "Unavailable" rather than as a
+  // real count of zero articles.
+  let totalNews = null;
+
+  try {
     // User-scoped reads — Supabase repository when enabled, MySQL otherwise.
-    let recentUsers;
-    let totalUsers;
-    let totalStudents;
-    if (useSupabase) {
+    if (authDataSource.isSupabase()) {
       recentUsers = await userRepository.listRecentUsers(5);
-      totalUsers = await userRepository.countAll();
-      totalStudents = await userRepository.countByRole('student-cspc');
     } else {
       const [rows] = await db.query('SELECT * FROM users ORDER BY created_at DESC LIMIT 5');
       recentUsers = rows;
-      const [[u]] = await db.query('SELECT COUNT(*) as totalUsers FROM users');
-      totalUsers = u.totalUsers;
-      const [[s]] = await db.query('SELECT COUNT(*) as totalStudents FROM users WHERE role = "student-cspc"');
-      totalStudents = s.totalStudents;
     }
 
     // News reads route through the content repository when CONTENT_DATA_SOURCE=supabase.
-    let recentNews;
-    let totalNews;
     if (contentDataSource.isSupabase()) {
       recentNews = await contentRepository.listRecentAnnouncements(4);
       totalNews = await contentRepository.countAnnouncements();
@@ -49,39 +68,28 @@ exports.index = async (req, res) => {
       const [[{ totalNews: totalNewsCount }]] = await db.query('SELECT COUNT(*) as totalNews FROM news_announcements');
       totalNews = totalNewsCount;
     }
-
-    // Building count routes through the repository when BUILDING_DATA_SOURCE=supabase.
-    let totalBuildings;
-    if (mapRuntime.isBuildingSupabase()) {
-      totalBuildings = await buildingRepository.countAll();
-    } else {
-      const [[bRow]] = await db.query('SELECT COUNT(*) as totalBuildings FROM buildings');
-      totalBuildings = bRow.totalBuildings;
-    }
-
-    res.render('admin/index', {
-      title: 'CampuSphere Admin | Dashboard',
-      description: 'CampuSphere Admin Dashboard — Manage campus data, users, and settings.',
-      activePage: 'dashboard',
-      recentUsers,
-      recentNews,
-      // M12.P1-R8: this KPI has always been a real building count; only its
-      // view-model name claimed otherwise. Exposed as totalBuildings so the
-      // property name matches the "Buildings" tile it renders. No page-view
-      // tracking or analytics persistence is introduced (that remains D6).
-      stats: { totalUsers, totalStudents, totalNews, totalBuildings }
-    });
   } catch (error) {
     logServerError('admin.index', req);
-    res.render('admin/index', {
-      title: 'CampuSphere Admin | Dashboard',
-      description: 'CampuSphere Admin Dashboard — Manage campus data, users, and settings.',
-      activePage: 'dashboard',
-      recentUsers: [],
-      recentNews: [],
-      stats: { totalUsers: 0, totalStudents: 0, totalNews: 0, totalBuildings: 0 }
-    });
+    recentUsers = [];
+    recentNews = [];
+    totalNews = null;
   }
+
+  res.render('admin/index', {
+    ...baseLocals,
+    recentUsers,
+    recentNews,
+    analytics,
+    /* Every KPI is a real count or null. `totalBuildings` has always been a
+       real building count; the misleading map-view KPI name that once wrapped
+       it is gone from both the model and the view. */
+    stats: {
+      totalUsers: analytics.totals.users,
+      totalStudents: analytics.roleCounts['student-cspc'],
+      totalNews,
+      totalBuildings: analytics.totals.buildings
+    }
+  });
 };
 
 /**

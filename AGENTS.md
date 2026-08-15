@@ -471,8 +471,16 @@ the complete classifier truth table evaluated behaviourally in an isolated
 before every remaining same-origin strategy — failing closed on any extraction
 or evaluation error.
 
-The current deployable package candidate is 165 files, 6,971,229 bytes,
+The current deployable package candidate is 168 files, 7,042,705 bytes,
 aggregate SHA-256
+`fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`.
+Historical/rejected after the independent M12.P1-D6 review, never accepted:
+the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256
+`779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, whose
+15-file ordinal manifest was
+`a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`.
+Historical/blocked, never accepted: the preceding OFF.3-OFF.5 2D
+offline-navigation candidate at 165 files, 6,971,229 bytes, aggregate SHA-256
 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`.
 Historical/blocked independent-review evidence, never accepted: candidate
 manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c`
@@ -504,9 +512,85 @@ postconditions. This bounded correction is confined to current-authority
 documentation and existing static assertions, has focused evidence but no
 Codex GO, and requires a later independent review plus separately authorized
 replacement full verification. No session or data correction was required.
+The owner-authorized local M12.P1-D6 admin dashboard analytics implementation
+candidate has focused evidence but no Codex GO. It replaces the dashboard's
+hard-coded chart arrays with real data read from the currently selected
+backends: account and building additions for the latest 12 Asia/Manila calendar
+months including the current month, exact `student-cspc`, `instructor`, `admin`,
+and `guest` account counts, and real total-user and total-building values. The
+fabricated map-view series, the invented role array, both `Sample data` pills,
+and their sample-data notices are removed. Analytics data access is confined to
+the new `services/adminAnalyticsService.js` and the new dual-backend SELECT-only
+`repositories/analyticsRepository.js`, which honour `AUTH_DATA_SOURCE` and
+`BUILDING_DATA_SOURCE` independently; the controller holds no analytics SQL.
+Month ranges are half-open — inclusive start, exclusive end — at a fixed
+UTC+08:00 Manila offset, so year rollover and leap-year February are exact and a
+boundary row is counted exactly once. A genuine zero displays as zero; a failed
+or truncated read displays `Unavailable` and never a fabricated zero, behind one
+fixed sanitized message carrying no database, SQL, stack, credential, host, or
+backend identifier. Both charts are progressive enhancement drawn by
+`public/js/admin/dashboard-analytics.js` from semantic tables that stay complete
+without JavaScript, and they redraw on container resize and on `data-theme`
+change. No schema, migration, RPC, seed, tracking table, analytics table,
+dependency, public analytics endpoint, or persisted analytics result was added,
+and no page-view, visit, session, IP, or user-agent data is collected. The
+registered `admin-dashboard-truthfulness` gate is replaced by the
+`admin-dashboard-analytics` gate, and `scripts/adminDashboardAnalytics-probe.js`
+is registered for later full-suite execution.
+
+An independent read-only M12.P1-D6 review then returned four findings, and one
+bounded correction addressed all four. `controllers/adminController.js` was not
+edited and no sixteenth path was created.
+
+1. Malformed analytics counts now fail closed. One exact count parser accepts
+   only a nonnegative safe-integer number or a digit-only nonnegative integer
+   string within `Number.MAX_SAFE_INTEGER`, and rejects null, undefined,
+   booleans, blanks, negatives, fractions, `NaN`, `Infinity`, arbitrary strings,
+   and unsafe integers. The role map must carry EXACTLY the four reported own
+   keys with every value parsing exactly, and the four counts must SUM to the
+   total user count; a missing role, an extra role, an invalid or unsafe count,
+   an invalid total, or a sum mismatch makes the users side unavailable, and an
+   invalid building total makes the buildings side unavailable. The bucket
+   validator additionally rejects any result whose outside count exceeds zero.
+   Every `Number(...) || 0` coercion is gone from the D6 repository and service;
+   MySQL role aggregation still initialises the four known roles to zero but
+   rejects an unreported returned role, and Supabase validates all four counts.
+2. Backend comparison evidence is fail-closed. The ordinary probe run REQUIRES
+   both the MySQL and the Supabase comparison legs; an unreachable,
+   unconfigured, or skipped leg records no PASS, fails the run, and suppresses
+   `ADMIN-DASHBOARD-ANALYTICS-PROBE OK`. `PROBE_SKIP_SUPABASE=1` is read as a
+   rejected skip request rather than as permission. A separate, explicitly
+   named `--static-only` entrypoint runs the pure sections, initialises no
+   database, prints the distinct `D6-STATIC-ONLY-PROBE OK` marker, and can never
+   print the ordinary marker; the registered suite stage spawns the ordinary
+   mode.
+3. Supabase pagination is deterministic. Timestamp enumeration selects
+   `id, created_at`, orders by `created_at` ascending and then `id` ascending,
+   keeps bounded paging with its hard ceiling and half-open windows, and exposes
+   only timestamps to the service. The independent comparison uses the same
+   composite-ordered paginated read rather than one large limit.
+4. Chart accessibility is corrected. Hard-coded chart colours are replaced by
+   semantic `--analytics-*` light/dark tokens shared by the EJS legend and the
+   client renderer, all clearing 3:1 against their own surface; legend labels
+   use neutral foreground text instead of small gold text; and the four roles
+   carry matching non-colour encodings — solid, diagonal stripe, crosshatch,
+   dots — as SVG pattern fills in both the donut and the legend swatches, with
+   the semantic role table preserved as the authoritative alternative.
+
+Focused evidence for the corrected bytes is the D6 probe in STATIC-ONLY mode at
+`247/247`, the D6 gate at `113/113`, and the package-boundary probe at `74/74`.
+The ordinary database-backed probe mode was NOT executed under that bounded
+authorization, and no database was contacted. Full-suite verification was not
+authorized and was not run; the structurally expected registered total is `4998`
+when both backends are reachable, and that total is not claimed as passed.
+Historical/rejected after the review: the earlier D6 probe result `132/132`,
+whose MySQL leg was reported NOT EXECUTED while the run still reported success,
+the earlier D6 gate at `63/63`, and the earlier `4822` structural total.
+
 D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
 offline candidate must not be pushed, promoted, or deployed before the presentation
-and a later explicit owner decision.
+and a later explicit owner decision. The D6 candidate is under the same
+restriction.
 
 Fresh-session boundary: the current Codex and Claude Code prompts authorize
 grounding only and then wait for the owner. Neither prompt authorizes edits,
