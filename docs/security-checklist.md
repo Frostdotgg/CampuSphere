@@ -85,19 +85,28 @@ the correction's lifecycle and disposition; no R8 approval is claimed here, and
 no promotion or deployment is authorized. Final Milestone 12 disposition remains
 external.
 
-The current local maintenance correction is a separate local-session byte set.
-It changes the readiness poll to a pre-session route and adds a fail-closed
-scripts-only operator plus a narrowly scoped supported conditional session-store
-interface; that interface is deployable runtime support and is included in the
-package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
-`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
-candidate evidence only, not deployment evidence. The
-`app_sessions` schema has no provenance field: the exact anonymous
-cookie+csrfToken shape is an operational scope selector, not proof that every
-row came from the historical readiness request. No cleanup has run. Cleanup
-requires a fresh read-only preflight, independent source-review GO, and
-separate owner authorization; replacement full verification, commit, push,
-promotion, and deployment remain separately gated.
+The current local maintenance correction is committed locally on `main` as
+Git commit SHA-1
+`c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`; it has not been pushed to
+`origin/main`. Its exact 16-file manifest SHA-256
+`5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d`
+(16 files, 1,915,676 bytes). It changes the readiness poll to a pre-session
+route and adds a fail-closed scripts-only operator plus a narrowly scoped
+supported conditional session-store interface; that interface is deployable
+runtime support and is included in the package. The current package identity
+remains 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`;
+package identity does not authorize deployment. The `app_sessions` schema has
+no provenance field: the exact anonymous cookie+csrfToken shape is an
+operational scope selector, not proof that every row came from the historical
+readiness request. The exact owner-authorized local cleanup found 309
+harness-shaped candidates with cleanup fingerprint SHA-256
+`a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+destroyed 309 through the supported conditional interface, and left zero
+candidates and zero scanned residue. This is recorded execution evidence; no
+new cleanup is authorized by this text. Replacement full verification remains
+a separate boundary; push, promotion, and deployment remain separately gated,
+and Final Milestone 12 disposition remains external.
 
 - The Guided-VR runtime/catalog remediation remains recorded as
   `43627cf0a77741556f4e701711e55612a739799b`, Git tree

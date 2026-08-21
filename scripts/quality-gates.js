@@ -2546,7 +2546,10 @@ function runCloudinaryDocsGate() {
       'Git commit\nSHA-1 `fedcba9876543210fedcba9876543210fedcba98`.\n' +
       'Git tree SHA-1 `1234567890abcdef1234567890abcdef12345678`.\n' +
       'Package aggregate SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.\n' +
-      'Historical candidate manifest SHA-256 `abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789`.'));
+      'Historical candidate manifest SHA-256 `abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789`.\n' +
+      'Local maintenance Git commit SHA-1\n`fedcba9876543210fedcba9876543210fedcba98`.\n' +
+      'Local maintenance manifest SHA-256\n`abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789`.\n' +
+      'Cleanup fingerprint SHA-256\n`0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`.'));
   ok('fixture: an unlabeled long-hex value is rejected',
     containsLikelyDocumentationSecret('value `0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`') &&
     containsLikelyDocumentationSecret('value `ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789`'));
@@ -5592,6 +5595,12 @@ const CURRENT_OFFLINE_COMMITTED_MANIFEST_SHA256 =
   '92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642';
 const CURRENT_OFFLINE_PACKAGE_SHA256 =
   '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5';
+const CURRENT_MAINTENANCE_COMMIT_SHA =
+  'c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64';
+const CURRENT_MAINTENANCE_MANIFEST_SHA256 =
+  '5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d';
+const CURRENT_MAINTENANCE_PACKAGE_SHA256 =
+  '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5';
 
 /** PURE: require the exact committed implementation and R8 lifecycle boundary. */
 function currentOfflineCorrectionEvidenceProblems(value) {
@@ -7746,6 +7755,112 @@ function runDocsCurrentGate() {
     });
     return valid ? [] : ['accepted D6/OFF history or committed 19-file correction lifecycle boundary is missing'];
   }
+
+  /** PURE: require the current local maintenance lifecycle to match live Git
+   * and the recorded supported cleanup evidence. This is evaluated only on
+   * the current maintenance paragraph so historical/rejected evidence remains
+   * explicitly historical rather than becoming operative authority. */
+  function currentMaintenanceAuthorityProblems(value) {
+    const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    const problems = [];
+    const manifestShape = /\bmanifest SHA-256\b.{0,120}\b16 files\b.{0,80}\b1,915,676 bytes\b/i.test(text) ||
+      /\b16-file(?:s)?\b.{0,120}\bmanifest SHA-256\b.{0,80}\b1,915,676 bytes\b/i.test(text);
+    const packageShape = /\bpackage identity\b.{0,120}\b168 files\b.{0,80}\b7,074,195 bytes\b.{0,100}\baggregate SHA-256\b/i.test(text);
+    const cleanupEvidence = /\b(?:owner-authorized|authorized) local cleanup\b.{0,260}\b309\b[\s\S]{0,260}\ba50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d\b[\s\S]{0,260}\bdestroyed 309\b[\s\S]{0,220}\bzero candidates\b[\s\S]{0,100}\bzero scanned residue\b/i.test(text);
+    if (!text.includes(CURRENT_MAINTENANCE_COMMIT_SHA) ||
+        !/\bcommitted locally on `?main`?\b/i.test(text) ||
+        !/\bhas not been pushed to `?origin\/main`?\b/i.test(text)) {
+      problems.push('current local maintenance commit/lifecycle identity is missing');
+    }
+    if (!text.includes(CURRENT_MAINTENANCE_MANIFEST_SHA256) || !manifestShape) {
+      problems.push('current 16-file maintenance manifest identity is missing');
+    }
+    if (!text.includes(CURRENT_MAINTENANCE_PACKAGE_SHA256) || !packageShape ||
+        !/\bpackage identity does not authorize deployment\b/i.test(text)) {
+      problems.push('current maintenance package identity or deployment boundary is missing');
+    }
+    if (!cleanupEvidence) problems.push('exact supported 309-row cleanup evidence is missing');
+    if (!/\breplacement full verification remains a separate boundary\b/i.test(text) ||
+        !/\bpush, promotion, and deployment remain separately gated\b/i.test(text) ||
+        !/\bFinal Milestone 12 disposition remains external\b/i.test(text)) {
+      problems.push('replacement-verification and release boundaries are missing');
+    }
+    if (/\bNo cleanup has run\b|\bcleanup requires a fresh read-only preflight\b|\breplacement full verification, commit, push, promotion, and deployment remain separately gated\b/i.test(text)) {
+      problems.push('stale pre-cleanup or pre-commit lifecycle authority remains');
+    }
+    if (/\b(?:candidate evidence only|correction is a separate local-session byte set)\b/i.test(text) ||
+        /\b(?:uncommitted|pending independent read-only review and full verification)\b/i.test(text) ||
+        /\b(?:has|have|was|were|is|are|already|now)\s+(?:been\s+)?(?:pushed|promoted|deployed)\b/i.test(text)) {
+      problems.push('current paragraph contains an operative candidate or deployed-state claim');
+    }
+    return problems;
+  }
+
+  function currentMaintenanceAuthorityBlocks(value) {
+    const text = String(value == null ? '' : value);
+    const historicalStart = text.indexOf('## Historical Codex Grounding Prompt');
+    const operative = historicalStart >= 0 ? text.slice(0, historicalStart) : text;
+    const blocks = [];
+    let cursor = 0;
+    while (cursor < operative.length) {
+      const start = operative.indexOf('The current local maintenance correction is', cursor);
+      if (start < 0) break;
+      const tail = operative.slice(start);
+      const delimiters = [
+        '\n\nDependency-security remediation',
+        '\n\nThe independent read-only closeout review',
+        '\n\n- The Guided-VR runtime/catalog remediation',
+        '\n\n## Codex Grounding Prompt',
+        '\n\n## Claude Code Grounding Prompt',
+        '\n\n| Evidence class',
+      ].map((marker) => tail.indexOf(marker)).filter((index) => index >= 0);
+      blocks.push(tail.slice(0, delimiters.length ? Math.min(...delimiters) : tail.length));
+      cursor = start + 'The current local maintenance correction is'.length;
+    }
+    return blocks;
+  }
+
+  const maintenanceAuthorityDocs = [
+    'AGENTS.md',
+    'CLAUDE.md',
+    'CODEX_HANDOFF.md',
+    'CLAUDE_HANDOFF.md',
+    'plan.md',
+    'ROADMAP.md',
+    'docs/demo-script.md',
+    'docs/deployment.md',
+    'docs/new-session-grounding-prompts.md',
+    'docs/security-checklist.md',
+    'docs/test-evidence.md',
+  ];
+  for (const name of maintenanceAuthorityDocs) {
+    const blocks = currentMaintenanceAuthorityBlocks(docs[name]);
+    const problems = blocks.length === 0
+      ? ['current maintenance authority paragraph is missing']
+      : blocks.flatMap((block) => currentMaintenanceAuthorityProblems(block));
+    ok(`${name} records the committed local maintenance lifecycle and exact cleanup boundary`,
+      problems.length === 0);
+    problems.forEach((problem) => console.error(`    - ${name} maintenance authority: ${problem}`));
+  }
+
+  const CURRENT_MAINTENANCE_AUTHORITY_FIXTURE = [
+    'The current local maintenance correction is committed locally on `main` as Git commit SHA-1 ' + CURRENT_MAINTENANCE_COMMIT_SHA + ' and has not been pushed to `origin/main`.',
+    'Its exact 16-file manifest SHA-256 ' + CURRENT_MAINTENANCE_MANIFEST_SHA256 + ' (16 files, 1,915,676 bytes).',
+    'The current package identity remains 168 files, 7,074,195 bytes, aggregate SHA-256 ' + CURRENT_MAINTENANCE_PACKAGE_SHA256 + '; package identity does not authorize deployment.',
+    'The exact owner-authorized local cleanup found 309 harness-shaped candidates with cleanup fingerprint SHA-256 a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d, destroyed 309 through the supported conditional interface, and left zero candidates and zero scanned residue.',
+    'Replacement full verification remains a separate boundary; push, promotion, and deployment remain separately gated, and Final Milestone 12 disposition remains external.',
+  ].join(' ');
+  ok('fixture: current maintenance lifecycle is accepted and stale variants fail closed',
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE).length === 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace(CURRENT_MAINTENANCE_COMMIT_SHA, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace(CURRENT_MAINTENANCE_MANIFEST_SHA256, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace('a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace('a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d', 'a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace('destroyed 309', 'destroyed 308')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE + ' No cleanup has run.').length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE.replace('Replacement full verification remains a separate boundary', 'replacement full verification, commit, push, promotion, and deployment remain separately gated')).length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE + ' The correction is uncommitted and pending independent read-only review and full verification.').length > 0 &&
+    currentMaintenanceAuthorityProblems(CURRENT_MAINTENANCE_AUTHORITY_FIXTURE + ' The maintenance correction has been pushed and deployed.').length > 0);
 
   for (const name of sequenceDocs) {
     ok(`${name} records accepted local D6/OFF.2-OFF.6 authority and preserves final-closeout/release boundaries`,

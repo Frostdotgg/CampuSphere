@@ -82,19 +82,28 @@ remains external. The accepted technical Production baseline remains
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; future `main` deployments require
 explicit manual promotion, and deployment is not authorized by these prompts.
 
-The current local maintenance correction is a separate local-session byte set.
-It changes the readiness poll to a pre-session route and adds a fail-closed
-scripts-only operator plus a narrowly scoped supported conditional session-store
-interface; that interface is deployable runtime support and is included in the
-package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
-`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
-candidate evidence only, not deployment evidence. The
-`app_sessions` schema has no provenance field: the exact anonymous
-cookie+csrfToken shape is an operational scope selector, not proof that every
-row came from the historical readiness request. No cleanup has run. Cleanup
-requires a fresh read-only preflight, independent source-review GO, and
-separate owner authorization; replacement full verification, commit, push,
-promotion, and deployment remain separately gated.
+The current local maintenance correction is committed locally on `main` as
+Git commit SHA-1
+`c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`; it has not been pushed to
+`origin/main`. Its exact 16-file manifest SHA-256
+`5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d`
+(16 files, 1,915,676 bytes). It changes the readiness poll to a pre-session
+route and adds a fail-closed scripts-only operator plus a narrowly scoped
+supported conditional session-store interface; that interface is deployable
+runtime support and is included in the package. The current package identity
+remains 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`;
+package identity does not authorize deployment. The `app_sessions` schema has
+no provenance field: the exact anonymous cookie+csrfToken shape is an
+operational scope selector, not proof that every row came from the historical
+readiness request. The exact owner-authorized local cleanup found 309
+harness-shaped candidates with cleanup fingerprint SHA-256
+`a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+destroyed 309 through the supported conditional interface, and left zero
+candidates and zero scanned residue. This is recorded execution evidence; no
+new cleanup is authorized by this text. Replacement full verification remains
+a separate boundary; push, promotion, and deployment remain separately gated,
+and Final Milestone 12 disposition remains external.
 
 ## Codex Grounding Prompt
 
@@ -359,17 +368,25 @@ wins:
   for missing and `xMidYMid meet` variants. Its pre-authority-sync manifest
   SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
   is predecessor evidence; recompute the final live manifest after authority
-  edits. The current local maintenance correction is a separate local-session
-  byte set. It adds a scripts-only operator plus a narrowly scoped supported
-  conditional session-store interface; that interface is deployable runtime
-  support included in the package. Its exact package identity is 168 files, 7,074,195
-  bytes, aggregate SHA-256
-  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
-  The app_sessions schema has no provenance field, so the anonymous
-  cookie+csrfToken shape is an operational scope selector, not proof of origin.
-  No cleanup has run; cleanup requires independent source-review GO and
-  separate owner authorization. Replacement verification, commit, push,
-  promotion, and deployment remain separately gated by this prompt.
+  edits. The current local maintenance correction is committed locally on
+  `main` as Git commit SHA-1
+  `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`; it has not been pushed
+  to `origin/main`. Its exact 16-file manifest SHA-256
+  `5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d`
+  (16 files, 1,915,676 bytes). It adds a scripts-only operator plus a narrowly
+  scoped supported conditional session-store interface; that interface is
+  deployable runtime support included in the package. The current package
+  identity remains 168 files, 7,074,195 bytes, aggregate SHA-256
+  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`;
+  package identity does not authorize deployment. The app_sessions schema has
+  no provenance field, so the anonymous cookie+csrfToken shape is an
+  operational scope selector, not proof of origin. The exact owner-authorized
+  local cleanup found 309 harness-shaped candidates with cleanup fingerprint SHA-256
+  `a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+  destroyed 309 through the supported conditional interface, and left zero
+  candidates and zero scanned residue. Replacement full verification remains
+  a separate boundary; push, promotion, and deployment remain separately
+  gated by this prompt. Final Milestone 12 disposition remains external.
   The first replacement browser acceptance of the preceding exact 19-file
   candidate is historical/rejected solely for a mobile overlap at 390x844:
   the fixed `#offlineMobileListToggle` covered the visible
@@ -726,17 +743,25 @@ media. Focused evidence is 145/145, 35/35, and package 74/74. D6 is committed
   for missing and `xMidYMid meet` variants. Its pre-authority-sync manifest
   SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
   is predecessor evidence; recompute the final live manifest after authority
-  edits. The current local maintenance correction is a separate local-session
-  byte set. It adds a scripts-only operator plus a narrowly scoped supported
-  conditional session-store interface; that interface is deployable runtime
-  support included in the package. Its exact package identity is 168 files, 7,074,195
-  bytes, aggregate SHA-256
-  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
-  The app_sessions schema has no provenance field, so the anonymous
-  cookie+csrfToken shape is an operational scope selector, not proof of origin.
-  No cleanup has run; cleanup requires independent source-review GO and
-  separate owner authorization. Replacement verification, commit, push,
-  promotion, and deployment remain separately gated by this prompt.
+  edits. The current local maintenance correction is committed locally on
+  `main` as Git commit SHA-1
+  `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`; it has not been pushed
+  to `origin/main`. Its exact 16-file manifest SHA-256
+  `5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d`
+  (16 files, 1,915,676 bytes). It adds a scripts-only operator plus a narrowly
+  scoped supported conditional session-store interface; that interface is
+  deployable runtime support included in the package. The current package
+  identity remains 168 files, 7,074,195 bytes, aggregate SHA-256
+  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`;
+  package identity does not authorize deployment. The app_sessions schema has
+  no provenance field, so the anonymous cookie+csrfToken shape is an
+  operational scope selector, not proof of origin. The exact owner-authorized
+  local cleanup found 309 harness-shaped candidates with cleanup fingerprint SHA-256
+  `a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+  destroyed 309 through the supported conditional interface, and left zero
+  candidates and zero scanned residue. Replacement full verification remains
+  a separate boundary; push, promotion, and deployment remain separately
+  gated by this prompt. Final Milestone 12 disposition remains external.
   The first replacement browser acceptance of the preceding exact 19-file
   candidate is historical/rejected solely for a mobile overlap at 390x844:
   the fixed `#offlineMobileListToggle` covered the visible
@@ -813,8 +838,8 @@ Read completely and in this order:
    historical inputs only; current authority documents and live evidence win
 9. package.json, package-lock.json, config/selectedDemoFreeze.js, and
    scripts/be6DatasetFreeze-probe.js
-10. scripts/quality-gates.js, including the current uncommitted SEC-51
-    analyzers and rejecting fixtures; do not edit or execute it
+10. scripts/quality-gates.js, including the current SEC-51 analyzers and
+    rejecting fixtures; do not edit or execute it
 11. scripts/pilotCredentialSafety-probe.js,
     scripts/probeSessionResidue-probe.js, scripts/probeSessionLifecycle.js,
     services/sessionRevocation.js, and scripts/regressionCredentials.js
@@ -995,8 +1020,8 @@ Read completely and in this order:
    historical inputs only; current authority documents and live evidence win
 9. package.json, package-lock.json, config/selectedDemoFreeze.js, and
    scripts/be6DatasetFreeze-probe.js
-10. scripts/quality-gates.js, including the current uncommitted SEC-51
-    analyzers and rejecting fixtures; do not edit or execute it
+10. scripts/quality-gates.js, including the current SEC-51 analyzers and
+    rejecting fixtures; do not edit or execute it
 11. scripts/pilotCredentialSafety-probe.js,
     scripts/probeSessionResidue-probe.js, scripts/probeSessionLifecycle.js,
     services/sessionRevocation.js, and scripts/regressionCredentials.js
