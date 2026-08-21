@@ -8,15 +8,21 @@
   var GUIDE_SCHEMA = 'campusphere.offline-guide/1';
   var CONTROL_CHANNEL = 'campusphere-offline-guide-control';
   var LOGOUT_STORAGE_KEY = 'campusphere-offline-guide-logout';
+  var THEME_STORAGE_KEY = 'campussphere-theme';
+  var MOBILE_MAP_MEDIA = '(max-width: 768px)';
   var PLACEHOLDER_IMAGE = '/img/Camarines-sur-polytechnic-colleges.png';
   var activeRecord = null;
   var map = null;
   var protocol = null;
   var markers = [];
   var selectedKey = null;
+  var destinationKey = null;
+  var activeFilter = 'all';
   var lastInvoker = null;
+  var routeSummaryInvoker = null;
   var logoutVersion = 0;
   var downloadController = null;
+  var mobileSidebarMedia = null;
 
   function byId(id) { return document.getElementById(id); }
 
@@ -154,7 +160,8 @@
   function setDownloadBusy(busy) {
     document.querySelectorAll('[data-offline-guide-download]').forEach(function (button) {
       button.disabled = !!busy;
-      button.textContent = busy ? 'Preparing offline guide…' : (activeRecord ? 'Update Offline Guide' : 'Download Offline Guide');
+      var label = button.querySelector('[data-offline-guide-download-label]') || button;
+      label.textContent = busy ? 'Preparing…' : (activeRecord ? 'Update Guide' : 'Download Guide');
     });
   }
 
@@ -274,19 +281,6 @@
     if (li.textContent.trim()) parent.appendChild(li);
   }
 
-  function renderDetailsSection(root, title, items, renderer) {
-    if (!Array.isArray(items) || !items.length) return;
-    var section = document.createElement('section');
-    section.className = 'offline-details__section';
-    appendText(section, 'h3', title);
-    var list = document.createElement('ul');
-    items.forEach(function (item, index) { renderer(list, item, index); });
-    if (list.children.length) {
-      section.appendChild(list);
-      root.appendChild(section);
-    }
-  }
-
   function renderFloor(parent, floor, index) {
     var li = document.createElement('li');
     if (typeof floor === 'string') {
@@ -295,20 +289,37 @@
       appendText(li, 'strong', floor.label || ('Floor ' + (index + 1)));
       if (Array.isArray(floor.rooms) && floor.rooms.length) {
         var rooms = document.createElement('ul');
-        rooms.className = 'offline-details__rooms';
+        rooms.className = 'map-panel__rooms';
         floor.rooms.forEach(function (room) {
           var roomLi = document.createElement('li');
           if (typeof room === 'string') roomLi.textContent = room;
           else if (room && typeof room === 'object') {
             var heading = [room.room, room.name].filter(Boolean).join(' — ');
             if (heading) appendText(roomLi, 'span', heading);
-            if (room.use) appendText(roomLi, 'small', room.use);
+            if (room.use) appendText(roomLi, 'small', room.use, 'map-panel__list-sub');
           }
           if (roomLi.textContent.trim()) rooms.appendChild(roomLi);
         });
         if (rooms.children.length) li.appendChild(rooms);
       }
     }
+    if (li.textContent.trim()) parent.appendChild(li);
+  }
+
+  function renderStaticList(sectionId, listId, items, renderer) {
+    var section = byId(sectionId);
+    var list = byId(listId);
+    if (!section || !list) return;
+    clearNode(list);
+    if (Array.isArray(items)) {
+      items.forEach(function (item, index) { renderer(list, item, index); });
+    }
+    section.hidden = list.children.length === 0;
+  }
+
+  function renderTextItem(parent, value) {
+    var li = document.createElement('li');
+    li.textContent = value;
     if (li.textContent.trim()) parent.appendChild(li);
   }
 
@@ -333,70 +344,73 @@
   function openDetails(key, invoker) {
     var building = buildingFor(key);
     var panel = byId('offlineDetailsPanel');
-    var body = byId('offlineDetailsBody');
-    if (!building || !panel || !body) return;
+    if (!building || !panel) return;
     selectedKey = key;
     lastInvoker = invoker || document.activeElement;
-    clearNode(body);
-
-    var image = document.createElement('img');
-    image.src = PLACEHOLDER_IMAGE;
-    image.alt = '';
-    image.className = 'offline-details__image';
-    body.appendChild(image);
-    appendText(body, 'p', building.category, 'offline-details__category');
-    var title = appendText(body, 'h2', building.name, 'offline-details__title');
-    title.id = 'offline-details-title';
-    appendText(body, 'p', building.description, 'offline-details__description');
 
     var details = building.details || {};
-    if (details.walkTime) appendText(body, 'p', 'Approximate walk: ' + details.walkTime, 'offline-details__walk');
-    renderDetailsSection(body, 'Offices & services', details.info, renderKeyValue);
-    renderDetailsSection(body, 'Floors & rooms', details.floors, renderFloor);
-    renderDetailsSection(body, 'Entrances', details.entrances, function (list, value) {
-      var li = document.createElement('li'); li.textContent = value; list.appendChild(li);
-    });
-    renderDetailsSection(body, 'Landmarks', details.landmarks, function (list, value) {
-      var li = document.createElement('li'); li.textContent = value; list.appendChild(li);
-    });
+    byId('offlineDetailsImage').src = PLACEHOLDER_IMAGE;
+    byId('offlineDetailsCategory').textContent = building.category;
+    byId('offline-details-title').textContent = building.name;
+    byId('offlineDetailsDescription').textContent = building.description;
 
-    var action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'offline-button offline-button--primary offline-details__route';
-    action.textContent = 'Set as Destination';
-    action.disabled = !building.routeAvailable;
-    action.setAttribute('aria-disabled', building.routeAvailable ? 'false' : 'true');
-    action.addEventListener('click', function () { showRoute(key); });
-    body.appendChild(action);
-    if (!building.routeAvailable) {
-      appendText(body, 'p', unavailableMessage(building.routeUnavailableReason), 'offline-details__notice');
+    var walk = byId('offlineWalkTime');
+    var meta = byId('offlineDetailsMeta');
+    if (walk && meta) {
+      walk.hidden = !details.walkTime;
+      meta.hidden = !details.walkTime;
+      byId('offlineWalkTimeText').textContent = details.walkTime ? 'Approx. ' + details.walkTime : '';
+    }
+
+    renderStaticList('offlineInfoSection', 'offlineInfoList', details.info, renderKeyValue);
+    renderStaticList('offlineFloorsSection', 'offlineFloorsList', details.floors, renderFloor);
+    renderStaticList('offlineEntrancesSection', 'offlineEntrancesList', details.entrances, renderTextItem);
+    renderStaticList('offlineLandmarksSection', 'offlineLandmarksList', details.landmarks, renderTextItem);
+
+    var action = byId('offlineSetDestination');
+    var notice = byId('offlineRouteNotice');
+    if (action) {
+      action.disabled = !building.routeAvailable;
+      action.setAttribute('aria-disabled', building.routeAvailable ? 'false' : 'true');
+    }
+    if (notice) {
+      notice.hidden = !!building.routeAvailable;
+      notice.textContent = building.routeAvailable ? '' : unavailableMessage(building.routeUnavailableReason);
     }
 
     panel.hidden = false;
     panel.setAttribute('aria-hidden', 'false');
-    panel.classList.add('is-open');
+    panel.classList.add('visible');
     var close = byId('offlineDetailsClose');
     if (close) close.focus();
     highlightSelection(key);
     focusMapOnBuilding(building);
+    if (isMobileMapLayout()) setMobileSidebar(false, { restoreFocus: false });
   }
 
   function closeDetails() {
     var panel = byId('offlineDetailsPanel');
     if (!panel || panel.hidden) return;
-    panel.classList.remove('is-open');
+    panel.classList.remove('visible');
     panel.setAttribute('aria-hidden', 'true');
     panel.hidden = true;
-    var target = lastInvoker;
+    var invoker = lastInvoker;
     lastInvoker = null;
-    if (target && typeof target.focus === 'function' && document.contains(target)) target.focus();
+    var target = selectFocusReturnTarget(invoker, [
+      buildingListButtonForKey(selectedKey),
+      byId('offlineBuildingSearch'),
+      byId('offlineMobileListToggle'),
+      byId('offlineRecenterMap')
+    ]);
+    if (target) target.focus();
   }
 
   function highlightSelection(key) {
     document.querySelectorAll('[data-building-key]').forEach(function (node) {
       var selected = node.getAttribute('data-building-key') === key;
       node.classList.toggle('is-selected', selected);
-      if (node.classList.contains('offline-map-marker')) node.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      node.classList.toggle('active', selected);
+      if (node.classList.contains('offline-building-marker')) node.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
   }
 
@@ -405,16 +419,119 @@
     map.easeTo({ center: [building.lng, building.lat], zoom: Math.max(map.getZoom(), 17), duration: 450 });
   }
 
+  function rememberRouteSummaryInvoker() {
+    var summary = byId('offlineRouteSummary');
+    var active = document.activeElement;
+    if (summary && active && summary.contains(active)) return;
+    routeSummaryInvoker = active && active !== document.body && active !== document.documentElement ? active : null;
+  }
+
+  function isUsableFocusReturnTarget(element) {
+    if (!element || typeof element.focus !== 'function') return false;
+    if (element.isConnected === false || !document.contains(element) || element.disabled) return false;
+    if (typeof element.getAttribute !== 'function' || typeof element.closest !== 'function') return false;
+    if (element.getAttribute('aria-disabled') === 'true' || element.getAttribute('tabindex') === '-1') return false;
+    if (element.closest('[hidden], [aria-hidden="true"], [inert]')) return false;
+    if (!window.getComputedStyle || typeof element.getClientRects !== 'function' ||
+        typeof element.getBoundingClientRect !== 'function') return false;
+    var style = window.getComputedStyle(element);
+    if (!style || style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+    var rects = element.getClientRects();
+    if (!rects || rects.length === 0) return false;
+    var rect = element.getBoundingClientRect();
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return false;
+    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;
+    return true;
+  }
+
+  function buildingListButtonForKey(key) {
+    var buttons = document.querySelectorAll('#offlineBuildingList .offline-building[data-building-key]');
+    for (var i = 0; i < buttons.length; i++) {
+      if (buttons[i].getAttribute('data-building-key') === key) return buttons[i];
+    }
+    return null;
+  }
+
+  function selectFocusReturnTarget(invoker, fallbackCandidates) {
+    var candidates = [invoker].concat(fallbackCandidates || []);
+    for (var i = 0; i < candidates.length; i++) {
+      if (isUsableFocusReturnTarget(candidates[i])) return candidates[i];
+    }
+    return null;
+  }
+
+  function routeSummaryFocusables() {
+    var summary = byId('offlineRouteSummary');
+    if (!summary) return [];
+    return Array.prototype.filter.call(summary.querySelectorAll(
+      'a[href], button, input, select, textarea, [tabindex]'
+    ), function (element) {
+      return !element.hidden && !element.closest('[hidden]') && !element.disabled &&
+        element.getAttribute('aria-disabled') !== 'true' && element.getAttribute('tabindex') !== '-1' &&
+        (element.offsetWidth > 0 || element.offsetHeight > 0 || element === document.activeElement);
+    });
+  }
+
+  function closeRouteSummary() {
+    var summary = byId('offlineRouteSummary');
+    if (!summary) return;
+    var wasOpen = !summary.hidden && summary.getAttribute('aria-hidden') !== 'true';
+    summary.classList.remove('open');
+    summary.setAttribute('aria-hidden', 'true');
+    summary.hidden = true;
+    if (!wasOpen) return;
+    var invoker = routeSummaryInvoker;
+    routeSummaryInvoker = null;
+    var target = selectFocusReturnTarget(invoker, [
+      byId('offlineRouteFind'),
+      buildingListButtonForKey(destinationKey),
+      byId('offlineBuildingSearch'),
+      byId('offlineMobileListToggle')
+    ]);
+    if (target) target.focus();
+  }
+
   function clearRoute() {
     if (map && map.getSource('offline-route')) {
       map.getSource('offline-route').setData({ type: 'FeatureCollection', features: [] });
     }
-    var summary = byId('offlineRouteSummary');
-    if (summary) {
-      clearNode(summary);
-      summary.hidden = true;
-    }
+    closeRouteSummary();
     drawFallbackRoute(null);
+  }
+
+  function updateRoutePlanner() {
+    var building = destinationKey ? buildingFor(destinationKey) : null;
+    var text = byId('offlineRouteDestText');
+    var clear = byId('offlineRouteDestClear');
+    var find = byId('offlineRouteFind');
+    var hint = byId('offlineRouteHint');
+    var compact = byId('offlineRouteToggleStatus');
+    if (text) {
+      text.textContent = building ? building.name : 'Pick a building';
+      text.classList.toggle('map-route-planner__dest-text--empty', !building);
+    }
+    if (clear) clear.hidden = !building;
+    if (find) find.disabled = !building;
+    if (compact) compact.textContent = building ? building.name : 'Pick a destination';
+    if (hint) hint.textContent = building ? 'Ready to draw the saved Main Gate route.' : 'Select a building, then choose Set as Destination.';
+  }
+
+  function setDestination(key) {
+    var building = buildingFor(key);
+    if (!building || !building.routeAvailable) return;
+    rememberRouteSummaryInvoker();
+    destinationKey = key;
+    updateRoutePlanner();
+    closeDetails();
+    // Match the online map: Set as Destination immediately draws the route.
+    // The planner's Find Route button remains available for an explicit redraw.
+    showRoute(key);
+  }
+
+  function clearDestination() {
+    destinationKey = null;
+    updateRoutePlanner();
+    clearRoute();
   }
 
   function resetMapRuntime() {
@@ -432,7 +549,9 @@
     }
     protocol = null;
     selectedKey = null;
+    destinationKey = null;
     lastInvoker = null;
+    routeSummaryInvoker = null;
 
     var container = byId('offlineMap');
     if (container) container.hidden = false;
@@ -443,36 +562,32 @@
     }
     var summary = byId('offlineRouteSummary');
     if (summary) {
-      clearNode(summary);
+      summary.classList.remove('open');
+      summary.setAttribute('aria-hidden', 'true');
       summary.hidden = true;
     }
+    updateRoutePlanner();
   }
 
   function showRoute(key) {
     var route = routeFor(key);
     var building = buildingFor(key);
     var summary = byId('offlineRouteSummary');
-    if (!route || !building || !summary) return;
-    clearNode(summary);
-    appendText(summary, 'p', 'Guard House / Main Gate to', 'offline-route__eyebrow');
-    appendText(summary, 'h2', building.name);
-    appendText(summary, 'p', route.estimatedWalkTime + ' · ' + Math.round(route.distanceMeters) + ' m', 'offline-route__meta');
-    if (route.steps.length) {
-      var list = document.createElement('ol');
-      route.steps.forEach(function (step) {
-        var li = document.createElement('li');
-        li.textContent = step.instruction;
-        list.appendChild(li);
-      });
-      summary.appendChild(list);
+    if (!route || !building || !summary) {
+      routeSummaryInvoker = null;
+      return;
     }
-    var clear = document.createElement('button');
-    clear.type = 'button';
-    clear.className = 'offline-button offline-button--quiet';
-    clear.textContent = 'Clear route';
-    clear.addEventListener('click', clearRoute);
-    summary.appendChild(clear);
+    byId('offlineRouteTitle').textContent = 'Route to ' + building.name;
+    byId('offlineRouteSubtitle').textContent = 'From Guard House / Main Gate';
+    byId('offlineRouteTime').textContent = route.estimatedWalkTime + ' \u00b7 ' + Math.round(route.distanceMeters) + ' m';
+    var steps = byId('offlineRouteSteps');
+    clearNode(steps);
+    (Array.isArray(route.steps) ? route.steps : []).forEach(function (step) {
+      appendText(steps, 'li', step.instruction);
+    });
     summary.hidden = false;
+    summary.setAttribute('aria-hidden', 'false');
+    summary.classList.add('open');
 
     var feature = {
       type: 'Feature',
@@ -486,6 +601,8 @@
     }
     drawFallbackRoute(route);
     closeDetails();
+    var close = byId('offlineRouteClose');
+    if (close) close.focus();
   }
 
   function buildBasemapStyle(url) {
@@ -524,17 +641,30 @@
 
     record.guide.buildings.forEach(function (building) {
       if (building.lat == null || building.lng == null) return;
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'offline-map-marker';
-      button.textContent = building.name.split(/\s+/).slice(0, 2).map(function (word) { return word.charAt(0); }).join('').slice(0, 3);
-      button.title = building.name;
-      button.setAttribute('aria-label', 'Open details for ' + building.name);
-      button.setAttribute('aria-pressed', 'false');
-      button.setAttribute('data-building-key', building.key);
-      button.addEventListener('click', function () { openDetails(building.key, button); });
-      markers.push(new maplibregl.Marker({ element: button, anchor: 'center' })
-        .setLngLat([building.lng, building.lat]).addTo(map));
+      // Use the same default MapLibre marker as the online map so the visible
+      // pin and its geographic anchor are pixel-identical at every zoom level.
+      var marker = new maplibregl.Marker()
+        .setLngLat([building.lng, building.lat])
+        .addTo(map);
+      var markerElement = marker.getElement();
+      markerElement.classList.add('offline-building-marker');
+      markerElement.setAttribute('role', 'button');
+      markerElement.setAttribute('tabindex', '0');
+      markerElement.setAttribute('title', building.name);
+      markerElement.setAttribute('aria-label', 'Open details for ' + building.name);
+      markerElement.setAttribute('aria-pressed', 'false');
+      markerElement.setAttribute('data-building-key', building.key);
+      markerElement.style.cursor = 'pointer';
+      markerElement.addEventListener('click', function (event) {
+        event.stopPropagation();
+        openDetails(building.key, markerElement);
+      });
+      markerElement.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openDetails(building.key, markerElement);
+      });
+      markers.push(marker);
     });
   }
 
@@ -566,7 +696,7 @@
         attributionControl: true
       });
       map = nextMap;
-      nextMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      nextMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
       nextMap.on('load', function () {
         if (map !== nextMap) return;
         nextMap.addSource('offline-route', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -580,7 +710,7 @@
           id: 'offline-route-line',
           type: 'line',
           source: 'offline-route',
-          paint: { 'line-color': '#0f5b43', 'line-width': 5, 'line-opacity': 0.98 }
+          paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }
         });
         addMapMarkers(record);
       });
@@ -614,8 +744,9 @@
     var svgNamespace = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(svgNamespace, 'svg');
     svg.setAttribute('viewBox', '0 0 1000 700');
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'Simplified CSPC campus map');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
     var background = document.createElementNS(svgNamespace, 'rect');
     background.setAttribute('width', '1000'); background.setAttribute('height', '700');
     background.setAttribute('fill', '#edf1e8');
@@ -631,31 +762,34 @@
     routeGroup.setAttribute('id', 'offlineFallbackRoute');
     svg.appendChild(routeGroup);
     fallback.appendChild(svg);
+    var markerLayer = document.createElement('div');
+    markerLayer.className = 'offline-map-fallback__markers';
+    markerLayer.setAttribute('aria-label', 'Downloaded campus buildings');
+    markerLayer.setAttribute('role', 'group');
+    fallback.appendChild(markerLayer);
     var bounds = record.guide.basemap.bounds;
     var originPoint = normalizedPoint([record.guide.origin.lng, record.guide.origin.lat], bounds);
     var origin = document.createElementNS(svgNamespace, 'circle');
     origin.setAttribute('cx', originPoint[0]); origin.setAttribute('cy', originPoint[1]);
-    origin.setAttribute('r', '12'); origin.setAttribute('fill', '#0f5b43');
+    origin.setAttribute('r', '12'); origin.setAttribute('fill', '#d4a843');
     origin.setAttribute('stroke', '#fff'); origin.setAttribute('stroke-width', '4');
     svg.appendChild(origin);
     record.guide.buildings.forEach(function (building) {
       if (building.lng == null || building.lat == null) return;
       var point = normalizedPoint([building.lng, building.lat], bounds);
-      var node = document.createElementNS(svgNamespace, 'g');
-      node.setAttribute('role', 'button'); node.setAttribute('tabindex', '0');
-      node.setAttribute('aria-label', 'Open details for ' + building.name);
-      node.setAttribute('data-building-key', building.key);
-      var circle = document.createElementNS(svgNamespace, 'circle');
-      circle.setAttribute('cx', point[0]); circle.setAttribute('cy', point[1]); circle.setAttribute('r', '9');
-      circle.setAttribute('fill', '#0f2a44'); circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '4');
-      node.appendChild(circle);
-      node.addEventListener('click', function () { openDetails(building.key, node); });
-      node.addEventListener('keydown', function (event) {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        openDetails(building.key, node);
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'offline-building-marker offline-fallback-marker';
+      button.setAttribute('aria-label', 'Open details for ' + building.name);
+      button.setAttribute('aria-pressed', 'false');
+      button.setAttribute('data-building-key', building.key);
+      button.style.left = (point[0] / 10) + '%';
+      button.style.top = (point[1] / 7) + '%';
+      button.addEventListener('click', function (event) {
+        event.stopPropagation();
+        openDetails(building.key, button);
       });
-      svg.appendChild(node);
+      markerLayer.appendChild(button);
     });
   }
 
@@ -669,8 +803,8 @@
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     line.setAttribute('points', points);
     line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', '#0f5b43');
-    line.setAttribute('stroke-width', '8');
+    line.setAttribute('stroke', '#2563eb');
+    line.setAttribute('stroke-width', '6');
     line.setAttribute('stroke-linecap', 'round');
     line.setAttribute('stroke-linejoin', 'round');
     group.appendChild(line);
@@ -683,20 +817,150 @@
     record.guide.buildings.forEach(function (building) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'offline-building';
+      button.className = 'map-bldg-item offline-building';
       button.setAttribute('data-building-key', building.key);
-      appendText(button, 'strong', building.name);
-      appendText(button, 'span', building.category);
-      if (!building.routeAvailable) appendText(button, 'small', 'Details only · route unavailable');
+      button.setAttribute('data-building-category', building.category || '');
+      button.setAttribute('aria-label', 'Open details for ' + building.name);
+
+      var image = document.createElement('img');
+      image.src = PLACEHOLDER_IMAGE;
+      image.alt = '';
+      image.className = 'map-bldg-item__img';
+      button.appendChild(image);
+
+      var info = document.createElement('span');
+      info.className = 'map-bldg-item__info';
+      appendText(info, 'span', building.name, 'map-bldg-item__name');
+      appendText(info, 'span', building.category, 'map-bldg-item__cat');
+      if (!building.routeAvailable) appendText(info, 'span', 'Route unavailable', 'offline-building__availability');
+      button.appendChild(info);
       button.addEventListener('click', function () { openDetails(building.key, button); });
       list.appendChild(button);
     });
+    filterBuildings(byId('offlineBuildingSearch') ? byId('offlineBuildingSearch').value : '');
   }
 
   function filterBuildings(value) {
     var needle = String(value || '').trim().toLowerCase();
     document.querySelectorAll('#offlineBuildingList .offline-building').forEach(function (button) {
-      button.hidden = needle && button.textContent.toLowerCase().indexOf(needle) === -1;
+      var matchesText = !needle || button.textContent.toLowerCase().indexOf(needle) !== -1;
+      var category = String(button.getAttribute('data-building-category') || '').toLowerCase();
+      var matchesCategory = activeFilter === 'all' || category === activeFilter.toLowerCase();
+      button.hidden = !(matchesText && matchesCategory);
+    });
+    var clear = byId('offlineSearchClear');
+    if (clear) clear.classList.toggle('is-visible', !!needle);
+  }
+
+  function setFilter(filter) {
+    activeFilter = filter || 'all';
+    document.querySelectorAll('[data-offline-filter]').forEach(function (button) {
+      var active = button.getAttribute('data-offline-filter') === activeFilter;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    filterBuildings(byId('offlineBuildingSearch') ? byId('offlineBuildingSearch').value : '');
+  }
+
+  function isMobileMapLayout() {
+    if (mobileSidebarMedia) return mobileSidebarMedia.matches;
+    if (typeof window.matchMedia === 'function') return window.matchMedia(MOBILE_MAP_MEDIA).matches;
+    return window.innerWidth <= 768;
+  }
+
+  function focusMobileSidebarSearch() {
+    var search = byId('offlineBuildingSearch');
+    var close = byId('offlineSidebarClose');
+    var target = search && !search.disabled ? search : close;
+    if (target && typeof target.focus === 'function') target.focus();
+  }
+
+  function setMobileSidebar(open, options) {
+    options = options || {};
+    var sidebar = byId('offlineMapSidebar');
+    var toggle = byId('offlineMobileListToggle');
+    if (!sidebar || !toggle) return;
+    var mobile = isMobileMapLayout();
+    var shouldOpen = mobile && !!open;
+    var wasOpen = sidebar.classList.contains('is-open');
+    var focusedInside = sidebar.contains(document.activeElement);
+
+    sidebar.classList.toggle('is-open', shouldOpen);
+    document.body.classList.toggle('map-sheet-open', shouldOpen);
+    toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+
+    if (!mobile) {
+      sidebar.removeAttribute('inert');
+      sidebar.removeAttribute('aria-hidden');
+      return;
+    }
+
+    if (shouldOpen) {
+      sidebar.removeAttribute('inert');
+      sidebar.setAttribute('aria-hidden', 'false');
+      if (options.focus !== false) focusMobileSidebarSearch();
+      return;
+    }
+
+    var focusTarget = selectFocusReturnTarget(toggle, [
+      byId('offlineRecenterMap'),
+      byId('offlineThemeToggle'),
+      byId('offlineNavToggle')
+    ]);
+    if (options.restoreFocus !== false && (wasOpen || focusedInside) && focusTarget) {
+      focusTarget.focus();
+    } else if (focusedInside && document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    sidebar.setAttribute('inert', '');
+    sidebar.setAttribute('aria-hidden', 'true');
+  }
+
+  function syncMobileSidebarViewport(event) {
+    var mobile = event && typeof event.matches === 'boolean' ? event.matches : isMobileMapLayout();
+    if (mobile) setMobileSidebar(false, { restoreFocus: true });
+    else setMobileSidebar(false, { restoreFocus: false });
+  }
+
+  function readThemePreference() {
+    try {
+      var stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+      return stored === 'dark' || stored === 'light' ? stored : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function persistThemePreference(value) {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, value);
+    } catch (error) {
+      /* Theme switching remains available when storage is blocked. */
+    }
+  }
+
+  function applyThemePreference(value, persist) {
+    var root = document.documentElement;
+    if (value === 'dark') root.setAttribute('data-theme', 'dark');
+    else root.removeAttribute('data-theme');
+    if (persist) persistThemePreference(value === 'dark' ? 'dark' : 'light');
+    updateThemeToggleState();
+  }
+
+  function updateThemeToggleState() {
+    var theme = byId('offlineThemeToggle');
+    if (!theme) return;
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    theme.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+
+  function recenterMap() {
+    if (!activeRecord || !activeRecord.guide || !map) return;
+    map.easeTo({
+      center: [activeRecord.guide.origin.lng, activeRecord.guide.origin.lat],
+      zoom: 16.5,
+      duration: 450
     });
   }
 
@@ -753,14 +1017,129 @@
     if (close) close.addEventListener('click', closeDetails);
     var search = byId('offlineBuildingSearch');
     if (search) search.addEventListener('input', function () { filterBuildings(search.value); });
+    var searchClear = byId('offlineSearchClear');
+    if (searchClear) searchClear.addEventListener('click', function () {
+      if (!search) return;
+      search.value = '';
+      filterBuildings('');
+      search.focus();
+    });
+    document.querySelectorAll('[data-offline-filter]').forEach(function (filter) {
+      filter.addEventListener('click', function () { setFilter(filter.getAttribute('data-offline-filter')); });
+    });
+    var setDest = byId('offlineSetDestination');
+    if (setDest) setDest.addEventListener('click', function () { if (selectedKey) setDestination(selectedKey); });
+    var clearDest = byId('offlineRouteDestClear');
+    if (clearDest) clearDest.addEventListener('click', clearDestination);
+    var findRoute = byId('offlineRouteFind');
+    if (findRoute) findRoute.addEventListener('click', function () {
+      if (!destinationKey) return;
+      rememberRouteSummaryInvoker();
+      showRoute(destinationKey);
+    });
+    var routeClose = byId('offlineRouteClose');
+    if (routeClose) routeClose.addEventListener('click', closeRouteSummary);
+    var routeSummary = byId('offlineRouteSummary');
+    if (routeSummary) {
+      routeSummary.addEventListener('click', function (event) {
+        if (event.target === routeSummary) closeRouteSummary();
+      });
+      routeSummary.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          event.preventDefault();
+          closeRouteSummary();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        var focusables = routeSummaryFocusables();
+        var first = focusables[0] || routeClose;
+        var last = focusables[focusables.length - 1] || routeClose;
+        var active = document.activeElement;
+        if (event.shiftKey) {
+          if (active === first || !routeSummary.contains(active)) {
+            event.preventDefault();
+            if (last) last.focus();
+          }
+        } else if (active === last || !routeSummary.contains(active)) {
+          event.preventDefault();
+          if (first) first.focus();
+        }
+      });
+    }
+    var routeClear = byId('offlineRouteClear');
+    if (routeClear) routeClear.addEventListener('click', clearRoute);
+    var mapClear = byId('offlineClearMapRoute');
+    if (mapClear) mapClear.addEventListener('click', clearRoute);
+    var recenter = byId('offlineRecenterMap');
+    if (recenter) recenter.addEventListener('click', recenterMap);
+
+    var plannerToggle = byId('offlineRoutePlannerToggle');
+    var planner = byId('offlineRoutePlanner');
+    if (plannerToggle && planner) plannerToggle.addEventListener('click', function () {
+      var collapsed = planner.classList.toggle('is-collapsed');
+      plannerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+
+    mobileSidebarMedia = typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_MAP_MEDIA) : null;
+    syncMobileSidebarViewport(mobileSidebarMedia);
+    if (mobileSidebarMedia) {
+      if (typeof mobileSidebarMedia.addEventListener === 'function') {
+        mobileSidebarMedia.addEventListener('change', syncMobileSidebarViewport);
+      } else if (typeof mobileSidebarMedia.addListener === 'function') {
+        mobileSidebarMedia.addListener(syncMobileSidebarViewport);
+      }
+    }
+
+    var mobileToggle = byId('offlineMobileListToggle');
+    if (mobileToggle) mobileToggle.addEventListener('click', function () { setMobileSidebar(true, { focus: true }); });
+    ['offlineSidebarClose', 'offlineSidebarHandle'].forEach(function (id) {
+      var control = byId(id);
+      if (control) control.addEventListener('click', function () { setMobileSidebar(false, { restoreFocus: true }); });
+    });
+
+    var navToggle = byId('offlineNavToggle');
+    var navTabs = byId('offlineDashTabs');
+    if (navToggle && navTabs) navToggle.addEventListener('click', function () {
+      var open = navTabs.classList.toggle('is-open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      navToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    });
+
+    var theme = byId('offlineThemeToggle');
+    if (theme) {
+      var preferredTheme = readThemePreference();
+      if (preferredTheme) applyThemePreference(preferredTheme, false);
+      else updateThemeToggleState();
+      theme.addEventListener('click', function () {
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        applyThemePreference(dark ? 'light' : 'dark', true);
+      });
+    }
+
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') closeDetails();
+      if (event.key === 'Escape') {
+        var routePanel = byId('offlineRouteSummary');
+        if (routePanel && !routePanel.hidden) {
+          closeRouteSummary();
+        }
+        else {
+          var detailsPanel = byId('offlineDetailsPanel');
+          var sidebar = byId('offlineMapSidebar');
+          if (detailsPanel && !detailsPanel.hidden) closeDetails();
+          else if (sidebar && sidebar.classList.contains('is-open')) {
+            setMobileSidebar(false, { restoreFocus: true });
+          }
+        }
+      }
     });
   }
 
   function init() {
     bindUi();
     bindLogoutSignal();
+    setFilter('all');
+    updateRoutePlanner();
     setDownloadBusy(false);
     var startedAtLogoutVersion = logoutVersion;
     readActive().then(function (record) {

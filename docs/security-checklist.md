@@ -3,7 +3,79 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## 2026-08-13 Current Security And Pilot Status
+## 2026-08-20 Current Security And Pilot Status
+
+OFF.2-OFF.6 are complete and Codex GO on local commit
+`cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
+GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
+uncommitted 19-file offline UI/accessibility/package correction candidate is
+pending independent read-only review and full verification.
+
+The independent read-only closeout review of exact 19-file predecessor manifest
+SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
+(19 files, 2,042,891 bytes) returned NO-GO solely for a fallback
+coordinate-frame defect: the decorative SVG's default aspect-preserving
+`0 0 1000 700` viewBox did not align the full-box HTML marker overlay on
+non-10:7 containers. The bounded correction adds
+`preserveAspectRatio="none"` and rejecting fixtures for the missing and
+`xMidYMid meet` coordinate-frame variants. The pre-authority-sync manifest
+SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
+(19 files, 2,043,780 bytes) is predecessor evidence for this authority
+synchronization; recompute the final live manifest after these authority edits.
+The first replacement browser acceptance of the preceding exact 19-file
+candidate is historical/rejected solely for a mobile overlap at 390x844: the
+fixed `#offlineMobileListToggle` covered the visible `#offlineSetDestination`
+action, so hit testing landed on Building List and destination activation
+failed. Desktop route acceptance and the preceding static/full-suite checks
+were green; the browser run stopped before MySQL and the final ordered
+postconditions. The bounded correction hides the toggle only while
+`#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
+for the wrong selector, state, media scope, and DOM order.
+Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
+boundary `74/74`. No full suite, QA, ordered postconditions, browser
+acceptance, Codex GO, commit readiness, deployment readiness, or final
+Milestone 12 GO is claimed. Replacement full verification requires separate
+owner authorization; commit, push, promotion, and deployment remain
+unauthorized.
+
+It preserves the
+rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
+and Escape/backdrop lifecycle, and reuses the visibility-aware focus selector
+when building details close. Connected but off-screen controls are rejected;
+the visible fallback order includes the mobile Building List toggle. The theme
+  toggle now synchronizes its accessible pressed state and action label, and
+  persists the shared `campussphere-theme` preference. On mobile, the closed
+  building sheet is `inert` and `aria-hidden`; closing restores focus to a
+  visible control before isolation, and viewport changes keep that state
+  synchronized. Every named offline action and map control has an exact
+  44-by-44-pixel minimum enforced by rejecting fixtures. The simplified-map
+  fallback keeps its SVG basemap and route decorative and exposes each building
+  as a labelled native HTML button in a named overlay with an exact 44-by-44
+  CSS-pixel target. The service worker advances from v24 to v25 so stale v24
+  caches are pruned. Exact 19-file manifest SHA-256
+  `5ac682f53fcd2392ddec3c5cc288a3d1e194af52d2e7ea09f68bb2b5c485c37c`
+  received independent read-only review NO-GO for undersized interactive SVG
+  fallback markers nested beneath one image role. The earlier exact manifest
+  `ec326965aba9b9daec87bb214d98b50ddedf2ad99e916864e79ad04ebafc556f`
+  remains historical/rejected for the off-screen mobile accessibility state,
+  fail-open generic touch-target assertion, and unpersisted theme preference.
+  Both predecessors are historical/rejected. The corrected pre-authority-sync
+  candidate is exact 19-file manifest SHA-256
+  `494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610`
+  (19 files, 2,020,639 bytes). Focused evidence only is OFF.2 `145/145`, offline
+  2D `35/35`, and package boundary `74/74`; the unchanged package identity is
+  168 files, 7,073,128 bytes, aggregate SHA-256
+  `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
+  postconditions, or browser acceptance was run for those exact bytes. The
+  `494010dd...` manifest is predecessor evidence for this authority
+  synchronization, not a pin for the later synchronized bytes; live Git and a
+  freshly computed post-sync manifest control the next review. The current
+uncommitted 19-file offline UI/accessibility/package correction candidate
+claims no new Codex GO, commit readiness, deployment readiness, or final
+Milestone 12 GO. Final Milestone 12 disposition remains external. The local
+commits and current candidate must not be pushed, promoted, or deployed before
+the presentation and a later explicit owner decision.
 
 - The Guided-VR runtime/catalog remediation remains recorded as
   `43627cf0a77741556f4e701711e55612a739799b`, Git tree
@@ -72,9 +144,16 @@ defense evidence. Record pass/fail and sanitized notes only.
   has 25 active Guided-VR destinations, 472 configured steps, and 99 unique
   scene keys. The ordered safety postcondition is green at
   `24/24 -> 18/18 -> 46/46`.
-- The current M12.P1-D6 review-correction package candidate is 168
-  files / 7,042,705 bytes /
-  SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`.
+- The current offline UI/accessibility correction candidate package is 168
+  files / 7,073,128 bytes /
+  SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  The rejected pre-correction package was 168 files / 7,071,943 bytes /
+  SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`
+  and is historical candidate evidence only.
+  It is candidate evidence pending independent review, not accepted local
+  package or deployment evidence. The accepted local D6/OFF predecessor
+  package remains historical at 168 files / 7,042,705 bytes / SHA-256
+  `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`.
   Historical/rejected after the independent review, never accepted: the first
   D6 candidate at 168 files / 7,022,574 bytes /
   SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`,
@@ -100,9 +179,8 @@ defense evidence. Record pass/fail and sanitized notes only.
   boundary and could retain building image references; and 165 files /
   6,968,875 bytes /
   SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`;
-  independent probe/gate pins are synchronized and focused package execution
-  passes `74/74`; the registered in-suite package gate also passed inside the
-  rejected 4,635-PASS full-suite attempt. The
+  independent probe/gate pins are synchronized and focused and registered
+  package execution passes `74/74`. The
   accepted technical Production predecessor remains 158 files /
   6,245,074 bytes / aggregate SHA-256
   `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`.
@@ -112,10 +190,9 @@ defense evidence. Record pass/fail and sanitized notes only.
   failed. Every executed runtime, database, catalog, BE.6, and final embedded
   `18/18` residue check was green. Fail-closed sequencing stopped before
   `npm run qa` and before the standalone `24/24 -> 18/18 -> 46/46`
-  postconditions. The bounded correction is confined to current-authority
-  documentation and existing static assertions, has focused evidence but no
-  Codex GO, and requires a later independent review plus separately authorized
-  replacement full verification. No session or data correction was required.
+  postconditions. At that historical point the bounded correction had focused
+  evidence only and no Codex GO. Later independent review and definitive D6 and
+  OFF.6 verification supersede it; no session or data correction was required.
 - A fourth bounded correction made the service-worker header truthful and the
   API guards exact. The header no longer claims api/external caches or approved
   cross-origin caching: it now states that only the shell and static caches
@@ -330,24 +407,31 @@ defense evidence. Record pass/fail and sanitized notes only.
   No repository, database, session, package, or vendor correction was required
   for that transient harness-start failure.
 - Fresh-session authority is state-neutral: Codex and Claude Code both ground
-  current truth and then wait for the owner. Neither prompt authorizes review,
-  edits, tests, Git mutation, a new deployment or promotion, another pilot,
-  OFF.2 implementation, or Milestone 12 GO.
+  current truth and then wait for the owner. Neither prompt authorizes further
+  implementation, Git mutation, a new deployment or promotion, another pilot,
+  or Milestone 12 GO.
 - The owner attests that a human pilot occurred on 2026-08-05 and accepts it
   with zero reported findings. Participant/Form evidence remains external and
   no participant PII is recorded in Git. The tested build's full source-commit
   identity was not independently verified, so this is owner-attested pilot
   acceptance rather than independent current-build verification. Pilot review
-  is complete for sequencing purposes. The owner-authorized local OFF.2-OFF.5
-  implementation candidate has focused evidence but no Codex GO.
+  is complete for sequencing purposes. OFF.2-OFF.6 and D6 are complete and
+  Codex GO on local commits `cdbc863b779e5319c14dee21a31a5e78951e233c` and
+  `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. D6 passed `npm test` at
+  `4998/4998` with `QUALITY-GATES OK`, ordinary D6 `266/266`, five-stage
+  `npm run qa` at the same exact contract total, and ordered postconditions
+  `24/24 -> 18/18 -> 46/46`; OFF.6 browser acceptance passed in both
+  backends and the immutable replacement suite passed `4998/4998` with D6
+  `266/266`, BE.6 `46/46`, and embedded residue `18/18` after supported
+  restoration of the discovered Supabase route-edge 198/199 geometry drift.
 - Never share service-role, DB, OAuth, session, or Cloudinary secrets with
   editors; never use direct SQL or blanket deletion for operational
   convenience.
 
-D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
-offline candidate must not be pushed, promoted, or deployed before the
-presentation and a later explicit owner decision. This checklist records
-evidence only and authorizes no mutation.
+Final Milestone 12 disposition remains external to this checklist. The local
+commits must not be pushed, promoted, or deployed before the presentation and a
+later explicit owner decision. This checklist records evidence only and
+authorizes no mutation, deployment, or promotion.
 
 ## Historical/Superseded — 2026-07-30 R8 Review Status
 
@@ -469,7 +553,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS — accepted M12.P1-R7 history; current D6 review-correction candidate focused 74/74 with independent/full gate still open** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current M12.P1-D6 admin dashboard analytics candidate:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is candidate evidence, not deployment authorization |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS — accepted M12.P1-R7 history; current correction candidate focused package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current offline UI/accessibility correction candidate package:** 168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`; candidate evidence pending independent review, not accepted local package or deployment evidence. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is candidate evidence only, not deployment authorization |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 
@@ -558,7 +642,7 @@ unchanged. No Milestone 12 GO is claimed.
 
 | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- |
-| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **4641/4641 PASS — authority-consistency evidence snapshot; exit 0** | Fresh standalone transcript count: exactly 4,641 `[PASS]` lines and `QUALITY-GATES OK`; zero failed assertions; live Git and the latest external review report control the later disposition |
+| `npm test` | Auth/authz/CSRF/rate-limit/error/PWA/leak checks pass | **4998/4998 PASS — accepted local D6/OFF.6 evidence; exit 0** | Exactly 4,998 `[PASS]` lines and `QUALITY-GATES OK`; ordinary D6 `266/266` completed both required backend legs; BE.6 `46/46`; live Git and the latest external review report control release disposition |
 | `node scripts/vercelPackageBoundary-probe.js` | Allowlisted package only; excluded scratch panoramas and every excluded class fail closed at the static boundary | PASS | **72/72 current candidate**; accepted R7 history remains **71/71** (and **70/70** before the literal-NUL remediation) — standalone, never counted in the `npm test` total; dedicated port `3385`; console-only preview, no manifest or archive written |
 | Local authenticated exposure matrix (clean bounded re-execution) | Browser-driven in both runtime modes, one bounded server per backend on its own free port | Every scenario in SEC-49 passes with a separate fresh browser context per role and no unsupported cleanup | **126/126 PASS — MySQL 34/34 + 14/14 supplement; Supabase 64/64 + 14/14 supplement; zero failures** | Each role context proved zero carried-over cookies and zero carried-over web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once via `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429`; no retried logout; `services/sessionRevocation.js` never imported or called; no direct session-row deletion and no database cleanup. Final ordered postconditions `24/24 -> 18/18 -> 46/46` |
 | Local authenticated exposure matrix, first execution — historical/superseded | Browser-driven in both runtime modes | Same scenario set | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Retained so the defect is not erased. Repeated runs exhausted the in-memory `preParseAuthLimiter` budget; the run started receiving `429` with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY rather than through the supported logout interface. Direct revocation falls outside the supported-interface rule this evidence class depends on, so the run is not accepted on its numbers. Superseded by the clean bounded re-execution above |
@@ -567,4 +651,4 @@ unchanged. No Milestone 12 GO is claimed.
 | `node scripts/boundedAnonymousAccessDenial-probe.js` | Zero audit rows from anonymous denials (authoritative global total AND filtered count both flat); exactly one authenticated role-denial row; exactly one login-failure row, in both backends | PASS | **90/90** — standalone (M12.P1-R5), never counted in the `npm test` total; accepted Codex GO |
 | `npm run qa:identity` | Identity/profile uniqueness enforced | PASS | `IDENTITY-CONSTRAINTS OK`, exit 0: no duplicate non-null `(oauth_provider, oauth_subject)` groups, and duplicate `student_profiles` / `instructor_profiles` / `guest_profiles` `user_id` rows are rejected |
 | `npm run qa:audit` | 0 production dependency vulnerabilities | PASS | Accepted compatible remediation, 2026-07-22; subsequent 2026-07-26 advisory drift remediated with exact `ejs@6.0.1` and the `jake/filelist/minimatch/brace-expansion` chain absent |
-| `npm run qa` | Aggregate security and smoke gates pass | **4641/4641 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the superseded scorer-only exit 97 required nonexistent `SUPABASE-SMOKE OK` even though the inner command exited 0; the later 20-minute standalone-suite wrapper timeout is historical/rejected; live Git and the latest external review report control the later disposition |
+| `npm run qa` | Aggregate security and smoke gates pass | **4998/4998 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the superseded scorer-only exit 97 required nonexistent `SUPABASE-SMOKE OK` even though the inner command exited 0; the later 20-minute standalone-suite wrapper timeout is historical/rejected; live Git and the latest external review report control the later disposition |

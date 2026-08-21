@@ -1133,11 +1133,326 @@ function runNoStorePlacementGate() {
   return rec.failures;
 }
 
+const OFFLINE_TOUCH_TARGET_SELECTORS = [
+  '.offline-page [data-offline-guide-download]',
+  '.offline-page .dash-nav__tab',
+  '.offline-page #offlineNavToggle',
+  '.offline-page #offlineSidebarHandle',
+  '.offline-page #offlineSidebarClose',
+  '.offline-page #offlineSearchClear',
+  '.offline-page [data-offline-filter]',
+  '.offline-page #offlineRoutePlannerToggle',
+  '.offline-page #offlineRouteDestClear',
+  '.offline-page #offlineRouteFind',
+  '.offline-page #offlineRecenterMap',
+  '.offline-page #offlineClearMapRoute',
+  '.offline-page #offlineDetailsClose',
+  '.offline-page #offlineSetDestination',
+  '.offline-page #offlineRouteClose',
+  '.offline-page #offlineRouteClear',
+  '.offline-page #offlineMobileListToggle',
+  '.offline-page #offlineThemeToggle',
+  '.offline-page .offline-building',
+  '.offline-page .offline-building-marker',
+  '.offline-page .offline-fallback-marker',
+  '.offline-page .offline-map .maplibregl-ctrl-group button'
+];
+
+function offlineTouchTargetProblems(css) {
+  const problems = [];
+  const bounded = (String(css).match(/\/\* OFFLINE_TOUCH_TARGETS_START[\s\S]*?OFFLINE_TOUCH_TARGETS_END \*\//) || [])[0] || '';
+  const rule = bounded.match(/([\s\S]*?)\{([\s\S]*?)\}/);
+  if (!rule) return ['bounded offline touch-target rule is missing'];
+  const selectors = new Set(rule[1]
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(',')
+    .map((selector) => selector.trim())
+    .filter(Boolean));
+  for (const selector of OFFLINE_TOUCH_TARGET_SELECTORS) {
+    if (!selectors.has(selector)) problems.push(`missing exact touch target: ${selector}`);
+  }
+  if (!/(?:^|;)\s*min-width\s*:\s*44px\s*;/.test(`;${rule[2]}`)) problems.push('touch targets lack exact 44px width');
+  if (!/(?:^|;)\s*min-height\s*:\s*44px\s*;/.test(`;${rule[2]}`)) problems.push('touch targets lack exact 44px height');
+  const fallbackRule = (String(css).match(/\.offline-fallback-marker\s*\{([\s\S]*?)\}/) || [])[1] || '';
+  if (!/(?:^|;)\s*width\s*:\s*44px\s*;/.test(`;${fallbackRule}`)) problems.push('fallback markers lack an exact 44px width');
+  if (!/(?:^|;)\s*height\s*:\s*44px\s*;/.test(`;${fallbackRule}`)) problems.push('fallback markers lack an exact 44px height');
+  return problems;
+}
+
+function offlineTouchTargetMutationsAreRejected(css) {
+  const cases = [
+    css.replace('  min-width: 44px;', '  min-width: 34px;') + '\n.unrelated-fixture { min-width: 44px; }',
+    css.replace('  min-height: 44px;', '  min-height: 34px;') + '\n.unrelated-fixture { min-height: 44px; }',
+    css.replace('.offline-page #offlineSearchClear,', '.offline-page .unrelated-search-clear,'),
+    css.replace('.offline-page #offlineMobileListToggle,', '.offline-page .offscreen-list-button,'),
+    css.replace('.offline-page .offline-fallback-marker,', '.offline-page .undersized-fallback-marker,'),
+    css.replace('  width: 44px;\n  height: 44px;\n  padding: 0;\n  appearance: none;',
+      '  width: 18px;\n  height: 18px;\n  padding: 0;\n  appearance: none;')
+  ];
+  return cases.every((mutated) => mutated !== css && offlineTouchTargetProblems(mutated).length > 0);
+}
+
+function offlineMobileDetailsOverlapProblems(css, shell) {
+  const problems = [];
+  const mobile = String(css).match(/@media\s*\(max-width:\s*768px\)\s*\{([\s\S]*?)\n\}\s*\n\n@media\s*\(max-width:\s*420px\)/);
+  const bounded = mobile
+    ? (mobile[1].match(/\/\* OFFLINE_MOBILE_DETAILS_OVERLAP_START \*\/([\s\S]*?)\/\* OFFLINE_MOBILE_DETAILS_OVERLAP_END \*\//) || [])[1] || ''
+    : '';
+  if (!mobile) problems.push('mobile details-overlap rule is outside the 768px media boundary');
+  if (!bounded) problems.push('bounded mobile details-overlap rule is missing');
+  if (bounded && !/\.offline-page\s+#offlineDetailsPanel\.visible\s+~\s+#offlineMobileListToggle\s*\{\s*display:\s*none\s*;\s*\}/.test(bounded)) {
+    problems.push('details overlap guard does not hide only the mobile toggle while details are visible');
+  }
+  const source = String(shell);
+  const detailsIndex = source.indexOf('id="offlineDetailsPanel"');
+  const toggleIndex = source.indexOf('id="offlineMobileListToggle"');
+  if (detailsIndex === -1 || toggleIndex === -1 || detailsIndex >= toggleIndex) {
+    problems.push('details panel must precede the mobile toggle for the sibling guard');
+  }
+  return problems;
+}
+
+function offlineMobileDetailsOverlapMutationsAreRejected(css, shell) {
+  const source = String(css);
+  const selector = '.offline-page #offlineDetailsPanel.visible ~ #offlineMobileListToggle';
+  const swappedShell = String(shell)
+    .replace('id="offlineDetailsPanel"', 'id="__offlineDetailsPanel"')
+    .replace('id="offlineMobileListToggle"', 'id="offlineDetailsPanel"')
+    .replace('id="__offlineDetailsPanel"', 'id="offlineMobileListToggle"');
+  const cases = [
+    { css: source.replace(selector, '.offline-page #offlineDetailsPanel ~ #offlineMobileListToggle'), shell },
+    { css: source.replace(`  ${selector} {\n    display: none;\n  }\n`,
+      `  ${selector} {\n    display: flex;\n  }\n`), shell },
+    { css: source.replace('@media (max-width: 768px)', '@media (min-width: 769px)'), shell },
+    { css: source.replace(`  ${selector} {\n    display: none;\n  }\n`, ''), shell },
+    { css: source, shell: swappedShell }
+  ];
+  return cases.every((fixture) =>
+    (fixture.css !== source || fixture.shell !== shell) &&
+    offlineMobileDetailsOverlapProblems(fixture.css, fixture.shell).length > 0);
+}
+
+function offlineFallbackMarkerProblems(source, shell) {
+  const problems = [];
+  const render = (String(source).match(/function renderFallbackMap\(record\) \{([\s\S]*?)\n  \}\n\n  function drawFallbackRoute/) || [])[1] || '';
+  if (!render) return ['fallback renderer is missing'];
+  if (!/svg\.setAttribute\('aria-hidden', 'true'\)/.test(render) ||
+      !/svg\.setAttribute\('focusable', 'false'\)/.test(render) ||
+      /svg\.setAttribute\('role', 'img'\)/.test(render)) {
+    problems.push('fallback SVG is not strictly decorative');
+  }
+  if (!/svg\.setAttribute\('preserveAspectRatio', 'none'\)/.test(render)) {
+    problems.push('fallback SVG coordinate frame does not match the HTML marker overlay');
+  }
+  if (!/var markerLayer = document\.createElement\('div'\)/.test(render) ||
+      !/markerLayer\.className = 'offline-map-fallback__markers'/.test(render) ||
+      !/markerLayer\.setAttribute\('role', 'group'\)/.test(render)) {
+    problems.push('fallback marker layer lacks valid accessible grouping');
+  }
+  if (!/var button = document\.createElement\('button'\)/.test(render) ||
+      !/button\.type = 'button'/.test(render) ||
+      !/button\.className = 'offline-building-marker offline-fallback-marker'/.test(render) ||
+      !/button\.setAttribute\('aria-label', 'Open details for ' \+ building\.name\)/.test(render) ||
+      !/button\.setAttribute\('aria-pressed', 'false'\)/.test(render) ||
+      !/button\.setAttribute\('data-building-key', building\.key\)/.test(render)) {
+    problems.push('fallback marker is not a labelled native button with selected state');
+  }
+  if (!/button\.style\.left = \(point\[0\] \/ 10\) \+ '%'/.test(render) ||
+      !/button\.style\.top = \(point\[1\] \/ 7\) \+ '%'/.test(render) ||
+      !/markerLayer\.appendChild\(button\)/.test(render)) {
+    problems.push('fallback marker is not positioned in the HTML overlay');
+  }
+  if (!/button\.addEventListener\('click'[\s\S]*openDetails\(building\.key, button\)/.test(render) ||
+      /button\.addEventListener\('keydown'/.test(render) ||
+      /createElementNS\(svgNamespace, 'g'\)[\s\S]*setAttribute\('role', 'button'\)/.test(render)) {
+    problems.push('fallback activation does not rely on native button semantics');
+  }
+  if (!/<div class="offline-map-fallback" id="offlineMapFallback" role="group" aria-label="Simplified CSPC campus map" hidden><\/div>/.test(String(shell))) {
+    problems.push('fallback container lacks its accessible group name');
+  }
+  return problems;
+}
+
+function offlineFallbackMarkerMutationsAreRejected(source, shell) {
+  const cases = [
+    { source: source.replace("var button = document.createElement('button');", "var button = document.createElement('div');"), shell },
+    { source: source.replace('offline-building-marker offline-fallback-marker', 'offline-building-marker'), shell },
+    { source: source.replace("svg.setAttribute('aria-hidden', 'true');", "svg.setAttribute('role', 'img');"), shell },
+    { source: source.replace("svg.setAttribute('preserveAspectRatio', 'none');", ''), shell },
+    { source: source.replace("svg.setAttribute('preserveAspectRatio', 'none');", "svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');"), shell },
+    { source: source.replace('markerLayer.appendChild(button);', 'svg.appendChild(button);'), shell },
+    { source, shell: shell.replace(' role="group" aria-label="Simplified CSPC campus map"', '') }
+  ];
+  return cases.every((fixture) =>
+    (fixture.source !== source || fixture.shell !== shell) &&
+    offlineFallbackMarkerProblems(fixture.source, fixture.shell).length > 0);
+}
+
+function offlineFocusReturnBehaviorProblems(source) {
+  const problems = [];
+  const usableSource = (source.match(/function isUsableFocusReturnTarget\(element\) \{[\s\S]*?\n  \}/) || [])[0] || '';
+  const selectSource = (source.match(/function selectFocusReturnTarget\(invoker, fallbackCandidates\) \{[\s\S]*?\n  \}/) || [])[0] || '';
+  if (!usableSource || !selectSource) return ['shared focus-return helpers are missing'];
+
+  const sandbox = {
+    document: { contains: (element) => element && element.contained !== false },
+    window: {
+      innerWidth: 390,
+      innerHeight: 844,
+      getComputedStyle: (element) => element.style
+    }
+  };
+  try {
+    const vm = require('vm');
+    vm.runInNewContext(`${usableSource}\n${selectSource}\nthis.focusContract = { isUsableFocusReturnTarget, selectFocusReturnTarget };`, sandbox, {
+      timeout: 1000
+    });
+  } catch (error) {
+    return ['shared focus-return helpers cannot be evaluated safely'];
+  }
+
+  function element(options = {}) {
+    const rect = Object.assign({ left: 10, top: 10, right: 54, bottom: 54, width: 44, height: 44 }, options.rect || {});
+    return {
+      contained: options.contained !== false,
+      isConnected: options.connected !== false,
+      disabled: options.disabled === true,
+      style: Object.assign({ display: 'block', visibility: 'visible' }, options.style || {}),
+      focus() {},
+      getAttribute(name) { return (options.attributes || {})[name] || null; },
+      closest() { return options.hiddenAncestor ? {} : null; },
+      getClientRects() { return options.noRects ? [] : [rect]; },
+      getBoundingClientRect() { return rect; }
+    };
+  }
+
+  const visibleInvoker = element();
+  const offscreenConnectedListButton = element({
+    rect: { left: 12, top: 900, right: 200, bottom: 944, width: 188, height: 44 }
+  });
+  const visibleMobileToggle = element({
+    rect: { left: 16, top: 780, right: 180, bottom: 824, width: 164, height: 44 }
+  });
+  const hiddenCandidate = element({ hiddenAncestor: true });
+  const contract = sandbox.focusContract;
+  if (contract.isUsableFocusReturnTarget(offscreenConnectedListButton) !== false) {
+    problems.push('connected off-screen list button is accepted');
+  }
+  if (contract.selectFocusReturnTarget(offscreenConnectedListButton, [hiddenCandidate, visibleMobileToggle]) !== visibleMobileToggle) {
+    problems.push('mobile Building List fallback is not selected');
+  }
+  if (contract.selectFocusReturnTarget(visibleInvoker, [visibleMobileToggle]) !== visibleInvoker) {
+    problems.push('visible invoker is not preserved');
+  }
+  return problems;
+}
+
+function offlineInteractionLifecycleProblems(source, shell) {
+  const problems = [];
+  const detailsCloseBody = (source.match(/function closeDetails\(\) \{([\s\S]*?)\n  \}\n\n  function highlightSelection/) || [])[1] || '';
+  const closeBody = (source.match(/function closeRouteSummary\(\) \{([\s\S]*?)\n  \}\n\n  function clearRoute/) || [])[1] || '';
+  const setDestinationBody = (source.match(/function setDestination\(key\) \{([\s\S]*?)\n  \}\n\n  function clearDestination/) || [])[1] || '';
+  const mobileSidebarBody = (source.match(/function setMobileSidebar\(open, options\) \{([\s\S]*?)\n  \}\n\n  function syncMobileSidebarViewport/) || [])[1] || '';
+  if (!/var routeSummaryInvoker = null;/.test(source)) problems.push('missing invoker state');
+  if (!/function rememberRouteSummaryInvoker\(\)[\s\S]*summary\.contains\(active\)[\s\S]*document\.activeElement/.test(source)) {
+    problems.push('missing invoker capture');
+  }
+  if (!/function isUsableFocusReturnTarget\(element\)[\s\S]*document\.contains\(element\)[\s\S]*closest\('\[hidden\], \[aria-hidden="true"\], \[inert\]'\)[\s\S]*getClientRects\(\)[\s\S]*getBoundingClientRect\(\)[\s\S]*window\.innerWidth[\s\S]*window\.innerHeight/.test(source)) {
+    problems.push('return target is not visibility-checked');
+  }
+  problems.push(...offlineFocusReturnBehaviorProblems(source));
+  if (!/function routeSummaryFocusables\(\)[\s\S]*querySelectorAll\([\s\S]*a\[href\], button, input, select, textarea, \[tabindex\][\s\S]*aria-disabled[\s\S]*tabindex/.test(source)) {
+    problems.push('missing focusable filter');
+  }
+  if (!/rememberRouteSummaryInvoker\(\);[\s\S]*destinationKey = key/.test(setDestinationBody)) {
+    problems.push('Set as Destination does not capture before closing details');
+  }
+  if (!/findRoute\.addEventListener\('click'[\s\S]*rememberRouteSummaryInvoker\(\);[\s\S]*showRoute\(destinationKey\)/.test(source)) {
+    problems.push('Find Route does not capture its invoker');
+  }
+  if (!/var invoker = lastInvoker;[\s\S]*lastInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*buildingListButtonForKey\(selectedKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle[\s\S]*offlineRecenterMap/.test(detailsCloseBody)) {
+    problems.push('details close does not restore by the required visible fallback order');
+  }
+  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(destinationKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
+    problems.push('close does not restore by the required fallback order');
+  }
+  if (/setData\(|drawFallbackRoute\(/.test(closeBody)) problems.push('close clears the rendered route');
+  if (!/routeSummary\.addEventListener\('click'[\s\S]*event\.target === routeSummary[\s\S]*closeRouteSummary\(\)/.test(source)) {
+    problems.push('backdrop does not share the close lifecycle');
+  }
+  if (!/routeSummary\.addEventListener\('keydown'[\s\S]*event\.key === 'Escape'[\s\S]*stopPropagation\(\)[\s\S]*preventDefault\(\)[\s\S]*closeRouteSummary\(\)[\s\S]*event\.key !== 'Tab'[\s\S]*event\.shiftKey[\s\S]*!routeSummary\.contains\(active\)/.test(source)) {
+    problems.push('missing Escape or Tab containment');
+  }
+  if (!/<aside class="map-sidebar offline-sidebar" id="offlineMapSidebar" aria-hidden="true" inert>/.test(shell)) {
+    problems.push('mobile sheet is not fail-closed before script initialization');
+  }
+  if (!/var mobile = isMobileMapLayout\(\);[\s\S]*var shouldOpen = mobile && !!open/.test(mobileSidebarBody) ||
+      !/if \(!mobile\)[\s\S]*removeAttribute\('inert'\)[\s\S]*removeAttribute\('aria-hidden'\)/.test(mobileSidebarBody)) {
+    problems.push('desktop sidebar availability is not restored');
+  }
+  if (!/if \(shouldOpen\)[\s\S]*removeAttribute\('inert'\)[\s\S]*setAttribute\('aria-hidden', 'false'\)[\s\S]*focusMobileSidebarSearch\(\)/.test(mobileSidebarBody)) {
+    problems.push('opening the mobile sheet does not expose and focus it');
+  }
+  if (!/selectFocusReturnTarget\(toggle, \[[\s\S]*offlineRecenterMap[\s\S]*offlineThemeToggle[\s\S]*offlineNavToggle[\s\S]*focusTarget\.focus\(\)[\s\S]*setAttribute\('inert', ''\)[\s\S]*setAttribute\('aria-hidden', 'true'\)/.test(mobileSidebarBody)) {
+    problems.push('closing the mobile sheet does not restore focus before isolation');
+  }
+  if (!/matchMedia\(MOBILE_MAP_MEDIA\)[\s\S]*syncMobileSidebarViewport\(mobileSidebarMedia\)[\s\S]*(?:addEventListener\('change'|addListener\()/.test(source) ||
+      !/offlineMobileListToggle'[\s\S]*setMobileSidebar\(true, \{ focus: true \}\)[\s\S]*offlineSidebarClose[\s\S]*setMobileSidebar\(false, \{ restoreFocus: true \}\)/.test(source) ||
+      !/sidebar && sidebar\.classList\.contains\('is-open'\)[\s\S]*setMobileSidebar\(false, \{ restoreFocus: true \}\)/.test(source)) {
+    problems.push('mobile sheet controls, Escape, or viewport lifecycle is incomplete');
+  }
+  if (!/var THEME_STORAGE_KEY = 'campussphere-theme';/.test(source) ||
+      !/function readThemePreference\(\)[\s\S]*try[\s\S]*localStorage\.getItem\(THEME_STORAGE_KEY\)[\s\S]*stored === 'dark' \|\| stored === 'light'[\s\S]*catch/.test(source) ||
+      !/function persistThemePreference\(value\)[\s\S]*try[\s\S]*localStorage\.setItem\(THEME_STORAGE_KEY, value\)[\s\S]*catch/.test(source) ||
+      !/function applyThemePreference\(value, persist\)[\s\S]*persistThemePreference[\s\S]*updateThemeToggleState\(\)/.test(source) ||
+      !/preferredTheme = readThemePreference\(\)[\s\S]*applyThemePreference\(preferredTheme, false\)[\s\S]*theme\.addEventListener\('click'[\s\S]*applyThemePreference\(dark \? 'light' : 'dark', true\)/.test(source) ||
+      !/function updateThemeToggleState\(\)[\s\S]*aria-pressed[\s\S]*Switch to light mode[\s\S]*Switch to dark mode/.test(source)) {
+    problems.push('theme preference or accessible toggle state is not synchronized');
+  }
+  if (!/<button class="theme-toggle" id="offlineThemeToggle"[^>]*aria-label="Switch to dark mode"[^>]*aria-pressed="false"/.test(shell)) {
+    problems.push('theme toggle lacks an initial accessible state');
+  }
+  return problems;
+}
+
+function offlineInteractionMutationsAreRejected(source, shell) {
+  const cases = [
+    { source: source.replace('    rememberRouteSummaryInvoker();\n    destinationKey = key;', '    destinationKey = key;'), shell },
+    { source: source.replace("    if (element.closest('[hidden], [aria-hidden=\"true\"], [inert]')) return false;", ''), shell },
+    { source: source.replace('    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;', ''), shell },
+    { source: source.replace("        if (event.key !== 'Tab') return;", '        return;'), shell },
+    { source: source.replace('    routeSummaryInvoker = null;\n    var target = selectFocusReturnTarget(invoker, [', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var target = selectFocusReturnTarget(invoker, ["), shell },
+    { source: source.replace("      byId('offlineMobileListToggle'),\n      byId('offlineRecenterMap')", "      byId('offlineRecenterMap')"), shell },
+    { source: source.replace("    theme.setAttribute('aria-pressed', dark ? 'true' : 'false');", ''), shell },
+    { source: source.replace("  var THEME_STORAGE_KEY = 'campussphere-theme';", "  var THEME_STORAGE_KEY = 'offline-theme';"), shell },
+    { source: source.replace('window.localStorage.getItem(THEME_STORAGE_KEY)', "window.localStorage.getItem('wrong-key')"), shell },
+    { source: source.replace('window.localStorage.setItem(THEME_STORAGE_KEY, value)', "window.localStorage.setItem('wrong-key', value)"), shell },
+    { source: source.replace("    sidebar.setAttribute('inert', '');", ''), shell },
+    { source: source.replace('      focusTarget.focus();', ''), shell },
+    { source: source.replace("      byId('offlineRecenterMap'),", ''), shell },
+    { source: source.replace('      if (options.focus !== false) focusMobileSidebarSearch();', ''), shell },
+    {
+      source: source
+        .replace("mobileSidebarMedia.addEventListener('change', syncMobileSidebarViewport);", '')
+        .replace('mobileSidebarMedia.addListener(syncMobileSidebarViewport);', ''),
+      shell
+    },
+    { source, shell: shell.replace(' aria-hidden="true" inert', '') },
+    { source, shell: shell.replace(' aria-pressed="false"', '') }
+  ];
+  return cases.every((fixture) =>
+    (fixture.source !== source || fixture.shell !== shell) &&
+    offlineInteractionLifecycleProblems(fixture.source, fixture.shell).length > 0);
+}
+
 /* ---------------- static PWA privacy analysis (no server) ---------------- */
 function runPwaPrivacyGate() {
   const rec = makeRecorder('pwa');
   const { ok } = rec;
   const sw = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf8');
+  const offlineManager = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'offline-guide-manager.js'), 'utf8');
+  const offlineShell = fs.readFileSync(path.join(__dirname, '..', 'public', 'offline.html'), 'utf8');
+  const offlineCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'css', 'offline.css'), 'utf8');
 
   // Forbidden (never intercepted/cached) prefixes for authenticated surfaces.
   for (const p of ['/auth', '/login', '/register', '/logout', '/admin', '/api/update-profile']) {
@@ -1236,7 +1551,14 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js cache version >= v9 (purges pre-repair external caches)', Number(ver) >= 9);
+    ok('sw.js is v25 and offline dialogs/sheet/fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 25 && offlineInteractionLifecycleProblems(offlineManager, offlineShell).length === 0 &&
+      offlineInteractionMutationsAreRejected(offlineManager, offlineShell) &&
+      offlineTouchTargetProblems(offlineCss).length === 0 && offlineTouchTargetMutationsAreRejected(offlineCss) &&
+      offlineMobileDetailsOverlapProblems(offlineCss, offlineShell).length === 0 &&
+      offlineMobileDetailsOverlapMutationsAreRejected(offlineCss, offlineShell) &&
+      offlineFallbackMarkerProblems(offlineManager, offlineShell).length === 0 &&
+      offlineFallbackMarkerMutationsAreRejected(offlineManager, offlineShell));
     /* Same-origin eligibility is now an EXACT allowlist derived from the
        reviewed PRECACHE_URLS and matched on pathname + query, replacing the
        extension-wide rule that silently admitted local building photos. */
@@ -5028,6 +5350,16 @@ function currentDeploymentAuthorityContradictionProblems(value) {
   return problems;
 }
 
+/** PURE: preserve the owner-controlled pre-presentation release boundary. */
+function hasPrePresentationReleaseDenial(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const beforePresentation = /\bbefore the presentation\b/i.test(t);
+  if (!beforePresentation) return false;
+  return /\b(?:local candidate|local commits?)\b[\s\S]{0,180}\bmust not be pushed, promoted, or deployed\b/i.test(t) ||
+    /\bneither local commit\b[\s\S]{0,120}\bmay be pushed, promoted, or deployed\b/i.test(t) ||
+    /\bno push, deployment, promotion, rollback, or Production change is authorized\b/i.test(t);
+}
+
 /**
  * PURE: validate the owner-attested pilot disposition without upgrading it to
  * independently verified current-build evidence. Historical pilot-open claims
@@ -5055,14 +5387,17 @@ function currentPilotAuthorityProblems(value) {
   if (!/\bpilot review\b[\s\S]{0,80}\bcomplete\b/i.test(t)) {
     problems.push('pilot review is not complete for sequencing');
   }
-  if (!/\bowner-authorized local\b[\s\S]{0,220}\b(?:OFF\.2-OFF\.5|OFF\.2\b[\s\S]{0,100}\bOFF\.3-OFF\.5)\b/i.test(t)) {
-    problems.push('owner-authorized local OFF.2-OFF.5 candidate is missing');
+  if (!/\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b[\s\S]{0,180}\b(?:complete|completed)\b[\s\S]{0,80}\bCodex GO\b/i.test(t)) {
+    problems.push('OFF.2-OFF.6 Codex GO is missing');
   }
-  if (!/\bD6\b[\s\S]{0,100}\bOFF\.6\b[\s\S]{0,120}\bfinal Milestone 12\b[\s\S]{0,60}\bremain open\b/i.test(t)) {
-    problems.push('open D6, OFF.6, or final M12 boundary is missing');
+  if (!/\b(?:M12\.P1-)?D6\b[\s\S]{0,180}\b(?:complete|completed|commit-readiness is)\b[\s\S]{0,80}\bCodex GO\b/i.test(t)) {
+    problems.push('D6 Codex GO is missing');
   }
-  if (!/\b(?:OFF\.2-OFF\.5|OFF\.2\b[\s\S]{0,100}\bOFF\.3-OFF\.5)\b[\s\S]{0,650}\b(?:no Codex GO|rather than Codex GO|no section is independently Codex-accepted)\b/i.test(t)) {
-    problems.push('offline implementation candidate is not bounded away from Codex GO');
+  if (!/\bfinal Milestone 12\b[\s\S]{0,180}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(t)) {
+    problems.push('independent final Milestone 12 closeout boundary is missing');
+  }
+  if (!hasPrePresentationReleaseDenial(t)) {
+    problems.push('pre-presentation push/promotion/deployment denial is missing');
   }
 
   const contradictoryRules = [
@@ -5071,9 +5406,15 @@ function currentPilotAuthorityProblems(value) {
     /\bpilot review\b[^]{0,100}\b(?:is\s+not complete|has not completed|must still occur)\b/i,
     /\b(?:tested build(?:'s)? full source-commit identity|full source-commit identity|tested build identity)\b[^]{0,100}\b(?:was|is)\s+independently verified\b/i,
     /\b2026-08-05\b[^]{0,200}\bhuman pilot\b[^]{0,180}\b(?:reported|found)\s+(?:one|[1-9]\d*)\s+(?:problem|finding|issue)s?\b/i,
+    /\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b[^]{0,180}\b(?:remain|remains|are|is)\s+(?:open|pending|unaccepted)\b/i,
+    /\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b[^]{0,220}\b(?:no Codex GO|without Codex GO|awaiting independent (?:Codex )?review)\b/i,
+    /\b(?:M12\.P1-)?D6\b[^]{0,180}\b(?:remain|remains|is)\s+(?:open|pending|unaccepted)\b/i,
+    /\bfinal Milestone 12(?: GO| disposition)?\b[^]{0,120}\b(?:is|has been)\s+(?:issued|granted|complete|completed|Codex GO)\b/i,
+    /\b(?:local candidate|local commits?)\b[^]{0,180}\b(?:may|can|is authorized to)\b[^]{0,80}\b(?:be )?(?:pushed|promoted|deployed)\b[^]{0,120}\bbefore the presentation\b/i,
   ];
   for (const claim of splitEvidenceClaims(text)) {
     if (CLAIM_HISTORY_RE.test(claim) && CLAIM_PAST_BOUND_RE.test(claim)) continue;
+    if (hasPrePresentationReleaseDenial(claim)) continue;
     if (contradictoryRules.some((rule) => rule.test(claim))) {
       problems.push('contradictory current pilot disposition remains');
       break;
@@ -5218,6 +5559,39 @@ function rejectedVerificationHistoryProblems(value) {
   return problems;
 }
 
+const CURRENT_OFFLINE_PRE_SYNC_MANIFEST_SHA256 =
+  '494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610';
+const CURRENT_OFFLINE_PACKAGE_SHA256 =
+  '1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a';
+
+/** PURE: require the exact focused-only handoff for the current UI correction. */
+function currentOfflineCorrectionEvidenceProblems(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const problems = [];
+  if (!t.includes(CURRENT_OFFLINE_PRE_SYNC_MANIFEST_SHA256) ||
+      !/\bpre-authority-sync\b.{0,80}\bmanifest SHA-256\b/i.test(t) ||
+      !/\b19 files\b.{0,80}\b2,020,639 bytes\b/i.test(t)) {
+    problems.push('pre-authority-sync 19-file manifest evidence is missing');
+  }
+  if (!/\bfocused evidence only\b.{0,100}\bOFF\.2\b.{0,30}\b145\/145\b.{0,80}\boffline 2D\b.{0,30}\b35\/35\b.{0,80}\bpackage boundary\b.{0,30}\b74\/74\b/i.test(t)) {
+    problems.push('focused OFF.2/offline-2D/package evidence is missing');
+  }
+  if (!t.includes(CURRENT_OFFLINE_PACKAGE_SHA256) ||
+      !/\b(?:current|unchanged) package identity\b.{0,80}\b168 files\b.{0,80}\b7,073,128 bytes\b.{0,80}\baggregate SHA-256\b/i.test(t)) {
+    problems.push('current package identity is missing');
+  }
+  if (!/\bservice worker (?:is|advances?[^.]{0,40}to) v25\b/i.test(t) ||
+      !/\bsimplified(?:-map)? fallback\b.{0,240}\blabelled native HTML buttons?\b/i.test(t) ||
+      !/\bexact 44-by-44 (?:CSS-pixel )?targets?\b/i.test(t)) {
+    problems.push('v25 or accessible fallback-marker contract is missing');
+  }
+  if (!/\bNo `?npm test`?, `?npm run qa`?, ordered `?24\/24 -> 18\/18 -> 46\/46`? postconditions, or browser acceptance was run for those exact bytes\b/i.test(t) ||
+      !/\bpredecessor evidence\b.{0,180}\b(?:recompute|freshly computed)\b.{0,80}\b(?:live|post-sync) manifest\b/i.test(t)) {
+    problems.push('focused-only or fresh-manifest boundary is missing');
+  }
+  return problems;
+}
+
 /** PURE: does ONE reusable prompt body carry the current M12.P1 authority? */
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
@@ -5234,7 +5608,7 @@ function reusablePromptIsCurrent(body) {
     recordsAcceptedD7EvidenceText(t) &&
     currentGitLifecycleProblems(t).length === 0 &&
     /\bcontext-only\b[\s\S]{0,160}\bauthorizes none\b/i.test(t) &&
-    /\bM12\.P1\b[\s\S]{0,220}\bNO-GO\b/i.test(t) &&
+    /\bfinal Milestone 12\b[\s\S]{0,220}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(t) &&
     /\bdeployment is not authorized\b/i.test(t);
 
   /* A reusable prompt is a live authority surface: it seeds a new session with
@@ -5242,6 +5616,7 @@ function reusablePromptIsCurrent(body) {
      gap where a prompt body could assert a stale or conflicting production
      baseline that every other authority document is already checked against. */
   return carriesCurrentAuthority &&
+    currentOfflineCorrectionEvidenceProblems(t).length === 0 &&
     currentCandidateVerificationProblems(t, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
     currentGitLifecycleProblems(t).length === 0 &&
     !declaresStaleOrPrematureAuthority(t) &&
@@ -5262,7 +5637,7 @@ function reusablePromptsAreCurrent(doc) {
    denial. The two OFF.2 forms match the current prompt word orders; the older
    state-neutral forms remain accepted for historical fixture coverage. */
 const REUSABLE_PROMPT_WAIT_DENIAL_RE =
-  /\b(?:do not infer that|never use direct SQL[\s\S]{0,400}\bor infer that) (?:OFF\.2 implementation, another pilot, offline work, or deployment is authorized|OFF\.2 implementation, offline mode, deployment, or another pilot is authorized|pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)\b/i;
+  /\b(?:do not infer that|never use direct SQL[\s\S]{0,400}\bor infer that) (?:OFF\.2 implementation, another pilot, offline work, or deployment is authorized|OFF\.2 implementation, offline mode, deployment, or another pilot is authorized|further implementation, another pilot, Git mutation, or deployment is authorized|further implementation, deployment, Git mutation, or another pilot is authorized|pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)\b/i;
 
 function reusablePromptHasExplicitWaitBoundary(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
@@ -5296,7 +5671,7 @@ function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   return reusablePromptIsCurrent(t) &&
     /fresh context-only grounding session that does not authorize implementation/i.test(t) &&
-    /Do not review, edit, test, implement, stage, commit, push, deploy(?:, promote)?, or perform an R8 review/i.test(t) &&
+    /Do not review, edit, test, implement, stage, commit, push, deploy(?:, promote)?, or perform (?:an R8|a closeout) review/i.test(t) &&
     /After the grounding report, stop and wait for the owner/i.test(t) &&
     /Deployment is not authorized by this prompt/i.test(t) &&
     reusablePromptHasExplicitWaitBoundary(t);
@@ -5528,14 +5903,14 @@ function analyzeProvenanceRemediationRow(md) {
    legitimate citation, while the same figure sitting in a STATUS cell is a
    current disposition. Only the latter is a defect. */
 
-/* The current deployable source-package candidate, pinned HERE independently
-   of the probe and both evidence documents. The accepted technical Production
-   baseline remains historical authority and is not silently relabelled by this
-   offline candidate. */
+  /* The current unaccepted source-package correction candidate, pinned HERE
+   independently of the probe and both evidence documents. The accepted local
+   predecessor and technical Production baseline remain historical authority
+   and are not silently relabelled by this candidate. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   files: 168,
-  bytes: '7,042,705',
-  sha256: 'fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b',
+  bytes: '7,073,128',
+  sha256: '1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -5591,22 +5966,18 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
   'participant/form evidence remains external',
   'full source-commit identity was not independently verified',
   'pilot review is complete',
-  'owner-authorized local off.2-off.5 implementation candidate',
-  'focused evidence but no codex go',
-  'd6',
-  'off.6 browser acceptance',
-  'final milestone 12 go',
-  'offline candidate must not be pushed, promoted, or deployed before the presentation',
+  'off.2-off.6 and d6 are complete and codex go',
+  'local commits must not be pushed, promoted, or deployed before the presentation',
+  'final milestone 12 disposition remains external',
 ]);
 
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-// The independently reviewed transcript-fidelity candidate emitted 4,639
-// checks. This bounded authority-consistency remediation adds exactly two: one
-// live cross-document rejected-run check and one combined accepting/rejecting
-// history fixture.
-const EXPECTED_CURRENT_QUALITY_TOTAL = 4641;
+// The definitive D6 and OFF.6 verification transcript emitted 4,998 checks.
+// This authority synchronization changes existing compound assertions only;
+// it adds no top-level ok() call and therefore preserves that registered total.
+const EXPECTED_CURRENT_QUALITY_TOTAL = 4998;
 
 const REQUIRED_CURRENT_QA_EVIDENCE_MARKERS = Object.freeze([
   'QUALITY-GATES OK',
@@ -5794,7 +6165,7 @@ function analyzeDemoRoutingContract(md, expected) {
 /**
  * PURE: the facilitator's readiness section must preserve the accepted
  * Production result, staged-authority commit, owner-attested pilot boundary,
- * and the current local OFF.2-OFF.5 / final-acceptance sequence.
+ * accepted local D6/OFF.2-OFF.6 state, and independent final closeout.
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeDemoReadinessSequence(md, expectedSteps) {
@@ -6306,8 +6677,11 @@ function analyzeSecurityChecklistPackageBoundaryRow(md, expected) {
  */
 function analyzeCurrentCandidateSuiteRow(md) {
   const rows = markdownTableRows(md).filter((r) => {
+    const label = String(r.cells[0] || '').trim();
     const status = evidenceStatusCell(r.cells);
-    return /\b(?:candidate|evidence snapshot)\b/i.test(status) && /\b\d{4}\/\d{4}\b/.test(status);
+    return /^Full contract suite\b/i.test(label) &&
+      /\b(?:candidate|evidence snapshot|accepted local evidence)\b/i.test(status) &&
+      /\b\d{4}\/\d{4}\b/.test(status);
   });
   const current = rows.filter((r) => !evidenceRowSelfMarkedHistorical(r.cells));
   const problems = [];
@@ -6344,13 +6718,13 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     {
       label: 'test-evidence current full contract suite',
       md: testEvidenceMd,
-      match: (r) => /^full contract suite \(Guided-VR catalog-remediation candidate\)$/i
+      match: (r) => /^full contract suite \(M12\.P1-D6\/OFF\.6 accepted local candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
       label: 'test-evidence current Full QA aggregate',
       md: testEvidenceMd,
-      match: (r) => /^full QA aggregate \(Guided-VR catalog-remediation candidate\)$/i
+      match: (r) => /^full QA aggregate \(M12\.P1-D6 accepted local candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
@@ -6401,7 +6775,7 @@ function analyzeCurrentQaStageMarkers(testEvidenceMd, securityChecklistMd,
     {
       label: 'test-evidence current Full QA aggregate',
       md: testEvidenceMd,
-      match: (r) => /^full QA aggregate \(Guided-VR catalog-remediation candidate\)$/i
+      match: (r) => /^full QA aggregate \(M12\.P1-D6 accepted local candidate\)$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
@@ -6976,7 +7350,7 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-13';
+  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-20';
   /** PURE: all current authority surfaces must carry one synchronized date. */
   function currentCandidateDateProblems(sourceMap, expectedDate = EXPECTED_CURRENT_CANDIDATE_DATE) {
     const problems = [];
@@ -7009,16 +7383,16 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '**CURRENT STATUS (2026-08-13 candidate).**',
-    'CLAUDE.md': '**CURRENT STATUS (2026-08-13 candidate).**',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-13 (Asia/Manila)\n**CURRENT STATUS (2026-08-13 candidate).**',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-13 (Asia/Manila)\n**CURRENT STATUS (2026-08-13 candidate).**',
-    'plan.md': '**CURRENT STATUS (2026-08-13 candidate).**',
-    'ROADMAP.md': '**CURRENT STATUS (2026-08-13 candidate).**',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-13 (Asia/Manila)',
-    'docs/deployment.md': '## 2026-08-13 Current Production And Post-Deployment Status',
-    'docs/security-checklist.md': '## 2026-08-13 Current Security And Pilot Status',
-    'docs/test-evidence.md': '## 2026-08-13 Current Evidence Classification',
+    'AGENTS.md': '**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'CLAUDE.md': '**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-20 (Asia/Manila)\n**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-20 (Asia/Manila)\n**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'plan.md': '**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'ROADMAP.md': '**CURRENT STATUS (2026-08-20 closeout candidate).**',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-20 (Asia/Manila)',
+    'docs/deployment.md': '## 2026-08-20 Current Production And Post-Deployment Status',
+    'docs/security-checklist.md': '## 2026-08-20 Current Security And Pilot Status',
+    'docs/test-evidence.md': '## 2026-08-20 Current Evidence Classification',
   };
   ok('fixture: synchronized current dates are accepted and any single stale current date is rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -7282,12 +7656,12 @@ function runDocsCurrentGate() {
     !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_START + '\n' + MARKED_GUIDED_VR_HISTORY_FIXTURE).valid &&
     !guidedVrHistoricalPolicy(GUIDED_VR_HISTORY_END + '\nold\n' + GUIDED_VR_HISTORY_START).valid);
 
-  /** PURE: require the current post-pilot local-candidate boundary near one
-   * explicit owner-authorized OFF.2-OFF.5 claim. Historical pre-pilot prose may
-   * remain elsewhere, but it cannot satisfy this current-authority contract. */
+  /** PURE: require accepted D6/OFF.2-OFF.6 history, an explicit pending boundary
+   * for the current 19-file correction, and independent final-closeout/release
+   * authorization. */
   function offlineCandidateAuthorityProblems(value) {
     const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
-    const anchors = [...text.matchAll(/\bowner-authorized local\b/ig)].map((match) => match.index);
+    const anchors = [...text.matchAll(/\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b/ig)].map((match) => match.index);
     const scopes = anchors.map((index) => {
       const candidates = [index + 25000];
       for (const delimiter of ['<!-- M12.P1 CURRENT STATUS END -->', '```']) {
@@ -7296,45 +7670,79 @@ function runDocsCurrentGate() {
       }
       return text.slice(Math.max(0, index - 260), Math.min(...candidates));
     });
-    const valid = scopes.some((scope) => {
+    const hasExactCommits = text.includes('cdbc863b779e5319c14dee21a31a5e78951e233c') &&
+      text.includes('691f0bef40e06b6ea9485e713d2fe3000a03bd83');
+    const hasReleaseDenial = hasPrePresentationReleaseDenial(text);
+    const hasPilotReview = /\bpilot review\b.{0,100}\bcomplete\b/i.test(text);
+    const hasPendingCorrectionBoundary =
+      /\bcurrent uncommitted 19-file offline UI\/accessibility\/package correction candidate\b.{0,220}\bpending independent read-only review and full verification\b/i.test(text) &&
+      /\bcurrent uncommitted 19-file offline UI\/accessibility\/package correction candidate\b.{0,320}\bclaims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO\b/i.test(text);
+    const hasCurrentCorrectionEvidence =
+      currentOfflineCorrectionEvidenceProblems(text).length === 0;
+    const currentCorrectionContradiction = splitEvidenceClaims(text).some((claim) =>
+      /\bcurrent (?:uncommitted )?19-file offline UI\/accessibility\/package correction candidate\b/i.test(claim) &&
+      /\b(?:is|has been|received|returns?)\b[^.]{0,100}\b(?:accepted|Codex GO|commit-readiness GO|deployment-ready|fully verified|full verification (?:passed|complete)|Milestone 12 GO)\b/i.test(claim));
+    const valid = hasExactCommits && hasReleaseDenial && hasPilotReview && hasPendingCorrectionBoundary && hasCurrentCorrectionEvidence &&
+      !currentCorrectionContradiction && scopes.some((scope) => {
       const contradiction = splitEvidenceClaims(scope).some((claim) => {
         const historical = /\b(?:historical|superseded|previously|at that time)\b/i.test(claim) &&
           /\b(?:before|previously|at that time|earlier|former|then)\b/i.test(claim);
         if (historical) return false;
-        return /\bOFF\.2-OFF\.5\b[^.]{0,140}\b(?:has|received|is granted|is now)\s+(?:Codex )?GO\b/i.test(claim) ||
-          /\boffline candidate\b[^.]{0,180}\b(?:may|can|is authorized to|will)\b[^.]{0,80}\b(?:be )?(?:pushed|promoted|deployed)\b/i.test(claim) ||
-          /\b(?:D6|OFF\.6)\b[^.]{0,140}\b(?:is|are|has been|received)\b[^.]{0,60}\b(?:complete|Codex GO)\b/i.test(claim) ||
+        if (hasPrePresentationReleaseDenial(claim) || /\bfinal Milestone 12 GO is (?:deliberately )?not self-issued\b/i.test(claim)) {
+          return false;
+        }
+        return /\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b[^.]{0,180}\b(?:remain|remains|are|is)\s+(?:open|pending|unaccepted)\b/i.test(claim) ||
+          /\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b[^.]{0,220}\b(?:no Codex GO|without Codex GO|awaiting independent (?:Codex )?review)\b/i.test(claim) ||
+          /\b(?:M12\.P1-)?D6\b[^.]{0,180}\b(?:remain|remains|is)\s+(?:open|pending|unaccepted)\b/i.test(claim) ||
+          /\blocal (?:candidate|commits?)\b[^.]{0,180}\b(?:may|can|is authorized to|will)\b[^.]{0,80}\b(?:be )?(?:pushed|promoted|deployed)\b/i.test(claim) ||
           /\bfinal Milestone 12 GO\b[^.]{0,100}\b(?:is|has been)\b[^.]{0,40}\b(?:issued|granted|complete)\b/i.test(claim);
       });
       return !contradiction &&
-        /\bpilot review\b.{0,100}\bcomplete\b/i.test(scope) &&
-        /\bowner-authorized local\b.{0,180}\bOFF\.2-OFF\.5\b.{0,100}\bimplementation candidate\b/i.test(scope) &&
-        /\bfocused evidence\b.{0,100}\bno Codex GO\b/i.test(scope) &&
-        /\bD6\b.{0,180}\bOFF\.6\b.{0,180}\bfinal Milestone 12 GO\b.{0,100}\bremain open\b/i.test(scope) &&
-        /\boffline candidate\b.{0,160}\bmust not be pushed, promoted, or deployed\b.{0,120}\bbefore the presentation\b/i.test(scope);
+        /\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b.{0,180}\b(?:complete|completed)\b.{0,80}\bCodex GO\b/i.test(scope) &&
+        /\b(?:M12\.P1-)?D6\b.{0,180}\b(?:complete|completed|commit-readiness is)\b.{0,80}\bCodex GO\b/i.test(scope) &&
+        /\bfinal Milestone 12\b.{0,180}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(scope);
     });
-    return valid ? [] : ['current owner-authorized OFF.2-OFF.5/no-GO/open-boundary scope is missing'];
+    return valid ? [] : ['accepted D6/OFF history or current 19-file correction review boundary is missing'];
   }
 
   for (const name of sequenceDocs) {
-    ok(`${name} records the owner-authorized local OFF.2-OFF.5 candidate and preserves every remaining boundary`,
+    ok(`${name} records accepted local D6/OFF.2-OFF.6 authority and preserves final-closeout/release boundaries`,
       offlineCandidateAuthorityProblems(docs[name]).length === 0);
   }
 
   const CURRENT_OFFLINE_AUTHORITY_FIXTURE =
-    'Pilot review is complete. An owner-authorized local OFF.2-OFF.5 implementation candidate exists with focused evidence but no Codex GO. ' +
-    'D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision.';
-  ok('authoritative docs contain no stale OFF.1-next rule and the current offline-candidate boundary fails closed',
+    'Pilot review is complete. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. ' +
+    'D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. ' +
+    'The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. ' +
+    'The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. ' +
+    'Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. ' +
+    'The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. ' +
+    'No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. ' +
+    'That manifest is predecessor evidence; recompute the live manifest instead of reusing it. ' +
+    'The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. ' +
+    'The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. ' +
+    'Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision.';
+  ok('authoritative docs contain no stale OFF.1-next rule and the current closeout boundary fails closed',
     !/OFF\.1(?: Offline Baseline Audit and Domain Contract)? is (?:the )?next authorized section|OFF\.1 through OFF\.6 have not started/i.test(
       currentStatusDocs.map((name) => docs[name]).join('\n')
     ) &&
     offlineCandidateAuthorityProblems(CURRENT_OFFLINE_AUTHORITY_FIXTURE).length === 0 &&
     offlineCandidateAuthorityProblems(
-      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' OFF.2-OFF.5 has Codex GO.').length > 0 &&
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE.replace('OFF.2-OFF.6 are complete and Codex GO', 'OFF.2-OFF.6 remain open with no Codex GO')).length > 0 &&
     offlineCandidateAuthorityProblems(
-      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' D6 and OFF.6 are complete; final Milestone 12 GO is issued.').length > 0 &&
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' Final Milestone 12 GO has been issued.').length > 0 &&
     offlineCandidateAuthorityProblems(
-      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' The offline candidate may be pushed, promoted, or deployed now.').length > 0);
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' The local commits may be pushed, promoted, or deployed before the presentation.').length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' The current 19-file offline UI/accessibility/package correction candidate is accepted and commit-readiness GO.').length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE.replace(CURRENT_OFFLINE_PRE_SYNC_MANIFEST_SHA256, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE.replace('OFF.2 145/145', 'OFF.2 144/145')).length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE.replace(CURRENT_OFFLINE_PACKAGE_SHA256, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
+    offlineCandidateAuthorityProblems(
+      CURRENT_OFFLINE_AUTHORITY_FIXTURE + ' The current 19-file offline UI/accessibility/package correction candidate is fully verified.').length > 0);
 
   const antiStaleDocs = [
     ...currentStatusDocs,
@@ -7458,10 +7866,10 @@ function runDocsCurrentGate() {
   }
 
   /* ---- current M12.P1 authority consistency ----
-     R1-R7, D1-D5, expanded D7, and the final R8 lifecycle are complete. The
+     R1-R7, D1-D7, OFF.1-OFF.6, and the final R8 lifecycle are complete. The
      accepted technical Production baseline is deployed and pilot review is
-     owner-accepted, while offline work, OFF.2-OFF.6, and final Milestone 12
-     acceptance remain open.
+     owner-accepted. Final Milestone 12 acceptance remains an independent
+     closeout decision, and the accepted local commits stay pre-presentation.
 
      Each authority document carries one delimited CURRENT block. Validating
      only that block prevents historical candidate evidence and the future-state
@@ -7618,8 +8026,11 @@ function runDocsCurrentGate() {
 
   function keepsM12P1NoGo(value) {
     const t = String(value == null ? '' : value).replace(/\s+/g, ' ');
-    return /\bM12\.P1\b[\s\S]{0,240}\bNO-GO\b/i.test(t) &&
-      /\b(deployment|pilot)\b[\s\S]{0,240}\b(not authorized|requires[^.]{0,100}separate owner)\b/i.test(t);
+    const legacyNoGo = /\bM12\.P1\b[\s\S]{0,240}\bNO-GO\b/i.test(t);
+    const closeoutPending = /\bfinal Milestone 12\b[\s\S]{0,220}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(t);
+    return (legacyNoGo || closeoutPending) &&
+      (/\b(?:deployment|push|promotion)\b[\s\S]{0,260}\b(?:not authorized|must not|requires?[^.]{0,120}separate owner)\b/i.test(t) ||
+       hasPrePresentationReleaseDenial(t));
   }
 
   /* M12.P1-R8: the Vercel checklist must name EVERY fail-closed profile entry.
@@ -7696,11 +8107,12 @@ function runDocsCurrentGate() {
       'Continue R3 through R7 one section at a time after each preceding Codex GO.'],
     ['remaining order starts at R3', 'The remaining implementation order is R3, R4, R5.'],
   ];
-  /* Canonical CURRENT authority: R1-R7, D1-D5, and expanded D7 are complete and
+  /* Canonical CURRENT authority: R1-R7, D1-D7, and OFF.1-OFF.6 are accepted history and
      Codex GO; the final R8 synchronization is the accepted technical Production
      baseline; db05b54 is staged/unpromoted; the pilot is owner-accepted with an
-     unverified build-identity caveat; and the local OFF.2-OFF.5 candidate is
-     bounded away from GO, Git mutation, and deployment. */
+     unverified build-identity caveat; D6/OFF.2-OFF.6 are accepted locally; the
+     current 19-file correction is pending; and final closeout and pre-presentation
+     release remain separate boundaries. */
   const CANONICAL_R7_GO_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
     'M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
@@ -7714,7 +8126,7 @@ function runDocsCurrentGate() {
     'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production serves fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production baseline. ' +
     'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
     'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
-    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this synchronization.';
+    'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision; deployment is not authorized by this synchronization.';
   /* Superseded states retained only as negative fixtures. */
   const SUPERSEDED_R7_CANDIDATE_STATUS =
     'M12.P1-R3 and all follow-ups are complete and Codex GO. ' +
@@ -7966,7 +8378,7 @@ function runDocsCurrentGate() {
       status !== null);
     ok(`${name} current status records R1-R7/D1-D5/D7 GO, accepted evidence, and completed Production lifecycle`,
       status !== null && declaresR7GoAuthority(status));
-    ok(`${name} current status keeps final acceptance at NO-GO and OFF.2/deployment/promotion separately authorized`,
+    ok(`${name} current status keeps final closeout external and deployment/promotion separately authorized`,
       status !== null && keepsM12P1NoGo(status));
     ok(`${name} current status records the exact matrix and post-deployment Git/promotion lifecycle`,
       status !== null &&
@@ -8010,7 +8422,7 @@ function runDocsCurrentGate() {
     'It was not promoted or made Current, and ' + EXPECTED_SEC51_DEPLOYED_BASELINE + ' remained on the live alias. ' +
     'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
     'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
-    'Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
+    'Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
     'Historical/superseded: before this deployment, Production served ' +
     EXPECTED_SEC51_PREVIOUS_BASELINE + '.';
   ok('fixture: verification, staged authority, and pilot lifecycle accept current authority and reject stale, missing, or contradictory authority',
@@ -8100,8 +8512,8 @@ function runDocsCurrentGate() {
   }
 
   const m12StatusText = m12StatusDocs.map((name) => currentM12Status(docs[name]) || '').join('\n');
-  ok('authoritative current-status blocks keep M12.P1 NO-GO for deployment/pilot readiness',
-    /M12\.P1[\s\S]{0,240}NO-GO/i.test(m12StatusText));
+  ok('authoritative current-status blocks keep final closeout and release authority external',
+    currentM12Statuses.every((status) => status !== null && keepsM12P1NoGo(status)));
 
   /* ---- the SPENT R7 execution prompt ----
      R7 later received independent Codex GO, but this fenced block remains
@@ -8214,7 +8626,7 @@ function runDocsCurrentGate() {
     const FENCE = '```';
     const H = REUSABLE_PROMPT_HEADINGS;
     const CURRENT_BODY =
-      'M12.P1 readiness audit is complete with Codex NO-GO. R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
+      'Final Milestone 12 disposition remains external. R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
       'Dependency-security remediation is complete and Codex GO. ' +
       'Following the accepted 2026-07-22 dependency closeout, a subsequent 2026-07-26 npm advisory drift is remediated: production pins ejs@6.0.1, the jake/filelist/minimatch/brace-expansion chain is absent, and npm audit --omit=dev reports zero vulnerabilities. ' +
       'M12.P1-R6 is complete and Codex GO. ' +
@@ -8224,9 +8636,9 @@ function runDocsCurrentGate() {
       'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
       'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
-      'The exact synchronized candidate passes npm test at 4641/4641 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
-      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. This context-only prompt authorizes none of those actions. ' +
-      'M12.P1 remains NO-GO for final acceptance; deployment is not authorized by this prompt.';
+      'The exact synchronized candidate passes npm test at 4998/4998 with QUALITY-GATES OK and npm run qa at the same exact contract total with all five stages green. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. The first integrated read-only M12.P1-R8 review returned R8 NO-GO solely for stale operative Git-lifecycle wording. The follow-up commit, push, and R8 disposition are established only by live Git and the latest external review report; this repository snapshot makes no self-referential claim about those later events. ' +
+      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. This context-only prompt authorizes none of those actions. ' +
+      'Deployment is not authorized by this prompt.';
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
       'M12.P1-R6 is complete and Codex GO.',
@@ -8510,7 +8922,7 @@ function runDocsCurrentGate() {
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
     const QA_STAGE_EVIDENCE = '`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`';
-    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-R8) | `npm run qa` | all five stages green | **4641/4641 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all five stages green | **4998/4998 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
@@ -8546,23 +8958,23 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6 admin dashboard analytics package inventory (candidate) | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`; focused package gate `74/74`, registered in-suite package gate pending** | candidate evidence only |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6 admin dashboard analytics package inventory (candidate) | `x` | recomputed | **168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`** | accepted technical Production predecessor: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`; focused package gate `74/74`; candidate evidence only** | pending independent review; not deployment authorization |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`; candidate evidence only** | accepted technical Production predecessor: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current M12.P1-D6 admin dashboard analytics candidate:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` |';
-    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,042,705 bytes', '158 files, 6,245,074 bytes');
-    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` |');
-    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current M12.P1-D6 admin dashboard analytics candidate:**', '**Historical/superseded M12.P1-D6 admin dashboard analytics candidate:**');
+    const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **CANDIDATE PASS** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current candidate M12.P1-D6/OFF package:** 168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a` |';
+    const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,073,128 bytes', '158 files, 6,245,074 bytes');
+    const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a` |');
+    const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current candidate M12.P1-D6/OFF package:**', '**Historical/superseded M12.P1-D6/OFF package:**');
 
-    const EXACT_SUITE_OK = '| Full contract suite (Guided-VR catalog-remediation candidate) | `npm test` | zero fail | **4641/4641 PASS - correction candidate** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4641/4641 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (Guided-VR catalog-remediation candidate) | `npm run qa` | all green | **4640/4640 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4641/4641 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4998/4998 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4998/4998 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4997/4997 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4998/4998 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4641/4641 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4641/4641 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
-    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4641/4641 |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4998/4998 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4998/4998 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
+    const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4998/4998 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
        now structural. Each rejecting fixture below keeps every required action
@@ -8747,7 +9159,7 @@ function runDocsCurrentGate() {
         DEMO_OK.replace(EXPECTED_CURRENT_DEMO_SEQUENCE[0], 'limited-pilot readiness is next'),
         EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0 &&
       analyzeDemoReadinessSequence(
-        DEMO_OK.replace('owner-authorized local off.2-off.5 implementation candidate', 'off.2 is next'),
+        DEMO_OK.replace('off.2-off.6 and d6 are complete and codex go', 'off.2 is next'),
         EXPECTED_CURRENT_DEMO_SEQUENCE).length > 0 &&
       analyzeDemoReadinessSequence(
         DEMO_OK.replace(
@@ -8803,21 +9215,21 @@ function runDocsCurrentGate() {
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        4641).length === 0);
+        4998).length === 0);
     ok('fixture: a mismatched QA total or a total appearing only in neighbouring evidence is rejected',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_MISMATCH,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_BARE,
-        4641).length > 0);
+        4998).length > 0);
     ok('fixture: missing, duplicated, or historical-only current total rows fail closed',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK,
-        4641).length > 0 &&
+        4998).length > 0 &&
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + Q_QA_HISTORICAL,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        4641).length > 0);
+        4998).length > 0);
     ok('fixture: all five exact QA-stage markers are accepted and every missing or invented marker is rejected',
       analyzeCurrentQaStageMarkers(
         Q_HDR + EXACT_QA_OK,
@@ -8926,7 +9338,7 @@ function runDocsCurrentGate() {
       'It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
       'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
       'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
-      'Pilot review is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5 implementation candidate exists; it has focused evidence but no Codex GO. D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The offline candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
+      'Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
       'Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
     const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was 0627bf78228148e3f989275810c333c16a1f3356.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',

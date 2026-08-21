@@ -12,7 +12,80 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-13 Current Production And Post-Deployment Status
+## 2026-08-20 Current Production And Post-Deployment Status
+
+OFF.2-OFF.6 are complete and Codex GO on local Git commit SHA-1
+`cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
+GO on local Git commit SHA-1 `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
+uncommitted 19-file offline UI/accessibility/package correction candidate is
+pending independent read-only review and full verification.
+
+The independent read-only closeout review of exact 19-file predecessor manifest
+SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
+(19 files, 2,042,891 bytes) returned NO-GO solely for a fallback
+coordinate-frame defect: the decorative SVG's default aspect-preserving
+`0 0 1000 700` viewBox did not align the full-box HTML marker overlay on
+non-10:7 containers. The bounded correction adds
+`preserveAspectRatio="none"` and rejecting fixtures for the missing and
+`xMidYMid meet` coordinate-frame variants. The pre-authority-sync manifest
+SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
+(19 files, 2,043,780 bytes) is predecessor evidence for this authority
+synchronization; recompute the final live manifest after these authority edits.
+The first replacement browser acceptance of the preceding exact 19-file
+candidate is historical/rejected solely for a mobile overlap at 390x844: the
+fixed `#offlineMobileListToggle` covered the visible `#offlineSetDestination`
+action, so hit testing landed on Building List and destination activation
+failed. Desktop route acceptance and the preceding static/full-suite checks
+were green; the browser run stopped before MySQL and the final ordered
+postconditions. The bounded correction hides the toggle only while
+`#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
+for the wrong selector, state, media scope, and DOM order.
+Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
+boundary `74/74`. No full suite, QA, ordered postconditions, browser
+acceptance, Codex GO, commit readiness, deployment readiness, or final
+Milestone 12 GO is claimed. Replacement full verification requires separate
+owner authorization; commit, push, promotion, and deployment remain
+unauthorized.
+
+It preserves the
+rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
+and Escape/backdrop lifecycle, and reuses the visibility-aware focus selector
+when building details close. Connected but off-screen controls are rejected;
+the visible fallback order includes the mobile Building List toggle. The theme
+  toggle now synchronizes its accessible pressed state and action label, and
+  persists the shared `campussphere-theme` preference. On mobile, the closed
+  building sheet is `inert` and `aria-hidden`; closing restores focus to a
+  visible control before isolation, and viewport changes keep that state
+  synchronized. Every named offline action and map control has an exact
+  44-by-44-pixel minimum enforced by rejecting fixtures. The simplified-map
+  fallback keeps its SVG basemap and route decorative and exposes each building
+  as a labelled native HTML button in a named overlay with an exact 44-by-44
+  CSS-pixel target. The service worker advances from v24 to v25 so stale v24
+  caches are pruned. Exact 19-file manifest SHA-256
+  `5ac682f53fcd2392ddec3c5cc288a3d1e194af52d2e7ea09f68bb2b5c485c37c`
+  received independent read-only review NO-GO for undersized interactive SVG
+  fallback markers nested beneath one image role. The earlier exact manifest
+  SHA-256
+  `ec326965aba9b9daec87bb214d98b50ddedf2ad99e916864e79ad04ebafc556f`
+  remains historical/rejected for the off-screen mobile accessibility state,
+  fail-open generic touch-target assertion, and unpersisted theme preference.
+  Both predecessors are historical/rejected. The corrected pre-authority-sync
+  candidate is exact 19-file manifest SHA-256
+  `494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610`
+  (19 files, 2,020,639 bytes). Focused evidence only is OFF.2 `145/145`, offline
+  2D `35/35`, and package boundary `74/74`; the unchanged package identity is
+  168 files, 7,073,128 bytes, aggregate SHA-256
+  `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
+  postconditions, or browser acceptance was run for those exact bytes. The
+  `494010dd...` manifest is predecessor evidence for this authority
+  synchronization, not a pin for the later synchronized bytes; live Git and a
+  freshly computed post-sync manifest control the next review. The current
+uncommitted 19-file offline UI/accessibility/package correction candidate
+claims no new Codex GO, commit readiness, deployment readiness, or final
+Milestone 12 GO. Final Milestone 12 disposition remains external. The local
+commits and current candidate must not be pushed, promoted, or deployed before
+the presentation and a later explicit owner decision.
 
 - The Guided-VR runtime/catalog remediation remains recorded as Git commit
   SHA-1 `43627cf0a77741556f4e701711e55612a739799b`, Git tree SHA-1
@@ -75,11 +148,13 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   no participant PII is recorded in Git. The tested build's full source-commit
   identity was not independently verified, so this is owner-attested pilot
   acceptance rather than independent current-build verification. Pilot review
-  is complete for sequencing purposes. An owner-authorized local OFF.2-OFF.5
-  implementation candidate exists; it has focused evidence but no Codex GO.
-  D6, OFF.6 browser acceptance, and final Milestone 12 GO remain open. The
-  offline candidate must not be pushed, promoted, or deployed before the
-  presentation and a later explicit owner decision.
+  is complete for sequencing purposes. OFF.2-OFF.6 and D6 are complete and
+  Codex GO on local Git commit SHA-1
+  `cdbc863b779e5319c14dee21a31a5e78951e233c` and local Git commit SHA-1
+  `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. Final Milestone 12 disposition
+  remains external to this document. The local commits must not be pushed,
+  promoted, or deployed before the presentation and a later explicit owner
+  decision.
 - The 13-building `models/data.js` roster remains the reproducible seed
   baseline, not the complete live catalog. MySQL currently has 34 buildings,
   44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid
@@ -174,8 +249,16 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   cleanup occurred. The wrapper timeout and bounded red rerun remain
   historical/rejected. Live Git and the latest external review report establish
   the later commit/push/R8 disposition; deployment and GO remain unclaimed.
-- The current local M12.P1-D6 review-correction allowlist candidate is 168
-  files, 7,042,705 bytes, aggregate SHA-256
+- The current offline UI/accessibility correction candidate package is 168
+  files, 7,073,128 bytes, aggregate SHA-256
+  `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  The rejected pre-correction package was 168 files, 7,071,943 bytes,
+  aggregate SHA-256
+  `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`;
+  it is historical candidate evidence only.
+  It is candidate evidence pending independent review, not accepted local
+  package or deployment evidence. The accepted local D6/OFF predecessor
+  package remains historical at 168 files, 7,042,705 bytes, aggregate SHA-256
   `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`
   (historical/rejected after the independent review, never accepted: the first
   D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256
@@ -210,11 +293,10 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   documentation/authority assertions failed. Every executed runtime, database,
   catalog, BE.6, and final embedded `18/18` residue check was green.
   Fail-closed sequencing stopped before `npm run qa` and before the standalone
-  `24/24 -> 18/18 -> 46/46` postconditions. The bounded correction is confined
-  to current-authority documentation and existing static assertions, has
-  focused evidence but no Codex GO, and requires a later independent review
-  plus separately authorized replacement full verification. No session or data
-  correction was required.
+  `24/24 -> 18/18 -> 46/46` postconditions. At that historical point the
+  bounded correction had focused evidence only and claimed no Codex GO. It was
+  superseded by the later independent reviews and definitive verification. No
+  session or data correction was required.
 - The first authority-follow-up execution is historical/rejected at
   `4635/4641`: six static lifecycle/documentation checks failed, while all
   runtime, database, catalog, BE.6, and embedded residue probes were green,
@@ -288,12 +370,17 @@ Express session auth + Google OAuth; **Supabase Auth is not used**.
   No repository, database, session, package, or vendor correction was required
   for that transient harness-start failure.
 - Fresh-session authority is state-neutral: Codex and Claude Code both ground
-  current truth and then wait for the owner. Neither prompt authorizes review,
-  edits, tests, Git mutation, a new deployment or promotion, another pilot,
-  OFF.2 implementation, or Milestone 12 GO.
-- Pilot review is complete by owner acceptance. OFF.2-OFF.5 now exist only as
-  an owner-authorized local implementation candidate with focused evidence;
-  independent section GO, D6, OFF.6, and final Milestone 12 GO remain open.
+  current truth and then wait for the owner. Neither prompt authorizes further
+  implementation, Git mutation, a new deployment or promotion, another pilot,
+  or Milestone 12 GO.
+- Pilot review is complete by owner acceptance. OFF.2-OFF.6 and D6 are complete
+  and Codex GO. D6 passed `npm test` at `4998/4998` with `QUALITY-GATES OK`,
+  five-stage `npm run qa` at the same exact contract total, and ordered
+  postconditions `24/24 -> 18/18 -> 46/46`. OFF.6 browser acceptance passed in both backends;
+  after supported restoration of the discovered Supabase route-edge 198/199
+  geometry drift, the unchanged candidate passed replacement `npm test` at
+  `4998/4998` with D6 `266/266`, BE.6 `46/46`, and embedded residue `18/18`.
+  Final Milestone 12 disposition requires the independent closeout review.
   This status records deployment truth; it is not authority for another deploy,
   database change, media operation, or destructive data replacement.
 
@@ -1206,10 +1293,9 @@ BE.6 and OFF.1 are complete and Codex GO. Technical Production baseline
 remains external and the tested build's full source-commit identity was not
 independently verified. Pilot review is complete for sequencing purposes.
 Future `main` deployments still require explicit manual promotion. The pilot
-must not be represented as a routing-only technical mode, offline readiness, or
-final M12 signoff. The owner-authorized local OFF.2-OFF.5 implementation
-candidate has focused evidence but no Codex GO. D6, OFF.6 browser acceptance,
-and final Milestone 12 GO remain open. The selected 13-building demo
+must not be represented as a routing-only technical mode or as independent
+current-build evidence. OFF.2-OFF.6 and D6 are complete and Codex GO; final
+Milestone 12 disposition remains separately controlled. The selected 13-building demo
 roster is not the complete campus; later admin edits and additions require
 refreshed freeze evidence rather than being prohibited.
 

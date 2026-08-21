@@ -5,10 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f2a44">
-  <meta name="color-scheme" content="light">
-  <title>CampuSphere — Offline Campus Guide</title>
+  <meta name="color-scheme" content="light dark">
+  <title>CampuSphere | Offline Campus Map</title>
   <link rel="icon" type="image/png" href="/img/cspc-logo.png">
   <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/styles.css?v=5">
   <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="/css/offline.css">
   <script src="/vendor/maplibre/maplibre-gl.js" defer></script>
@@ -16,71 +17,264 @@
   <script src="/js/offline-guide-manager.js" defer></script>
 </head>
 
-<body>
-  <header class="offline-header">
-    <a class="offline-brand" href="/" aria-label="CampuSphere home">
-      <img src="/img/cspc-logo.png" alt="" width="42" height="42">
-      <span>
-        <strong>CampuSphere</strong>
-        <small>Offline Campus Guide</small>
-      </span>
-    </a>
-    <div class="offline-header__actions">
-      <span class="offline-connection" role="status">Offline-ready workspace</span>
-      <a class="offline-button offline-button--quiet" href="/map">Open online map</a>
-    </div>
-  </header>
+<body class="offline-page">
+  <nav class="dash-nav" id="offlineNav" aria-label="CampuSphere navigation">
+    <div class="dash-nav__inner">
+      <a href="/home" class="dash-nav__brand" aria-label="CampuSphere home">
+        <img src="/img/cspc-logo.png" alt="CSPC Logo" class="dash-nav__logo" width="42" height="42">
+        <span class="dash-nav__title">CampuSphere</span>
+      </a>
 
-  <main class="offline-main">
+      <div class="dash-nav__tabs" id="offlineDashTabs">
+        <a href="/home" class="dash-nav__tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path>
+          </svg>
+          <span>Home</span>
+        </a>
+        <a href="/dashboard" class="dash-nav__tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="/buildings" class="dash-nav__tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4"></path>
+            <path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path>
+          </svg>
+          <span>Buildings</span>
+        </a>
+        <a href="/events" class="dash-nav__tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Events</span>
+        </a>
+        <a href="/map" class="dash-nav__tab dash-nav__tab--active" aria-current="page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <span>Campus Map</span>
+        </a>
+        <a href="/about" class="dash-nav__tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>About Us</span>
+        </a>
+      </div>
+
+      <div class="dash-nav__right">
+        <button class="dash-nav__user offline-nav-state" data-offline-guide-download type="button" aria-label="Update Offline Campus Guide">
+          <div class="dash-nav__avatar" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 13a10 10 0 0 1 14 0"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path>
+              <path d="M12 20h.01"></path><path d="M3 3l18 18"></path>
+            </svg>
+          </div>
+          <span class="dash-nav__username" data-offline-guide-download-label>Offline</span>
+        </button>
+      </div>
+
+      <button class="dash-nav__hamburger" id="offlineNavToggle" type="button" aria-controls="offlineDashTabs" aria-expanded="false" aria-label="Open navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="map-page offline-map-page">
     <section class="offline-empty" id="offlineGuideEmpty" hidden aria-labelledby="offline-empty-title">
       <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="" width="96" height="96">
-      <p class="offline-eyebrow">No downloaded guide</p>
+      <p class="offline-eyebrow">Offline Campus Map</p>
       <h1 id="offline-empty-title">Bring the campus map with you</h1>
       <p>While connected and signed in, download the current CSPC buildings, building details, and Main Gate routes to this device.</p>
-      <button class="offline-button offline-button--primary" data-offline-guide-download type="button">Download Offline Guide</button>
+      <button class="btn btn--primary" data-offline-guide-download type="button">Download Offline Guide</button>
       <p class="offline-status" data-offline-guide-status role="status" aria-live="polite"></p>
-      <p class="offline-empty__privacy">The guide contains campus information only—no account, session, schedule, admin, photo, or 360 data.</p>
+      <p class="offline-empty__privacy">The guide contains campus information only - no account, session, schedule, admin, photo, or 360 data.</p>
     </section>
 
     <section class="offline-workspace" id="offlineGuideWorkspace" hidden aria-label="Offline campus navigation">
-      <aside class="offline-sidebar">
-        <div class="offline-sidebar__intro">
-          <p class="offline-eyebrow">From Guard House / Main Gate</p>
-          <h1>Choose a building</h1>
-          <p id="offlineGuidePackageSummary">Loading downloaded guide…</p>
-          <div class="offline-sidebar__actions">
-            <button class="offline-button offline-button--primary" data-offline-guide-download type="button">Update Offline Guide</button>
-            <p class="offline-status" data-offline-guide-status role="status" aria-live="polite"></p>
+      <aside class="map-sidebar offline-sidebar" id="offlineMapSidebar" aria-hidden="true" inert>
+        <button type="button" class="map-sidebar__handle" id="offlineSidebarHandle" aria-label="Close building list"></button>
+        <div class="map-sidebar__header">
+          <button type="button" class="map-sidebar__close" id="offlineSidebarClose" aria-label="Close building list, view map">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span class="map-sidebar__close-label">View Map</span>
+          </button>
+          <h1 class="map-sidebar__title">Find Location</h1>
+          <label class="sr-only" for="offlineBuildingSearch">Search downloaded buildings</label>
+          <div class="map-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" class="map-search__input" id="offlineBuildingSearch" placeholder="Search buildings, offices, routes..." autocomplete="off">
+            <button class="map-search__clear" id="offlineSearchClear" type="button" aria-label="Clear search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="map-filters" aria-label="Filter downloaded buildings">
+            <button class="map-filter-btn active" data-offline-filter="all" type="button">All</button>
+            <button class="map-filter-btn" data-offline-filter="Academic" type="button">Academic</button>
+            <button class="map-filter-btn" data-offline-filter="Administrative" type="button">Admin</button>
+            <button class="map-filter-btn" data-offline-filter="Facilities" type="button">Facilities</button>
           </div>
         </div>
-        <label class="offline-search">
-          <span class="sr-only">Search downloaded buildings</span>
-          <input type="search" id="offlineBuildingSearch" placeholder="Search buildings" autocomplete="off">
-        </label>
-        <nav class="offline-building-list" id="offlineBuildingList" aria-label="Downloaded buildings"></nav>
+
+        <button class="map-free-roam offline-online-only" type="button" disabled aria-disabled="true">
+          <span class="map-free-roam__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </span>
+          <span class="map-free-roam__text">
+            <span class="map-free-roam__label">Free Roam 360</span>
+            <span class="map-free-roam__hint">Online only - not included in the downloaded guide</span>
+          </span>
+        </button>
+
+        <div class="map-route-planner" id="offlineRoutePlanner" aria-label="Plan an offline campus route">
+          <button class="map-route-planner__toggle" type="button" id="offlineRoutePlannerToggle" aria-expanded="true" aria-controls="offlineRoutePlanner">
+            <span class="map-route-planner__toggle-label">Plan Route</span>
+            <span class="map-route-planner__toggle-status" id="offlineRouteToggleStatus">Pick a destination</span>
+            <svg class="map-route-planner__toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <p class="map-route-planner__heading">Plan a Route</p>
+          <div class="map-route-planner__row">
+            <label class="map-route-planner__label" for="offlineRouteStart">Start</label>
+            <input type="text" id="offlineRouteStart" class="map-route-planner__input map-route-planner__input--readonly" value="Guard House / Main Gate" readonly aria-readonly="true">
+          </div>
+          <div class="map-route-planner__row">
+            <span class="map-route-planner__label">Destination</span>
+            <div class="map-route-planner__dest">
+              <span class="map-route-planner__dest-text map-route-planner__dest-text--empty" id="offlineRouteDestText">Pick a building</span>
+              <button type="button" class="map-route-planner__dest-clear" id="offlineRouteDestClear" aria-label="Clear destination" hidden>X</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn--primary btn--sm map-route-planner__find" id="offlineRouteFind" disabled>Find Route</button>
+          <p class="map-route-planner__hint" id="offlineRouteHint" aria-live="polite">Select a building, then choose Set as Destination.</p>
+        </div>
+
+        <nav class="map-sidebar__list offline-building-list" id="offlineBuildingList" aria-label="Downloaded buildings"></nav>
       </aside>
 
-      <section class="offline-map-shell" aria-label="CSPC offline campus map">
-        <div class="offline-map" id="offlineMap"></div>
-        <div class="offline-map-fallback" id="offlineMapFallback" hidden></div>
-        <div class="offline-map-note">
-          <strong>Offline map</strong>
-          <span>Routes always begin at the Main Gate.</span>
+      <main class="map-container offline-map-shell">
+        <div class="map-view offline-map" id="offlineMap"></div>
+        <div class="offline-map-fallback" id="offlineMapFallback" role="group" aria-label="Simplified CSPC campus map" hidden></div>
+        <p class="offline-update-status" data-offline-guide-status role="status" aria-live="polite"></p>
+
+        <div class="map-controls">
+          <button class="map-ctrl-btn" id="offlineRecenterMap" title="Recenter campus" type="button" aria-label="Recenter campus">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+          </button>
+          <button class="map-ctrl-btn" id="offlineClearMapRoute" title="Clear route" type="button" aria-label="Clear route">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path>
+            </svg>
+          </button>
         </div>
-        <section class="offline-route" id="offlineRouteSummary" hidden aria-live="polite"></section>
 
-        <aside class="offline-details" id="offlineDetailsPanel" role="dialog" aria-modal="false" hidden aria-hidden="true" aria-labelledby="offline-details-title">
-          <button class="offline-details__close" id="offlineDetailsClose" type="button" aria-label="Close building details">×</button>
-          <div id="offlineDetailsBody"></div>
+        <aside class="map-panel offline-details" id="offlineDetailsPanel" role="dialog" aria-modal="false" hidden aria-hidden="true" aria-labelledby="offline-details-title">
+          <button class="map-panel__close" id="offlineDetailsClose" type="button" aria-label="Close building details">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="" class="map-panel__img" id="offlineDetailsImage">
+          <div class="map-panel__content">
+            <div class="map-panel__header">
+              <span class="map-bldg-item__cat" id="offlineDetailsCategory">Campus building</span>
+              <h2 class="map-panel__title" id="offline-details-title">Building</h2>
+            </div>
+            <p class="map-panel__desc" id="offlineDetailsDescription"></p>
+            <div class="map-panel__meta" id="offlineDetailsMeta" hidden>
+              <span class="map-panel__chip" id="offlineWalkTime" hidden>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span id="offlineWalkTimeText"></span>
+              </span>
+            </div>
+            <section class="map-panel__section" id="offlineInfoSection" hidden>
+              <h3 class="map-panel__section-title">Offices &amp; Services</h3>
+              <ul class="map-panel__list" id="offlineInfoList"></ul>
+            </section>
+            <section class="map-panel__section" id="offlineFloorsSection" hidden>
+              <h3 class="map-panel__section-title">Floors</h3>
+              <ul class="map-panel__list map-panel__list--floors" id="offlineFloorsList"></ul>
+            </section>
+            <section class="map-panel__section" id="offlineEntrancesSection" hidden>
+              <h3 class="map-panel__section-title">Entrances</h3>
+              <ul class="map-panel__chips" id="offlineEntrancesList"></ul>
+            </section>
+            <section class="map-panel__section" id="offlineLandmarksSection" hidden>
+              <h3 class="map-panel__section-title">Landmarks</h3>
+              <ul class="map-panel__chips" id="offlineLandmarksList"></ul>
+            </section>
+            <div class="map-panel__actions">
+              <div class="map-panel__action-buttons">
+                <button type="button" class="btn btn--secondary btn--sm" id="offlineSetDestination">Set as Destination</button>
+                <p class="map-panel__route-notice" id="offlineRouteNotice" role="status" hidden></p>
+              </div>
+            </div>
+          </div>
         </aside>
-      </section>
-    </section>
-  </main>
 
-  <footer class="offline-footer">
-    <span>Map data: Protomaps © OpenStreetMap contributors</span>
-    <span>Downloaded guide data is removed after explicit CampuSphere logout.</span>
-  </footer>
+        <section class="route-modal-overlay" id="offlineRouteSummary" role="dialog" aria-modal="true" aria-labelledby="offlineRouteTitle" aria-hidden="true" hidden>
+          <div class="route-modal" role="document">
+            <div class="route-modal__header">
+              <div>
+                <h2 class="route-modal__title" id="offlineRouteTitle">Route</h2>
+                <p class="route-modal__subtitle" id="offlineRouteSubtitle"></p>
+              </div>
+              <button type="button" class="route-modal__close" id="offlineRouteClose" aria-label="Close route panel">X</button>
+            </div>
+            <div class="route-modal__body">
+              <span class="route-time" id="offlineRouteTime"></span>
+              <div class="route-steps-wrap">
+                <p class="route-info-label">Steps</p>
+                <ol class="route-steps" id="offlineRouteSteps"></ol>
+              </div>
+              <div class="offline-route-actions">
+                <button type="button" class="btn btn--secondary btn--sm" id="offlineRouteClear">Clear Route</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <button class="mobile-toggle-btn" id="offlineMobileListToggle" type="button" aria-controls="offlineMapSidebar" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          Building List
+        </button>
+      </main>
+    </section>
+  </div>
+
+  <button class="theme-toggle" id="offlineThemeToggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+    <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+    <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
 </body>
 
 </html>

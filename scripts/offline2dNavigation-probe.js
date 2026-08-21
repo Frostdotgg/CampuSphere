@@ -8,9 +8,16 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const offlineGuide = require('../services/offlineGuideService');
+const {
+  offlineFallbackMarkerProblems,
+  offlineFallbackMarkerMutationsAreRejected,
+  offlineMobileDetailsOverlapProblems,
+  offlineMobileDetailsOverlapMutationsAreRejected
+} = require('./off2PwaLifecycle-probe');
 
 let checks = 0;
 const failures = [];
@@ -28,6 +35,162 @@ function read(rel) {
 
 function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
+}
+
+function focusReturnBehaviorProblems(source) {
+  const problems = [];
+  const usableSource = (source.match(/function isUsableFocusReturnTarget\(element\) \{[\s\S]*?\n  \}/) || [])[0] || '';
+  const selectSource = (source.match(/function selectFocusReturnTarget\(invoker, fallbackCandidates\) \{[\s\S]*?\n  \}/) || [])[0] || '';
+  if (!usableSource || !selectSource) return ['shared focus-return helpers are missing'];
+
+  const sandbox = {
+    document: { contains: (element) => element && element.contained !== false },
+    window: {
+      innerWidth: 390,
+      innerHeight: 844,
+      getComputedStyle: (element) => element.style
+    }
+  };
+  try {
+    vm.runInNewContext(`${usableSource}\n${selectSource}\nthis.focusContract = { isUsableFocusReturnTarget, selectFocusReturnTarget };`, sandbox, {
+      timeout: 1000
+    });
+  } catch (error) {
+    return ['shared focus-return helpers cannot be evaluated safely'];
+  }
+
+  function element(options = {}) {
+    const rect = Object.assign({ left: 10, top: 10, right: 54, bottom: 54, width: 44, height: 44 }, options.rect || {});
+    return {
+      contained: options.contained !== false,
+      isConnected: options.connected !== false,
+      disabled: options.disabled === true,
+      style: Object.assign({ display: 'block', visibility: 'visible' }, options.style || {}),
+      focus() {},
+      getAttribute(name) { return (options.attributes || {})[name] || null; },
+      closest() { return options.hiddenAncestor ? {} : null; },
+      getClientRects() { return options.noRects ? [] : [rect]; },
+      getBoundingClientRect() { return rect; }
+    };
+  }
+
+  const visibleInvoker = element();
+  const offscreenConnectedListButton = element({
+    rect: { left: 12, top: 900, right: 200, bottom: 944, width: 188, height: 44 }
+  });
+  const visibleMobileToggle = element({
+    rect: { left: 16, top: 780, right: 180, bottom: 824, width: 164, height: 44 }
+  });
+  const hiddenCandidate = element({ hiddenAncestor: true });
+  const contract = sandbox.focusContract;
+  if (contract.isUsableFocusReturnTarget(offscreenConnectedListButton) !== false) {
+    problems.push('connected off-screen list button is accepted');
+  }
+  if (contract.selectFocusReturnTarget(offscreenConnectedListButton, [hiddenCandidate, visibleMobileToggle]) !== visibleMobileToggle) {
+    problems.push('mobile Building List fallback is not selected');
+  }
+  if (contract.selectFocusReturnTarget(visibleInvoker, [visibleMobileToggle]) !== visibleInvoker) {
+    problems.push('visible invoker is not preserved');
+  }
+  return problems;
+}
+
+function offlineInteractionLifecycleProblems(source, shell) {
+  const problems = [];
+  const detailsCloseBody = (source.match(/function closeDetails\(\) \{([\s\S]*?)\n  \}\n\n  function highlightSelection/) || [])[1] || '';
+  const closeBody = (source.match(/function closeRouteSummary\(\) \{([\s\S]*?)\n  \}\n\n  function clearRoute/) || [])[1] || '';
+  const setDestinationBody = (source.match(/function setDestination\(key\) \{([\s\S]*?)\n  \}\n\n  function clearDestination/) || [])[1] || '';
+  const mobileSidebarBody = (source.match(/function setMobileSidebar\(open, options\) \{([\s\S]*?)\n  \}\n\n  function syncMobileSidebarViewport/) || [])[1] || '';
+  if (!/var routeSummaryInvoker = null;/.test(source)) problems.push('missing invoker state');
+  if (!/function rememberRouteSummaryInvoker\(\)[\s\S]*summary\.contains\(active\)[\s\S]*document\.activeElement/.test(source)) {
+    problems.push('missing invoker capture');
+  }
+  if (!/function isUsableFocusReturnTarget\(element\)[\s\S]*document\.contains\(element\)[\s\S]*closest\('\[hidden\], \[aria-hidden="true"\], \[inert\]'\)[\s\S]*getClientRects\(\)[\s\S]*getBoundingClientRect\(\)[\s\S]*window\.innerWidth[\s\S]*window\.innerHeight/.test(source)) {
+    problems.push('return target is not visibility-checked');
+  }
+  problems.push(...focusReturnBehaviorProblems(source));
+  if (!/function routeSummaryFocusables\(\)[\s\S]*querySelectorAll\([\s\S]*a\[href\], button, input, select, textarea, \[tabindex\][\s\S]*aria-disabled[\s\S]*tabindex/.test(source)) {
+    problems.push('missing focusable filter');
+  }
+  if (!/rememberRouteSummaryInvoker\(\);[\s\S]*destinationKey = key/.test(setDestinationBody)) {
+    problems.push('Set as Destination does not capture before closing details');
+  }
+  if (!/findRoute\.addEventListener\('click'[\s\S]*rememberRouteSummaryInvoker\(\);[\s\S]*showRoute\(destinationKey\)/.test(source)) {
+    problems.push('Find Route does not capture its invoker');
+  }
+  if (!/var invoker = lastInvoker;[\s\S]*lastInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*buildingListButtonForKey\(selectedKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle[\s\S]*offlineRecenterMap/.test(detailsCloseBody)) {
+    problems.push('details close does not restore by the required visible fallback order');
+  }
+  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(destinationKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
+    problems.push('close does not restore by the required fallback order');
+  }
+  if (/setData\(|drawFallbackRoute\(/.test(closeBody)) problems.push('close clears the rendered route');
+  if (!/routeSummary\.addEventListener\('click'[\s\S]*event\.target === routeSummary[\s\S]*closeRouteSummary\(\)/.test(source)) {
+    problems.push('backdrop does not share the close lifecycle');
+  }
+  if (!/routeSummary\.addEventListener\('keydown'[\s\S]*event\.key === 'Escape'[\s\S]*stopPropagation\(\)[\s\S]*preventDefault\(\)[\s\S]*closeRouteSummary\(\)[\s\S]*event\.key !== 'Tab'[\s\S]*event\.shiftKey[\s\S]*!routeSummary\.contains\(active\)/.test(source)) {
+    problems.push('missing Escape or Tab containment');
+  }
+  if (!/<aside class="map-sidebar offline-sidebar" id="offlineMapSidebar" aria-hidden="true" inert>/.test(shell)) {
+    problems.push('mobile sheet is not fail-closed before script initialization');
+  }
+  if (!/var mobile = isMobileMapLayout\(\);[\s\S]*var shouldOpen = mobile && !!open/.test(mobileSidebarBody) ||
+      !/if \(!mobile\)[\s\S]*removeAttribute\('inert'\)[\s\S]*removeAttribute\('aria-hidden'\)/.test(mobileSidebarBody)) {
+    problems.push('desktop sidebar availability is not restored');
+  }
+  if (!/if \(shouldOpen\)[\s\S]*removeAttribute\('inert'\)[\s\S]*setAttribute\('aria-hidden', 'false'\)[\s\S]*focusMobileSidebarSearch\(\)/.test(mobileSidebarBody)) {
+    problems.push('opening the mobile sheet does not expose and focus it');
+  }
+  if (!/selectFocusReturnTarget\(toggle, \[[\s\S]*offlineRecenterMap[\s\S]*offlineThemeToggle[\s\S]*offlineNavToggle[\s\S]*focusTarget\.focus\(\)[\s\S]*setAttribute\('inert', ''\)[\s\S]*setAttribute\('aria-hidden', 'true'\)/.test(mobileSidebarBody)) {
+    problems.push('closing the mobile sheet does not restore focus before isolation');
+  }
+  if (!/matchMedia\(MOBILE_MAP_MEDIA\)[\s\S]*syncMobileSidebarViewport\(mobileSidebarMedia\)[\s\S]*(?:addEventListener\('change'|addListener\()/.test(source) ||
+      !/offlineMobileListToggle'[\s\S]*setMobileSidebar\(true, \{ focus: true \}\)[\s\S]*offlineSidebarClose[\s\S]*setMobileSidebar\(false, \{ restoreFocus: true \}\)/.test(source) ||
+      !/sidebar && sidebar\.classList\.contains\('is-open'\)[\s\S]*setMobileSidebar\(false, \{ restoreFocus: true \}\)/.test(source)) {
+    problems.push('mobile sheet controls, Escape, or viewport lifecycle is incomplete');
+  }
+  if (!/var THEME_STORAGE_KEY = 'campussphere-theme';/.test(source) ||
+      !/function readThemePreference\(\)[\s\S]*try[\s\S]*localStorage\.getItem\(THEME_STORAGE_KEY\)[\s\S]*stored === 'dark' \|\| stored === 'light'[\s\S]*catch/.test(source) ||
+      !/function persistThemePreference\(value\)[\s\S]*try[\s\S]*localStorage\.setItem\(THEME_STORAGE_KEY, value\)[\s\S]*catch/.test(source) ||
+      !/function applyThemePreference\(value, persist\)[\s\S]*persistThemePreference[\s\S]*updateThemeToggleState\(\)/.test(source) ||
+      !/preferredTheme = readThemePreference\(\)[\s\S]*applyThemePreference\(preferredTheme, false\)[\s\S]*theme\.addEventListener\('click'[\s\S]*applyThemePreference\(dark \? 'light' : 'dark', true\)/.test(source) ||
+      !/function updateThemeToggleState\(\)[\s\S]*aria-pressed[\s\S]*Switch to light mode[\s\S]*Switch to dark mode/.test(source)) {
+    problems.push('theme preference or accessible toggle state is not synchronized');
+  }
+  if (!/<button class="theme-toggle" id="offlineThemeToggle"[^>]*aria-label="Switch to dark mode"[^>]*aria-pressed="false"/.test(shell)) {
+    problems.push('theme toggle lacks an initial accessible state');
+  }
+  return problems;
+}
+
+function offlineInteractionMutationsAreRejected(source, shell) {
+  const cases = [
+    { source: source.replace('    rememberRouteSummaryInvoker();\n    destinationKey = key;', '    destinationKey = key;'), shell },
+    { source: source.replace("    if (element.closest('[hidden], [aria-hidden=\"true\"], [inert]')) return false;", ''), shell },
+    { source: source.replace('    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;', ''), shell },
+    { source: source.replace("        if (event.key !== 'Tab') return;", '        return;'), shell },
+    { source: source.replace('    routeSummaryInvoker = null;\n    var target = selectFocusReturnTarget(invoker, [', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var target = selectFocusReturnTarget(invoker, ["), shell },
+    { source: source.replace("      byId('offlineMobileListToggle'),\n      byId('offlineRecenterMap')", "      byId('offlineRecenterMap')"), shell },
+    { source: source.replace("    theme.setAttribute('aria-pressed', dark ? 'true' : 'false');", ''), shell },
+    { source: source.replace("  var THEME_STORAGE_KEY = 'campussphere-theme';", "  var THEME_STORAGE_KEY = 'offline-theme';"), shell },
+    { source: source.replace('window.localStorage.getItem(THEME_STORAGE_KEY)', "window.localStorage.getItem('wrong-key')"), shell },
+    { source: source.replace('window.localStorage.setItem(THEME_STORAGE_KEY, value)', "window.localStorage.setItem('wrong-key', value)"), shell },
+    { source: source.replace("    sidebar.setAttribute('inert', '');", ''), shell },
+    { source: source.replace('      focusTarget.focus();', ''), shell },
+    { source: source.replace("      byId('offlineRecenterMap'),", ''), shell },
+    { source: source.replace('      if (options.focus !== false) focusMobileSidebarSearch();', ''), shell },
+    {
+      source: source
+        .replace("mobileSidebarMedia.addEventListener('change', syncMobileSidebarViewport);", '')
+        .replace('mobileSidebarMedia.addListener(syncMobileSidebarViewport);', ''),
+      shell
+    },
+    { source, shell: shell.replace(' aria-hidden="true" inert', '') },
+    { source, shell: shell.replace(' aria-pressed="false"', '') }
+  ];
+  return cases.every((fixture) =>
+    (fixture.source !== source || fixture.shell !== shell) &&
+    offlineInteractionLifecycleProblems(fixture.source, fixture.shell).length > 0);
 }
 
 function buildFixture() {
@@ -113,6 +276,7 @@ function runStaticBoundaryChecks() {
   const service = read('services/offlineGuideService.js');
   const manager = read('public/js/offline-guide-manager.js');
   const shell = read('public/offline.html');
+  const css = read('public/css/offline.css');
   const sw = read('public/sw.js');
   const pwa = read('public/js/pwa.js');
   const vercel = JSON.parse(read('vercel.json'));
@@ -157,13 +321,31 @@ function runStaticBoundaryChecks() {
     /function verifyStoredRecord/.test(manager) && /record\.basemap\.arrayBuffer\(\)/.test(manager));
   ok('database text is rendered through textContent and no innerHTML sink exists',
     /node\.textContent\s*=\s*text/.test(manager) && !/\.innerHTML\s*=/.test(manager));
-  ok('map nodes and fallback nodes both open building details',
-    /new maplibregl\.Marker/.test(manager) && /node\.addEventListener\('click'[\s\S]{0,100}openDetails/.test(manager));
-  ok('fallback nodes support Enter and Space keyboard activation',
-    /event\.key\s*!==\s*'Enter'[\s\S]{0,80}event\.key\s*!==\s*' '/.test(manager));
-  ok('details window has safe focus placement, Escape close, and focus restoration',
+  ok('map nodes use the online MapLibre marker anchor, fallback markers use reviewed native overlays, and Set as Destination draws immediately',
+    /var marker = new maplibregl\.Marker\(\)[\s\S]{0,180}\.setLngLat\(\[building\.lng, building\.lat\]\)/.test(manager) &&
+    /markerElement\.classList\.add\('offline-building-marker'\)/.test(manager) &&
+    /markerElement\.addEventListener\('click'[\s\S]{0,180}openDetails/.test(manager) &&
+    /markerElement\.addEventListener\('keydown'[\s\S]{0,180}event\.key !== 'Enter'[\s\S]{0,120}openDetails/.test(manager) &&
+    /function setDestination\(key\)[\s\S]{0,500}showRoute\(key\)/.test(manager) &&
+    offlineFallbackMarkerProblems(manager, shell).length === 0 &&
+    offlineFallbackMarkerMutationsAreRejected(manager, shell));
+  ok('fallback nodes inherit Enter and Space activation from native buttons without interactive SVG descendants',
+    /var button = document\.createElement\('button'\)/.test(manager) &&
+    /button\.type = 'button'/.test(manager) &&
+    !/createElementNS\(svgNamespace, 'g'\)[\s\S]{0,180}setAttribute\('role', 'button'\)/.test(manager) &&
+    !/button\.addEventListener\('keydown'/.test(manager));
+  ok('details and route dialogs have safe focus placement, containment, route-preserving close, visible-target restoration, and announced theme state', (() => {
+    return offlineInteractionLifecycleProblems(manager, shell).length === 0 &&
+      offlineInteractionMutationsAreRejected(manager, shell) &&
+      offlineMobileDetailsOverlapProblems(css, shell).length === 0 &&
+      offlineMobileDetailsOverlapMutationsAreRejected(css, shell) &&
     /close\.focus\(\)/.test(manager) && /event\.key\s*===\s*'Escape'/.test(manager) &&
-    /document\.contains\(target\)[\s\S]{0,30}target\.focus\(\)/.test(manager));
+    /function closeDetails\(\)[\s\S]{0,520}if \(target\) target\.focus\(\)/.test(manager) &&
+    /function closeRouteSummary\(\)[\s\S]{0,260}summary\.hidden = true/.test(manager) &&
+    /routeClose\.addEventListener\('click', closeRouteSummary\)/.test(manager) &&
+    /routeClear\.addEventListener\('click', clearRoute\)/.test(manager) &&
+    /mapClear\.addEventListener\('click', clearRoute\)/.test(manager);
+  })());
   ok('offline shell loads only the three reviewed same-origin scripts', (() => {
     const scripts = [...shell.matchAll(/<script\s+src="([^"]+)"\s+defer><\/script>/g)].map((match) => match[1]);
     return JSON.stringify(scripts) === JSON.stringify([

@@ -63,6 +63,32 @@ const PWA_PATH = path.join(ROOT, 'public', 'js', 'pwa.js');
 const MANIFEST_PATH = path.join(ROOT, 'public', 'manifest.webmanifest');
 const SHELL_HTML_PATH = path.join(ROOT, 'public', 'offline.html');
 const SHELL_CSS_PATH = path.join(ROOT, 'public', 'css', 'offline.css');
+const OFFLINE_MANAGER_PATH = path.join(ROOT, 'public', 'js', 'offline-guide-manager.js');
+
+const OFFLINE_TOUCH_TARGET_SELECTORS = [
+  '.offline-page [data-offline-guide-download]',
+  '.offline-page .dash-nav__tab',
+  '.offline-page #offlineNavToggle',
+  '.offline-page #offlineSidebarHandle',
+  '.offline-page #offlineSidebarClose',
+  '.offline-page #offlineSearchClear',
+  '.offline-page [data-offline-filter]',
+  '.offline-page #offlineRoutePlannerToggle',
+  '.offline-page #offlineRouteDestClear',
+  '.offline-page #offlineRouteFind',
+  '.offline-page #offlineRecenterMap',
+  '.offline-page #offlineClearMapRoute',
+  '.offline-page #offlineDetailsClose',
+  '.offline-page #offlineSetDestination',
+  '.offline-page #offlineRouteClose',
+  '.offline-page #offlineRouteClear',
+  '.offline-page #offlineMobileListToggle',
+  '.offline-page #offlineThemeToggle',
+  '.offline-page .offline-building',
+  '.offline-page .offline-building-marker',
+  '.offline-page .offline-fallback-marker',
+  '.offline-page .offline-map .maplibregl-ctrl-group button'
+];
 
 /* ---------------------------------------------------------------- recorder */
 
@@ -82,6 +108,136 @@ function ok(label, condition) {
 function section(title) {
   console.log('');
   console.log(`[${title}]`);
+}
+
+function offlineTouchTargetProblems(css) {
+  const problems = [];
+  const bounded = (String(css).match(/\/\* OFFLINE_TOUCH_TARGETS_START[\s\S]*?OFFLINE_TOUCH_TARGETS_END \*\//) || [])[0] || '';
+  const rule = bounded.match(/([\s\S]*?)\{([\s\S]*?)\}/);
+  if (!rule) return ['bounded offline touch-target rule is missing'];
+  const selectors = new Set(rule[1]
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(',')
+    .map((selector) => selector.trim())
+    .filter(Boolean));
+  for (const selector of OFFLINE_TOUCH_TARGET_SELECTORS) {
+    if (!selectors.has(selector)) problems.push(`missing exact touch target: ${selector}`);
+  }
+  if (!/(?:^|;)\s*min-width\s*:\s*44px\s*;/.test(`;${rule[2]}`)) problems.push('touch targets lack exact 44px width');
+  if (!/(?:^|;)\s*min-height\s*:\s*44px\s*;/.test(`;${rule[2]}`)) problems.push('touch targets lack exact 44px height');
+  const fallbackRule = (String(css).match(/\.offline-fallback-marker\s*\{([\s\S]*?)\}/) || [])[1] || '';
+  if (!/(?:^|;)\s*width\s*:\s*44px\s*;/.test(`;${fallbackRule}`)) problems.push('fallback markers lack an exact 44px width');
+  if (!/(?:^|;)\s*height\s*:\s*44px\s*;/.test(`;${fallbackRule}`)) problems.push('fallback markers lack an exact 44px height');
+  return problems;
+}
+
+function offlineTouchTargetMutationsAreRejected(css) {
+  const cases = [
+    css.replace('  min-width: 44px;', '  min-width: 34px;') + '\n.unrelated-fixture { min-width: 44px; }',
+    css.replace('  min-height: 44px;', '  min-height: 34px;') + '\n.unrelated-fixture { min-height: 44px; }',
+    css.replace('.offline-page #offlineSearchClear,', '.offline-page .unrelated-search-clear,'),
+    css.replace('.offline-page #offlineMobileListToggle,', '.offline-page .offscreen-list-button,'),
+    css.replace('.offline-page .offline-fallback-marker,', '.offline-page .undersized-fallback-marker,'),
+    css.replace('  width: 44px;\n  height: 44px;\n  padding: 0;\n  appearance: none;',
+      '  width: 18px;\n  height: 18px;\n  padding: 0;\n  appearance: none;')
+  ];
+  return cases.every((mutated) => mutated !== css && offlineTouchTargetProblems(mutated).length > 0);
+}
+
+function offlineMobileDetailsOverlapProblems(css, shell) {
+  const problems = [];
+  const mobile = String(css).match(/@media\s*\(max-width:\s*768px\)\s*\{([\s\S]*?)\n\}\s*\n\n@media\s*\(max-width:\s*420px\)/);
+  const bounded = mobile
+    ? (mobile[1].match(/\/\* OFFLINE_MOBILE_DETAILS_OVERLAP_START \*\/([\s\S]*?)\/\* OFFLINE_MOBILE_DETAILS_OVERLAP_END \*\//) || [])[1] || ''
+    : '';
+  if (!mobile) problems.push('mobile details-overlap rule is outside the 768px media boundary');
+  if (!bounded) problems.push('bounded mobile details-overlap rule is missing');
+  if (bounded && !/\.offline-page\s+#offlineDetailsPanel\.visible\s+~\s+#offlineMobileListToggle\s*\{\s*display:\s*none\s*;\s*\}/.test(bounded)) {
+    problems.push('details overlap guard does not hide only the mobile toggle while details are visible');
+  }
+  const source = String(shell);
+  const detailsIndex = source.indexOf('id="offlineDetailsPanel"');
+  const toggleIndex = source.indexOf('id="offlineMobileListToggle"');
+  if (detailsIndex === -1 || toggleIndex === -1 || detailsIndex >= toggleIndex) {
+    problems.push('details panel must precede the mobile toggle for the sibling guard');
+  }
+  return problems;
+}
+
+function offlineMobileDetailsOverlapMutationsAreRejected(css, shell) {
+  const source = String(css);
+  const selector = '.offline-page #offlineDetailsPanel.visible ~ #offlineMobileListToggle';
+  const swappedShell = String(shell)
+    .replace('id="offlineDetailsPanel"', 'id="__offlineDetailsPanel"')
+    .replace('id="offlineMobileListToggle"', 'id="offlineDetailsPanel"')
+    .replace('id="__offlineDetailsPanel"', 'id="offlineMobileListToggle"');
+  const cases = [
+    { css: source.replace(selector, '.offline-page #offlineDetailsPanel ~ #offlineMobileListToggle'), shell },
+    { css: source.replace(`  ${selector} {\n    display: none;\n  }\n`,
+      `  ${selector} {\n    display: flex;\n  }\n`), shell },
+    { css: source.replace('@media (max-width: 768px)', '@media (min-width: 769px)'), shell },
+    { css: source.replace(`  ${selector} {\n    display: none;\n  }\n`, ''), shell },
+    { css: source, shell: swappedShell }
+  ];
+  return cases.every((fixture) =>
+    (fixture.css !== source || fixture.shell !== shell) &&
+    offlineMobileDetailsOverlapProblems(fixture.css, fixture.shell).length > 0);
+}
+
+function offlineFallbackMarkerProblems(source, shell) {
+  const problems = [];
+  const render = extractFunction(stripComments(String(source)), 'renderFallbackMap');
+  if (!render) return ['fallback renderer is missing'];
+  if (!/svg\.setAttribute\('aria-hidden', 'true'\)/.test(render) ||
+      !/svg\.setAttribute\('focusable', 'false'\)/.test(render) ||
+      /svg\.setAttribute\('role', 'img'\)/.test(render)) {
+    problems.push('fallback SVG is not strictly decorative');
+  }
+  if (!/svg\.setAttribute\('preserveAspectRatio', 'none'\)/.test(render)) {
+    problems.push('fallback SVG coordinate frame does not match the HTML marker overlay');
+  }
+  if (!/var markerLayer = document\.createElement\('div'\)/.test(render) ||
+      !/markerLayer\.className = 'offline-map-fallback__markers'/.test(render) ||
+      !/markerLayer\.setAttribute\('role', 'group'\)/.test(render)) {
+    problems.push('fallback marker layer lacks valid accessible grouping');
+  }
+  if (!/var button = document\.createElement\('button'\)/.test(render) ||
+      !/button\.type = 'button'/.test(render) ||
+      !/button\.className = 'offline-building-marker offline-fallback-marker'/.test(render) ||
+      !/button\.setAttribute\('aria-label', 'Open details for ' \+ building\.name\)/.test(render) ||
+      !/button\.setAttribute\('aria-pressed', 'false'\)/.test(render) ||
+      !/button\.setAttribute\('data-building-key', building\.key\)/.test(render)) {
+    problems.push('fallback marker is not a labelled native button with selected state');
+  }
+  if (!/button\.style\.left = \(point\[0\] \/ 10\) \+ '%'/.test(render) ||
+      !/button\.style\.top = \(point\[1\] \/ 7\) \+ '%'/.test(render) ||
+      !/markerLayer\.appendChild\(button\)/.test(render)) {
+    problems.push('fallback marker is not positioned in the HTML overlay');
+  }
+  if (!/button\.addEventListener\('click'[\s\S]*openDetails\(building\.key, button\)/.test(render) ||
+      /button\.addEventListener\('keydown'/.test(render) ||
+      /createElementNS\(svgNamespace, 'g'\)[\s\S]*setAttribute\('role', 'button'\)/.test(render)) {
+    problems.push('fallback activation does not rely on native button semantics');
+  }
+  if (!/<div class="offline-map-fallback" id="offlineMapFallback" role="group" aria-label="Simplified CSPC campus map" hidden><\/div>/.test(String(shell))) {
+    problems.push('fallback container lacks its accessible group name');
+  }
+  return problems;
+}
+
+function offlineFallbackMarkerMutationsAreRejected(source, shell) {
+  const cases = [
+    { source: source.replace("var button = document.createElement('button');", "var button = document.createElement('div');"), shell },
+    { source: source.replace('offline-building-marker offline-fallback-marker', 'offline-building-marker'), shell },
+    { source: source.replace("svg.setAttribute('aria-hidden', 'true');", "svg.setAttribute('role', 'img');"), shell },
+    { source: source.replace("svg.setAttribute('preserveAspectRatio', 'none');", ''), shell },
+    { source: source.replace("svg.setAttribute('preserveAspectRatio', 'none');", "svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');"), shell },
+    { source: source.replace('markerLayer.appendChild(button);', 'svg.appendChild(button);'), shell },
+    { source, shell: shell.replace(' role="group" aria-label="Simplified CSPC campus map"', '') }
+  ];
+  return cases.every((fixture) =>
+    (fixture.source !== source || fixture.shell !== shell) &&
+    offlineFallbackMarkerProblems(fixture.source, fixture.shell).length > 0);
 }
 
 /* ------------------------------------------------------- source utilities */
@@ -778,7 +934,7 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advanced once for the consent-boundary correction (v15)', SW.cacheVersion(swSource) === 15);
+  ok('cache version advanced once for the native fallback-marker accessibility correction (v25)', SW.cacheVersion(swSource) === 25);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
@@ -859,11 +1015,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // A stale v14 contract must fail: v14 still cached /api/buildings and
-  // /api/routes* responses carrying image references, so it must not survive.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v15'", "CACHE_VERSION = 'v14'");
-  ok('REJECTS an un-advanced (stale v14) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 15);
+  // The immediately preceding v23 shell must not mask the corrected manager.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v25'", "CACHE_VERSION = 'v24'");
+  ok('REJECTS an un-advanced (stale v24) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 25);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1006,7 +1161,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v15');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v25');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1077,10 +1232,42 @@ async function checkVersionedCleanup(swSource) {
     // still hold /api/buildings and /api/routes* image references.
     'campusphere-pwa-shell-v14', 'campusphere-pwa-static-v14',
     'campusphere-pwa-api-v14', 'campusphere-pwa-external-v14',
-    // current v15 caches — shell and static ONLY
+    // preceding v15 caches — retained as older regression fixtures
     'campusphere-pwa-shell-v15', 'campusphere-pwa-static-v15',
-    // v15-suffixed API and EXTERNAL caches must still be pruned: not current.
     'campusphere-pwa-api-v15', 'campusphere-pwa-external-v15',
+    // immediately preceding v16 caches — shell and static only, now stale.
+    'campusphere-pwa-shell-v16', 'campusphere-pwa-static-v16',
+    // v16-suffixed API and EXTERNAL caches must also be pruned.
+    'campusphere-pwa-api-v16', 'campusphere-pwa-external-v16',
+    // immediately preceding v17 caches — shell and static only, now stale.
+    'campusphere-pwa-shell-v17', 'campusphere-pwa-static-v17',
+    // v17-suffixed API and EXTERNAL caches must also be pruned.
+    'campusphere-pwa-api-v17', 'campusphere-pwa-external-v17',
+    // immediately preceding v18 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v18', 'campusphere-pwa-static-v18',
+    'campusphere-pwa-api-v18', 'campusphere-pwa-external-v18',
+    // immediately preceding v19 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v19', 'campusphere-pwa-static-v19',
+    'campusphere-pwa-api-v19', 'campusphere-pwa-external-v19',
+    // immediately preceding v20 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v20', 'campusphere-pwa-static-v20',
+    'campusphere-pwa-api-v20', 'campusphere-pwa-external-v20',
+    // immediately preceding v21 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v21', 'campusphere-pwa-static-v21',
+    'campusphere-pwa-api-v21', 'campusphere-pwa-external-v21',
+    // immediately preceding v22 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v22', 'campusphere-pwa-static-v22',
+    'campusphere-pwa-api-v22', 'campusphere-pwa-external-v22',
+    // immediately preceding v23 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v23', 'campusphere-pwa-static-v23',
+    'campusphere-pwa-api-v23', 'campusphere-pwa-external-v23',
+    // immediately preceding v24 caches - shell and static only, now stale.
+    'campusphere-pwa-shell-v24', 'campusphere-pwa-static-v24',
+    'campusphere-pwa-api-v24', 'campusphere-pwa-external-v24',
+    // current v25 caches - shell and static ONLY. Any v25 API/external cache
+    // name is adversarial and must still be pruned.
+    'campusphere-pwa-shell-v25', 'campusphere-pwa-static-v25',
+    'campusphere-pwa-api-v25', 'campusphere-pwa-external-v25',
     // unrelated Cache Storage entries that MUST survive
     'some-other-app-v1', 'workbox-precache-v2', 'campusphere-other-tool'
   ];
@@ -1091,19 +1278,49 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v15 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v25 caches (shell + static only)',
     settled.length === 1 && settled[0].status === 'fulfilled' &&
-    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v15`)));
-  // Combined: every stale prefixed cache goes — the whole preceding v14 set
-  // INCLUDING its API cache, the v13/v12 generations, the removed page cache,
+    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v25`)));
+  // Combined: every stale prefixed cache goes — the whole preceding v22 set,
+  // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v14 set with its API cache, older API/external/page generations, and any v15-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v24 set, older API/external/page generations, and any v25-suffixed API or external cache',
     !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v15`)) &&
+      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v25`)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v24$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v23$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v22$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v21$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v20$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v19$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v18$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v17$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v16$/.test(k)) &&
+    !remaining.some((k) => /^campusphere-pwa-.*-v15$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v14$/.test(k)) &&
     !remaining.includes('campusphere-pwa-api-v14') &&
     !remaining.includes('campusphere-pwa-api-v15') &&
     !remaining.includes('campusphere-pwa-external-v15') &&
+    !remaining.includes('campusphere-pwa-api-v16') &&
+    !remaining.includes('campusphere-pwa-external-v16') &&
+    !remaining.includes('campusphere-pwa-api-v17') &&
+    !remaining.includes('campusphere-pwa-external-v17') &&
+    !remaining.includes('campusphere-pwa-api-v18') &&
+    !remaining.includes('campusphere-pwa-external-v18') &&
+    !remaining.includes('campusphere-pwa-api-v19') &&
+    !remaining.includes('campusphere-pwa-external-v19') &&
+    !remaining.includes('campusphere-pwa-api-v20') &&
+    !remaining.includes('campusphere-pwa-external-v20') &&
+    !remaining.includes('campusphere-pwa-api-v21') &&
+    !remaining.includes('campusphere-pwa-external-v21') &&
+    !remaining.includes('campusphere-pwa-api-v22') &&
+    !remaining.includes('campusphere-pwa-external-v22') &&
+    !remaining.includes('campusphere-pwa-api-v23') &&
+    !remaining.includes('campusphere-pwa-external-v23') &&
+    !remaining.includes('campusphere-pwa-api-v24') &&
+    !remaining.includes('campusphere-pwa-external-v24') &&
+    !remaining.includes('campusphere-pwa-api-v25') &&
+    !remaining.includes('campusphere-pwa-external-v25') &&
     !remaining.includes('campusphere-pwa-api-v12') &&
     !remaining.includes('campusphere-pwa-page-v6'));
   // Combined: unrelated entries and a similarly named non-prefixed cache survive.
@@ -1417,6 +1634,9 @@ async function checkOfflineShell(base) {
 
   const html = fs.readFileSync(SHELL_HTML_PATH, 'utf8');
   const css = fs.readFileSync(SHELL_CSS_PATH, 'utf8');
+  const manager = fs.readFileSync(OFFLINE_MANAGER_PATH, 'utf8');
+  const sharedCss = fs.readFileSync(path.join(ROOT, 'public', 'css', 'styles.css'), 'utf8');
+  const sharedPanelImageRule = (sharedCss.match(/\.map-panel__img\s*\{([^}]*)\}/) || [])[1] || '';
 
   const res = await fetch(`${base}/offline.html`);
   const servedHtml = await res.text();
@@ -1448,7 +1668,8 @@ async function checkOfflineShell(base) {
       html.replace('</body>', '<div data-session="__SESSION_USER"></div></body>'),
       html.replace('</head>', '<meta name="csrf-token" content="abc"></head>'),
       html.replace('</body>', '<input name="email"></body>'),
-      html.replace('Offline-ready workspace', 'Signed in as student@my.cspc.edu.ph')
+      html.replace('<span class="dash-nav__username" data-offline-guide-download-label>Offline</span>',
+        '<span class="dash-nav__username" data-offline-guide-download-label>Signed in as student@my.cspc.edu.ph</span>')
     ];
     return leaks.every((mutated) => mutated !== html) &&
       leaks.every((mutated) => SHELL.isSessionNeutral(mutated) === false);
@@ -1471,20 +1692,35 @@ async function checkOfflineShell(base) {
     countOccurrences(html, '<h1') === 2 && /id="offline-empty-title"/.test(html) &&
     /id="offlineGuideWorkspace" hidden/.test(html));
   ok('the offline status is announced politely via role="status"', /role="status"/.test(html));
-  ok('the decorative logo is hidden from assistive technology', /<img src="\/img\/cspc-logo\.png" alt=""/.test(html));
+  ok('the brand logo is named while decorative offline imagery is hidden from assistive technology',
+    /<img src="\/img\/cspc-logo\.png" alt="CSPC Logo"/.test(html) &&
+    /<img src="\/img\/Camarines-sur-polytechnic-colleges\.png" alt=""/.test(html));
   ok('the downloaded-building navigation carries an accessible name',
-    /<nav class="offline-building-list"[^>]*aria-label="Downloaded buildings"/.test(html));
+    /<nav class="[^"]*offline-building-list[^"]*"[^>]*aria-label="Downloaded buildings"/.test(html));
   ok('the shell defines a visible keyboard focus indicator',
     /button:focus-visible,[\s\S]{0,80}a:focus-visible[\s\S]{0,80}outline:/.test(css));
 
   // Mobile basics.
   ok('the shell declares a responsive viewport', /width=device-width/.test(html) && /viewport-fit=cover/.test(html));
-  ok('shell actions meet a 44px minimum touch target', /min-height:\s*44px/.test(css));
-  ok('the shell has a small-screen single-column layout', /@media\s*\(max-width:\s*480px\)/.test(css) &&
-    /grid-template-columns:\s*1fr/.test(css));
+  ok('every named offline action, including native fallback markers, has an exact 44px target and valid semantics',
+    offlineTouchTargetProblems(css).length === 0 && offlineTouchTargetMutationsAreRejected(css) &&
+    offlineMobileDetailsOverlapProblems(css, html).length === 0 &&
+    offlineMobileDetailsOverlapMutationsAreRejected(css, html) &&
+    offlineFallbackMarkerProblems(manager, html).length === 0 &&
+    offlineFallbackMarkerMutationsAreRejected(manager, html));
+  ok('the shell inherits the online full-bleed panel image and has the online map small-screen canvas and bottom-sheet layout',
+    /@media\s*\(max-width:\s*768px\)/.test(css) &&
+    /\.offline-workspace\s*\{\s*display:\s*block;\s*position:\s*relative;/.test(css) &&
+    /transform:\s*translateY\(calc\(100% \+ 1rem\)\)/.test(css) &&
+    /width:\s*100%/.test(sharedPanelImageRule) &&
+    /height:\s*160px/.test(sharedPanelImageRule) &&
+    /object-fit:\s*cover/.test(sharedPanelImageRule) &&
+    !/\.offline-details\s+\.map-panel__img\s*\{/.test(css));
   ok('the shell cannot overflow horizontally on long words', /overflow-wrap:\s*anywhere/.test(css));
-  ok('the shell pins the reviewed light campus-map colour scheme',
-    /color-scheme:\s*light/.test(css) && /<meta name="color-scheme" content="#?light">/.test(html));
+  ok('the shell pins the reviewed light/dark campus-map colour scheme',
+    /<meta name="color-scheme" content="light dark">/.test(html) &&
+    /body\.offline-page[\s\S]{0,120}background:\s*var\(--gray-50\)/.test(css) &&
+    /\[data-theme="dark"\][\s\S]{0,160}background:\s*#111827/.test(css));
 
   ok('the shell truthfully limits offline scope to buildings/details/Main Gate routes and denies sensitive/media data',
     /buildings, building details, and Main Gate routes/.test(html) &&
@@ -1563,5 +1799,9 @@ module.exports = {
   loadServiceWorker,
   makeFakeCacheStorage,
   makeLifecycleEvent,
-  makeFetchEvent
+  makeFetchEvent,
+  offlineFallbackMarkerProblems,
+  offlineFallbackMarkerMutationsAreRejected,
+  offlineMobileDetailsOverlapProblems,
+  offlineMobileDetailsOverlapMutationsAreRejected
 };
