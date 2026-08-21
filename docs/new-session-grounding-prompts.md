@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-20 (Asia/Manila)
+Last updated: 2026-08-21 (Asia/Manila)
 
 The first two sections are the only current copy-paste prompts. Both authorize
 grounding only and then wait for the owner. Neither prompt authorizes review,
@@ -10,9 +10,10 @@ under historical headings and must not be used as current authority.
 
 OFF.2-OFF.6 are complete and Codex GO on local commit
 `cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
-GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate is
-pending independent read-only review and full verification.
+GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The exact
+19-file offline UI/accessibility/package implementation was independently fully
+verified, committed as `d786bdcb83a196c7263dceae668417d3ced3e95a`, and pushed
+to `origin/main`.
 
 The independent read-only closeout review of exact 19-file predecessor manifest
 SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
@@ -34,12 +35,14 @@ were green; the browser run stopped before MySQL and the final ordered
 postconditions. The bounded correction hides the toggle only while
 `#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
 for the wrong selector, state, media scope, and DOM order.
-Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-boundary `74/74`. No full suite, QA, ordered postconditions, browser
-acceptance, Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO is claimed. Replacement full verification requires separate
-owner authorization; commit, push, promotion, and deployment remain
-unauthorized.
+Replacement full verification of the committed implementation passed at
+`4998/4998` with `QUALITY-GATES OK`, five-stage QA at the same exact contract
+total, bounded Chrome acceptance in both supported backends, and ordered
+postconditions `24/24 -> 18/18 -> 46/46`. The clean-commit independent R8
+review then returned NO-GO solely because stale operative lifecycle authority
+still described this pushed, verified commit as uncommitted and pending; it
+found no separate runtime, security, database, or package blocker. This R8
+result remains the current external disposition until a later corrected review.
 
 It preserves the
 rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
@@ -69,16 +72,29 @@ the visible fallback order includes the mobile Building List toggle. The theme
   2D `35/35`, and package boundary `74/74`; the unchanged package identity is
   168 files, 7,073,128 bytes, aggregate SHA-256
   `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
-  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
-  postconditions, or browser acceptance was run for those exact bytes. The
-  `494010dd...` manifest is predecessor evidence for this authority
-  synchronization, not a pin for the later synchronized bytes; live Git and a
-  freshly computed post-sync manifest control the next review. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate
-claims no new Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO. Final Milestone 12 disposition remains external. The local
-commits and current candidate must not be pushed, promoted, or deployed before
-the presentation and a later explicit owner decision.
+The `494010dd...` manifest is predecessor evidence for the committed
+implementation, not a pin for the later documentation/static-assertion
+correction. The correction is a separate byte set: live Git and the latest
+independent external review report control its lifecycle and disposition, and
+these grounding prompts do not claim that correction is reviewed, committed,
+pushed, R8-approved, promoted, or deployed. Final Milestone 12 disposition
+remains external. The accepted technical Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; future `main` deployments require
+explicit manual promotion, and deployment is not authorized by these prompts.
+
+The current local maintenance correction is a separate local-session byte set.
+It changes the readiness poll to a pre-session route and adds a fail-closed
+scripts-only operator plus a narrowly scoped supported conditional session-store
+interface; that interface is deployable runtime support and is included in the
+package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
+candidate evidence only, not deployment evidence. The
+`app_sessions` schema has no provenance field: the exact anonymous
+cookie+csrfToken shape is an operational scope selector, not proof that every
+row came from the historical readiness request. No cleanup has run. Cleanup
+requires a fresh read-only preflight, independent source-review GO, and
+separate owner authorization; replacement full verification, commit, push,
+promotion, and deployment remain separately gated.
 
 ## Codex Grounding Prompt
 
@@ -308,9 +324,17 @@ wins:
   e4436faba637bf592e220859469ca59fcf62870be731bc1d915f133c254e79a2
   passed replacement npm test 4998/4998 with D6 266/266, BE.6 46/46, and
   embedded residue 18/18. Final Milestone 12 disposition remains external to
-  repository text. The local candidate must not be pushed, promoted, or deployed before
-  the presentation and a later explicit owner decision.
-  After those accepted local commits, the current uncommitted 19-file offline
+  repository text. The implementation was later committed and pushed as
+  `d786bdcb83a196c7263dceae668417d3ced3e95a`; No promotion is authorized;
+  deployment is not authorized by this prompt.
+  Replacement full verification of that committed implementation passed at
+  `4998/4998` with `QUALITY-GATES OK`, five-stage `npm run qa` at the same
+  exact contract total, bounded Chrome acceptance in both supported backends,
+  and ordered postconditions `24/24 -> 18/18 -> 46/46`. The clean-commit
+  independent R8 review returned NO-GO solely because stale operative lifecycle
+  authority described the pushed, verified commit as uncommitted and pending;
+  no separate runtime, security, database, or package blocker was found.
+  After those accepted local commits, the committed 19-file offline
   UI/accessibility/package correction preserves the rendered route after the
   summary closes, online/offline data and layout parity, stable markers,
   building-detail image coverage, dialog focus containment/restoration, an
@@ -318,23 +342,16 @@ wins:
   exact 44-by-44 targets. Its simplified fallback keeps the SVG basemap and
   route decorative and represents buildings as labelled native HTML buttons in
   a named overlay. The service worker is v25. Authority-sync preflight recorded
-  branch main, Git commit SHA-1 HEAD
-  691f0bef40e06b6ea9485e713d2fe3000a03bd83, origin/main Git commit SHA-1
-  7ec8cc6e82c3a8e1824697696311675c1d23a572, an empty index, exactly 19 tracked
-  modifications, zero untracked files, zero stashes, and migrations 0001-0019
-  only. Exact pre-authority-sync manifest SHA-256
-  494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610
-  covered 19 files and 2,020,639 bytes. It has focused evidence only: OFF.2
-  145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package
-  identity is 168 files, 7,073,128 bytes, aggregate SHA-256
-  1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a.
-  No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or
-  browser acceptance was run for those exact bytes. That manifest is
-  predecessor evidence for the authority synchronization, not a pin for the
-  later synchronized bytes; recompute the live manifest instead of reusing it.
-  The current correction remains pending independent read-only review and full
-  verification and claims no Codex GO, commit readiness, deployment readiness,
-  or final Milestone 12 GO.
+  branch main, HEAD and origin/main at `d786bdcb83a196c7263dceae668417d3ced3e95a`,
+  a clean index/worktree, zero untracked files and stashes, and migrations
+  0001-0019 only. The committed implementation manifest SHA-256
+  `92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642` covered
+  19 files and 2,072,400 bytes. Replacement verification passed at 4998/4998,
+  five-stage QA, bounded Chrome acceptance in both backends, and
+  24/24 -> 18/18 -> 46/46. The package pin is 168 files, 7,073,128 bytes,
+  aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  The current clean-commit R8 review returned NO-GO solely for stale lifecycle
+  authority; live Git and the latest external report control any later correction.
   The exact predecessor manifest SHA-256
   `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16` received
   independent NO-GO solely for the fallback SVG coordinate-frame defect. The
@@ -342,9 +359,17 @@ wins:
   for missing and `xMidYMid meet` variants. Its pre-authority-sync manifest
   SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
   is predecessor evidence; recompute the final live manifest after authority
-  edits. A fresh independent source review must precede replacement full
-  verification, which requires separate owner authorization; commit, push,
-  promotion, and deployment remain unauthorized.
+  edits. The current local maintenance correction is a separate local-session
+  byte set. It adds a scripts-only operator plus a narrowly scoped supported
+  conditional session-store interface; that interface is deployable runtime
+  support included in the package. Its exact package identity is 168 files, 7,074,195
+  bytes, aggregate SHA-256
+  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
+  The app_sessions schema has no provenance field, so the anonymous
+  cookie+csrfToken shape is an operational scope selector, not proof of origin.
+  No cleanup has run; cleanup requires independent source-review GO and
+  separate owner authorization. Replacement verification, commit, push,
+  promotion, and deployment remain separately gated by this prompt.
   The first replacement browser acceptance of the preceding exact 19-file
   candidate is historical/rejected solely for a mobile overlap at 390x844:
   the fixed `#offlineMobileListToggle` covered the visible
@@ -355,8 +380,8 @@ wins:
   only while `#offlineDetailsPanel.visible` on max-width 768px and adds
   rejecting fixtures for the wrong selector, state, media scope, and DOM order.
   Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-  boundary `74/74`. No full suite, QA, ordered postconditions, or browser
-  acceptance of the corrected bytes is claimed.
+  boundary `74/74`. No new verification or browser acceptance is authorized by
+  this grounding prompt.
   The first full verification of this offline candidate is historical/rejected
   at 4635/4641: npm test exited 1 after 4,635 PASS lines and emitted no
   QUALITY-GATES OK because exactly six static documentation/authority checks
@@ -666,9 +691,17 @@ media. Focused evidence is 145/145, 35/35, and package 74/74. D6 is committed
   e4436faba637bf592e220859469ca59fcf62870be731bc1d915f133c254e79a2 passed
   replacement npm test 4998/4998 with D6 266/266, BE.6 46/46, and embedded
   residue 18/18. Final Milestone 12 disposition remains external to repository
-  text. The local candidate must not be pushed, promoted, or deployed before the
-  presentation and a later explicit owner decision.
-  After those accepted local commits, the current uncommitted 19-file offline
+  text. The implementation was later committed and pushed as
+  `d786bdcb83a196c7263dceae668417d3ced3e95a`; No promotion is authorized;
+  deployment is not authorized by this prompt.
+  Replacement full verification of that committed implementation passed at
+  `4998/4998` with `QUALITY-GATES OK`, five-stage `npm run qa` at the same
+  exact contract total, bounded Chrome acceptance in both supported backends,
+  and ordered postconditions `24/24 -> 18/18 -> 46/46`. The clean-commit
+  independent R8 review returned NO-GO solely because stale operative lifecycle
+  authority described the pushed, verified commit as uncommitted and pending;
+  no separate runtime, security, database, or package blocker was found.
+  After those accepted local commits, the committed 19-file offline
   UI/accessibility/package correction preserves the rendered route after the
   summary closes, online/offline data and layout parity, stable markers,
   building-detail image coverage, dialog focus containment/restoration, an
@@ -676,23 +709,16 @@ media. Focused evidence is 145/145, 35/35, and package 74/74. D6 is committed
   exact 44-by-44 targets. Its simplified fallback keeps the SVG basemap and
   route decorative and represents buildings as labelled native HTML buttons in
   a named overlay. The service worker is v25. Authority-sync preflight recorded
-  branch main, Git commit SHA-1 HEAD
-  691f0bef40e06b6ea9485e713d2fe3000a03bd83, origin/main Git commit SHA-1
-  7ec8cc6e82c3a8e1824697696311675c1d23a572, an empty index, exactly 19 tracked
-  modifications, zero untracked files, zero stashes, and migrations 0001-0019
-  only. Exact pre-authority-sync manifest SHA-256
-  494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610
-  covered 19 files and 2,020,639 bytes. It has focused evidence only: OFF.2
-  145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package
-  identity is 168 files, 7,073,128 bytes, aggregate SHA-256
-  1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a.
-  No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or
-  browser acceptance was run for those exact bytes. That manifest is
-  predecessor evidence for the authority synchronization, not a pin for the
-  later synchronized bytes; recompute the live manifest instead of reusing it.
-  The current correction remains pending independent read-only review and full
-  verification and claims no Codex GO, commit readiness, deployment readiness,
-  or final Milestone 12 GO.
+  branch main, HEAD and origin/main at `d786bdcb83a196c7263dceae668417d3ced3e95a`,
+  a clean index/worktree, zero untracked files and stashes, and migrations
+  0001-0019 only. The committed implementation manifest SHA-256
+  `92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642` covered
+  19 files and 2,072,400 bytes. Replacement verification passed at 4998/4998,
+  five-stage QA, bounded Chrome acceptance in both backends, and
+  24/24 -> 18/18 -> 46/46. The package pin is 168 files, 7,073,128 bytes,
+  aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+  The current clean-commit R8 review returned NO-GO solely for stale lifecycle
+  authority; live Git and the latest external report control any later correction.
   The exact predecessor manifest SHA-256
   `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16` received
   independent NO-GO solely for the fallback SVG coordinate-frame defect. The
@@ -700,9 +726,17 @@ media. Focused evidence is 145/145, 35/35, and package 74/74. D6 is committed
   for missing and `xMidYMid meet` variants. Its pre-authority-sync manifest
   SHA-256 `30e4dea3ac61e7598037630bb4748a8ea100f02b71c3dd8d64109f6e8fec4087`
   is predecessor evidence; recompute the final live manifest after authority
-  edits. A fresh independent source review must precede replacement full
-  verification, which requires separate owner authorization; commit, push,
-  promotion, and deployment remain unauthorized.
+  edits. The current local maintenance correction is a separate local-session
+  byte set. It adds a scripts-only operator plus a narrowly scoped supported
+  conditional session-store interface; that interface is deployable runtime
+  support included in the package. Its exact package identity is 168 files, 7,074,195
+  bytes, aggregate SHA-256
+  `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
+  The app_sessions schema has no provenance field, so the anonymous
+  cookie+csrfToken shape is an operational scope selector, not proof of origin.
+  No cleanup has run; cleanup requires independent source-review GO and
+  separate owner authorization. Replacement verification, commit, push,
+  promotion, and deployment remain separately gated by this prompt.
   The first replacement browser acceptance of the preceding exact 19-file
   candidate is historical/rejected solely for a mobile overlap at 390x844:
   the fixed `#offlineMobileListToggle` covered the visible
@@ -713,8 +747,8 @@ media. Focused evidence is 145/145, 35/35, and package 74/74. D6 is committed
   only while `#offlineDetailsPanel.visible` on max-width 768px and adds
   rejecting fixtures for the wrong selector, state, media scope, and DOM order.
   Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-  boundary `74/74`. No full suite, QA, ordered postconditions, or browser
-  acceptance of the corrected bytes is claimed.
+  boundary `74/74`. No new verification or browser acceptance is authorized by
+  this grounding prompt.
   The first full verification of this offline candidate is historical/rejected
   at 4635/4641: npm test exited 1 after 4,635 PASS lines and emitted no
   QUALITY-GATES OK because exactly six static documentation/authority checks

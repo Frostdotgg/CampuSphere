@@ -3,13 +3,23 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## 2026-08-20 Current Security And Pilot Status
+## 2026-08-21 Current Security And Pilot Status
 
 OFF.2-OFF.6 are complete and Codex GO on local commit
 `cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
-GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate is
-pending independent read-only review and full verification.
+GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The exact
+19-file offline UI/accessibility/package implementation was independently fully
+verified, committed as `d786bdcb83a196c7263dceae668417d3ced3e95a`, and pushed
+to `origin/main`.
+
+Its exact committed implementation manifest SHA-256
+`92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642` covers 19
+files and 2,072,400 bytes. Replacement full verification passed at
+`4998/4998` with `QUALITY-GATES OK`, five-stage QA at the same exact contract
+total, bounded Chrome acceptance in both supported backends, and ordered
+postconditions `24/24 -> 18/18 -> 46/46`. The package pin is 168 files,
+7,073,128 bytes, aggregate SHA-256
+`1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
 
 The independent read-only closeout review of exact 19-file predecessor manifest
 SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
@@ -31,12 +41,14 @@ were green; the browser run stopped before MySQL and the final ordered
 postconditions. The bounded correction hides the toggle only while
 `#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
 for the wrong selector, state, media scope, and DOM order.
-Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-boundary `74/74`. No full suite, QA, ordered postconditions, browser
-acceptance, Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO is claimed. Replacement full verification requires separate
-owner authorization; commit, push, promotion, and deployment remain
-unauthorized.
+Replacement full verification passed at `4998/4998` with `QUALITY-GATES OK`,
+five-stage QA at the same exact contract total, bounded Chrome acceptance in
+both supported backends, and ordered postconditions `24/24 -> 18/18 -> 46/46`.
+The clean-commit independent R8 review returned NO-GO solely because stale
+operative lifecycle authority still described this pushed, verified commit as
+uncommitted and pending; it found no separate runtime, security, database, or
+package blocker. This R8 result remains the current external disposition until
+a later corrected review.
 
 It preserves the
 rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
@@ -66,16 +78,26 @@ the visible fallback order includes the mobile Building List toggle. The theme
   2D `35/35`, and package boundary `74/74`; the unchanged package identity is
   168 files, 7,073,128 bytes, aggregate SHA-256
   `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
-  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
-  postconditions, or browser acceptance was run for those exact bytes. The
-  `494010dd...` manifest is predecessor evidence for this authority
-  synchronization, not a pin for the later synchronized bytes; live Git and a
-  freshly computed post-sync manifest control the next review. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate
-claims no new Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO. Final Milestone 12 disposition remains external. The local
-commits and current candidate must not be pushed, promoted, or deployed before
-the presentation and a later explicit owner decision.
+The `494010dd...` manifest is predecessor evidence for the committed
+implementation, not a pin for the later documentation/static-assertion
+correction. Live Git and the latest independent external review report control
+the correction's lifecycle and disposition; no R8 approval is claimed here, and
+no promotion or deployment is authorized. Final Milestone 12 disposition remains
+external.
+
+The current local maintenance correction is a separate local-session byte set.
+It changes the readiness poll to a pre-session route and adds a fail-closed
+scripts-only operator plus a narrowly scoped supported conditional session-store
+interface; that interface is deployable runtime support and is included in the
+package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
+candidate evidence only, not deployment evidence. The
+`app_sessions` schema has no provenance field: the exact anonymous
+cookie+csrfToken shape is an operational scope selector, not proof that every
+row came from the historical readiness request. No cleanup has run. Cleanup
+requires a fresh read-only preflight, independent source-review GO, and
+separate owner authorization; replacement full verification, commit, push,
+promotion, and deployment remain separately gated.
 
 - The Guided-VR runtime/catalog remediation remains recorded as
   `43627cf0a77741556f4e701711e55612a739799b`, Git tree
@@ -144,14 +166,15 @@ the presentation and a later explicit owner decision.
   has 25 active Guided-VR destinations, 472 configured steps, and 99 unique
   scene keys. The ordered safety postcondition is green at
   `24/24 -> 18/18 -> 46/46`.
-- The current offline UI/accessibility correction candidate package is 168
+- The committed offline UI/accessibility implementation package is 168
   files / 7,073,128 bytes /
   SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
   The rejected pre-correction package was 168 files / 7,071,943 bytes /
   SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`
   and is historical candidate evidence only.
-  It is candidate evidence pending independent review, not accepted local
-  package or deployment evidence. The accepted local D6/OFF predecessor
+  The package identity is independently pinned and the implementation's
+  replacement verification is recorded above; it is not deployment
+  authorization. The accepted local D6/OFF predecessor
   package remains historical at 168 files / 7,042,705 bytes / SHA-256
   `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`.
   Historical/rejected after the independent review, never accepted: the first
@@ -428,10 +451,9 @@ the presentation and a later explicit owner decision.
   editors; never use direct SQL or blanket deletion for operational
   convenience.
 
-Final Milestone 12 disposition remains external to this checklist. The local
-commits must not be pushed, promoted, or deployed before the presentation and a
-later explicit owner decision. This checklist records evidence only and
-authorizes no mutation, deployment, or promotion.
+Final Milestone 12 disposition remains external to this checklist. The verified
+implementation is already pushed; this checklist records evidence only, and no
+promotion or deployment is authorized here.
 
 ## Historical/Superseded — 2026-07-30 R8 Review Status
 
@@ -553,7 +575,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS — accepted M12.P1-R7 history; current correction candidate focused package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current offline UI/accessibility correction candidate package:** 168 files, 7,073,128 bytes, aggregate SHA-256 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`; candidate evidence pending independent review, not accepted local package or deployment evidence. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is candidate evidence only, not deployment authorization |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS - current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; replacement verification remains separately gated and does not authorize deployment. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is replacement verification evidence, not deployment authorization |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 

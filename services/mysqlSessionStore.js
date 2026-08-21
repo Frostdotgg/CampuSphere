@@ -114,6 +114,28 @@ class MysqlSessionStore extends Store {
       .then(() => { if (cb) cb(null); })
       .catch(() => { if (cb) cb(sanitizedStoreError()); });
   }
+
+  /*
+   * Operator-only conditional destruction. The caller must supply the exact
+   * session payload and expiry observed in the same read-only snapshot. The
+   * conditional predicate makes a replacement, touch, or other concurrent
+   * change fail closed instead of allowing a stale SID to be deleted.
+   */
+  destroyIfUnchanged(sid, expectedSess, expectedExpiresAt, cb) {
+    const done = typeof cb === 'function' ? cb : () => {};
+    if (typeof sid !== 'string' || sid.length === 0 || sid.length > 128 ||
+        typeof expectedSess !== 'string' || expectedSess.length === 0 ||
+        !Number.isSafeInteger(expectedExpiresAt) || expectedExpiresAt <= 0) {
+      return done(sanitizedStoreError());
+    }
+    this.pool.query(
+      'DELETE FROM `' + this.table + '` WHERE sid = ? AND BINARY sess = BINARY ? AND expires_at = ?',
+      [sid, expectedSess, expectedExpiresAt]
+    ).then(([result]) => {
+      if (!result || result.affectedRows !== 1) return done(sanitizedStoreError());
+      return done(null);
+    }).catch(() => done(sanitizedStoreError()));
+  }
 }
 
 function createMysqlSessionStore(opts) {

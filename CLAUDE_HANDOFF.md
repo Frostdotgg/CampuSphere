@@ -1,22 +1,23 @@
 # CampuSphere Claude Continuity Handoff
 
-Last updated: 2026-08-20 (Asia/Manila)
+Last updated: 2026-08-21 (Asia/Manila)
 
 Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
 
 <!-- M12.P1 CURRENT STATUS START -->
-**CURRENT STATUS (2026-08-20 Milestone 12 closeout candidate).**
+**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**
 
 Accepted history remains unchanged: Milestones 8-11, RF.1-RF.6, BE.1-BE.6,
 OFF.1, M12.P1 R1-R7, D1-D5, and expanded D7 are complete and Codex GO. The
 limited human-pilot review is owner-accepted as described below. OFF.2-OFF.6
 are complete and Codex GO on local commit
 `cdbc863b779e5319c14dee21a31a5e78951e233c`; M12.P1-D6 is complete and Codex
-GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate is
-pending independent read-only review and full verification.
+GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The exact
+19-file offline UI/accessibility/package implementation was independently fully
+verified, committed as `d786bdcb83a196c7263dceae668417d3ced3e95a`, and pushed
+to `origin/main`.
 
-The independent read-only closeout review of exact 19-file predecessor manifest
+Historical/rejected: the independent read-only closeout review of exact 19-file predecessor manifest
 SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
 (19 files, 2,042,891 bytes) returned NO-GO solely for a fallback
 coordinate-frame defect: the decorative SVG's default aspect-preserving
@@ -36,12 +37,14 @@ were green; the browser run stopped before MySQL and the final ordered
 postconditions. The bounded correction hides the toggle only while
 `#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
 for the wrong selector, state, media scope, and DOM order.
-Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-boundary `74/74`. No full suite, QA, ordered postconditions, browser
-acceptance, Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO is claimed. Replacement full verification requires separate
-owner authorization; commit, push, promotion, and deployment remain
-unauthorized.
+Replacement full verification of the committed implementation passed at
+`4998/4998` with `QUALITY-GATES OK`, five-stage QA at the same exact contract
+total, bounded Chrome acceptance in both supported backends, and ordered
+postconditions `24/24 -> 18/18 -> 46/46`. The clean-commit independent R8
+review then returned NO-GO solely because stale operative lifecycle authority
+still described this pushed, verified commit as uncommitted and pending; it
+found no separate runtime, security, database, or package blocker. This R8
+result remains the current external disposition until a later corrected review.
 
 It preserves the
 rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
@@ -68,21 +71,32 @@ the visible fallback order includes the mobile Building List toggle. The theme
   candidate is exact 19-file manifest SHA-256
   `494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610`
   (19 files, 2,020,639 bytes). Focused evidence only is OFF.2 `145/145`, offline
-  2D `35/35`, and package boundary `74/74`; the unchanged package identity is
+  2D `35/35`, and package boundary `74/74`; the accepted committed implementation package identity remains
   168 files, 7,073,128 bytes, aggregate SHA-256
   `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
-  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
-  postconditions, or browser acceptance was run for those exact bytes. The
-  `494010dd...` manifest is predecessor evidence for this authority
-  synchronization, not a pin for the later synchronized bytes; live Git and a
-  freshly computed post-sync manifest control the next review. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate
-claims no new Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO. Final Milestone 12 GO is deliberately not self-issued by
-repository text; the latest independent external closeout report controls that
-disposition. The local commits and current candidate must not be pushed,
-promoted, or deployed before the presentation and a later explicit owner
-decision.
+The `494010dd...` manifest is predecessor evidence for the committed
+implementation, not a pin for the later documentation/static-assertion
+correction. The correction is a separate byte set: live Git and the latest
+independent external review report control its lifecycle and disposition, and
+this authority text does not claim that correction is reviewed, committed,
+pushed, R8-approved, promoted, or deployed. Final Milestone 12 disposition
+remains external. The accepted technical Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; future `main` deployments require
+explicit manual promotion, and no promotion or deployment is authorized here.
+
+The current local maintenance correction is a separate local-session byte set.
+It changes the readiness poll to a pre-session route and adds a fail-closed
+scripts-only operator plus a narrowly scoped supported conditional session-store
+interface; that interface is deployable runtime support and is included in the
+package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
+candidate evidence only, not deployment evidence. The
+`app_sessions` schema has no provenance field: the exact anonymous
+cookie+csrfToken shape is an operational scope selector, not proof that every
+row came from the historical readiness request. No cleanup has run. Cleanup
+requires a fresh read-only preflight, independent source-review GO, and
+separate owner authorization; replacement full verification, commit, push,
+promotion, and deployment remain separately gated.
 
 Dependency-security remediation is complete and Codex GO. Following the
 accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory
@@ -498,14 +512,14 @@ the complete classifier truth table evaluated behaviourally in an isolated
 before every remaining same-origin strategy — failing closed on any extraction
 or evaluation error.
 
-The current offline UI/accessibility correction candidate package is 168 files,
+The committed offline UI/accessibility implementation package is 168 files,
 7,073,128 bytes, aggregate SHA-256
 `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
 The rejected pre-correction package was 168 files, 7,071,943 bytes, aggregate
 SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`;
 it is historical candidate evidence only.
-It is candidate evidence pending independent review, not accepted local package
-or deployment evidence. The accepted local D6/OFF predecessor package remains
+The package identity is independently pinned and the implementation's replacement
+verification is recorded above; it is not deployment authorization. The accepted local D6/OFF predecessor package remains
 historical at 168 files, 7,042,705 bytes, aggregate SHA-256
 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`.
 Historical/rejected after the independent M12.P1-D6 review, never accepted:
@@ -655,16 +669,21 @@ grounding only and then wait for the owner. Neither prompt authorizes further
 implementation, Git mutation, a new deployment or promotion, another pilot, or
 Milestone 12 GO.
 
-At this 2026-08-20 synchronization boundary, the ordered handoff is: focused
-static verification and a fresh external manifest; fresh Claude Code and Codex
-grounding-only reports; a separately authorized independent read-only review of
-that exact manifest; and, only after external review GO, a separately authorized
-replacement full verification at `4998/4998`, five-stage QA, ordered
-`24/24 -> 18/18 -> 46/46`, and bounded Chrome acceptance. Only after that
-verification returns GO may the exact candidate be separately authorized for a
-local commit. No push, deployment, promotion, rollback, or Production change is
-authorized before the presentation; each later action requires separate owner
-authority. Repository text neither pre-authorizes nor predicts any later result.
+At this 2026-08-21 correction boundary, the implementation is committed and
+pushed as `d786bdcb83a196c7263dceae668417d3ced3e95a`. Its exact committed
+implementation manifest SHA-256 `92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642`
+covers 19 files and 2,072,400 bytes. Replacement full verification passed at
+`4998/4998` with `QUALITY-GATES OK`, five-stage QA at the same exact contract
+total, bounded Chrome acceptance in both supported backends, and ordered
+postconditions `24/24 -> 18/18 -> 46/46`. The package pin is 168 files,
+7,073,128 bytes, aggregate SHA-256
+`1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`. The
+clean-commit independent R8 review returned NO-GO solely for stale operative
+lifecycle authority; no separate runtime, security, database, or package
+blocker was found. The later documentation/static-assertion correction has its
+own bytes; live Git and the latest independent external review report control
+its disposition. No promotion or deployment is authorized by this
+synchronization.
 <!-- M12.P1 CURRENT STATUS END -->
 <!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
 **HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident

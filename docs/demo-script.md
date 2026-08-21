@@ -92,11 +92,35 @@ otherwise the route remains unavailable and no arrival is reported.
 
 ### 5. PWA And Offline Boundary
 
-OFF.2-OFF.6 are complete and Codex GO on local commit
-`cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
-GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate is
-pending independent read-only review and full verification.
+  OFF.2-OFF.6 are complete and Codex GO on local commit
+  `cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
+  GO on local commit `691f0bef40e06b6ea9485e713d2fe3000a03bd83`. The exact
+  19-file offline UI/accessibility/package implementation was independently fully
+  verified, committed as `d786bdcb83a196c7263dceae668417d3ced3e95a`, and pushed
+  to `origin/main`.
+
+  Its exact committed implementation manifest SHA-256
+  `92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642` covers 19
+  files and 2,072,400 bytes. Replacement full verification passed at
+  `4998/4998` with `QUALITY-GATES OK`, five-stage QA at the same exact contract
+  total, bounded Chrome acceptance in both supported backends, and ordered
+  postconditions `24/24 -> 18/18 -> 46/46`. The package pin is 168 files,
+  7,073,128 bytes, aggregate SHA-256
+  `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
+
+The current local maintenance correction is a separate local-session byte set.
+It changes the readiness poll to a pre-session route and adds a fail-closed
+scripts-only operator plus a narrowly scoped supported conditional session-store
+interface; that interface is deployable runtime support and is included in the
+package. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; this is
+candidate evidence only, not deployment evidence. The
+`app_sessions` schema has no provenance field: the exact anonymous
+cookie+csrfToken shape is an operational scope selector, not proof that every
+row came from the historical readiness request. No cleanup has run. Cleanup
+requires a fresh read-only preflight, independent source-review GO, and
+separate owner authorization; replacement full verification, commit, push,
+promotion, and deployment remain separately gated.
 
 The independent read-only closeout review of exact 19-file predecessor manifest
 SHA-256 `dd63b8a3b6e89294cb7b971c8fb8226c0098009ef9d3d7fa8c55f78d2a490a16`
@@ -118,12 +142,14 @@ were green; the browser run stopped before MySQL and the final ordered
 postconditions. The bounded correction hides the toggle only while
 `#offlineDetailsPanel.visible` on max-width 768px and adds rejecting fixtures
 for the wrong selector, state, media scope, and DOM order.
-Focused evidence remains OFF.2 `145/145`, offline 2D `35/35`, and package
-boundary `74/74`. No full suite, QA, ordered postconditions, browser
-acceptance, Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO is claimed. Replacement full verification requires separate
-owner authorization; commit, push, promotion, and deployment remain
-unauthorized.
+Replacement full verification passed at `4998/4998` with `QUALITY-GATES OK`,
+five-stage QA at the same exact contract total, bounded Chrome acceptance in
+both supported backends, and ordered postconditions `24/24 -> 18/18 -> 46/46`.
+The clean-commit independent R8 review returned NO-GO solely because stale
+operative lifecycle authority still described this pushed, verified commit as
+uncommitted and pending; it found no separate runtime, security, database, or
+package blocker. This R8 result remains the current external disposition until
+a later corrected review.
 
 It preserves the
 rendered route when the summary closes, keeps the route-dialog Tab/Shift+Tab
@@ -153,22 +179,20 @@ the visible fallback order includes the mobile Building List toggle. The theme
   2D `35/35`, and package boundary `74/74`; the unchanged package identity is
   168 files, 7,073,128 bytes, aggregate SHA-256
   `1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a`.
-  No `npm test`, `npm run qa`, ordered `24/24 -> 18/18 -> 46/46`
-  postconditions, or browser acceptance was run for those exact bytes. The
-  `494010dd...` manifest is predecessor evidence for this authority
-  synchronization, not a pin for the later synchronized bytes; live Git and a
-  freshly computed post-sync manifest control the next review. The current
-uncommitted 19-file offline UI/accessibility/package correction candidate
-claims no new Codex GO, commit readiness, deployment readiness, or final
-Milestone 12 GO. Final Milestone 12 disposition remains external. The local
-commits and current candidate must not be pushed, promoted, or deployed before
-the presentation and a later explicit owner decision.
+  Replacement verification of the committed implementation passed at
+  `4998/4998` with `QUALITY-GATES OK`, five-stage QA, bounded Chrome acceptance
+  in both supported backends, and ordered `24/24 -> 18/18 -> 46/46`. The
+  implementation is committed and pushed as `d786bdcb83a196c7263dceae668417d3ced3e95a`;
+  the clean-commit R8 review returned NO-GO solely for stale lifecycle authority.
+  The `494010dd...` manifest is predecessor evidence, not a pin for the later
+  documentation/static-assertion correction. Final Milestone 12 disposition
+  remains external; no promotion or deployment is authorized here.
 
 1. Show the manifest/offline support and explicitly download the local guide.
 2. Demonstrate the accepted local normal campus map, Guard House/Main Gate routes,
    route directions, and the details window opened from a building node/list
-   item. Explain that OFF.2-OFF.6 are Codex GO but remain local until after the
-   presentation and a later explicit owner release decision.
+   item. Explain that OFF.2-OFF.6 are Codex GO; promotion and deployment remain
+   separately owner-authorized.
 3. Explain that authenticated HTML, admin routes, auth routes, logout, and
    profile update APIs are never cached by the service worker.
 
@@ -211,10 +235,10 @@ Explain:
   occurred on 2026-08-05; the owner accepts it with zero reported findings,
   participant/Form evidence remains external, and its full source-commit
   identity was not independently verified. Pilot review is complete.
-  OFF.2-OFF.6 and D6 are complete and Codex GO. The local commits must not be
-  pushed, promoted, or deployed before the presentation and a later explicit
-  owner decision; final Milestone 12 disposition remains external to this
-  script.
+   OFF.2-OFF.6 and D6 are complete and Codex GO. The verified implementation
+   `d786bdcb83a196c7263dceae668417d3ced3e95a` is committed and pushed; no
+   promotion or deployment is authorized, and final Milestone 12 disposition
+   remains external to this script.
 - The first full verification of that offline candidate is
   historical/rejected at `4635/4641`: `npm test` exited 1 after 4,635 PASS
   lines and emitted no `QUALITY-GATES OK` because exactly six static
