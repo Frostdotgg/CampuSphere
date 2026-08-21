@@ -1685,6 +1685,7 @@ html[data-theme="dark"] {
 }
 
 select.edit-form-input {
+    min-height: 44px;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -4419,6 +4420,7 @@ a.btn-google {
 
 .auth-select {
     width: 100%;
+    min-height: 44px;
     padding: 0.7rem 0.9rem;
     font-family: var(--font-body);
     font-size: 0.92rem;
@@ -4435,6 +4437,34 @@ a.btn-google {
 .auth-select:focus {
     border-color: var(--blue-accent);
     box-shadow: 0 0 0 3px rgba(42, 111, 199, 0.12);
+}
+
+.course-search-input {
+    min-height: 44px;
+    margin-bottom: 0.35rem;
+}
+
+.course-search-hint,
+.course-search-status {
+    display: block;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.course-search-hint {
+    color: var(--gray-500);
+}
+
+.course-search-status {
+    min-height: 1.45em;
+    margin-top: 0.2rem;
+    margin-bottom: 0.45rem;
+    color: var(--gray-600);
+}
+
+[data-theme="dark"] .course-search-hint,
+[data-theme="dark"] .course-search-status {
+    color: #cbd5e1;
 }
 
 [data-theme="dark"] .auth-select {

@@ -61,14 +61,44 @@
                         </div>
                     </div>
                     <div class="auth-form-group">
-                        <label for="oauthCourse">Course</label>
-                        <select class="auth-select" id="oauthCourse" name="course">
-                            <option value="BS Information Technology">BS Information Technology</option>
-                            <option value="BS Computer Science">BS Computer Science</option>
-                            <option value="BS Civil Engineering">BS Civil Engineering</option>
-                            <option value="BS Electrical Engineering">BS Electrical Engineering</option>
-                            <option value="BS Industrial Technology">BS Industrial Technology</option>
-                            <option value="BS Entrepreneurship">BS Entrepreneurship</option>
+                        <label for="oauthCourseSearch">Search courses</label>
+                        <input class="auth-input course-search-input" type="search" id="oauthCourseSearch"
+                            placeholder="Type part of your course name" autocomplete="off" spellcheck="false"
+                            aria-controls="oauthCourse" aria-describedby="oauthCourseSearchHint oauthCourseSearchStatus">
+                        <span class="course-search-hint" id="oauthCourseSearchHint">Type to filter the list, then select your course.</span>
+                        <span class="course-search-status" id="oauthCourseSearchStatus" role="status" aria-live="polite"></span>
+                        <label class="sr-only" for="oauthCourse">Course</label>
+                        <select class="auth-select" id="oauthCourse" name="course" required>
+                            <option value="" selected disabled>Select your course</option>
+                            <option value="Bachelor in Human Services">Bachelor in Human Services</option>
+                            <option value="Bachelor of Arts in English Language Studies">Bachelor of Arts in English Language Studies</option>
+                            <option value="Bachelor of Science in Development Communication">Bachelor of Science in Development Communication</option>
+                            <option value="Bachelor of Public Administration">Bachelor of Public Administration</option>
+                            <option value="Bachelor of Science in Mathematics">Bachelor of Science in Mathematics</option>
+                            <option value="Bachelor of Science in Applied Mathematics">Bachelor of Science in Applied Mathematics</option>
+                            <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
+                            <option value="Bachelor of Science in Computer Science">Bachelor of Science in Computer Science</option>
+                            <option value="Bachelor of Science in Information Systems">Bachelor of Science in Information Systems</option>
+                            <option value="Bachelor of Library and Information Science">Bachelor of Library and Information Science</option>
+                            <option value="Bachelor of Science in Civil Engineering">Bachelor of Science in Civil Engineering</option>
+                            <option value="Bachelor of Science in Electrical Engineering">Bachelor of Science in Electrical Engineering</option>
+                            <option value="Bachelor of Science in Electronics Engineering">Bachelor of Science in Electronics Engineering</option>
+                            <option value="Bachelor of Science in Mechanical Engineering">Bachelor of Science in Mechanical Engineering</option>
+                            <option value="Bachelor of Science in Architecture">Bachelor of Science in Architecture</option>
+                            <option value="Bachelor of Science in Computer Engineering">Bachelor of Science in Computer Engineering</option>
+                            <option value="Bachelor of Science in Nursing">Bachelor of Science in Nursing</option>
+                            <option value="Bachelor of Science in Midwifery">Bachelor of Science in Midwifery</option>
+                            <option value="Bachelor of Special Needs Education">Bachelor of Special Needs Education</option>
+                            <option value="Bachelor of Physical Education">Bachelor of Physical Education</option>
+                            <option value="Bachelor of Culture and Arts Education">Bachelor of Culture and Arts Education</option>
+                            <option value="Bachelor of Technical-Vocational Teacher Education – Major in Food Service Management">Bachelor of Technical-Vocational Teacher Education – Major in Food Service Management</option>
+                            <option value="Bachelor of Technical-Vocational Teacher Education – Major in Electronics Technology">Bachelor of Technical-Vocational Teacher Education – Major in Electronics Technology</option>
+                            <option value="Bachelor of Technical-Vocational Teacher Education – Major in Fish Processing">Bachelor of Technical-Vocational Teacher Education – Major in Fish Processing</option>
+                            <option value="Bachelor of Science in Office Administration">Bachelor of Science in Office Administration</option>
+                            <option value="Bachelor of Science in Hospitality Management">Bachelor of Science in Hospitality Management</option>
+                            <option value="Bachelor of Science in Entrepreneurship">Bachelor of Science in Entrepreneurship</option>
+                            <option value="Bachelor of Science in Tourism Management">Bachelor of Science in Tourism Management</option>
+                            <option value="Bachelor of Science in Business Administration – Major in Financial Management">Bachelor of Science in Business Administration – Major in Financial Management</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -115,6 +145,80 @@
             <%# M12.P1-R8: this is the step that actually collects the role-specific
                 profile fields (student ID, employee ID, or address + phone), so the
                 privacy notice is linked directly here. %>
+            <script nonce="<%= cspNonce %>">
+                document.addEventListener('DOMContentLoaded', function () {
+                    var search = document.getElementById('oauthCourseSearch');
+                    var select = document.getElementById('oauthCourse');
+                    var status = document.getElementById('oauthCourseSearchStatus');
+                    if (!search || !select || !status) return;
+
+                    var originalOptions = Array.from(select.options)
+                        .filter(function (option) { return option.value !== ''; })
+                        .map(function (option) {
+                            return { value: option.value, label: option.textContent };
+                        });
+                    var courseCount = originalOptions.filter(function (option) { return option.value !== 'Other'; }).length;
+                    var preservedValue = select.value;
+                    function syncPreservedValue() {
+                        select.dataset.preservedCourseValue = preservedValue;
+                    }
+
+                    function normalize(value) {
+                        return String(value || '')
+                            .normalize('NFKD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .replace(/[–—-]/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                    }
+
+                    function renderOptions() {
+                        var query = normalize(search.value);
+                        var matches = originalOptions.filter(function (option) {
+                            return option.value === 'Other' || !query || normalize(option.label).indexOf(query) !== -1;
+                        });
+
+                        select.replaceChildren();
+                        var placeholder = new Option('Select your course', '');
+                        placeholder.disabled = true;
+                        select.appendChild(placeholder);
+                        matches.forEach(function (option) {
+                            select.appendChild(new Option(option.label, option.value));
+                        });
+
+                        if (matches.some(function (option) { return option.value === preservedValue; })) {
+                            select.value = preservedValue;
+                        } else {
+                            select.selectedIndex = 0;
+                        }
+                        syncPreservedValue();
+
+                        var matchCount = matches.filter(function (option) { return option.value !== 'Other'; }).length;
+                        if (!query) {
+                            status.textContent = courseCount + ' courses available, plus Other.';
+                        } else if (matchCount === 0) {
+                            status.textContent = 'No matching course. Choose Other if your course is not listed.';
+                        } else {
+                            status.textContent = matchCount + ' matching course' + (matchCount === 1 ? '' : 's') + '.';
+                        }
+                    }
+
+                    search.addEventListener('input', renderOptions);
+                    select.addEventListener('change', function () {
+                        preservedValue = select.value;
+                        syncPreservedValue();
+                    });
+                    search.addEventListener('keydown', function (event) {
+                        if (event.key === 'Escape' && search.value) {
+                            search.value = '';
+                            renderOptions();
+                        }
+                    });
+                    renderOptions();
+                });
+            </script>
+
             <p class="auth-privacy-note">
                 These details are stored by the CampuSphere pilot. See the
                 <a href="/privacy">Privacy Notice</a>.

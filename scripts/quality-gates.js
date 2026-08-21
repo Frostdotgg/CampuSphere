@@ -3632,6 +3632,128 @@ function linksToPrivacy(src) {
     new RegExp('href\\s*=\\s*"' + EXPECTED_PRIVACY_ROUTE + '"').test(src);
 }
 
+/* The owner-supplied student catalog is a display/input contract, not a
+   database enum. Keep this pin in the static gate so registration and profile
+   cannot silently drift apart while the submitted `course` string remains
+   backward-compatible. */
+const EXPECTED_CSPC_COURSE_CATALOG = Object.freeze([
+  'Bachelor in Human Services',
+  'Bachelor of Arts in English Language Studies',
+  'Bachelor of Science in Development Communication',
+  'Bachelor of Public Administration',
+  'Bachelor of Science in Mathematics',
+  'Bachelor of Science in Applied Mathematics',
+  'Bachelor of Science in Information Technology',
+  'Bachelor of Science in Computer Science',
+  'Bachelor of Science in Information Systems',
+  'Bachelor of Library and Information Science',
+  'Bachelor of Science in Civil Engineering',
+  'Bachelor of Science in Electrical Engineering',
+  'Bachelor of Science in Electronics Engineering',
+  'Bachelor of Science in Mechanical Engineering',
+  'Bachelor of Science in Architecture',
+  'Bachelor of Science in Computer Engineering',
+  'Bachelor of Science in Nursing',
+  'Bachelor of Science in Midwifery',
+  'Bachelor of Special Needs Education',
+  'Bachelor of Physical Education',
+  'Bachelor of Culture and Arts Education',
+  'Bachelor of Technical-Vocational Teacher Education \u2013 Major in Food Service Management',
+  'Bachelor of Technical-Vocational Teacher Education \u2013 Major in Electronics Technology',
+  'Bachelor of Technical-Vocational Teacher Education \u2013 Major in Fish Processing',
+  'Bachelor of Science in Office Administration',
+  'Bachelor of Science in Hospitality Management',
+  'Bachelor of Science in Entrepreneurship',
+  'Bachelor of Science in Tourism Management',
+  'Bachelor of Science in Business Administration \u2013 Major in Financial Management',
+  'Other',
+]);
+
+function extractCourseOptionValues(source) {
+  if (typeof source !== 'string' || source === '') return null;
+  const match = source.match(/<select[^>]*id="oauthCourse"[\s\S]*?<\/select>/i);
+  if (!match) return null;
+  return [...match[0].matchAll(/<option\s+value="([^"]*)"[^>]*>([^<]*)<\/option>/gi)]
+    .map((m) => m[1])
+    .filter((value) => value !== '');
+}
+
+function extractPinnedCourseValues(source) {
+  if (typeof source !== 'string' || source === '') return null;
+  const match = source.match(/const CSPC_STUDENT_COURSES = Object\.freeze\(\[([\s\S]*?)\]\);/);
+  if (!match) return null;
+  return [...match[1].matchAll(/^\s*'((?:[^'\\]|\\.)*)',?\s*$/gm)]
+    .map((m) => m[1].replace(/\\u2013/g, '\u2013'));
+}
+
+/** PURE: validate the exact catalog and its accessible, searchable surfaces. */
+function courseCatalogProblems(registrationView, profileJs, siteCss, sampleData) {
+  const problems = [];
+  const expected = EXPECTED_CSPC_COURSE_CATALOG;
+  const registration = extractCourseOptionValues(registrationView);
+  const profile = extractPinnedCourseValues(profileJs);
+  const same = (a, b) => Array.isArray(a) && Array.isArray(b) &&
+    a.length === b.length && a.every((value, index) => value === b[index]);
+
+  if (!same(registration, expected)) problems.push('registration catalog is not exact');
+  if (!same(profile, expected)) problems.push('profile catalog is not exact');
+  if (!same(registration, profile)) problems.push('registration/profile catalog parity is broken');
+  if (new Set(expected).size !== expected.length || expected[expected.length - 1] !== 'Other') {
+    problems.push('catalog is not unique or Other is not last');
+  }
+  if (expected.some((course) => course.length > 100)) problems.push('catalog exceeds course field compatibility');
+
+  const requiredRegistrationShape = registrationView &&
+    /<input[^>]+type="search"[^>]+id="oauthCourseSearch"[^>]+aria-controls="oauthCourse"/i.test(registrationView) &&
+    /id="oauthCourseSearchHint"[^>]*>Type to filter the list/i.test(registrationView) &&
+    /id="oauthCourseSearchStatus"[^>]+role="status"[^>]+aria-live="polite"/i.test(registrationView) &&
+    /<select[^>]+id="oauthCourse"[^>]+name="course"[^>]+required/i.test(registrationView) &&
+    /<option[^>]+value=""[^>]+selected[^>]+disabled>\s*Select your course\s*<\/option>/i.test(registrationView);
+  if (!requiredRegistrationShape) problems.push('registration search accessibility/placeholder contract is missing');
+
+  const requiredProfileShape = profileJs &&
+    /<input[^>]+type="search"[^>]+id="editCourseSearch"[^>]+aria-controls="editCourse"/i.test(profileJs) &&
+    /id="editCourseSearchHint"[^>]*>Type to filter the list/i.test(profileJs) &&
+    /id="editCourseSearchStatus"[^>]+role="status"[^>]+aria-live="polite"/i.test(profileJs) &&
+    /<select[^>]+id="editCourse"[^>]+aria-describedby="editCourseSearchHint editCourseSearchStatus"/i.test(profileJs);
+  if (!requiredProfileShape) problems.push('profile search accessibility contract is missing');
+
+  const searchBehavior = profileJs &&
+    /function normalizeCourseSearch\(/.test(profileJs) &&
+    /\.normalize\('NFKD'\)/.test(profileJs) &&
+    /search\.addEventListener\('input', renderOptions\)/.test(profileJs) &&
+    /event\.key === 'Escape'/.test(profileJs) &&
+    /option\.value === 'Other' \|\| !query/.test(profileJs) &&
+    /No matching course\. Choose Other if your course is not listed\./.test(profileJs) &&
+    /let preservedValue = select\.value/.test(profileJs) &&
+    /select\.dataset\.preservedCourseValue/.test(profileJs) &&
+    /select\.addEventListener\('change',/.test(profileJs) &&
+    /currentCourse && !CSPC_STUDENT_COURSES\.includes\(currentCourse\)/.test(profileJs) &&
+    /newData\.course = courseEl\.value \|\| courseEl\.dataset\.preservedCourseValue \|\| ''/.test(profileJs);
+  if (!searchBehavior) problems.push('search filtering or legacy-value preservation behavior is missing');
+
+  const registrationBehavior = registrationView &&
+    /\.normalize\('NFKD'\)/.test(registrationView) &&
+    /search\.addEventListener\('input', renderOptions\)/.test(registrationView) &&
+    /event\.key === 'Escape'/.test(registrationView) &&
+    /option\.value === 'Other' \|\| !query/.test(registrationView) &&
+    /No matching course\. Choose Other if your course is not listed\./.test(registrationView) &&
+    /var preservedValue = select\.value/.test(registrationView) &&
+    /select\.addEventListener\('change',/.test(registrationView);
+  if (!registrationBehavior) problems.push('registration search filtering behavior is missing');
+
+  if (typeof siteCss !== 'string' ||
+      !/\.course-search-input\s*\{[\s\S]{0,180}?min-height:\s*44px/i.test(siteCss) ||
+      !/\.auth-select\s*\{[\s\S]{0,180}?min-height:\s*44px/i.test(siteCss) ||
+      !/select\.edit-form-input\s*\{[\s\S]{0,180}?min-height:\s*44px/i.test(siteCss)) {
+    problems.push('course controls do not retain the 44px interaction target');
+  }
+  if (typeof sampleData === 'string' && /course:\s*['"]Bachelor of Science in Information Technology['"]/.test(sampleData) === false) {
+    problems.push('the public sample profile does not use an official title');
+  }
+  return problems;
+}
+
 /** PURE: does this EJS source contain a dead placeholder anchor? */
 function hasDeadPlaceholderAnchor(src) {
   return typeof src !== 'string' || /href\s*=\s*"#"/.test(src) || /href\s*=\s*'#'/.test(src);
@@ -4240,6 +4362,7 @@ function runPilotReadinessGate() {
   const completeRegView = read('views/complete-registration.ejs');
   const siteCss = read('public/css/styles.css');
   const profileJs = read('public/js/profile-script.js');
+  const sampleData = read('public/js/data.js');
 
   // Finding 1 — truthful landing role mapping.
   ok('views/landing.ejs states the real three-domain Google sign-in mapping',
@@ -4277,6 +4400,33 @@ function runPilotReadinessGate() {
     authScopedThemeToggleCssIsCorrect(siteCss) &&
     profileModalCssIsAccessible(siteCss) &&
     profileModalClientIsAccessible(profileJs));
+
+  /* ---- owner-supplied searchable course catalog ---- */
+  const courseCatalogPasses = (registration, profile, css) =>
+    courseCatalogProblems(registration, profile, css, sampleData).length === 0;
+  ok('registration and profile expose the exact searchable CSPC course catalog',
+    courseCatalogPasses(completeRegView, profileJs, siteCss));
+  ok('course catalog fixture rejects a changed registration title, profile title, search behavior, or touch target',
+    sourceMutationIsRejected(
+      completeRegView,
+      /Bachelor of Science in Information Technology/g,
+      'Bachelor of Science in Information Systems',
+      (mutated) => courseCatalogPasses(mutated, profileJs, siteCss)) &&
+    sourceMutationIsRejected(
+      profileJs,
+      /Bachelor of Science in Information Technology/g,
+      'Bachelor of Science in Information Systems',
+      (mutated) => courseCatalogPasses(completeRegView, mutated, siteCss)) &&
+    sourceMutationIsRejected(
+      profileJs,
+      /search\.addEventListener\('input', renderOptions\);/,
+      '',
+      (mutated) => courseCatalogPasses(completeRegView, mutated, siteCss)) &&
+    sourceMutationIsRejected(
+      siteCss,
+      /(\.course-search-input\s*\{[\s\S]{0,180}?)min-height:\s*44px;/,
+      '$1',
+      (mutated) => courseCatalogPasses(completeRegView, profileJs, mutated)));
 
   /* ---- rejecting fixtures: each mutates the REAL source ---- */
   ok('fixture: the superseded exclusive @cspc.edu.ph-only landing claim is rejected',
@@ -4597,7 +4747,7 @@ function runVercelPackageBoundaryGate() {
   const liveManifestProblems = R7.verifyManifestSelfConsistency(liveManifest);
   ok('the live package manifest is internally consistent', liveManifestProblems.length === 0);
   liveManifestProblems.forEach((p) => console.error('    - manifest: ' + p));
-  const livePinProblems = currentPackageInventoryProblems(liveManifest);
+  const livePinProblems = currentPackageInventoryProblems(liveManifest, EXPECTED_LIVE_PACKAGE_INVENTORY);
   ok('the live package manifest matches the quality gate independent file-count, byte-total, and SHA-256 pin',
     livePinProblems.length === 0 && R7.evaluatePinnedPackageManifest(liveManifest).length === 0);
   livePinProblems.forEach((p) => console.error('    - package-pin: ' + p));
@@ -5957,6 +6107,16 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   files: 168,
   bytes: '7,074,195',
   sha256: '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5',
+});
+
+/* The deployable bytes now include the approved course-catalog feature. Keep
+   this candidate pin separate from the handoff's pre-feature release
+   continuity evidence until a later commit/handoff synchronization records
+   the new source identity. */
+const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
+  files: 168,
+  bytes: '7,088,275',
+  sha256: '9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */

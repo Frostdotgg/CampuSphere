@@ -47,6 +47,107 @@ function getCsrfToken() {
     return m ? (m.getAttribute('content') || '') : '';
 }
 
+const CSPC_STUDENT_COURSES = Object.freeze([
+    'Bachelor in Human Services',
+    'Bachelor of Arts in English Language Studies',
+    'Bachelor of Science in Development Communication',
+    'Bachelor of Public Administration',
+    'Bachelor of Science in Mathematics',
+    'Bachelor of Science in Applied Mathematics',
+    'Bachelor of Science in Information Technology',
+    'Bachelor of Science in Computer Science',
+    'Bachelor of Science in Information Systems',
+    'Bachelor of Library and Information Science',
+    'Bachelor of Science in Civil Engineering',
+    'Bachelor of Science in Electrical Engineering',
+    'Bachelor of Science in Electronics Engineering',
+    'Bachelor of Science in Mechanical Engineering',
+    'Bachelor of Science in Architecture',
+    'Bachelor of Science in Computer Engineering',
+    'Bachelor of Science in Nursing',
+    'Bachelor of Science in Midwifery',
+    'Bachelor of Special Needs Education',
+    'Bachelor of Physical Education',
+    'Bachelor of Culture and Arts Education',
+    'Bachelor of Technical-Vocational Teacher Education – Major in Food Service Management',
+    'Bachelor of Technical-Vocational Teacher Education – Major in Electronics Technology',
+    'Bachelor of Technical-Vocational Teacher Education – Major in Fish Processing',
+    'Bachelor of Science in Office Administration',
+    'Bachelor of Science in Hospitality Management',
+    'Bachelor of Science in Entrepreneurship',
+    'Bachelor of Science in Tourism Management',
+    'Bachelor of Science in Business Administration – Major in Financial Management',
+    'Other'
+]);
+
+function normalizeCourseSearch(value) {
+    return String(value || '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[–—-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function attachCourseSearch(searchId, selectId, statusId) {
+    const search = document.getElementById(searchId);
+    const select = document.getElementById(selectId);
+    const status = document.getElementById(statusId);
+    if (!search || !select || !status) return;
+
+    const originalOptions = Array.from(select.options)
+        .filter((option) => option.value !== '')
+        .map((option) => ({ value: option.value, label: option.textContent }));
+    const courseCount = originalOptions.filter((option) => option.value !== 'Other').length;
+    let preservedValue = select.value;
+    const syncPreservedValue = () => {
+        select.dataset.preservedCourseValue = preservedValue;
+    };
+
+    const renderOptions = () => {
+        const query = normalizeCourseSearch(search.value);
+        const matches = originalOptions.filter((option) =>
+            option.value === 'Other' || !query || normalizeCourseSearch(option.label).includes(query)
+        );
+
+        select.replaceChildren();
+        const placeholder = new Option('Select your course', '');
+        placeholder.disabled = true;
+        select.appendChild(placeholder);
+        matches.forEach((option) => select.appendChild(new Option(option.label, option.value)));
+
+        if (matches.some((option) => option.value === preservedValue)) {
+            select.value = preservedValue;
+        } else {
+            select.selectedIndex = 0;
+        }
+        syncPreservedValue();
+
+        const matchCount = matches.filter((option) => option.value !== 'Other').length;
+        if (!query) {
+            status.textContent = courseCount + ' courses available, plus Other.';
+        } else if (matchCount === 0) {
+            status.textContent = 'No matching course. Choose Other if your course is not listed.';
+        } else {
+            status.textContent = matchCount + ' matching course' + (matchCount === 1 ? '' : 's') + '.';
+        }
+    };
+
+    search.addEventListener('input', renderOptions);
+    select.addEventListener('change', () => {
+        preservedValue = select.value;
+        syncPreservedValue();
+    });
+    search.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && search.value) {
+            search.value = '';
+            renderOptions();
+        }
+    });
+    renderOptions();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Determine role and profile info from session or localStorage
     const sessionUser = window.__SESSION_USER || null;
@@ -75,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: 'Aaron V. Lasprillas',
                 studentId: 'CSPC-2024-001234',
                 email: 'aaron.lasprillas@cspc.edu.ph',
-                course: 'BS Information Technology',
+                course: 'Bachelor of Science in Information Technology',
                 yearLevel: '3rd Year',
                 enrollmentStatus: 'Enrolled',
                 semester: '2nd Semester, A.Y. 2025-2026'
@@ -228,20 +329,18 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         if (savedRole === 'student-cspc') {
-            const courseOptions = [
-                'BS Information Technology',
-                'BS Computer Science',
-                'BS Civil Engineering',
-                'BS Electrical Engineering',
-                'BS Industrial Technology',
-                'BS Entrepreneurship',
-                'Other'
-            ];
+            const currentCourse = String(profileData.course || '').trim();
+            const courseOptions = currentCourse && !CSPC_STUDENT_COURSES.includes(currentCourse)
+                ? [currentCourse, ...CSPC_STUDENT_COURSES]
+                : [...CSPC_STUDENT_COURSES];
             const yearOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 
-            const courseSelectHTML = courseOptions.map(c =>
-                `<option value="${c}" ${profileData.course === c ? 'selected' : ''}>${c}</option>`
-            ).join('');
+            const courseSelectHTML = [
+                `<option value="" disabled ${currentCourse ? '' : 'selected'}>Select your course</option>`,
+                ...courseOptions.map(c =>
+                    `<option value="${escapeHtml(c)}" ${currentCourse === c ? 'selected' : ''}>${escapeHtml(c)}</option>`
+                )
+            ].join('');
             const yearSelectHTML = yearOptions.map(y =>
                 `<option value="${y}" ${profileData.yearLevel === y ? 'selected' : ''}>${y}</option>`
             ).join('');
@@ -260,8 +359,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label" for="editCourse">Course</label>
-                    <select id="editCourse" class="edit-form-input">${courseSelectHTML}</select>
+                    <label class="edit-form-label" for="editCourseSearch">Search courses</label>
+                    <input type="search" id="editCourseSearch" class="edit-form-input course-search-input"
+                        placeholder="Type part of your course name" autocomplete="off" spellcheck="false"
+                        aria-controls="editCourse" aria-describedby="editCourseSearchHint editCourseSearchStatus">
+                    <span class="course-search-hint" id="editCourseSearchHint">Type to filter the list, then select your course.</span>
+                    <span class="course-search-status" id="editCourseSearchStatus" role="status" aria-live="polite"></span>
+                    <label class="sr-only" for="editCourse">Course</label>
+                    <select id="editCourse" class="edit-form-input" aria-describedby="editCourseSearchHint editCourseSearchStatus">${courseSelectHTML}</select>
                 </div>
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editYear">Year Level</label>
@@ -348,6 +453,10 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        if (savedRole === 'student-cspc') {
+            attachCourseSearch('editCourseSearch', 'editCourse', 'editCourseSearchStatus');
+        }
 
         const overlay = document.getElementById('editModalOverlay');
         const modalDialog = document.getElementById('editModalDialog');
@@ -545,7 +654,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const courseEl = document.getElementById('editCourse');
                 const yearEl = document.getElementById('editYear');
                 if (idEl) newData.studentId = idEl.value;
-                if (courseEl) newData.course = courseEl.value;
+                if (courseEl) {
+                    newData.course = courseEl.value || courseEl.dataset.preservedCourseValue || '';
+                }
                 if (yearEl) newData.yearLevel = yearEl.value;
                 if (window.CampuSphereData) {
                     window.CampuSphereData.studentProfile = { ...window.CampuSphereData.studentProfile, ...newData };

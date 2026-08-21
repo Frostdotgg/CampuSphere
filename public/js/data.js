@@ -60,7 +60,7 @@ const CampuSphereData = {
     name: 'Aaron V. Lasprillas',
     studentId: 'CSPC-2024-001234',
     email: 'aaron.lasprillas@cspc.edu.ph',
-    course: 'BS Information Technology',
+    course: 'Bachelor of Science in Information Technology',
     yearLevel: '3rd Year'
   },
 
