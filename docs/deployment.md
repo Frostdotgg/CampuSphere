@@ -12,7 +12,204 @@ CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 selected per-domain at runtime by the `*_DATA_SOURCE` switches. The app keeps
 Express session auth + Google OAuth; **Supabase Auth is not used**.
 
-## 2026-08-21 Current Production And Post-Deployment Status
+<!-- M12 RELEASE CONTINUITY START -->
+## Current Release Continuity (2026-08-24)
+
+Live Git at the start of this authority synchronization was branch `main`,
+with local `HEAD`, `origin/main`, and remote `main` all equal to pushed Git
+commit SHA-1 `dc961b1eeba191d79b96998d96f0a49dac3ffcf8`. The index was empty;
+the worktree contained exactly 58 modified tracked paths and 12 untracked paths
+(70 dirty paths total), with zero stashes. Eleven authority documents plus
+`scripts/quality-gates.js` are the 12 tracked authority/static-assertion
+surfaces; the other 46 tracked paths and all 12 untracked paths belong to the
+current uncommitted implementation. The retained safety branch
+`backup-pre-trailer-strip` points to Git commit SHA-1
+`d387c9151f1582cc4a8fc80002be52e11956335f`. Preserve this worktree exactly
+and recompute live Git truth in every new session rather than reusing this
+time-specific snapshot.
+
+The release lineage is verified offline implementation Git commit SHA-1
+`d786bdcb83a196c7263dceae668417d3ced3e95a`, bounded readiness/session
+maintenance Git commit SHA-1 `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`, independently reviewed
+release-authority Git commit SHA-1 `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
+course-catalog enhancement Git commit SHA-1
+`dc961b1eeba191d79b96998d96f0a49dac3ffcf8`.
+
+The accepted `bb17b9b` release evidence remains unchanged. Its independently
+reviewed authority delta covered 12 files and 1,854,481 bytes, with manifest
+SHA-256
+`1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7`.
+Its release package pin was 168 files and 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
+Replacement verification completed with `npm test` exit 0 and
+`QUALITY-GATES OK`; `npm run qa` exited 0 with `QUALITY-GATES OK`,
+`DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and
+`found 0 vulnerabilities`; bounded Chrome acceptance completed in Supabase
+and MySQL modes; final ordered postconditions passed at
+`24/24 -> 18/18 -> 46/46`. The clean-commit independent R8 review returned
+**GO** with no critical, high, medium, or low findings.
+
+The owner separately authorized the `bb17b9b` push and manual Vercel promotion.
+Owner-observed dashboard evidence showed `Ready`, blue `Production`, branch
+`main`, and an 11-second build. No independent anonymous GET-only
+post-promotion byte verification has been recorded for `bb17b9b` or
+`dc961b1`. Git commit SHA-1
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified technical baseline; that historical smoke is not byte
+proof for either later commit.
+
+The owner supplied 29 official course titles for this application plus
+`Other`. Commit `dc961b1` replaced the abbreviated selectors and added an
+accessible, case-insensitive course search to new-student OAuth registration
+completion and the existing student profile editor. Clearing the query or
+pressing Escape restores the list; no matches retain `Other`; live status text
+announces result counts. Existing saved legacy course values remain visible
+until a student deliberately selects a new value. The submitted field remains
+`course`; controllers, repositories, APIs, database schema, and migrations did
+not change. The six-file commit recorded 433 insertions and 28 deletions.
+
+Course-feature verification is a separate evidence class: the implementation
+session recorded `npm test` exit 0 with `QUALITY-GATES OK` and five-stage
+`npm run qa` exit 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
+vulnerabilities. The in-session package-boundary run passed `74/74` and
+reported a then-current working-tree package of 168 files, 7,088,275 bytes,
+aggregate SHA-256
+`9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec`.
+Because unrelated authority/static-assertion edits were already unstaged, that
+working-tree package identity is not clean-commit or deployed-byte proof. The
+feature commit was pushed, separately promoted by the owner, and the owner
+confirmed the registration and profile course flows work in Production. This
+is owner-observed functional acceptance, not an independent review, byte
+smoke, or new GO/NO-GO.
+
+Production uses Supabase/PostgreSQL for application data and sessions; MySQL
+remains local-development/fallback/rehearsal data. An offline-guide download is
+a backend-specific immutable snapshot taken through the supported guide API.
+Therefore a production download is built from the then-current Supabase
+building and route data and should match the online production map for that
+download point. The offline scope remains the normal 2D campus map, Main Gate
+routes, text building details, the approved local placeholder, and required
+2D map assets. It excludes 360/Guided-VR/Free-Roam content, schedules,
+building photos, Cloudinary media, and private/admin/session data.
+
+The local MySQL readiness residue incident is closed history: the readiness
+poll now uses the pre-session `/favicon.ico` route, and the exact authorized
+supported cleanup destroyed 309 harness-shaped anonymous sessions with
+cleanup fingerprint SHA-256
+`a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+leaving zero candidates and zero scanned residue. No cleanup is authorized by
+this record. Migrations remain exactly `0001`-`0019`; migration `0020` does not
+exist and is not authorized. Preserve one-writer control and the external
+backup/restore evidence: 109/109 manifest files verified, isolated Supabase and
+MySQL restore proofs passed, and 86 referenced Cloudinary delivery assets were
+exported and hashed without claiming a Cloudinary management/original-account
+export.
+
+The owner attests that the human pilot occurred on 2026-08-05 and accepts it
+with zero reported findings. Participant/Form evidence remains external, no
+participant PII is recorded in Git, and the tested build's full source-commit
+identity was not independently verified. This is owner-attested pilot
+acceptance, not independent current-build verification; pilot review is
+complete for sequencing.
+
+Google OAuth is now owner-observed `In production`. CampuSphere still requests
+only `openid email profile`, and Google Data Access reported that sensitive or
+restricted-scope verification is not required. The owner confirmed Google
+account creation and sign-in work. Branding is not verified: Search Console
+ownership for `campussphere-cspc.vercel.app` was not completed, the consent
+branding remains unavailable, and the owner chose to defer that optional
+branding work while sign-in functions. Do not describe OAuth as verified or
+unlimited. Public local registration still creates guests only; trusted
+student/instructor identity comes from CSPC Google OAuth.
+
+The current 70-path worktree contains an uncommitted multi-feature
+stabilization candidate. Implemented surfaces include valid Guided-VR and Free
+Roam scene arrows; VR light/dark theme parity; smaller accessible building pins
+online and offline; the offline display label `Guard House`; the authenticated
+notification feed/panel and its cross-page stylesheet ownership; the Paga About
+card; admin category-dropdown styling and user role/status filters; safe Google
+profile-image synchronization; and a server-side manual profile-photo flow.
+The manual flow uses authenticated `POST` and `DELETE /api/profile/photo`,
+memory-only single-file handling, and the exact Cloudinary folder
+`CampuSphere/profile-images`, but it is not accepted: the dedicated limited
+key still lacks the required folder permission, the support response remains
+external and pending, and the temporary setup key is disabled. Do not record
+or reuse any credential, account identifier, support contact, or secret.
+
+The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` preview was
+read-only and reported no content differences; the Supabase source and MySQL
+target fingerprints both equalled SHA-256
+`2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
+No data was written, and users, role profiles, login sessions, and activity
+logs remained excluded. This is preview evidence only, not an applied sync,
+backup, restore proof, or current database verification. Existing instructor
+OAuth completion collects full name, read-only email, employee ID, department,
+and position. The owner-observed Android 8 installed-PWA crash remains
+unresolved even though ordinary browser OAuth later worked; Docker/client-clone
+deployment readiness also remains deferred.
+
+The owner selected this next sequence: a fresh session grounds first; a later
+separately authorized session verifies the non-Cloudinary changes; Cloudinary
+support remains an external event-based dependency; and if no response has
+arrived, work continues on verified non-Cloudinary findings one bounded issue
+at a time. Manual Cloudinary upload stays deferred until the owner supplies a
+sanitized support response and separately authorizes a bounded permission and
+upload-acceptance plan. Grounding prompts do not themselves authorize tests,
+fixes, browser/server work, database access, or vendor operations.
+
+Evidence classes must remain separate: accepted historical release/R8
+evidence; course-feature verification; live Git truth; the current uncommitted
+implementation; previously reported focused/source checks; owner-observed
+localhost visual acceptance; the Supabase-to-MySQL dry-run preview; the pending
+Cloudinary blocker; the unresolved owner-observed Android installed-PWA
+behavior; owner-observed Vercel/Production and OAuth facts; the missing
+independent post-promotion byte verification for `dc961b1`; and the missing
+current full QA, independent review, commit, push, deployment, and Production
+acceptance for this worktree. This synchronization issues no new GO/NO-GO and
+authorizes only these authority/static-contract edits plus bounded source-only
+validation. It authorizes no product implementation, browser/server work,
+database/session access, vendor mutation, Git-history mutation, push,
+promotion, deployment, or production smoke. Final Milestone 12 disposition
+remains an explicit owner/external closeout decision.
+
+After the recorded grounding snapshot, the owner separately authorized a
+bounded supported MySQL reconciliation, verification of the non-Cloudinary
+candidate, and an exact commit/push. The prepared release candidate covers 58
+changed paths relative to `dc961b1`: 49 tracked modifications and nine added
+paths. It contains the Guided-VR/Free Roam arrows, VR theme parity, compact
+online/offline pins and the offline `Guard House` label, authenticated
+notifications, cross-page styling, the Paga card, admin dropdown/user filters,
+safe Google profile-image synchronization, and the content-sync operator. It
+excludes the manual profile-photo upload runtime, endpoints, dependencies, and
+probe. That Cloudinary work remains unaccepted, deferred, and outside this
+release.
+
+Before reconciliation, a full MySQL backup was written outside Git. The
+bounded repair used authenticated supported administrator interfaces only; no
+seed, sync apply, restore, migration, or direct SQL data write was used. Users,
+role profiles, guest profiles, and session rows remained exact; `system_logs`
+grew only through expected audit records. The refreshed MySQL freeze passes
+BE.6 at `46/46`, and the SELECT-only canonical session postcondition passes
+`18/18`.
+
+The exact candidate passed `npm test` and the five-stage `npm run qa` at
+`5104/5104` with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
+vulnerabilities`. The package boundary is 172 files and 7,141,628 bytes,
+aggregate SHA-256
+`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
+The current Codex code-reviewer pass found no critical, high, medium, or low
+findings. These are local candidate/review facts until live Git records the
+commit/push. They are not deployment, promotion, Production-byte,
+Cloudinary-upload, Android-PWA, or final Milestone 12 acceptance evidence.
+
+Every older section below that labels the pre-promotion maintenance state as
+“current” is retained only as a historical snapshot. This continuity block and
+live repository/vendor evidence win when they conflict.
+<!-- M12 RELEASE CONTINUITY END -->
+
+## Historical 2026-08-21 Pre-Promotion Production Snapshot
 
 OFF.2-OFF.6 are complete and Codex GO on local Git commit SHA-1
 `cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
@@ -611,7 +808,6 @@ store/update `image_url` + `cloudinary_public_id` on buildings and VR scenes.
 `cloudinary_public_id` is admin/server metadata only and never appears in
 public/runtime responses. Uploading the final 360 panoramas is owner-controlled
 asset work (validated at the Milestone 10 end-to-end gate), not an app feature.
-
 ### Runtime data-source switches (consumed today)
 
 These are **live** — each controller/repository reads its switch at request time.

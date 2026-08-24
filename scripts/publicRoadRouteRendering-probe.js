@@ -270,6 +270,20 @@ function runStaticSourceGate(src) {
     && src.includes('/vr/to/') && src.includes('/vr/routes/'));
   check(scope, 'Free Roam 360 entry preserved',
     src.includes('id="freeRoamBtn"') && src.includes('Free Roam 360'));
+
+  // Building pins are deliberately smaller visually, while their geographic
+  // anchor and keyboard/touch target remain stable in every renderer.
+  check(scope, 'online building pins use the shared 70% scale and preserve the MapLibre offset anchor',
+    src.includes('const MAP_BUILDING_PIN_SCALE = 0.7;')
+    && src.includes('const MAP_BUILDING_PIN_HIT_SIZE = 44;')
+    && src.includes('const MAP_BUILDING_PIN_OFFSET = Object.freeze([0, -14 * MAP_BUILDING_PIN_SCALE]);')
+    && /new maplibregl\.Marker\(\{[\s\S]*?scale: MAP_BUILDING_PIN_SCALE,[\s\S]*?offset: MAP_BUILDING_PIN_OFFSET[\s\S]*?\}\)/.test(src));
+  check(scope, 'Leaflet building pins use a 44px div-icon wrapper with the same geographic bottom anchor',
+    /const buildingIcon = L\.divIcon\(\{[\s\S]*?className: 'map-building-marker map-building-marker--leaflet',[\s\S]*?iconSize: \[MAP_BUILDING_PIN_HIT_SIZE, MAP_BUILDING_PIN_HIT_SIZE\],[\s\S]*?iconAnchor: \[MAP_BUILDING_PIN_HIT_SIZE \/ 2, MAP_BUILDING_PIN_HIT_SIZE\]/.test(src));
+  check(scope, 'static fallback keeps the building glyph inside a native button target',
+    src.includes("marker.className = 'map-fallback__marker';")
+    && src.includes("markerVisual.className = 'map-fallback__marker-icon';")
+    && src.includes("marker.appendChild(markerVisual);"));
 }
 
 /* ------------------------------------------------------------------ *
@@ -347,6 +361,16 @@ function cssRuleBlock(css, selector) {
   return css.slice(open + 1, close);
 }
 
+function cssRuleBlockLast(css, selector) {
+  const i = css.lastIndexOf(selector);
+  if (i === -1) return '';
+  const open = css.indexOf('{', i);
+  if (open === -1) return '';
+  const close = css.indexOf('}', open);
+  if (close === -1) return '';
+  return css.slice(open + 1, close);
+}
+
 function runKeyboardAccessGate(src, css) {
   const scope = 'keyboard-access';
 
@@ -376,6 +400,24 @@ function runKeyboardAccessGate(src, css) {
   check(scope, 'map-bldg-item has a visible :focus-visible outline (light + dark)',
     cssRuleBlock(css, '.map-bldg-item:focus-visible').includes('outline')
     && cssRuleBlock(css, '[data-theme="dark"] .map-bldg-item:focus-visible').includes('outline'));
+
+  const leafletWrapper = cssRuleBlock(css, '.map-building-marker--leaflet {');
+  const leafletPin = cssRuleBlockLast(css, '.map-building-marker--leaflet::after {');
+  const leafletShadow = cssRuleBlockLast(css, '.map-building-marker--leaflet::before {');
+  const mapLibreHit = cssRuleBlock(css, '.map-building-marker--maplibre::before {');
+  const fallbackWrapper = cssRuleBlock(css, '.map-fallback__marker {');
+  const fallbackGlyph = cssRuleBlock(css, '.map-fallback__marker-icon {');
+  check(scope, 'online Leaflet and MapLibre marker wrappers keep exact 44px interaction targets',
+    leafletWrapper.includes('width: 44px') && leafletWrapper.includes('height: 44px')
+    && mapLibreHit.includes('width: 44px') && mapLibreHit.includes('height: 44px'));
+  check(scope, 'online building glyphs are reduced to the reviewed 18x29 Leaflet pin and local assets',
+    leafletPin.includes('width: 18px') && leafletPin.includes('height: 29px')
+    && leafletPin.includes("url('/vendor/leaflet/images/marker-icon.png')")
+    && leafletShadow.includes('width: 29px') && leafletShadow.includes('height: 29px')
+    && !/https?:\/\//i.test(leafletPin + leafletShadow));
+  check(scope, 'static fallback glyph is visually compact without shrinking its 44px button',
+    fallbackWrapper.includes('width: 44px') && fallbackWrapper.includes('height: 44px')
+    && fallbackGlyph.includes('width: 25px') && fallbackGlyph.includes('height: 25px'));
 
   // Dialog closed state: unreachable for keyboard + accessibility tree.
   check(scope, 'routePanelOverlay starts hidden + aria-hidden="true" with dialog semantics kept',

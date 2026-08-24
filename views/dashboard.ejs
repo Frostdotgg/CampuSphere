@@ -2028,6 +2028,20 @@
 
       };
 
+      // Notification links may point at a role-specific dashboard section.
+      // Accept only the section identifier; the role map below remains the
+      // authority for what can actually be rendered.
+      const requestedDashboardSection = (() => {
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          const value = params.get('section');
+          return typeof value === 'string' ? value.trim() : '';
+        } catch (_error) {
+          return '';
+        }
+      })();
+      let initialDashboardSectionPending = true;
+
 
 
 
@@ -2822,7 +2836,12 @@
         currentRole = role;
 
 
-        currentSection = 'overview';
+        currentSection = initialDashboardSectionPending
+          && templateMap[role]
+          && Object.prototype.hasOwnProperty.call(templateMap[role], requestedDashboardSection)
+          ? requestedDashboardSection
+          : 'overview';
+        initialDashboardSectionPending = false;
 
 
         const roleInfo = CampuSphereData.roles[role];

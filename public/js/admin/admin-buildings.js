@@ -511,8 +511,12 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('click',()=>{
       filter.category=item.dataset.value||'all';
       if(catFilterBtn) catFilterBtn.querySelector('span').textContent=item.textContent;
-      catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>i.classList.remove('bg-accent','text-accent-foreground'));
+      catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>{
+        i.classList.remove('bg-accent','text-accent-foreground');
+        i.setAttribute('aria-checked','false');
+      });
       item.classList.add('bg-accent','text-accent-foreground');
+      item.setAttribute('aria-checked','true');
       renderAll();
     });
   });

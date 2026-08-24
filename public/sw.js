@@ -24,8 +24,8 @@
      - EXACT SHELL ALLOWLIST. The only same-origin requests eligible for Cache
        Storage are the reviewed shell assets themselves, matched by exact
        pathname PLUS query string against PRECACHE_URLS. There is no
-       extension-wide or directory-wide rule, so '/css/styles.css?v=5' is
-       cacheable while '/css/styles.css?v=6' is not.
+       extension-wide or directory-wide rule, so '/css/styles.css?v=7' is
+       cacheable while '/css/styles.css?v=8' is not.
      - Every other same-origin static or media request is NETWORK-ONLY: local
        database-selected building photos, '/img/campus-hero.jpg', arbitrary
        '/img/*.jpg', local panorama paths under '/img/vr/', and non-shell
@@ -94,7 +94,7 @@
    ======================================== */
 
 var CACHE_PREFIX = 'campusphere-pwa';
-var CACHE_VERSION = 'v25'; // Accessible simplified-map fallback: advanced ONCE so the prior v24 shell cannot retain undersized interactive SVG groups nested beneath a single image role. Fallback buildings are now native HTML buttons in a named overlay, each with an exact 44-by-44 CSS-pixel target, while the SVG basemap and route remain decorative. Native Enter/Space activation, selected state, building-details focus return, marker coordinates, route drawing, and the MapLibre path are preserved. Mobile-sheet isolation, theme persistence, route-dialog focus containment, marker parity, building-details media coverage, cache eligibility, consent, privacy, API, media, PMTiles, and guide-data boundaries are unchanged. Activation removes stale campusphere-pwa-* generations only; unrelated Cache Storage entries are preserved. (v24: mobile-sheet accessibility, exact touch-target enforcement, and persisted theme parity. v23: details-focus and theme-state accessibility. v22: route-dialog focus containment and visible-target restoration. v21: building-details hero media parity. v20: closing directions preserves the drawn route. v19: online marker and immediate-route parity. v18: absolute marker positioning. v17: bottom-tip marker anchoring. v16: online-map visual-shell parity. v15: automatic API caching removed. v14: exact shell allowlist; all cross-origin network-only. v13: Guided-VR route JSON and Cloudinary made network-only. v12/OFF.3: session-neutral offline guide UI/runtime added to the atomic shell.)
+var CACHE_VERSION = 'v30'; // Google-synced profile images and Edit Profile state. (v29: About team stylesheet refresh, notification panel styles, and Paga portrait framing. v28: shared notification stylesheet refresh. v27: offline Guard House marker label. v26: compact online/offline building markers with exact 44-by-44 CSS-pixel interaction targets. v25: accessible simplified-map fallback and native HTML marker buttons. v24: mobile-sheet accessibility, exact touch-target enforcement, and persisted theme parity. v23: details-focus and theme-state accessibility. v22: route-dialog focus containment and visible-target restoration. v21: building-details hero media parity. v20: closing directions preserves the drawn route. v19: online marker and immediate-route parity. v18: absolute marker positioning. v17: bottom-tip marker anchoring. v16: online-map visual-shell parity. v15: automatic API caching removed. v14: exact shell allowlist; all cross-origin network-only. v13: Guided-VR route JSON and Cloudinary made network-only. v12/OFF.3: session-neutral offline guide UI/runtime added to the atomic shell.)
 
 var SHELL_CACHE = CACHE_PREFIX + '-shell-' + CACHE_VERSION;
 var STATIC_CACHE = CACHE_PREFIX + '-static-' + CACHE_VERSION;
@@ -118,7 +118,7 @@ var PRECACHE_URLS = [
   '/offline.html',
   '/css/offline.css', // CSP (8.5): offline page styles externalized; precached so the offline fallback stays styled
   '/manifest.webmanifest',
-  '/css/styles.css?v=5',
+  '/css/styles.css?v=7',
   '/js/pwa.js',
   '/js/offline-guide-manager.js',
   '/js/nav-role.js',

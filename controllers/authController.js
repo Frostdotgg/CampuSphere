@@ -19,6 +19,8 @@ const { clearSessionCookie } = require('../config/sessionConfig');
 // registration now applies the same server-side email format + password policy
 // the admin user CRUD already enforces, instead of only a non-empty presence check.
 const { validateEmail, validatePassword } = require('../utils/adminValidation');
+const { normalizeMediaUrl } = require('../utils/mediaUrl');
+const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
 
 const SALT_ROUNDS = 10;
 
@@ -165,13 +167,17 @@ async function establishAuthenticatedSession(req, res, assignSessionUser) {
 }
 
 async function hydrateSessionUser(req, userRow) {
+  const googlePicture = normalizeGoogleProfileImageUrl(userRow && userRow.profile_image_url);
+  const storedPicture = googlePicture || normalizeMediaUrl(userRow && userRow.profile_image_url) || '';
   req.session.user = {
     id: userRow.id,
     username: userRow.username,
     email: userRow.email,
     role: userRow.role,
     first_name: userRow.first_name,
-    last_name: userRow.last_name
+    last_name: userRow.last_name,
+    profile_image_url: storedPicture,
+    profile_image_source: (userRow.oauth_provider === 'google' || googlePicture) ? 'google' : (storedPicture ? 'custom' : '')
   };
 }
 
@@ -270,6 +276,34 @@ async function fetchGoogleUserinfo(accessToken) {
   return res.json();
 }
 
+/*
+ * Google profile photos are non-essential to authentication. Refresh the
+ * stored URL when it changes, but never turn a photo-provider outage into a
+ * login outage. The user row is updated in place after a successful write so
+ * the freshly hydrated session contains the same value without another read.
+ */
+async function syncGoogleProfileImage(userRow, rawPicture, useSupabase) {
+  const picture = normalizeGoogleProfileImageUrl(rawPicture);
+  if (!picture || !userRow || picture === userRow.profile_image_url) return;
+
+  try {
+    if (useSupabase) {
+      await userRepository.updateUserProfileImage(userRow.id, picture);
+    } else {
+      await db.query(
+        'UPDATE users SET profile_image_url = ? WHERE id = ?',
+        [picture, userRow.id]
+      );
+    }
+    userRow.profile_image_url = picture;
+  } catch (err) {
+    // Do not log the URL, user id, email, or provider error. The existing
+    // stored picture remains authoritative for this session when the optional
+    // refresh cannot be written.
+    console.warn('Google profile picture refresh skipped.');
+  }
+}
+
 async function createOAuthUserWithProfile(pending, body) {
   let fullName = String(body.fullName || '').trim();
   if (!fullName) {
@@ -294,7 +328,7 @@ async function createOAuthUserWithProfile(pending, body) {
   const placeholder = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
   const role = pending.role;
 
-  const picture = pending.picture || null;
+  const picture = normalizeGoogleProfileImageUrl(pending.picture) || null;
   const googleSub = pending.googleSub || null;
 
   const conn = await db.getConnection();
@@ -1103,6 +1137,7 @@ exports.googleCallback = async (req, res) => {
         }).catch(() => {});
         return res.redirect('/auth?error=account_not_found');
       }
+      await syncGoogleProfileImage(user, profile.picture, useSupabase);
       // R3 (+ follow-up): regenerate, hydrate identity + role profile, save atomically.
       await establishAuthenticatedSession(req, res, async () => {
         await hydrateSessionUser(req, user);
@@ -1138,7 +1173,7 @@ exports.googleCallback = async (req, res) => {
       givenName: first,
       familyName: last,
       fullName: profile.name || '',
-      picture: profile.picture || ''
+      picture: normalizeGoogleProfileImageUrl(profile.picture) || ''
     };
     await saveSession(req);
     return res.redirect('/auth/complete-registration');

@@ -20,12 +20,13 @@
          exactly '/vr/<validated-key>'.
      - decoratePannellumHotspot(baseConfig, hotspot, mode, locationLike)
          Returns a NEW config (inputs are never mutated) using Pannellum's
-         NATIVE info-hotspot link contract: URL: <validatedUrl> plus
-         attributes: { target: '_self' }. No clickHandlerFunc is ever
-         installed for scene navigation. When nothing validates, the copy
-         carries no URL/attributes/clickHandlerFunc at all, so a rejected
-         target stays a non-navigating info point. mode is 'guided' or
-         'free-roam'; anything else fails closed.
+         NATIVE scene-hotspot arrow + link contract for validated navigation:
+         type: 'scene', URL: <validatedUrl>, plus attributes:
+         { target: '_self' }. No clickHandlerFunc is ever installed for scene
+         navigation. When nothing validates, the copy carries no
+         URL/attributes/clickHandlerFunc at all, so a rejected target stays a
+         non-navigating info point. mode is 'guided' or 'free-roam'; anything
+         else fails closed.
 
    Accepted same-origin URL forms (entire string, nothing else):
      /vr/to/<positive-id>?step=<positive-step>
@@ -145,10 +146,14 @@
         } else if (mode === 'free-roam') {
             url = resolveFreeRoamUrl(hotspot, locationLike);
         }
-        // Unsupported mode or rejected target: the copy stays non-navigating.
+        // Unsupported mode or rejected target: the copy stays a non-navigating
+        // info point. Only a validated destination receives the native
+        // Pannellum scene-arrow type.
         if (url !== null) {
-            // Pannellum's native info-hotspot link contract: the viewer wraps
-            // the hotspot in a real same-tab anchor.
+            config.type = 'scene';
+            // Pannellum wraps URL hotspots in a real same-tab anchor. The
+            // scene type supplies the built-in arrow sprite while preserving
+            // the existing validated URL contract.
             config.URL = url;
             config.attributes = { target: '_self' };
         }

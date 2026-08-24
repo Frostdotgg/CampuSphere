@@ -142,21 +142,21 @@
                                 <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
                                 <input id="content-search-input" type="text" placeholder="Search..." class="ui-input pl-9" style="width:100%;">
                             </div>
-                            <div class="relative inline-block text-left">
-                                <button id="cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:150px;" data-dropdown-target="cat-filter-menu">
+                            <div class="admin-filter-dropdown relative inline-block text-left">
+                                <button id="cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:150px;" data-dropdown-target="cat-filter-menu" aria-controls="cat-filter-menu" aria-haspopup="menu" aria-expanded="false">
                                     <span>All Categories</span><i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
-                                <div id="cat-filter-menu" class="dropdown-menu-content p-1" style="width:150px;">
+                                <div id="cat-filter-menu" class="dropdown-menu-content p-1" data-dropdown-placement="anchor" role="menu" style="width:150px;">
                                     <!-- Static fallback = initial News-tab categories; admin-news.js rebuilds this per tab -->
-                                    <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All</div>
-                                    <div class="dropdown-menu-item" data-value="General">General</div>
-                                    <div class="dropdown-menu-item" data-value="Academic">Academic</div>
-                                    <div class="dropdown-menu-item" data-value="Event">Event</div>
-                                    <div class="dropdown-menu-item" data-value="Events">Events</div>
-                                    <div class="dropdown-menu-item" data-value="Advisory">Advisory</div>
-                                    <div class="dropdown-menu-item" data-value="Maintenance">Maintenance</div>
-                                    <div class="dropdown-menu-item" data-value="Emergency">Emergency</div>
-                                    <div class="dropdown-menu-item" data-value="Facilities">Facilities</div>
+                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="General" role="menuitemradio" aria-checked="false">General</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Academic" role="menuitemradio" aria-checked="false">Academic</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Event" role="menuitemradio" aria-checked="false">Event</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Events" role="menuitemradio" aria-checked="false">Events</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Advisory" role="menuitemradio" aria-checked="false">Advisory</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Maintenance" role="menuitemradio" aria-checked="false">Maintenance</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Emergency" role="menuitemradio" aria-checked="false">Emergency</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Facilities" role="menuitemradio" aria-checked="false">Facilities</button>
                                 </div>
                             </div>
                             <button id="add-content-btn" class="ui-button ui-button-default ui-button-size-default">

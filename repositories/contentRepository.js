@@ -123,17 +123,24 @@ function normalizeEventDate(value) {
  * (parameterised) rather than a string-built `.or`, so the role value
  * can never alter the filter structure.
  */
-async function listAnnouncementsForRole(role) {
+async function listAnnouncementsForRole(role, options = {}) {
   const trimmed = typeof role === 'string' ? role.trim() : '';
   const audiences = trimmed === '' ? ['all'] : ['all', trimmed];
+  const rawLimit = options && options.limit;
+  const parsedLimit = Number(rawLimit);
+  const limit = rawLimit == null
+    ? null
+    : (Number.isFinite(parsedLimit) ? Math.min(Math.max(Math.floor(parsedLimit), 1), 50) : 5);
 
   const sb = getSupabaseClient();
-  const { data, error } = await sb
+  let query = sb
     .from('news_announcements')
     .select(ANNOUNCEMENT_COLUMNS)
     .not('published_date', 'is', null)
     .in('audience', audiences)
     .order('published_date', { ascending: false });
+  if (limit != null) query = query.limit(limit);
+  const { data, error } = await query;
   if (error) throw fail('listAnnouncementsForRole', error);
   return data || [];
 }
@@ -202,12 +209,18 @@ async function listAllAnnouncements() {
  * are inclusive and compared against event_date. eventsController still
  * reshapes rows into its EJS view shape.
  */
-async function listEvents({ from, to } = {}) {
+async function listEvents({ from, to, limit } = {}) {
   const sb = getSupabaseClient();
   let query = sb.from('events').select(EVENT_COLUMNS);
   if (from != null) query = query.gte('event_date', from);
   if (to != null) query = query.lte('event_date', to);
   query = query.order('event_date', { ascending: true });
+  const parsedLimit = Number(limit);
+  if (limit != null) {
+    query = query.limit(Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(Math.floor(parsedLimit), 1), 50)
+      : 5);
+  }
 
   const { data, error } = await query;
   if (error) throw fail('listEvents', error);

@@ -166,7 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
             enrollmentStatus: sessionUser.enrollment_status || '',
             semester: sessionUser.semester || '',
             address: sessionUser.address || '',
-            phone: sessionUser.phone_number || ''
+            phone: sessionUser.phone_number || '',
+            profileImage: sessionUser.profile_image_url || '',
+            profileImageSource: sessionUser.profile_image_source || ''
         };
     } else {
         // Fallback to localStorage
@@ -244,8 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
             avatar.textContent = '';
             const img = document.createElement('img');
             img.src = base64Img;
-            img.alt = 'Profile Image';
+            img.alt = '';
+            img.setAttribute('aria-hidden', 'true');
+            img.referrerPolicy = 'no-referrer';
+            img.decoding = 'async';
             img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:50%;';
+            img.addEventListener('error', () => {
+                if (img.parentElement === avatar) applyProfileImage('');
+            });
             avatar.appendChild(img);
             avatar.style.padding = '0'; // Remove padding for full fill
         });
@@ -313,9 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (canEdit) {
         let modalFields = '';
         const safeProfileImg = safeUrl(profileData.profileImage, { allowDataImage: true });
-        const currentImg = safeProfileImg ? `<img src="${escapeHtml(safeProfileImg)}" alt="Profile" id="previewProfileImg">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        const isGoogleProfileImage = profileData.profileImageSource === 'google';
+        const profileImageAlt = isGoogleProfileImage ? 'Google profile picture' : 'Profile picture';
+        const currentImg = safeProfileImg
+            ? `<img src="${escapeHtml(safeProfileImg)}" alt="${profileImageAlt}" id="previewProfileImg" referrerpolicy="no-referrer">`
+            : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
-        const photoUploadArea = `
+        const uploadPhotoArea = `
             <div class="edit-profile-photo">
                 <div class="edit-photo-preview" id="editPhotoPreviewContainer">
                     ${currentImg}
@@ -327,6 +339,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+        const syncedPhotoArea = `
+            <div class="edit-profile-photo">
+                <div class="edit-photo-preview" id="editPhotoPreviewContainer">
+                    ${currentImg}
+                </div>
+                <p class="edit-photo-sync-note" role="status">
+                    Synced from your Google Account. Change your photo in Google,
+                    then sign out and sign in again to refresh it here.
+                </p>
+            </div>
+        `;
+        const photoUploadArea = isGoogleProfileImage ? syncedPhotoArea : uploadPhotoArea;
 
         if (savedRole === 'student-cspc') {
             const currentCourse = String(profileData.course || '').trim();

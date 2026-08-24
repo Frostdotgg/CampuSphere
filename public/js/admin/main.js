@@ -133,39 +133,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- Dropdowns ----
     const dropdownTriggers = document.querySelectorAll('.dropdown-trigger');
+
+    function setDropdownExpanded(menu, expanded) {
+        if (!menu) return;
+        document.querySelectorAll('.dropdown-trigger').forEach(trigger => {
+            if (trigger.getAttribute('data-dropdown-target') === menu.id) {
+                trigger.setAttribute('aria-expanded', String(expanded));
+            }
+        });
+    }
+
+    function closeDropdown(menu) {
+        if (!menu) return;
+        menu.removeAttribute('data-state');
+        setDropdownExpanded(menu, false);
+    }
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu-content').forEach(closeDropdown);
+    }
     
     dropdownTriggers.forEach(trigger => {
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
             const targetId = trigger.getAttribute('data-dropdown-target');
             const targetMenu = document.getElementById(targetId);
+            if (!targetMenu) return;
             
             // Close all others
             document.querySelectorAll('.dropdown-menu-content').forEach(menu => {
                 if (menu.id !== targetId) {
-                    menu.removeAttribute('data-state');
+                    closeDropdown(menu);
                 }
             });
 
             // Toggle current
             if (targetMenu.getAttribute('data-state') === 'open') {
-                targetMenu.removeAttribute('data-state');
+                closeDropdown(targetMenu);
             } else {
                 targetMenu.setAttribute('data-state', 'open');
-                
-                // Position
-                const rect = trigger.getBoundingClientRect();
-                targetMenu.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-                targetMenu.style.right = (window.innerWidth - rect.right) + 'px';
+
+                // Toolbar filters are anchored to their local relative wrapper.
+                // Other menus retain the legacy viewport-coordinate placement.
+                if (targetMenu.getAttribute('data-dropdown-placement') === 'anchor') {
+                    targetMenu.style.removeProperty('top');
+                    targetMenu.style.removeProperty('right');
+                    targetMenu.style.removeProperty('left');
+                    targetMenu.style.removeProperty('bottom');
+
+                    // Long category lists should remain reachable on short
+                    // screens. Measure after opening, then flip above the
+                    // trigger only when there is enough room there.
+                    const triggerRect = trigger.getBoundingClientRect();
+                    const menuRect = targetMenu.getBoundingClientRect();
+                    const fitsBelow = menuRect.bottom <= window.innerHeight;
+                    const fitsAbove = triggerRect.top >= menuRect.height + 8;
+                    if (!fitsBelow && fitsAbove) {
+                        targetMenu.style.top = 'auto';
+                        targetMenu.style.bottom = 'calc(100% + 0.5rem)';
+                    }
+                } else {
+                    const rect = trigger.getBoundingClientRect();
+                    targetMenu.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+                    targetMenu.style.right = (window.innerWidth - rect.right) + 'px';
+                }
+                setDropdownExpanded(targetMenu, true);
             }
         });
     });
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', () => {
-        document.querySelectorAll('.dropdown-menu-content').forEach(menu => {
-            menu.removeAttribute('data-state');
-        });
+        closeAllDropdowns();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const openMenu = document.querySelector('.dropdown-menu-content[data-state="open"]');
+        if (!openMenu) return;
+        closeDropdown(openMenu);
+        const trigger = Array.from(document.querySelectorAll('.dropdown-trigger'))
+            .find(item => item.getAttribute('data-dropdown-target') === openMenu.id);
+        if (trigger) trigger.focus();
     });
     
     // Prevent closing when clicking inside dropdown menu

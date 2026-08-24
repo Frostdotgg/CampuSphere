@@ -1734,6 +1734,15 @@ select.edit-form-input {
     gap: 0.5rem;
 }
 
+.edit-photo-sync-note {
+    max-width: 280px;
+    margin: 0;
+    color: var(--gray-500);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
 .edit-photo-btn {
     padding: 0.35rem 0.8rem;
     font-size: 0.75rem;
@@ -1771,6 +1780,10 @@ select.edit-form-input {
 
 [data-theme="dark"] .edit-photo-btn {
     background: #111827;
+}
+
+[data-theme="dark"] .edit-photo-sync-note {
+    color: var(--gray-300);
 }
 
 [data-theme="dark"] .edit-photo-btn.upload {
@@ -1937,8 +1950,8 @@ select.edit-form-input {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: var(--radius-full);
     border: none;
     background: rgba(255, 255, 255, 0.12);
@@ -1958,10 +1971,18 @@ iconify-icon {
     color: var(--white);
 }
 
+.dash-nav__icon-btn:focus-visible,
+.dash-nav__notification-close:focus-visible,
+.dash-nav__notifications-panel a:focus-visible,
+.dash-nav__notification-retry:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
+}
+
 .dash-nav__notif-dot {
     position: absolute;
-    top: 9px;
-    right: 10px;
+    top: 8px;
+    right: 9px;
     width: 8px;
     height: 8px;
     background: #ef4444;
@@ -1969,6 +1990,208 @@ iconify-icon {
     border-radius: var(--radius-full);
     border: 2px solid #0a1628;
     /* Border matching nav bg */
+}
+
+.dash-nav__notif-dot[hidden] {
+    display: none;
+}
+
+/* Authenticated notification disclosure.  The panel is deliberately a
+   read-only view of existing announcements and upcoming events. */
+.dash-nav__notifications-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: max(12px, calc((100vw - 1400px) / 2 + 24px));
+    z-index: 1010;
+    display: block;
+    width: min(390px, calc(100vw - 24px));
+    max-height: calc(100vh - 84px);
+    max-height: min(640px, calc(100dvh - 84px));
+    overflow-y: auto;
+    padding: var(--space-md);
+    color: var(--gray-800);
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.24);
+}
+
+.dash-nav__notifications-panel[hidden] {
+    display: none;
+}
+
+.dash-nav__notifications-panel [hidden] {
+    display: none !important;
+}
+
+.dash-nav__notifications-header,
+.dash-nav__notifications-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.dash-nav__notifications-header {
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.dash-nav__notifications-header h2 {
+    margin: 0;
+    color: var(--gray-800);
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.dash-nav__notification-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    color: var(--gray-600);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.dash-nav__notification-close:hover {
+    color: var(--gray-800);
+    background: var(--gray-100);
+}
+
+.dash-nav__notification-status,
+.dash-nav__notification-empty,
+.dash-nav__notification-error {
+    margin: var(--space-sm) 0;
+    color: var(--gray-600);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.dash-nav__notification-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-md);
+}
+
+.dash-nav__notification-error p {
+    margin: 0;
+}
+
+.dash-nav__notification-retry {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.45rem 0.7rem;
+    color: var(--navy-700);
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dash-nav__notification-content {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.dash-nav__notification-section {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.dash-nav__notification-section h3 {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.dash-nav__notification-list {
+    display: grid;
+    gap: 6px;
+}
+
+.dash-nav__notification-item {
+    display: grid;
+    gap: 3px;
+    padding: 0.65rem 0.7rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+}
+
+.dash-nav__notification-item-category {
+    color: var(--navy-600);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.dash-nav__notification-item-title {
+    color: var(--gray-800);
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.dash-nav__notification-item-copy,
+.dash-nav__notification-item-meta {
+    color: var(--gray-600);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.dash-nav__notification-item-meta {
+    color: var(--gray-400);
+}
+
+.dash-nav__notifications-footer {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--gray-200);
+}
+
+.dash-nav__notifications-footer a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--navy-600);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.dash-nav__notifications-footer a:hover {
+    text-decoration: underline;
+}
+
+.dash-nav__notification-mobile {
+    position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-nav__notifications-panel,
+    .dash-nav__notification-close,
+    .dash-nav__notification-retry {
+        transition: none;
+    }
 }
 
 .dash-nav__user {
@@ -2576,6 +2799,21 @@ iconify-icon {
         display: none;
     }
 
+    .dash-nav__notifications-panel {
+        position: fixed;
+        top: 72px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-height: calc(100vh - 84px);
+        max-height: calc(100dvh - 84px);
+    }
+
+    .dash-nav__notification-mobile .dash-nav__notif-dot {
+        top: 10px;
+        right: 18px;
+    }
+
     .dash-nav__inner {
         padding: 0 var(--space-md);
     }
@@ -2649,6 +2887,59 @@ iconify-icon {
 [data-theme="dark"] .dash-nav__icon-btn:hover {
     background: #2a3146;
     color: #e5e7eb;
+}
+
+[data-theme="dark"] .dash-nav__notifications-panel {
+    color: #e5e7eb;
+    background: #111827;
+    border-color: #2a3146;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+
+[data-theme="dark"] .dash-nav__notifications-header,
+[data-theme="dark"] .dash-nav__notifications-footer {
+    border-color: #2a3146;
+}
+
+[data-theme="dark"] .dash-nav__notifications-header h2,
+[data-theme="dark"] .dash-nav__notification-item-title {
+    color: #f3f4f6;
+}
+
+[data-theme="dark"] .dash-nav__notification-close {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .dash-nav__notification-close:hover {
+    color: #f3f4f6;
+    background: #1f2537;
+}
+
+[data-theme="dark"] .dash-nav__notification-status,
+[data-theme="dark"] .dash-nav__notification-empty,
+[data-theme="dark"] .dash-nav__notification-item-copy,
+[data-theme="dark"] .dash-nav__notification-item-meta {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .dash-nav__notification-section h3 {
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .dash-nav__notification-item {
+    background: #1f2537;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .dash-nav__notification-error {
+    color: #fecaca;
+    background: rgba(127, 29, 29, 0.32);
+    border-color: rgba(248, 113, 113, 0.38);
+}
+
+[data-theme="dark"] .dash-nav__notification-retry,
+[data-theme="dark"] .dash-nav__notifications-footer a {
+    color: #93c5fd;
 }
 
 [data-theme="dark"] .dash-nav__avatar {
@@ -3653,8 +3944,15 @@ iconify-icon {
 
 @media (min-width: 1024px) {
     .team-grid {
-        /* Use 3 columns for the 6 members on large screens */
-        grid-template-columns: repeat(3, 1fr);
+        /* Keep three equal card widths and center an incomplete final row. */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: stretch;
+    }
+
+    .team-grid .member-card {
+        flex: 0 1 calc(33.333333% - 1rem);
     }
 }
 
@@ -3696,6 +3994,10 @@ iconify-icon {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.member-photo--paga {
+    object-position: 50% 45%;
 }
 
 .member-name {
@@ -6243,6 +6545,61 @@ a.btn-google {
     -webkit-user-drag: none;
 }
 
+/* ===== COMPACT BUILDING MARKERS ===== */
+/* The visible pin is 70% of Leaflet's 25-by-41 default asset (18-by-29
+   rounded pixels). The wrapper stays 44-by-44 so shrinking the glyph never
+   removes a usable touch or keyboard target. */
+.map-building-marker--leaflet {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.map-building-marker--leaflet::before,
+.map-building-marker--leaflet::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: 100% 100%;
+}
+
+.map-building-marker--leaflet::before {
+    left: 7.5px;
+    width: 29px;
+    height: 29px;
+    background-image: url('/vendor/leaflet/images/marker-shadow.png');
+}
+
+.map-building-marker--leaflet::after {
+    left: 13px;
+    width: 18px;
+    height: 29px;
+    background-image: image-set(
+        url('/vendor/leaflet/images/marker-icon.png') 1x,
+        url('/vendor/leaflet/images/marker-icon-2x.png') 2x
+    );
+}
+
+/* MapLibre owns the marker element's translate transform. An invisible
+   pseudo-element expands only its hit area, leaving the scaled default SVG
+   and geographic anchor untouched. */
+.map-building-marker--maplibre::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    pointer-events: auto;
+}
+
 .leaflet-tile {
     width: 256px;
     height: 256px;
@@ -6349,21 +6706,36 @@ a.btn-google {
 
 .map-fallback__marker {
     position: absolute;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     transform: translate(-50%, -50%);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    font-size: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+}
+
+.map-fallback__marker-icon {
+    width: 25px;
+    height: 25px;
     border: 2px solid #ffffff;
     border-radius: 999px;
     background: var(--navy-600);
     color: #ffffff;
     box-shadow: 0 8px 22px rgba(15, 42, 68, 0.24);
-    cursor: pointer;
-    font-size: 0.72rem;
-    font-weight: 800;
-    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(15, 42, 68, 0.28);
     transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -6371,7 +6743,7 @@ a.btn-google {
     content: attr(data-label);
     position: absolute;
     left: 50%;
-    top: calc(100% + 9px);
+    top: calc(100% - 1px);
     max-width: 160px;
     transform: translateX(-50%);
     padding: 0.22rem 0.45rem;
@@ -6389,10 +6761,14 @@ a.btn-google {
 
 .map-fallback__marker.active,
 .map-fallback__marker:hover {
-    background: var(--red-accent);
-    transform: translate(-50%, -50%) scale(1.12);
-    box-shadow: 0 10px 26px rgba(178, 34, 52, 0.32);
     z-index: 4;
+}
+
+.map-fallback__marker.active .map-fallback__marker-icon,
+.map-fallback__marker:hover .map-fallback__marker-icon {
+    background: var(--red-accent);
+    transform: scale(1.12);
+    box-shadow: 0 10px 26px rgba(178, 34, 52, 0.32);
 }
 
 .map-fallback__marker:focus-visible {
@@ -6401,7 +6777,7 @@ a.btn-google {
 }
 
 .map-fallback__marker {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    text-shadow: none;
 }
 
 .map-fallback__empty {

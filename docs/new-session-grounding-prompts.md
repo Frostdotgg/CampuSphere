@@ -1,12 +1,959 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-21 (Asia/Manila)
+Last updated: 2026-08-24 (Asia/Manila)
 
-The first two sections are the only current copy-paste prompts. Both authorize
-grounding only and then wait for the owner. Neither prompt authorizes review,
-implementation, Git mutation, a new deployment or promotion, pilot work,
-offline work, or the next product workstream. Earlier prompts remain below
-under historical headings and must not be used as current authority.
+The two sections titled `Codex Grounding Prompt` and
+`Claude Code Grounding Prompt` below are the only current copy-paste prompts.
+Both authorize grounding only and then wait for the owner. They do not
+authorize review, implementation, testing, Git mutation, database/session
+access, vendor mutation, another deployment/promotion, OAuth publishing,
+course-catalog work, pilot work, or a new GO/NO-GO. Every older prompt and
+pre-promotion snapshot below is historical and must not be used as current
+authority.
+
+<!-- M12 RELEASE CONTINUITY START -->
+## Current Release Continuity (2026-08-24)
+
+Live Git at the start of this authority synchronization was branch `main`,
+with local `HEAD`, `origin/main`, and remote `main` all equal to pushed Git
+commit SHA-1 `dc961b1eeba191d79b96998d96f0a49dac3ffcf8`. The index was empty;
+the worktree contained exactly 58 modified tracked paths and 12 untracked paths
+(70 dirty paths total), with zero stashes. Eleven authority documents plus
+`scripts/quality-gates.js` are the 12 tracked authority/static-assertion
+surfaces; the other 46 tracked paths and all 12 untracked paths belong to the
+current uncommitted implementation. The retained safety branch
+`backup-pre-trailer-strip` points to Git commit SHA-1
+`d387c9151f1582cc4a8fc80002be52e11956335f`. Preserve this worktree exactly
+and recompute live Git truth in every new session rather than reusing this
+time-specific snapshot.
+
+The release lineage is verified offline implementation Git commit SHA-1
+`d786bdcb83a196c7263dceae668417d3ced3e95a`, bounded readiness/session
+maintenance Git commit SHA-1 `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`, independently reviewed
+release-authority Git commit SHA-1 `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
+course-catalog enhancement Git commit SHA-1
+`dc961b1eeba191d79b96998d96f0a49dac3ffcf8`.
+
+The accepted `bb17b9b` release evidence remains unchanged. Its independently
+reviewed authority delta covered 12 files and 1,854,481 bytes, with manifest
+SHA-256
+`1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7`.
+Its release package pin was 168 files and 7,074,195 bytes, aggregate SHA-256
+`13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`.
+Replacement verification completed with `npm test` exit 0 and
+`QUALITY-GATES OK`; `npm run qa` exited 0 with `QUALITY-GATES OK`,
+`DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and
+`found 0 vulnerabilities`; bounded Chrome acceptance completed in Supabase
+and MySQL modes; final ordered postconditions passed at
+`24/24 -> 18/18 -> 46/46`. The clean-commit independent R8 review returned
+**GO** with no critical, high, medium, or low findings.
+
+The owner separately authorized the `bb17b9b` push and manual Vercel promotion.
+Owner-observed dashboard evidence showed `Ready`, blue `Production`, branch
+`main`, and an 11-second build. No independent anonymous GET-only
+post-promotion byte verification has been recorded for `bb17b9b` or
+`dc961b1`. Git commit SHA-1
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified technical baseline; that historical smoke is not byte
+proof for either later commit.
+
+The owner supplied 29 official course titles for this application plus
+`Other`. Commit `dc961b1` replaced the abbreviated selectors and added an
+accessible, case-insensitive course search to new-student OAuth registration
+completion and the existing student profile editor. Clearing the query or
+pressing Escape restores the list; no matches retain `Other`; live status text
+announces result counts. Existing saved legacy course values remain visible
+until a student deliberately selects a new value. The submitted field remains
+`course`; controllers, repositories, APIs, database schema, and migrations did
+not change. The six-file commit recorded 433 insertions and 28 deletions.
+
+Course-feature verification is a separate evidence class: the implementation
+session recorded `npm test` exit 0 with `QUALITY-GATES OK` and five-stage
+`npm run qa` exit 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
+vulnerabilities. The in-session package-boundary run passed `74/74` and
+reported a then-current working-tree package of 168 files, 7,088,275 bytes,
+aggregate SHA-256
+`9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec`.
+Because unrelated authority/static-assertion edits were already unstaged, that
+working-tree package identity is not clean-commit or deployed-byte proof. The
+feature commit was pushed, separately promoted by the owner, and the owner
+confirmed the registration and profile course flows work in Production. This
+is owner-observed functional acceptance, not an independent review, byte
+smoke, or new GO/NO-GO.
+
+Production uses Supabase/PostgreSQL for application data and sessions; MySQL
+remains local-development/fallback/rehearsal data. An offline-guide download is
+a backend-specific immutable snapshot taken through the supported guide API.
+Therefore a production download is built from the then-current Supabase
+building and route data and should match the online production map for that
+download point. The offline scope remains the normal 2D campus map, Main Gate
+routes, text building details, the approved local placeholder, and required
+2D map assets. It excludes 360/Guided-VR/Free-Roam content, schedules,
+building photos, Cloudinary media, and private/admin/session data.
+
+The local MySQL readiness residue incident is closed history: the readiness
+poll now uses the pre-session `/favicon.ico` route, and the exact authorized
+supported cleanup destroyed 309 harness-shaped anonymous sessions with
+cleanup fingerprint SHA-256
+`a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
+leaving zero candidates and zero scanned residue. No cleanup is authorized by
+this record. Migrations remain exactly `0001`-`0019`; migration `0020` does not
+exist and is not authorized. Preserve one-writer control and the external
+backup/restore evidence: 109/109 manifest files verified, isolated Supabase and
+MySQL restore proofs passed, and 86 referenced Cloudinary delivery assets were
+exported and hashed without claiming a Cloudinary management/original-account
+export.
+
+The owner attests that the human pilot occurred on 2026-08-05 and accepts it
+with zero reported findings. Participant/Form evidence remains external, no
+participant PII is recorded in Git, and the tested build's full source-commit
+identity was not independently verified. This is owner-attested pilot
+acceptance, not independent current-build verification; pilot review is
+complete for sequencing.
+
+Google OAuth is now owner-observed `In production`. CampuSphere still requests
+only `openid email profile`, and Google Data Access reported that sensitive or
+restricted-scope verification is not required. The owner confirmed Google
+account creation and sign-in work. Branding is not verified: Search Console
+ownership for `campussphere-cspc.vercel.app` was not completed, the consent
+branding remains unavailable, and the owner chose to defer that optional
+branding work while sign-in functions. Do not describe OAuth as verified or
+unlimited. Public local registration still creates guests only; trusted
+student/instructor identity comes from CSPC Google OAuth.
+
+The current 70-path worktree contains an uncommitted multi-feature
+stabilization candidate. Implemented surfaces include valid Guided-VR and Free
+Roam scene arrows; VR light/dark theme parity; smaller accessible building pins
+online and offline; the offline display label `Guard House`; the authenticated
+notification feed/panel and its cross-page stylesheet ownership; the Paga About
+card; admin category-dropdown styling and user role/status filters; safe Google
+profile-image synchronization; and a server-side manual profile-photo flow.
+The manual flow uses authenticated `POST` and `DELETE /api/profile/photo`,
+memory-only single-file handling, and the exact Cloudinary folder
+`CampuSphere/profile-images`, but it is not accepted: the dedicated limited
+key still lacks the required folder permission, the support response remains
+external and pending, and the temporary setup key is disabled. Do not record
+or reuse any credential, account identifier, support contact, or secret.
+
+The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` preview was
+read-only and reported no content differences; the Supabase source and MySQL
+target fingerprints both equalled SHA-256
+`2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
+No data was written, and users, role profiles, login sessions, and activity
+logs remained excluded. This is preview evidence only, not an applied sync,
+backup, restore proof, or current database verification. Existing instructor
+OAuth completion collects full name, read-only email, employee ID, department,
+and position. The owner-observed Android 8 installed-PWA crash remains
+unresolved even though ordinary browser OAuth later worked; Docker/client-clone
+deployment readiness also remains deferred.
+
+The owner selected this next sequence: a fresh session grounds first; a later
+separately authorized session verifies the non-Cloudinary changes; Cloudinary
+support remains an external event-based dependency; and if no response has
+arrived, work continues on verified non-Cloudinary findings one bounded issue
+at a time. Manual Cloudinary upload stays deferred until the owner supplies a
+sanitized support response and separately authorizes a bounded permission and
+upload-acceptance plan. Grounding prompts do not themselves authorize tests,
+fixes, browser/server work, database access, or vendor operations.
+
+Evidence classes must remain separate: accepted historical release/R8
+evidence; course-feature verification; live Git truth; the current uncommitted
+implementation; previously reported focused/source checks; owner-observed
+localhost visual acceptance; the Supabase-to-MySQL dry-run preview; the pending
+Cloudinary blocker; the unresolved owner-observed Android installed-PWA
+behavior; owner-observed Vercel/Production and OAuth facts; the missing
+independent post-promotion byte verification for `dc961b1`; and the missing
+current full QA, independent review, commit, push, deployment, and Production
+acceptance for this worktree. This synchronization issues no new GO/NO-GO and
+authorizes only these authority/static-contract edits plus bounded source-only
+validation. It authorizes no product implementation, browser/server work,
+database/session access, vendor mutation, Git-history mutation, push,
+promotion, deployment, or production smoke. Final Milestone 12 disposition
+remains an explicit owner/external closeout decision.
+
+After the recorded grounding snapshot, the owner separately authorized a
+bounded supported MySQL reconciliation, verification of the non-Cloudinary
+candidate, and an exact commit/push. The prepared release candidate covers 58
+changed paths relative to `dc961b1`: 49 tracked modifications and nine added
+paths. It contains the Guided-VR/Free Roam arrows, VR theme parity, compact
+online/offline pins and the offline `Guard House` label, authenticated
+notifications, cross-page styling, the Paga card, admin dropdown/user filters,
+safe Google profile-image synchronization, and the content-sync operator. It
+excludes the manual profile-photo upload runtime, endpoints, dependencies, and
+probe. That Cloudinary work remains unaccepted, deferred, and outside this
+release.
+
+Before reconciliation, a full MySQL backup was written outside Git. The
+bounded repair used authenticated supported administrator interfaces only; no
+seed, sync apply, restore, migration, or direct SQL data write was used. Users,
+role profiles, guest profiles, and session rows remained exact; `system_logs`
+grew only through expected audit records. The refreshed MySQL freeze passes
+BE.6 at `46/46`, and the SELECT-only canonical session postcondition passes
+`18/18`.
+
+The exact candidate passed `npm test` and the five-stage `npm run qa` at
+`5104/5104` with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
+vulnerabilities`. The package boundary is 172 files and 7,141,628 bytes,
+aggregate SHA-256
+`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
+The current Codex code-reviewer pass found no critical, high, medium, or low
+findings. These are local candidate/review facts until live Git records the
+commit/push. They are not deployment, promotion, Production-byte,
+Cloudinary-upload, Android-PWA, or final Milestone 12 acceptance evidence.
+
+Every older section below that labels the pre-promotion maintenance state as
+“current” is retained only as a historical snapshot. This continuity block and
+live repository/vendor evidence win when they conflict.
+<!-- M12 RELEASE CONTINUITY END -->
+## Codex Grounding Prompt
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
+handoff owner, and delivery coordinator.
+
+This is a fresh context-only grounding session that does not authorize
+implementation or review. Change nothing. Do not edit, format, create, delete, move, stage,
+commit, amend, stash, reset, clean, tag, push, promote, deploy, link Vercel,
+alter Google OAuth, apply SQL, access or mutate either database, clear sessions,
+invoke Cloudinary/Upstash management APIs, create migration 0020, start a
+server, use a browser, or run tests, QA, probes, audits, manifests, or smoke
+checks. Do not copy credentials, participant PII, developer-contact emails,
+database identifiers, backup paths, Search Console verification artifacts,
+signed URLs, or secrets into Git or the report.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually
+  available in this session.
+- Load and follow the installed code-reviewer skill completely before any
+  later code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Use context-mode or an equivalent read-only large-file tool for long files
+  when available. Browser/Chrome/Playwright availability is not authorization.
+- Report missing named capabilities and use only a safe read-only fallback.
+
+Read completely and in this order:
+1. CODEX_HANDOFF.md
+2. CLAUDE_HANDOFF.md
+3. plan.md, especially Current Release Continuity, M12 interfaces, anti-scope,
+   assumptions, backup/restore, and data-cutover notes
+4. ROADMAP.md, especially privacy/pilot/release gates, OFF.2-OFF.6,
+   Milestones 12-13, blockers, and recommended order
+5. AGENTS.md
+6. CLAUDE.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
+   and deployment-boundary probes
+9. controllers/authController.js, controllers/profileController.js,
+   middleware/profilePhotoUpload.js, services/profileImageService.js,
+   utils/googleProfileImage.js, config/cloudinary.js, routes/auth.js,
+   views/auth.ejs, views/complete-registration.ejs,
+   public/js/profile-script.js, repositories/userRepository.js,
+   scripts/googleProfileImage-probe.js, and
+   scripts/profilePhotoUpload-probe.js
+10. controllers/notificationController.js,
+    services/notificationFeedService.js, routes/dashboard.js,
+    public/js/notification-panel.js, views/partials/dash-navbar.ejs,
+    the shared notification CSS, views/admin/news.ejs,
+    views/admin/campus-map.ejs, views/admin/users.ejs, their admin scripts,
+    scripts/notificationPanel-probe.js, and
+    scripts/adminCategoryDropdown-probe.js
+11. views/vr.ejs, views/vr-route.ejs,
+    public/js/vr-hotspot-navigation.js, views/partials/theme-toggle.ejs,
+    scripts/vrHotspotNavigation-probe.js, scripts/vrTheme-probe.js,
+    views/map.ejs, routes/map.js, controllers/mapController.js,
+    services/routeAvailability.js, config/mapRuntime.js,
+    repositories/routeRepository.js, and route-geometry/admin helpers
+12. public/offline.html, public/css/offline.css,
+    public/js/offline-guide-manager.js, public/sw.js,
+    controllers/offlineGuideController.js, services/offlineGuideService.js,
+    views/about.ejs, scripts/with-server.js, and relevant source-only
+    offline/map probes
+13. scripts/syncSupabaseContentToMysql.js, its fail-closed apply boundary,
+    its protected-table exclusions, and the recorded dry-run evidence only
+14. scripts/quality-gates.js and the docs-current, notification, admin,
+    VR, map/offline, auth/profile, package, routing, course, and
+    legacy-course-preservation assertions
+15. every database/supabase migration filename and read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
+
+Reconcile these operative facts against live truth, which wins:
+- Accepted history remains Milestones 8-11, RF.1-RF.6, BE.1-BE.6, OFF.1,
+  M12.P1 R1-R7, D1-D5, expanded D7, D6, and OFF.2-OFF.6 complete and Codex GO.
+  R6 and R7 are complete and Codex GO. Following the accepted 2026-07-22
+  dependency closeout, the subsequent 2026-07-26 advisory drift was
+  remediated; dependency-security remediation is complete and Codex GO:
+  production pins ejs@6.0.1, the
+  jake/filelist/minimatch/brace-expansion chain is absent, and npm audit
+  --omit=dev records zero vulnerabilities. Accepted R7 evidence is focused
+  71/71, in-suite 70/70,
+  and 3495/3495 with QUALITY-GATES OK and audit zero; 3492/3492 and 3494/3494
+  are superseded. Accepted D7 evidence is the fresh-context BrowserContext run
+  at 3511/3511 with QUALITY-GATES OK, audit zero, and
+  24/24 -> 18/18 -> 46/46 with fingerprint
+  a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
+- Release lineage is
+  d786bdcb83a196c7263dceae668417d3ced3e95a ->
+  c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64 ->
+  bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd ->
+  dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+- At this synchronization's start, main/HEAD/origin/main/remote main matched
+  dc961b1. The index was empty; exactly 58 modified tracked paths and exactly
+  12 untracked paths made 70 dirty paths total, with zero stashes. Eleven
+  authority documents plus scripts/quality-gates.js are the 12 tracked
+  authority/static-assertion surfaces; the other 46 tracked paths and all 12
+  untracked paths belong to the current uncommitted implementation. The safety
+  branch backup-pre-trailer-strip pointed to
+  d387c9151f1582cc4a8fc80002be52e11956335f. Preserve this worktree exactly
+  and recompute all of this live.
+- The exact untracked paths at synchronization were
+  controllers/notificationController.js, middleware/profilePhotoUpload.js,
+  public/js/notification-panel.js, scripts/adminCategoryDropdown-probe.js,
+  scripts/googleProfileImage-probe.js, scripts/notificationPanel-probe.js,
+  scripts/profilePhotoUpload-probe.js,
+  scripts/syncSupabaseContentToMysql.js, scripts/vrTheme-probe.js,
+  services/notificationFeedService.js, services/profileImageService.js, and
+  utils/googleProfileImage.js. Treat any live difference as an inconsistency,
+  not permission to delete, stage, or normalize it.
+- Accepted bb17b9b release evidence remains the independently reviewed 12
+  files and 1,854,481 bytes authority manifest SHA-256
+  1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7,
+  release package 168 files and 7,074,195 bytes, aggregate SHA-256
+  13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5,
+  npm test exit 0 with QUALITY-GATES OK, npm run qa exit 0 with
+  DB-PERF-GATE OK, [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and found
+  0 vulnerabilities, bounded Chrome acceptance in Supabase and MySQL modes,
+  final 24/24 -> 18/18 -> 46/46 postconditions, and an independent clean-commit
+  R8 review that returned GO with no critical/high/medium/low findings.
+- The owner authorized the bb17b9b push and manual Vercel promotion.
+  Owner-observed Vercel evidence showed Ready, blue Production, main, and an
+  11-second build.
+- The owner supplied 29 official course titles plus Other. dc961b1 added an
+  accessible, case-insensitive course search to OAuth registration completion
+  and the student profile editor. Existing saved legacy course values remain
+  visible until deliberately changed. The submitted field remains course;
+  controllers, repositories, APIs, database schema, and migrations did not
+  change. The six-file commit recorded 433 insertions and 28 deletions.
+- Course-feature verification recorded npm test exit 0 with QUALITY-GATES OK
+  and five-stage npm run qa exit 0 with QUALITY-GATES OK, DB-PERF-GATE OK,
+  [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and zero audit
+  vulnerabilities. The package-boundary run passed 74/74 and reported a
+  then-current working-tree package of 168 files,
+  7,088,275 bytes, SHA-256
+  9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec.
+  The working-tree package identity is not clean-commit or deployed-byte proof.
+- dc961b1 was pushed and separately promoted by the owner. The owner confirmed
+  the registration and profile course flows work in Production. This is
+  owner-observed functional acceptance, not independent review, byte smoke, or
+  a new GO/NO-GO.
+- No independent anonymous GET-only post-promotion byte verification has been
+  recorded for bb17b9b or dc961b1. fea3b2e11c6331eddc1ee091b165427d8e0218d7
+  remains the last independently post-deployment-verified technical baseline;
+  its smoke is not byte proof for either later commit.
+- Google OAuth is now owner-observed In production and still requests only
+  openid email profile. Data Access reported that sensitive or
+  restricted-scope verification is not required, and the owner confirmed
+  Google account creation and sign-in work. Branding is not verified; Search
+  Console ownership was not completed, and the owner chose to defer branding.
+  Do not describe OAuth as verified or unlimited. Public local registration
+  still creates guests only.
+- Production uses Supabase/PostgreSQL for application data and sessions; MySQL
+  remains local-development/fallback/rehearsal data. The production offline guide
+  is a backend-specific immutable snapshot of Supabase building/route data and
+  excludes 360/Guided-VR/Free-Roam content, schedules, building photos,
+  Cloudinary media, and private/admin/session data.
+- The readiness poll uses /favicon.ico. The supported cleanup destroyed 309
+  harness-shaped anonymous MySQL sessions with fingerprint
+  a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and
+  left zero candidates and zero scanned residue. Migrations remain exactly
+  0001-0019; migration 0020 does not exist and is not authorized. Preserve
+  109/109 verified backup/restore files and 86 referenced Cloudinary assets.
+  The owner-attested 2026-08-05 human pilot had zero reported findings;
+  Participant/Form evidence remains external, full source-commit identity was
+  not independently verified, and pilot review is complete for sequencing.
+- The current 70-path worktree contains an uncommitted multi-feature
+  stabilization candidate: valid Guided-VR and Free Roam scene arrows, VR
+  light/dark theme parity, compact online/offline building pins, the offline
+  display label Guard House, the authenticated notification feed/panel,
+  cross-page styling, the Paga About card, admin category-dropdown styling and
+  user role/status filters, safe Google profile-image synchronization, and a
+  manual profile-photo flow. The manual flow uses authenticated POST and
+  DELETE /api/profile/photo and CampuSphere/profile-images, but it is not
+  accepted: the dedicated limited key lacks the required folder permission,
+  the support response remains external and pending, and the temporary setup
+  key is disabled.
+- The owner-run scripts/syncSupabaseContentToMysql.js --dry-run was read-only,
+  reported no differences, and recorded equal fingerprints at SHA-256
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05.
+  No data was written; no sync apply, backup, restore, or current database
+  verification is claimed. The Android 8 installed-PWA crash remains
+  unresolved and Docker/client-clone deployment readiness also remains
+  deferred.
+- A fresh session grounds first; a later separately authorized session
+  verifies the non-Cloudinary changes. Cloudinary support remains an external
+  event-based dependency. If no response has arrived, continue with verified
+  non-Cloudinary findings one bounded issue at a time. Manual Cloudinary upload
+  stays deferred. Grounding prompts do not themselves authorize tests. Do not
+  create or enable privileged keys, retry vendor role changes, perform a live
+  upload, or fix findings under this grounding prompt. Missing current full
+  QA, independent review, commit, push, deployment, and Production acceptance
+  remain explicit. This authority authorizes no product implementation.
+
+The preceding fresh-session sequence and missing-current-verification wording
+record the synchronization starting point. A later owner-authorized execution
+completed bounded supported MySQL reconciliation, current non-Cloudinary
+verification, and the Codex code-reviewer pass. The exact prepared candidate is
+58 paths relative to `dc961b1`: 49 tracked modifications and nine additions.
+It passed `npm test` and five-stage `npm run qa` at `5104/5104`; the
+ordered postconditions are `24/24 -> 18/18 -> 46/46`; its package is 172
+files and 7,141,628 bytes, aggregate SHA-256
+`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
+The current Codex review found no critical, high, medium, or low findings.
+Exact commit and push were authorized only in that execution session and may
+have completed after these candidate bytes were written, so recompute live Git
+truth. Manual profile-photo/Cloudinary upload remains excluded and deferred.
+
+Keep accepted historical release/R8 evidence, course-feature verification,
+live Git, the uncommitted candidate, previously reported focused/source
+checks, owner-observed localhost acceptance, the read-only sync preview,
+the pending Cloudinary blocker, the unresolved Android installed-PWA
+observation, owner-observed Vercel/Production and OAuth facts, missing
+independent dc961b1 byte verification, and missing current full
+QA/review/commit/deployment evidence as separate evidence classes.
+
+Return only: capabilities and files inspected; exact live Git truth versus this
+record; evidence classification; authority inconsistencies; and the next
+authorization boundary. After confirming an exact pushed commit, the next
+boundary is a separate owner authorization for manual Vercel promotion and
+post-promotion anonymous byte verification. Do not perform a code review, compute a
+manifest, run verification, issue a GO/NO-GO, contact Cloudinary, or infer
+implementation. Stop and wait for the owner.
+Final Milestone 12 disposition remains external. Deployment is not authorized
+by this prompt. This context-only prompt authorizes none of those actions. Do
+not infer that implementation, Git mutation, vendor work, or deployment is
+authorized.
+```
+
+## Claude Code Grounding Prompt
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Claude Code acting as CampuSphere's implementation partner and evidence
+recorder. Codex remains the independent review/quality gate, and the owner
+controls Git, database, vendor, OAuth, and deployment decisions.
+
+This is a fresh context-only grounding session that does not authorize
+implementation. Do not review, edit, test, implement, stage, commit, push,
+deploy, promote, or perform a closeout review. Change nothing. Do not review,
+edit, format, create, delete, move, implement, stage, commit, amend, stash,
+reset, clean, tag, push, deploy, promote, link Vercel, alter Google OAuth,
+apply SQL, access or mutate either database, clear sessions, invoke
+Cloudinary/Upstash management APIs, create migration 0020, start a server, use
+a browser, or run tests, QA, probes, audits, manifests, or smoke checks. Do not
+record credentials, participant PII, developer-contact emails, database
+identifiers, backup paths, Search Console verification artifacts, signed URLs,
+or secrets.
+
+Inventory the skills, plugins, apps, MCP servers, and tools actually available.
+Load and follow the installed code-reviewer skill completely before any later
+code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+Use context-mode or an equivalent read-only large-file tool when available.
+Report missing named capabilities and use a read-only fallback. Browser,
+Chrome, or Playwright availability is not authorization.
+
+Read completely and in this order:
+1. CLAUDE_HANDOFF.md
+2. CODEX_HANDOFF.md
+3. plan.md
+4. ROADMAP.md
+5. CLAUDE.md
+6. AGENTS.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
+   and deployment-boundary probes
+9. controllers/authController.js, controllers/profileController.js,
+   middleware/profilePhotoUpload.js, services/profileImageService.js,
+   utils/googleProfileImage.js, config/cloudinary.js, routes/auth.js,
+   views/auth.ejs, views/complete-registration.ejs,
+   public/js/profile-script.js, repositories/userRepository.js,
+   scripts/googleProfileImage-probe.js, and
+   scripts/profilePhotoUpload-probe.js
+10. controllers/notificationController.js,
+    services/notificationFeedService.js, routes/dashboard.js,
+    public/js/notification-panel.js, views/partials/dash-navbar.ejs,
+    the shared notification CSS, views/admin/news.ejs,
+    views/admin/campus-map.ejs, views/admin/users.ejs, their admin scripts,
+    scripts/notificationPanel-probe.js, and
+    scripts/adminCategoryDropdown-probe.js
+11. views/vr.ejs, views/vr-route.ejs,
+    public/js/vr-hotspot-navigation.js, views/partials/theme-toggle.ejs,
+    scripts/vrHotspotNavigation-probe.js, scripts/vrTheme-probe.js,
+    views/map.ejs, routes/map.js, controllers/mapController.js,
+    services/routeAvailability.js, config/mapRuntime.js,
+    repositories/routeRepository.js, and route-geometry/admin helpers
+12. public/offline.html, public/css/offline.css,
+    public/js/offline-guide-manager.js, public/sw.js,
+    controllers/offlineGuideController.js, services/offlineGuideService.js,
+    views/about.ejs, scripts/with-server.js, and relevant source-only
+    offline/map probes
+13. scripts/syncSupabaseContentToMysql.js, its fail-closed apply boundary,
+    its protected-table exclusions, and the recorded dry-run evidence only
+14. scripts/quality-gates.js and the docs-current, notification, admin,
+    VR, map/offline, auth/profile, package, routing, course, and
+    legacy-course-preservation assertions
+15. every database/supabase migration filename and read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
+
+Reconcile these facts against live truth:
+- Accepted history remains Milestones 8-11, RF.1-RF.6, BE.1-BE.6, OFF.1,
+  M12.P1 R1-R7, D1-D5, expanded D7, D6, and OFF.2-OFF.6 complete and Codex GO.
+  R6 and R7 are complete and Codex GO. Following the accepted 2026-07-22
+  dependency closeout, the subsequent 2026-07-26 advisory drift was
+  remediated; dependency-security remediation is complete and Codex GO:
+  production pins ejs@6.0.1, the
+  jake/filelist/minimatch/brace-expansion chain is absent, and npm audit
+  --omit=dev records zero vulnerabilities. Accepted R7 evidence is 71/71,
+  70/70, and 3495/3495
+  with QUALITY-GATES OK and audit zero; 3492/3492 and 3494/3494 are
+  historical/superseded. Accepted D7 evidence is the
+  fresh-context BrowserContext run at 3511/3511 with QUALITY-GATES OK, audit
+  zero, and
+  24/24 -> 18/18 -> 46/46 with fingerprint
+  a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
+- Release lineage is
+  d786bdcb83a196c7263dceae668417d3ced3e95a ->
+  c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64 ->
+  bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd ->
+  dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+- At this synchronization's start, main/HEAD/origin/main/remote main matched
+  dc961b1. The index was empty; exactly 58 modified tracked paths and exactly
+  12 untracked paths made 70 dirty paths total, with zero stashes. Eleven
+  authority documents plus scripts/quality-gates.js are the 12 tracked
+  authority/static-assertion surfaces; the other 46 tracked paths and all 12
+  untracked paths belong to the current uncommitted implementation. The safety
+  branch backup-pre-trailer-strip pointed to
+  d387c9151f1582cc4a8fc80002be52e11956335f. Preserve this worktree exactly
+  and recompute all of this live.
+- The exact untracked paths at synchronization were
+  controllers/notificationController.js, middleware/profilePhotoUpload.js,
+  public/js/notification-panel.js, scripts/adminCategoryDropdown-probe.js,
+  scripts/googleProfileImage-probe.js, scripts/notificationPanel-probe.js,
+  scripts/profilePhotoUpload-probe.js,
+  scripts/syncSupabaseContentToMysql.js, scripts/vrTheme-probe.js,
+  services/notificationFeedService.js, services/profileImageService.js, and
+  utils/googleProfileImage.js. Treat any live difference as an inconsistency,
+  not permission to delete, stage, or normalize it.
+- Accepted bb17b9b evidence remains its reviewed 12 files and 1,854,481 bytes
+  manifest SHA-256
+  1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7,
+  release package 168 files and 7,074,195 bytes, aggregate SHA-256
+  13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5,
+  npm test exit 0 with QUALITY-GATES OK, npm run qa exit 0 with
+  DB-PERF-GATE OK, [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, found 0
+  vulnerabilities, bounded Chrome acceptance in Supabase and MySQL modes,
+  24/24 -> 18/18 -> 46/46, and an independent clean-commit R8 review that
+  returned GO with no critical/high/medium/low findings.
+- The owner authorized the bb17b9b push and manual Vercel promotion.
+  Owner-observed Vercel evidence showed Ready, Production, main, and an
+  11-second build.
+- The owner supplied 29 official course titles plus Other. dc961b1 added an
+  accessible, case-insensitive course search to OAuth registration completion
+  and the student profile editor. Existing saved legacy course values remain
+  visible until deliberately changed. The submitted field remains course;
+  controllers, repositories, APIs, database schema, and migrations did not
+  change. The six-file commit recorded 433 insertions and 28 deletions.
+- Course-feature verification recorded npm test exit 0 with QUALITY-GATES OK
+  and five-stage npm run qa exit 0 with QUALITY-GATES OK, DB-PERF-GATE OK,
+  [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and zero audit
+  vulnerabilities. The package-boundary run passed 74/74 and reported a
+  then-current working-tree package of 168 files, 7,088,275 bytes, SHA-256
+  9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec.
+  The working-tree package identity is not clean-commit or deployed-byte proof.
+- dc961b1 was pushed and separately promoted by the owner. The owner confirmed
+  the registration and profile course flows work in Production. Treat this as
+  owner-observed functional acceptance only.
+- No independent anonymous GET-only post-promotion byte verification has been
+  recorded for bb17b9b or dc961b1. fea3b2e11c6331eddc1ee091b165427d8e0218d7
+  remains the last independently post-deployment-verified technical baseline;
+  its smoke is not byte proof for either later commit.
+- Google OAuth is now owner-observed In production and requests only
+  openid email profile. Data Access reported that sensitive or
+  restricted-scope verification is not required, and the owner confirmed
+  Google account creation and sign-in work. Branding is not verified; Search
+  Console ownership was not completed, and the owner chose to defer branding.
+  Do not describe OAuth as verified or unlimited. Public local registration
+  still creates guests only.
+- Production uses Supabase/PostgreSQL for application data and sessions; MySQL
+  remains local-development/fallback/rehearsal data. The production offline guide
+  is a backend-specific immutable snapshot of Supabase building/route data and
+  excludes 360/Guided-VR/Free-Roam content, schedules, building photos,
+  Cloudinary media, and private/admin/session data.
+- The readiness poll uses /favicon.ico. The supported cleanup destroyed 309
+  harness-shaped anonymous MySQL sessions with fingerprint
+  a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and
+  left zero candidates and zero scanned residue. Migrations remain exactly
+  0001-0019; migration 0020 does not exist and is not authorized. Preserve
+  109/109 verified backup/restore files and 86 referenced Cloudinary assets.
+  The owner-attested 2026-08-05 human pilot had zero reported findings;
+  Participant/Form evidence remains external, full source-commit identity was
+  not independently verified, and pilot review is complete for sequencing.
+- The current 70-path worktree contains an uncommitted multi-feature
+  stabilization candidate: valid Guided-VR and Free Roam scene arrows, VR
+  light/dark theme parity, compact online/offline building pins, the offline
+  display label Guard House, the authenticated notification feed/panel,
+  cross-page styling, the Paga About card, admin category-dropdown styling and
+  user role/status filters, safe Google profile-image synchronization, and a
+  manual profile-photo flow. The manual flow uses authenticated POST and
+  DELETE /api/profile/photo and CampuSphere/profile-images, but it is not
+  accepted: the dedicated limited key lacks the required folder permission,
+  the support response remains external and pending, and the temporary setup
+  key is disabled.
+- The owner-run scripts/syncSupabaseContentToMysql.js --dry-run was read-only,
+  reported no differences, and recorded equal fingerprints at SHA-256
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05.
+  No data was written; no sync apply, backup, restore, or current database
+  verification is claimed. The Android 8 installed-PWA crash remains
+  unresolved and Docker/client-clone deployment readiness also remains
+  deferred.
+- A fresh session grounds first; a later separately authorized session
+  verifies the non-Cloudinary changes. Cloudinary support remains an external
+  event-based dependency. If no response has arrived, continue with verified
+  non-Cloudinary findings one bounded issue at a time. Manual Cloudinary upload
+  stays deferred. Grounding prompts do not themselves authorize tests. Do not
+  create or enable privileged keys, retry vendor role changes, perform a live
+  upload, or fix findings under this grounding prompt. Missing current full
+  QA, independent review, commit, push, deployment, and Production acceptance
+  remain explicit. This authority authorizes no product implementation.
+
+The preceding fresh-session sequence and missing-current-verification wording
+record the synchronization starting point. A later owner-authorized execution
+completed bounded supported MySQL reconciliation, current non-Cloudinary
+verification, and the Codex code-reviewer pass. The exact prepared candidate is
+58 paths relative to `dc961b1`: 49 tracked modifications and nine additions.
+It passed `npm test` and five-stage `npm run qa` at `5104/5104`; the
+ordered postconditions are `24/24 -> 18/18 -> 46/46`; its package is 172
+files and 7,141,628 bytes, aggregate SHA-256
+`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
+The current Codex review found no critical, high, medium, or low findings.
+Exact commit and push were authorized only in that execution session and may
+have completed after these candidate bytes were written, so recompute live Git
+truth. Manual profile-photo/Cloudinary upload remains excluded and deferred.
+
+Return only a grounding report containing capabilities/files, exact live Git,
+evidence classes, inconsistencies, blockers, and the next authorization. The
+next boundary, after confirming an exact pushed commit, is a separate owner
+authorization for manual Vercel promotion and post-promotion anonymous byte
+verification. Do not plan fixes, run verification, contact Cloudinary, or implement
+anything during grounding. After the grounding report, stop and wait for the
+owner.
+Final Milestone 12 disposition remains external. Deployment is not authorized
+by this prompt. This context-only prompt authorizes none of those actions. Do
+not infer that implementation, Git mutation, vendor work, or deployment is
+authorized.
+```
+
+## Historical Codex Grounding Prompt (2026-08-22 pre-course, superseded; do not use)
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
+handoff owner, and delivery coordinator.
+
+This is a fresh context-only grounding session that does not authorize
+implementation or review. Change nothing. Do not edit, format, create, delete,
+move, stage, commit, amend, stash, reset, clean, tag, push, promote, deploy,
+link Vercel, alter Google OAuth, apply SQL, access or mutate either database,
+clear sessions, invoke Cloudinary/Upstash management APIs, create migration
+0020, start a server, use a browser, or run tests, QA, probes, audits, or smoke
+checks. Do not copy credentials, participant PII, database identifiers, backup
+paths, signed URLs, or secrets into Git or the report.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually available
+  in this new session; do not assume the authoring session's capabilities still
+  exist.
+- Load and follow the installed code-reviewer skill completely before any code,
+  security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Use context-mode or an equivalent read-only large-file tool for long authority
+  files when available. Chrome DevTools/Browser/Playwright availability is not
+  authorization to use a browser.
+- Report missing named capabilities and use only a safe read-only fallback.
+
+Read completely and in this order:
+1. CODEX_HANDOFF.md
+2. CLAUDE_HANDOFF.md
+3. plan.md, especially the Current Release Continuity block, M12 interfaces,
+   anti-scope, assumptions, backup/restore, and data-cutover notes
+4. ROADMAP.md, especially privacy/pilot/release gates, OFF.2-OFF.6,
+   Milestones 12-13, blockers, and recommended order
+5. AGENTS.md
+6. CLAUDE.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .vercelignore, vercel.json,
+   config/selectedDemoFreeze.js, and scripts/vercelPackageBoundary-probe.js
+9. public/offline.html, public/css/offline.css,
+   public/js/offline-guide-manager.js, public/sw.js, views/map.ejs,
+   routes/map.js, controllers/offlineGuideController.js,
+   services/offlineGuideService.js, and scripts/with-server.js
+10. scripts/off2PwaLifecycle-probe.js, scripts/offline2dNavigation-probe.js,
+    scripts/quality-gates.js, services/auditService.js, server.js,
+    public/css/styles.css, and public/js/profile-script.js
+11. controllers/authController.js, routes/auth.js, views/auth.ejs,
+    views/complete-registration.ejs, repositories/userRepository.js, and the
+    profile controller/repository surfaces before discussing course work
+12. services/routeAvailability.js, config/mapRuntime.js, the building/route/VR/
+    schedule repositories, and supported admin controllers/routes
+13. every database/supabase migration filename and read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
+
+Reconcile these operative facts against live truth, which wins:
+- Accepted history remains Milestones 8-11, RF.1-RF.6, BE.1-BE.6, OFF.1,
+  M12.P1 R1-R7, D1-D5, and expanded D7 complete and Codex GO; D6 and
+  OFF.2-OFF.6 are also complete and Codex GO. R6 is complete and Codex GO; R7
+  is complete and Codex GO. Dependency-security remediation is complete and
+  Codex GO: the subsequent 2026-07-26 advisory drift was remediated, production pins ejs@6.0.1, the
+  jake/filelist/minimatch/brace-expansion chain is absent, and the accepted
+  npm audit --omit=dev result is zero vulnerabilities. Accepted R7 evidence is
+  focused 71/71, in-suite package boundary 70/70, and 3495/3495 with
+  QUALITY-GATES OK with npm audit --omit=dev at zero vulnerabilities; 3492/3492
+  and 3494/3494 are historical/superseded. Accepted D7 evidence is the
+  fresh-context BrowserContext run at 3511/3511 with QUALITY-GATES OK, audit
+  zero, and 24/24 -> 18/18 -> 46/46 with fingerprint
+  a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
+- Release lineage: d786bdcb83a196c7263dceae668417d3ced3e95a ->
+  c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64 ->
+  bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd.
+- Pre-handoff-sync Git was clean main with HEAD/origin/main/remote main at
+  bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd, a clean index/worktree, zero
+  untracked paths, and zero stashes. The handoff synchronization itself is
+  later uncommitted documentation/static-assertion synchronization, so
+  recompute current status and do not assume clean state.
+- The reviewed bb17b9b authority delta was 12 files, 1,854,481 bytes, manifest
+  SHA-256 1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7.
+  The release package pin was 168 files, 7,074,195 bytes, aggregate SHA-256
+  13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5.
+- Replacement verification passed: npm test exit 0 with QUALITY-GATES OK;
+  five-stage npm run qa exit 0 with QUALITY-GATES OK, DB-PERF-GATE OK,
+  [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and found 0 vulnerabilities;
+  bounded Chrome
+  acceptance passed in Supabase and MySQL modes; final postconditions were
+  24/24 -> 18/18 -> 46/46.
+- The independent clean-commit R8 review of bb17b9b returned GO with no
+  critical/high/medium/low findings. The owner separately authorized the push;
+  it completed and Git remote parity was confirmed.
+- The owner completed the manual Vercel promotion of bb17b9b. Owner-observed Vercel evidence showed
+  Ready, blue Production, main, and an 11-second build. This is owner-observed
+  vendor evidence, not an independent byte/status smoke.
+- No independent anonymous GET-only post-promotion verification of bb17b9b is
+  recorded. The fea3b2e11c6331eddc1ee091b165427d8e0218d7 smoke is the last
+  independently post-deployment-verified technical baseline and applies only
+  to that earlier source; it is not byte proof for bb17b9b.
+- Production uses Supabase/PostgreSQL for application data and sessions;
+  MySQL remains local-development/fallback/rehearsal data.
+  A production offline-guide download is a backend-specific immutable snapshot
+  of current Supabase building/route data. Offline is
+  2D/Main-Gate/text-details only and excludes 360/Guided-VR/Free-Roam content,
+  schedules, building photos, Cloudinary media, and private/admin/session data.
+- The readiness poll now uses /favicon.ico. The local cleanup destroyed 309
+  harness-shaped anonymous MySQL sessions with cleanup fingerprint SHA-256
+  a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and
+  left zero candidates and zero scanned residue. Do not infer another cleanup.
+  Migrations remain exactly 0001-0019; migration 0020 does not exist and is not
+  authorized.
+- Preserve one-writer control and external backup evidence: 109/109 manifest files verified,
+  successful isolated Supabase/MySQL restores, and 86 referenced Cloudinary
+  delivery assets hashed; this was not a management/original-account export.
+- The owner-attested 2026-08-05 human pilot is accepted with zero reported
+  findings. Participant/Form evidence remains external and the tested build's
+  full source-commit identity was not independently verified; pilot review is
+  complete for sequencing only.
+- Google OAuth remains owner-observed Testing with the 100-user test cap.
+  Publishing or verification has not been performed or authorized by this
+  prompt; it is a separate Google Cloud action.
+- Student course selection currently lists BS Information Technology,
+  BS Computer Science, BS Civil Engineering, BS Electrical Engineering,
+  BS Industrial Technology, BS Entrepreneurship, and Other. The list is
+  duplicated in views/complete-registration.ejs and
+  public/js/profile-script.js. Public local registration creates guests only;
+  student/instructor trust comes from CSPC Google OAuth. No authoritative full
+  CSPC course catalog has been supplied, so do not invent or implement one.
+
+Evidence classes must remain separate: accepted historical evidence,
+replacement-verification evidence, independent R8 evidence, live Git truth,
+owner-observed Vercel promotion evidence, and the missing new post-promotion
+smoke. Do not upgrade one class into another.
+
+After grounding, return only: capabilities and files inspected; exact live Git
+truth versus the pre-sync record; evidence classification; any authority
+inconsistency; and the next authorization boundary. The immediate boundary is
+a separately authorized bounded anonymous read-only GET-only production check
+against bb17b9b, avoiding /auth, authentication, cookies/sessions, schedules,
+and mutation. OAuth publishing and course-catalog work are later separate
+owner-authorized workstreams.
+
+Do not perform a code review, compute a candidate manifest, run verification,
+or issue a new GO/NO-GO. Do not infer that further implementation, another
+pilot, Git mutation, or deployment is authorized. Vendor mutation is not
+authorized. Deployment is not authorized by this prompt. Final Milestone 12 disposition remains
+external. This context-only prompt authorizes none of those actions. Stop and
+wait for the owner.
+```
+
+## Historical Claude Code Grounding Prompt (2026-08-22 pre-course, superseded; do not use)
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Claude Code acting as CampuSphere's implementation partner and evidence
+recorder. Codex remains the independent quality/review gate, and the owner
+controls every Git, database, vendor, OAuth, and deployment decision.
+
+This is a fresh context-only grounding session that does not authorize
+implementation. Change nothing. Do not review, edit, test, implement, stage,
+commit, push, deploy, promote, or perform a closeout review. Do not format,
+create, delete, move, amend, stash, reset, clean, tag, link Vercel, alter Google
+OAuth, apply SQL, access or mutate either database, clear sessions, invoke
+Cloudinary/Upstash management APIs, create migration 0020, start a server, use
+a browser, or run tests, QA, probes, audits, or smoke checks. Do not record
+credentials, participant PII, database identifiers, backup paths, signed URLs,
+or secrets.
+
+Inventory the skills, plugins, apps, MCP servers, and tools actually available.
+Use context-mode or an equivalent read-only large-file tool when available.
+Do not assume Chrome/Playwright/browser access exists, and availability would
+not authorize its use. If an installed reviewer capability would write files or
+run forbidden commands, disclose that and do not invoke it.
+
+Read completely in this order:
+1. CLAUDE_HANDOFF.md
+2. CODEX_HANDOFF.md
+3. plan.md
+4. ROADMAP.md
+5. CLAUDE.md
+6. AGENTS.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .vercelignore, vercel.json,
+   config/selectedDemoFreeze.js, and scripts/vercelPackageBoundary-probe.js
+9. public/offline.html, public/css/offline.css,
+   public/js/offline-guide-manager.js, public/sw.js, views/map.ejs,
+   routes/map.js, controllers/offlineGuideController.js,
+   services/offlineGuideService.js, scripts/with-server.js, and their focused
+   offline/package probes, source-read only
+10. controllers/authController.js, routes/auth.js, views/auth.ejs,
+    views/complete-registration.ejs, public/js/profile-script.js,
+    controllers/profileController.js, and repositories/userRepository.js
+11. services/routeAvailability.js, config/mapRuntime.js, building/route/VR/
+    schedule repositories, supported admin surfaces, and every migration
+    filename
+12. read-only Git truth: branch, HEAD, origin/main, remote main, status,
+    staged/unstaged/untracked paths, stashes, safety refs, and recent graph
+
+Reconcile the following with live truth:
+- Accepted history remains Milestones 8-11, RF.1-RF.6, BE.1-BE.6, OFF.1,
+  M12.P1 R1-R7, D1-D5, and expanded D7 complete and Codex GO; D6 and
+  OFF.2-OFF.6 are also complete and Codex GO. R6 is complete and Codex GO; R7
+  is complete and Codex GO. Dependency-security remediation is complete and
+  Codex GO: the subsequent 2026-07-26 advisory drift was remediated, production pins ejs@6.0.1, the
+  jake/filelist/minimatch/brace-expansion chain is absent, and npm audit
+  --omit=dev records zero vulnerabilities. Accepted R7 evidence is 71/71
+  focused, 70/70 in-suite, and 3495/3495 with QUALITY-GATES OK and npm audit
+  --omit=dev at zero vulnerabilities; 3492/3492 and 3494/3494 are
+  historical/superseded. Accepted D7 evidence is the fresh-context
+  BrowserContext run at 3511/3511 with QUALITY-GATES OK, audit zero, and
+  24/24 -> 18/18 -> 46/46 with fingerprint
+  a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d.
+- d786bdcb83a196c7263dceae668417d3ced3e95a is the verified offline
+  implementation, c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64 is the bounded
+  readiness/session-maintenance correction, and
+  bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd is the final reviewed authority
+  synchronization.
+- Immediately before the new handoff edits, main/HEAD/origin/main/remote main
+  matched bb17b9b with a clean index/worktree, zero untracked paths, and zero
+  stashes. These handoff edits are a later uncommitted
+  documentation/static-assertion synchronization; recompute live status.
+- The reviewed 12-file bb17b9b delta was 1,854,481 bytes, manifest SHA-256
+  1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7.
+  Package identity was 168 files, 7,074,195 bytes, aggregate SHA-256
+  13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5.
+- npm test exit 0 with QUALITY-GATES OK; five-stage npm run qa exited 0 with
+  QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS,
+  IDENTITY-CONSTRAINTS OK, and found 0 vulnerabilities; bounded Chrome
+  acceptance completed in Supabase and MySQL modes; final
+  24/24 -> 18/18 -> 46/46 postconditions passed. Independent clean-commit R8
+  review returned GO with no critical/high/medium/low findings. The owner separately
+  authorized the push, and push parity was confirmed.
+- The owner completed the manual Vercel promotion of bb17b9b. Owner-observed
+  dashboard evidence showed Ready, blue Production, main, and an 11-second build.
+  No independent anonymous
+  GET-only post-promotion verification for bb17b9b has been recorded.
+- fea3b2e11c6331eddc1ee091b165427d8e0218d7 is only the last independently
+  post-deployment-verified technical baseline; its smoke is not byte proof for
+  bb17b9b.
+- Production uses Supabase/PostgreSQL for application data and sessions;
+  MySQL remains local-development/fallback/rehearsal data. A production
+  offline-guide download is a backend-specific immutable snapshot of Supabase
+  2D building/route data. It excludes 360/Guided-VR/Free-Roam content,
+  schedules, building photos, Cloudinary media, and private/admin/session data.
+- The readiness poll now uses /favicon.ico. The supported local cleanup
+  destroyed 309 harness-shaped anonymous MySQL sessions with cleanup
+  fingerprint SHA-256
+  a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and left
+  zero candidates and zero scanned residue. No cleanup, direct SQL, or
+  mutation is authorized. Migrations remain exactly 0001-0019; migration 0020
+  does not exist and is not authorized.
+- Preserve one-writer control and external backup/restore evidence: 109/109
+  manifest files verified, successful isolated Supabase/MySQL restores, and 86
+  referenced Cloudinary delivery assets hashed without claiming a
+  management/original-account export.
+- The owner-attested 2026-08-05 human pilot is accepted with zero reported
+  findings. Participant/Form evidence remains external and the tested
+  build's full source-commit identity was not independently verified. Pilot
+  review is complete for sequencing only.
+- Google OAuth is still owner-observed in Testing with the 100-user test cap.
+  Publishing or verification has not been performed or authorized by this
+  prompt; it is a separate owner-controlled Google Cloud change.
+- Student course selection currently lists BS Information Technology,
+  BS Computer Science, BS Civil Engineering, BS Electrical Engineering,
+  BS Industrial Technology, BS Entrepreneurship, and Other. The list is
+  duplicated in views/complete-registration.ejs and
+  public/js/profile-script.js. Public local registration creates guests only;
+  trusted students/instructors use CSPC Google OAuth. No authoritative full
+  CSPC course catalog has been supplied, so do not invent courses or implement
+  the request.
+
+Classify accepted history, replacement verification, independent R8, live Git,
+owner-observed promotion, and missing post-promotion smoke separately. Older
+pre-promotion sections retained below the Current Release Continuity blocks are
+historical and lose to live truth plus the current block.
+
+Return only a grounding report with capabilities/files, live Git truth,
+evidence classes, inconsistencies, blockers, and next authorization. The next
+boundary is a separately authorized anonymous read-only GET-only production
+check of bb17b9b, avoiding /auth, login, cookies/sessions, schedules, and
+mutation. OAuth publishing and the course-catalog implementation are later
+separate workstreams.
+
+After the grounding report, stop and wait for the owner; do not infer that
+further implementation, deployment, Git mutation, or another pilot is
+authorized. Vendor mutation is not authorized. Deployment is not authorized by this prompt. Final
+Milestone 12 disposition remains external. This context-only prompt authorizes
+none of those actions.
+```
+
+## Historical Pre-Promotion Authority Snapshot (superseded; do not use)
 
 OFF.2-OFF.6 are complete and Codex GO on local commit
 `cdbc863b779e5319c14dee21a31a5e78951e233c`. M12.P1-D6 is complete and Codex
@@ -105,7 +1052,7 @@ new cleanup is authorized by this text. Replacement full verification remains
 a separate boundary; push, promotion, and deployment remain separately gated,
 and Final Milestone 12 disposition remains external.
 
-## Codex Grounding Prompt
+## Historical Codex Grounding Prompt (2026-08-21 pre-promotion, superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
@@ -486,7 +1433,7 @@ repository, process, database, vendor, OAuth, Cloudinary, Upstash, or deployment
 state. Stop and wait for the owner.
 ```
 
-## Claude Code Grounding Prompt
+## Historical Claude Code Grounding Prompt (2026-08-21 pre-promotion, superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1

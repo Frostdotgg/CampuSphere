@@ -136,17 +136,17 @@
                             <input id="building-search-input" type="text" placeholder="Search buildings..." class="ui-input pl-9" style="width:100%;">
                         </div>
                         <div class="flex items-center gap-2">
-                            <div class="relative inline-block text-left">
-                                <button id="bld-cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:160px;" data-dropdown-target="bld-cat-filter-menu">
+                            <div class="admin-filter-dropdown relative inline-block text-left">
+                                <button id="bld-cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:160px;" data-dropdown-target="bld-cat-filter-menu" aria-controls="bld-cat-filter-menu" aria-haspopup="menu" aria-expanded="false">
                                     <span>All Categories</span><i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
-                                <div id="bld-cat-filter-menu" class="dropdown-menu-content p-1" style="width:160px;">
-                                    <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All</div>
-                                    <div class="dropdown-menu-item" data-value="Academic">Academic</div>
-                                    <div class="dropdown-menu-item" data-value="Administrative">Administrative</div>
-                                    <div class="dropdown-menu-item" data-value="Student Services">Student Services</div>
-                                    <div class="dropdown-menu-item" data-value="Sports">Sports</div>
-                                    <div class="dropdown-menu-item" data-value="Facilities">Facilities</div>
+                                <div id="bld-cat-filter-menu" class="dropdown-menu-content p-1" data-dropdown-placement="anchor" role="menu" style="width:160px;">
+                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Academic" role="menuitemradio" aria-checked="false">Academic</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Administrative" role="menuitemradio" aria-checked="false">Administrative</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Student Services" role="menuitemradio" aria-checked="false">Student Services</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Sports" role="menuitemradio" aria-checked="false">Sports</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="Facilities" role="menuitemradio" aria-checked="false">Facilities</button>
                                 </div>
                             </div>
                             <button id="add-building-btn" class="ui-button ui-button-default ui-button-size-default">

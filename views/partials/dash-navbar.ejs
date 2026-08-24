@@ -81,6 +81,17 @@
 
             <% if (user) { %>
             <div class="dash-nav__tabs-divider mobile-only"></div>
+            <button class="dash-nav__tab dash-nav__notification-mobile mobile-only" id="mobileNotifBtn" type="button"
+                data-notification-trigger aria-haspopup="dialog" aria-controls="notificationPanel"
+                aria-expanded="false" aria-label="Notifications">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span>Notifications</span>
+                <span class="dash-nav__notif-dot" hidden aria-hidden="true"></span>
+            </button>
             <button class="dash-nav__tab mobile-only" id="mobileEditProfileBtn" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -114,7 +125,9 @@
         <!-- Right: Notification + User -->
         <div class="dash-nav__right">
             <% if (user) { %>
-            <button class="dash-nav__icon-btn" id="notifBtn" aria-label="Notifications">
+            <button class="dash-nav__icon-btn" id="notifBtn" type="button" data-notification-trigger
+                aria-haspopup="dialog" aria-controls="notificationPanel" aria-expanded="false"
+                aria-label="Notifications">
                 <!-- Inline SVG (was iconify-icon): the web component injects a
                      shadow-root <style> that violates style-src-elem under the
                      nonce CSP. Inline SVG needs no style permissions. -->
@@ -123,7 +136,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
-                <span class="dash-nav__notif-dot"></span>
+                <span class="dash-nav__notif-dot" hidden aria-hidden="true"></span>
             </button>
             <div class="dash-nav__user" id="userMenu">
                 <div class="dash-nav__avatar">
@@ -160,8 +173,51 @@
             <span></span><span></span><span></span>
         </button>
     </div>
+    <% if (user) { %>
+    <section id="notificationPanel" class="dash-nav__notifications-panel" role="dialog" aria-modal="false"
+        aria-labelledby="notificationPanelTitle" aria-hidden="true" hidden>
+        <div class="dash-nav__notifications-header">
+            <h2 id="notificationPanelTitle" tabindex="-1">Notifications</h2>
+            <button id="notificationPanelClose" class="dash-nav__notification-close" type="button"
+                aria-label="Close notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <p id="notificationPanelStatus" class="dash-nav__notification-status" role="status" aria-live="polite">
+            Loading notifications...
+        </p>
+        <div id="notificationPanelError" class="dash-nav__notification-error" role="alert" hidden>
+            <p>Notifications are temporarily unavailable.</p>
+            <button id="notificationPanelRetry" class="dash-nav__notification-retry" type="button">Try again</button>
+        </div>
+        <div id="notificationPanelContent" class="dash-nav__notification-content" hidden>
+            <section id="notificationAnnouncementsSection" class="dash-nav__notification-section"
+                aria-labelledby="notificationAnnouncementsHeading">
+                <h3 id="notificationAnnouncementsHeading">Announcements</h3>
+                <div id="notificationAnnouncementsList" class="dash-nav__notification-list"></div>
+            </section>
+            <section id="notificationEventsSection" class="dash-nav__notification-section"
+                aria-labelledby="notificationEventsHeading">
+                <h3 id="notificationEventsHeading">Upcoming events</h3>
+                <div id="notificationEventsList" class="dash-nav__notification-list"></div>
+            </section>
+        </div>
+        <p id="notificationPanelEmpty" class="dash-nav__notification-empty" hidden>
+            No announcements or upcoming events.
+        </p>
+        <div class="dash-nav__notifications-footer">
+            <a id="notificationAnnouncementsLink" href="/dashboard?section=news">View announcements</a>
+            <a id="notificationEventsLink" href="/events">View events</a>
+        </div>
+    </section>
+    <% } %>
 </nav>
 <%# M12.P1-D2: the ONE shared authenticated-navigation client. Every page that
     renders this partial (including both VR views) gets exactly this include —
     page-local dashHamburger handlers were removed. %>
 <script src="/js/authenticated-nav.js" defer></script>
+<script src="/js/notification-panel.js" defer></script>

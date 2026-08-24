@@ -105,7 +105,7 @@ const directives = {
   // self-hosted Pannellum and MapLibre stylesheets embed every control image as
   // a data: URI; `blob:` stays for canvas/panorama rendering. Leaflet's marker
   // and control images are now same-origin under /vendor/leaflet/images/.
-  imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org', 'https://res.cloudinary.com'],
+  imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org', 'https://res.cloudinary.com', 'https://*.googleusercontent.com'],
   mediaSrc: ["'self'", 'blob:', 'https://res.cloudinary.com'],
   // api.iconify.design: exact host the iconify-icon component fetches icon DATA
   // from at runtime. After R6 the component SCRIPT is same-origin, so this is a

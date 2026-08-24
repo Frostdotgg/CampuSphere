@@ -14,7 +14,7 @@
          views/partials/head.ejs; map.ejs owns its own <head>, so it must carry it. -->
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <link rel="stylesheet" href="/css/styles.css?v=5">
+    <link rel="stylesheet" href="/css/styles.css?v=7">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -436,6 +436,13 @@
         let plannerHintTimer = null;
         let lastSearchResults = [];
 
+        // Keep the building glyph compact without shrinking its keyboard/touch
+        // interaction surface. The source Leaflet pin is 25x41px; rounding
+        // its 70% visual scale gives an 18x29px glyph.
+        const MAP_BUILDING_PIN_SCALE = 0.7;
+        const MAP_BUILDING_PIN_HIT_SIZE = 44;
+        const MAP_BUILDING_PIN_OFFSET = Object.freeze([0, -14 * MAP_BUILDING_PIN_SCALE]);
+
         const MATCH_LABELS = {
             name: 'Name match',
             category: 'Category match',
@@ -537,7 +544,10 @@
                 marker.dataset.label = b.name || 'Building';
                 marker.style.left = `${x}%`;
                 marker.style.top = `${y}%`;
-                marker.textContent = mapInitials(b.name);
+                const markerVisual = document.createElement('span');
+                markerVisual.className = 'map-fallback__marker-icon';
+                markerVisual.textContent = mapInitials(b.name);
+                marker.appendChild(markerVisual);
                 marker.setAttribute('aria-label', b.name || 'Building');
                 marker.addEventListener('click', () => selectBuilding(b.id));
                 points.appendChild(marker);
@@ -1906,21 +1916,24 @@
                 });
                 tileLayer.addTo(leafletMap);
 
-                // M12.P1-R6: the three marker URLs were hard-coded to unpkg. They
-                // are removed rather than rewritten: Leaflet's own L.Icon.Default
-                // resolves marker-icon / marker-icon-2x / marker-shadow from the
-                // .leaflet-default-icon-path rule in the self-hosted leaflet.css,
-                // i.e. /vendor/leaflet/images/.
-                // iconSize [25,41], iconAnchor [12,41], popupAnchor [1,-34] and
-                // shadowSize [41,41] are byte-identical to the values removed
-                // here. L.Icon.Default additionally supplies tooltipAnchor
-                // [16,-28], which the explicit L.icon() did not set, so marker
-                // tooltips now sit beside the pin instead of at its origin.
+                // M12.P1-R6: keep Leaflet's self-hosted marker assets and avoid
+                // any external icon URL. A 44px div-icon wrapper preserves the
+                // interaction target while CSS renders the default pin/shadow
+                // assets at the shared 18x29px visual size.
+                const buildingIcon = L.divIcon({
+                    className: 'map-building-marker map-building-marker--leaflet',
+                    html: '',
+                    iconSize: [MAP_BUILDING_PIN_HIT_SIZE, MAP_BUILDING_PIN_HIT_SIZE],
+                    iconAnchor: [MAP_BUILDING_PIN_HIT_SIZE / 2, MAP_BUILDING_PIN_HIT_SIZE],
+                    tooltipAnchor: [11, -20]
+                });
                 mapBuildings.forEach(b => {
                     if (b.lat && b.lng) {
-                        const marker = L.marker([b.lat, b.lng])
+                        const marker = L.marker([b.lat, b.lng], { icon: buildingIcon })
                             .addTo(leafletMap)
                             .bindTooltip(b.name);
+                        const markerElement = marker.getElement();
+                        if (markerElement) markerElement.setAttribute('aria-label', b.name);
                         marker.on('click', () => selectBuilding(b.id));
                         leafletMarkers[b.id] = marker;
                     }
@@ -1975,10 +1988,14 @@
 
                 mapBuildings.forEach(b => {
                     if (b.lat && b.lng) {
-                        const marker = new maplibregl.Marker()
+                        const marker = new maplibregl.Marker({
+                            scale: MAP_BUILDING_PIN_SCALE,
+                            offset: MAP_BUILDING_PIN_OFFSET
+                        })
                             .setLngLat([b.lng, b.lat])
                             .addTo(maplibreMap);
                         const el = marker.getElement();
+                        el.classList.add('map-building-marker', 'map-building-marker--maplibre');
                         el.style.cursor = 'pointer';
                         el.setAttribute('title', b.name);
                         el.setAttribute('aria-label', b.name);

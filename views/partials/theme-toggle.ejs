@@ -1,5 +1,5 @@
 <!-- Theme Toggle Button -->
-<button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
     <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="5" />
@@ -22,18 +22,41 @@
 <script nonce="<%= cspNonce %>">
     (function () {
         const toggle = document.getElementById('themeToggle');
-        const saved = localStorage.getItem('campussphere-theme');
-        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        if (!toggle) return;
 
+        const STORAGE_KEY = 'campussphere-theme';
+        const readSavedTheme = () => {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved === 'dark' || saved === 'light' ? saved : null;
+            } catch (_) {
+                return null;
+            }
+        };
+        const saveTheme = (theme) => {
+            try { localStorage.setItem(STORAGE_KEY, theme); } catch (_) { /* best effort */ }
+        };
+        const applyTheme = (theme) => {
+            const dark = theme === 'dark';
+            if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            toggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+        };
+
+        const savedTheme = readSavedTheme();
+        if (savedTheme) {
+            applyTheme(savedTheme);
+        } else {
+            const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            toggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+        }
         toggle.addEventListener('click', () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            if (isDark) {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('campussphere-theme', 'light');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('campussphere-theme', 'dark');
-            }
+            const nextTheme = isDark ? 'light' : 'dark';
+            applyTheme(nextTheme);
+            saveTheme(nextTheme);
         });
     })();
 </script>

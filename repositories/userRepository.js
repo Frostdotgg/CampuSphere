@@ -19,6 +19,7 @@
          createLocalUser              -> app_create_local_user
          createOAuthUserWithProfile   -> app_create_oauth_user_with_profile
          updateUserName               -> direct UPDATE on public.users
+         updateUserProfileImage       -> validated Google-image UPDATE on public.users
          upsertStudentProfile         -> app_upsert_student_profile
          upsertInstructorProfile      -> app_upsert_instructor_profile
          upsertGuestProfile           -> app_upsert_guest_profile
@@ -55,6 +56,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
+const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
 
 const SALT_ROUNDS = 10;
 const USERS = 'users';
@@ -461,7 +463,7 @@ async function createOAuthUserWithProfile(pending, body) {
 
   const rawUser = email.split('@')[0] || 'user';
   const username = rawUser.slice(0, 50);
-  const picture = (typeof p.picture === 'string' && p.picture.trim()) ? p.picture.trim() : null;
+  const picture = normalizeGoogleProfileImageUrl(p.picture);
 
   // Bcrypt placeholder. Caller never sees the value; it is never logged.
   const placeholderHash = await bcrypt.hash(
@@ -522,6 +524,28 @@ async function updateUserName(userId, fields) {
   const sb = client();
   const { error } = await sb.from(USERS).update(patch).eq('id', userId);
   ensureNoError(error, 'updateUserName');
+}
+
+/**
+ * Store a validated Google profile-picture URL and bump updated_at.
+ * The controller performs the optional-sync decision; this repository method
+ * remains fail-closed so callers cannot write an arbitrary external URL.
+ */
+async function updateUserProfileImage(userId, imageUrl) {
+  if (userId === null || userId === undefined || userId === '') {
+    throw new Error('userRepository.updateUserProfileImage: userId is required');
+  }
+  const picture = normalizeGoogleProfileImageUrl(imageUrl);
+  if (!picture) {
+    throw new Error('userRepository.updateUserProfileImage: invalid Google profile image URL');
+  }
+
+  const sb = client();
+  const { error } = await sb.from(USERS).update({
+    profile_image_url: picture,
+    updated_at: new Date().toISOString()
+  }).eq('id', userId);
+  ensureNoError(error, 'updateUserProfileImage');
 }
 
 /**
@@ -831,6 +855,7 @@ module.exports = {
   createLocalUser,
   createOAuthUserWithProfile,
   updateUserName,
+  updateUserProfileImage,
   upsertStudentProfile,
   upsertInstructorProfile,
   upsertGuestProfile,

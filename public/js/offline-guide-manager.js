@@ -11,6 +11,9 @@
   var THEME_STORAGE_KEY = 'campussphere-theme';
   var MOBILE_MAP_MEDIA = '(max-width: 768px)';
   var PLACEHOLDER_IMAGE = '/img/Camarines-sur-polytechnic-colleges.png';
+  var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';
+  var OFFLINE_BUILDING_PIN_SCALE = 0.7;
+  var OFFLINE_BUILDING_PIN_OFFSET = [0, -14 * OFFLINE_BUILDING_PIN_SCALE];
   var activeRecord = null;
   var map = null;
   var protocol = null;
@@ -633,17 +636,21 @@
     var originEl = document.createElement('button');
     originEl.type = 'button';
     originEl.className = 'offline-map-marker offline-map-marker--origin';
-    originEl.textContent = 'Main Gate';
-    originEl.setAttribute('aria-label', record.guide.origin.label);
+    originEl.textContent = OFFLINE_ORIGIN_MARKER_LABEL;
+    originEl.setAttribute('aria-label', OFFLINE_ORIGIN_MARKER_LABEL);
     originEl.disabled = true;
     markers.push(new maplibregl.Marker({ element: originEl, anchor: 'bottom' })
       .setLngLat([record.guide.origin.lng, record.guide.origin.lat]).addTo(map));
 
     record.guide.buildings.forEach(function (building) {
       if (building.lat == null || building.lng == null) return;
-      // Use the same default MapLibre marker as the online map so the visible
-      // pin and its geographic anchor are pixel-identical at every zoom level.
-      var marker = new maplibregl.Marker()
+      // Use the same scaled default MapLibre marker as the online map. The
+      // existing offline-building-marker wrapper keeps the 44px interaction
+      // target while MapLibre scales only the visible pin.
+      var marker = new maplibregl.Marker({
+        scale: OFFLINE_BUILDING_PIN_SCALE,
+        offset: OFFLINE_BUILDING_PIN_OFFSET
+      })
         .setLngLat([building.lng, building.lat])
         .addTo(map);
       var markerElement = marker.getElement();

@@ -321,14 +321,31 @@ function runStaticBoundaryChecks() {
     /function verifyStoredRecord/.test(manager) && /record\.basemap\.arrayBuffer\(\)/.test(manager));
   ok('database text is rendered through textContent and no innerHTML sink exists',
     /node\.textContent\s*=\s*text/.test(manager) && !/\.innerHTML\s*=/.test(manager));
-  ok('map nodes use the online MapLibre marker anchor, fallback markers use reviewed native overlays, and Set as Destination draws immediately',
-    /var marker = new maplibregl\.Marker\(\)[\s\S]{0,180}\.setLngLat\(\[building\.lng, building\.lat\]\)/.test(manager) &&
+  ok('offline origin marker says Guard House while retaining the canonical main-gate key',
+    /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(manager) &&
+    /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(manager) &&
+    /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(manager) &&
+    !/originEl\.textContent = 'Main Gate'/.test(manager) &&
+    /guide\.origin\.key !== 'main-gate'/.test(manager));
+  ok('map nodes use the scaled online MapLibre marker anchor, fallback markers use reviewed native overlays, and Set as Destination draws immediately',
+    /var OFFLINE_BUILDING_PIN_SCALE = 0\.7;/.test(manager) &&
+    /var OFFLINE_BUILDING_PIN_OFFSET = \[0, -14 \* OFFLINE_BUILDING_PIN_SCALE\];/.test(manager) &&
+    /var marker = new maplibregl\.Marker\(\{\s*scale: OFFLINE_BUILDING_PIN_SCALE,\s*offset: OFFLINE_BUILDING_PIN_OFFSET\s*\}\)[\s\S]{0,180}\.setLngLat\(\[building\.lng, building\.lat\]\)/.test(manager) &&
     /markerElement\.classList\.add\('offline-building-marker'\)/.test(manager) &&
     /markerElement\.addEventListener\('click'[\s\S]{0,180}openDetails/.test(manager) &&
     /markerElement\.addEventListener\('keydown'[\s\S]{0,180}event\.key !== 'Enter'[\s\S]{0,120}openDetails/.test(manager) &&
     /function setDestination\(key\)[\s\S]{0,500}showRoute\(key\)/.test(manager) &&
     offlineFallbackMarkerProblems(manager, shell).length === 0 &&
     offlineFallbackMarkerMutationsAreRejected(manager, shell));
+  const fallbackWrapper = (css.match(/\.offline-fallback-marker\s*\{([\s\S]*?)\}/) || [])[1] || '';
+  const fallbackGlyph = (css.match(/\.offline-fallback-marker::before\s*\{([\s\S]*?)\}/) || [])[1] || '';
+  ok('offline MapLibre marker wrappers and fallback buttons retain exact 44px targets',
+    /\.offline-page \.offline-building-marker[\s\S]*?min-width: 44px;[\s\S]*?min-height: 44px;/.test(css)
+    && /\.offline-page \.offline-fallback-marker[\s\S]*?min-width: 44px;[\s\S]*?min-height: 44px;/.test(css)
+    && /width:\s*44px;/.test(fallbackWrapper) && /height:\s*44px;/.test(fallbackWrapper));
+  ok('offline fallback glyph is reduced to the reviewed 18px total visual diameter',
+    /width:\s*12px;/.test(fallbackGlyph) && /height:\s*12px;/.test(fallbackGlyph)
+    && /border:\s*3px solid #fff;/.test(fallbackGlyph));
   ok('fallback nodes inherit Enter and Space activation from native buttons without interactive SVG descendants',
     /var button = document\.createElement\('button'\)/.test(manager) &&
     /button\.type = 'button'/.test(manager) &&

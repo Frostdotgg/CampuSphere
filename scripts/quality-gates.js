@@ -1551,8 +1551,18 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v25 and offline dialogs/sheet/fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 25 && offlineInteractionLifecycleProblems(offlineManager, offlineShell).length === 0 &&
+    ok('sw.js is v30 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 30 &&
+      /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
+      /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
+      /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
+      !/originEl\.textContent = 'Main Gate'/.test(offlineManager) &&
+      /var OFFLINE_BUILDING_PIN_SCALE = 0\.7;/.test(offlineManager) &&
+      /var OFFLINE_BUILDING_PIN_OFFSET = \[0, -14 \* OFFLINE_BUILDING_PIN_SCALE\];/.test(offlineManager) &&
+      /new maplibregl\.Marker\(\{\s*scale: OFFLINE_BUILDING_PIN_SCALE,\s*offset: OFFLINE_BUILDING_PIN_OFFSET\s*\}\)/.test(offlineManager) &&
+      /\.offline-fallback-marker\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/.test(offlineCss) &&
+      /\.offline-fallback-marker::before\s*\{[\s\S]*?width:\s*12px;[\s\S]*?height:\s*12px;[\s\S]*?border:\s*3px solid #fff;/.test(offlineCss) &&
+      offlineInteractionLifecycleProblems(offlineManager, offlineShell).length === 0 &&
       offlineInteractionMutationsAreRejected(offlineManager, offlineShell) &&
       offlineTouchTargetProblems(offlineCss).length === 0 && offlineTouchTargetMutationsAreRejected(offlineCss) &&
       offlineMobileDetailsOverlapProblems(offlineCss, offlineShell).length === 0 &&
@@ -5359,6 +5369,11 @@ function declaresStaleOrPrematureAuthority(value) {
     /\bno\s+(?:expanded\s+)?D7\s+(?:Codex\s+)?GO\s+is\s+claimed\b/i.test(t) ||
     /\b(?:expanded\s+)?D7\b[^.;]{0,120}\b(?:is\s+authorized|may\s+begin|has\s+started)\b/i.test(t) ||
     /\b(?:begin|start|implement|execute|commence)\s+(?:expanded\s+)?D7\b/i.test(t) ||
+    // Completed verification and independent-review boundaries must not be
+    // rewritten as pending current work in a reusable grounding prompt.
+    /\bfinal\s+ordered\s+postconditions\b[^.;]{0,100}\b(?:remain|are)\s+pending\b/i.test(t) ||
+    /\bnext\s+boundary\b[^.;]{0,160}\bsession[- ]residue\b/i.test(t) ||
+    /\b(?:independent\s+commit-readiness\s+review\s+remains\s+open|next\s+boundary\s+is\s+an\s+open\s+independent\s+commit-readiness\s+review|independent\s+review\s+is\s+still\s+required|new\s+independent\s+review\s+remains\s+pending)\b/i.test(t) ||
     // R8 can be named as the next read-only section, but not authorized or executed here.
     /\bR8\b(?:\s+is)?\s+(?:authorized|may\s+begin|has\s+started|complete|completed)\b/i.test(t) ||
     /\b(?:begin|start|implement|execute|commence)\s+R8\b/i.test(t)
@@ -5551,6 +5566,10 @@ function currentPilotAuthorityProblems(value) {
   const t = text.replace(/\s+/g, ' ').trim();
   const problems = [];
 
+  if (currentReleaseContinuityProblems(text, { requireMarkers: false }).length === 0) {
+    return [];
+  }
+
   if (!/\bhuman pilot\b[\s\S]{0,180}\b2026-08-05\b|\b2026-08-05\b[\s\S]{0,180}\bhuman pilot\b/i.test(t)) {
     problems.push('owner-attested 2026-08-05 human pilot is missing');
   }
@@ -5604,6 +5623,9 @@ function currentPilotAuthorityProblems(value) {
 
 /** PURE: validate current Git/deployment/promotion/pilot authority. */
 function currentGitLifecycleProblems(value) {
+  if (currentReleaseContinuityProblems(value, { requireMarkers: false }).length === 0) {
+    return [];
+  }
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   const problems = [];
   if (!t.includes(EXPECTED_SEC51_DEPLOYED_BASELINE) ||
@@ -5751,9 +5773,200 @@ const CURRENT_MAINTENANCE_MANIFEST_SHA256 =
   '5bd2ba68fd442da73e36b53a3c1e4b1cfff30496e4ce50884382781ba9479a2d';
 const CURRENT_MAINTENANCE_PACKAGE_SHA256 =
   '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5';
+const CURRENT_RELEASE_AUTHORITY_COMMIT_SHA =
+  'bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd';
+const CURRENT_RELEASE_COMMIT_SHA =
+  'dc961b1eeba191d79b96998d96f0a49dac3ffcf8';
+const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
+  '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
+const CURRENT_RELEASE_PACKAGE_SHA256 =
+  '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5';
+const CURRENT_COURSE_WORKTREE_PACKAGE_SHA256 =
+  '9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec';
+const CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA =
+  'fea3b2e11c6331eddc1ee091b165427d8e0218d7';
+const CURRENT_RELEASE_CONTINUITY_START = '<!-- M12 RELEASE CONTINUITY START -->';
+const CURRENT_RELEASE_CONTINUITY_END = '<!-- M12 RELEASE CONTINUITY END -->';
+
+/**
+ * PURE: validate the post-course release handoff without converting the
+ * owner's Vercel/OAuth/local observations into independent production
+ * evidence or promoting the current dirty worktree into accepted evidence.
+ *
+ * With requireMarkers=true, exactly one bounded continuity block is required.
+ * Reusable prompt bodies carry the same facts without the HTML markers, so the
+ * caller may explicitly validate the entire body instead.
+ * @returns {string[]} problems (empty = current and bounded)
+ */
+function currentReleaseContinuityProblems(value, { requireMarkers = true } = {}) {
+  const raw = String(value == null ? '' : value);
+  let scope = raw;
+  const problems = [];
+
+  if (requireMarkers) {
+    const starts = raw.split(CURRENT_RELEASE_CONTINUITY_START).length - 1;
+    const ends = raw.split(CURRENT_RELEASE_CONTINUITY_END).length - 1;
+    const start = raw.indexOf(CURRENT_RELEASE_CONTINUITY_START);
+    const end = raw.indexOf(CURRENT_RELEASE_CONTINUITY_END);
+    if (starts !== 1 || ends !== 1 || start < 0 || end <= start) {
+      return ['current release continuity markers are missing, duplicated, or inverted'];
+    }
+    scope = raw.slice(start + CURRENT_RELEASE_CONTINUITY_START.length, end);
+  }
+
+  const t = scope.replace(/\s+/g, ' ').trim();
+  const exactLineage =
+    t.includes('d786bdcb83a196c7263dceae668417d3ced3e95a') &&
+    t.includes('c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64') &&
+    t.includes(CURRENT_RELEASE_AUTHORITY_COMMIT_SHA) &&
+    t.includes(CURRENT_RELEASE_COMMIT_SHA);
+  if (!exactLineage ||
+      !/HEAD[\s\S]{0,100}origin\/main[\s\S]{0,100}remote `?main`?[\s\S]{0,180}\bdc961b1/i.test(t) ||
+      !/index was empty[\s\S]{0,140}exactly 58 modified tracked paths[\s\S]{0,100}12 untracked paths[\s\S]{0,100}70 dirty paths total[\s\S]{0,100}zero stashes/i.test(t) ||
+      !/eleven authority documents[\s\S]{0,100}scripts\/quality-gates\.js[\s\S]{0,100}12 tracked authority\/static-assertion surfaces/i.test(t) ||
+      !/other 46 tracked paths[\s\S]{0,100}all 12 untracked paths[\s\S]{0,100}current uncommitted implementation/i.test(t) ||
+      !/Preserve this worktree exactly/i.test(t)) {
+    problems.push('release lineage or pre-sync/live-worktree boundary is missing');
+  }
+
+  if (!t.includes(CURRENT_RELEASE_REVIEW_MANIFEST_SHA256) ||
+      !/12(?:-file| files)[\s\S]{0,80}1,854,481 bytes[\s\S]{0,100}manifest SHA-256/i.test(t) &&
+      !/12(?:-file| files)[\s\S]{0,160}manifest SHA-256[\s\S]{0,100}1,854,481 bytes/i.test(t)) {
+    problems.push('reviewed 12-file authority manifest is missing');
+  }
+  if (!t.includes(CURRENT_RELEASE_PACKAGE_SHA256) ||
+      !/168 files[\s\S]{0,80}7,074,195 bytes[\s\S]{0,100}(?:aggregate )?SHA-256/i.test(t)) {
+    problems.push('release package identity is missing');
+  }
+
+  if (!/npm test[\s\S]{0,100}exit 0[\s\S]{0,100}QUALITY-GATES OK/i.test(t) ||
+      !/npm run qa[\s\S]{0,120}exit(?:ed)? 0/i.test(t) ||
+      !/DB-PERF-GATE OK/i.test(t) ||
+      !/\[supabase-smoke\] PASS/i.test(t) ||
+      !/IDENTITY-CONSTRAINTS OK/i.test(t) ||
+      !/found 0 vulnerabilities/i.test(t) ||
+      !/Chrome acceptance[\s\S]{0,100}Supabase[\s\S]{0,80}MySQL/i.test(t) ||
+      !/24\/24\s*->\s*18\/18\s*->\s*46\/46/i.test(t)) {
+    problems.push('replacement verification evidence is incomplete');
+  }
+  if (!/(?:clean-commit independent|independent clean-commit) R8 review[\s\S]{0,160}\bGO\b/i.test(t) ||
+      !/no (?:critical, high, medium, or low|critical\/high\/medium\/low) findings/i.test(t)) {
+    problems.push('independent clean-commit R8 GO evidence is missing');
+  }
+
+  if (!/owner[\s\S]{0,120}authorized the `?bb17b9b`? push/i.test(t) ||
+      !/manual Vercel promotion/i.test(t) ||
+      !/Owner-observed[\s\S]{0,180}\bReady\b[\s\S]{0,100}\bProduction\b[\s\S]{0,100}\bmain\b[\s\S]{0,100}11-second build/i.test(t)) {
+    problems.push('owner-authorized push or owner-observed promotion evidence is missing');
+  }
+  if (!/No independent anonymous GET-only post-promotion byte verification[\s\S]{0,180}(?:bb17b9b|dc961b1)/i.test(t) ||
+      !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+      !/last independently post-deployment-verified technical baseline/i.test(t) ||
+      !/not byte proof for either later commit/i.test(t)) {
+    problems.push('promotion evidence is not separated from independent deployment verification');
+  }
+
+  if (!/Production uses Supabase\/PostgreSQL for application data and sessions/i.test(t) ||
+      !/MySQL remains local-development\/fallback\/rehearsal data/i.test(t) ||
+      !/backend-specific immutable snapshot/i.test(t) ||
+      !/excludes 360\/Guided-VR\/Free-Roam content, schedules,[\s\S]{0,100}Cloudinary media[\s\S]{0,100}private\/admin\/session data/i.test(t)) {
+    problems.push('backend-specific offline scope is missing');
+  }
+
+  if (!/readiness poll[\s\S]{0,100}\/favicon\.ico/i.test(t) ||
+      !/destroyed 309 harness-shaped anonymous (?:MySQL )?sessions/i.test(t) ||
+      !t.includes('a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d') ||
+      !/zero candidates[\s\S]{0,80}zero scanned residue/i.test(t) ||
+      !/Migrations (?:remain|are) exactly `?0001`?-`?0019`?/i.test(t) ||
+      !/migration `?0020`? does not exist and is not authorized/i.test(t) ||
+      !/109\/109 (?:manifest files verified|verified backup\/restore files)/i.test(t) ||
+      !/86 referenced Cloudinary (?:delivery )?assets/i.test(t)) {
+    problems.push('cleanup, migration, or backup boundary is missing');
+  }
+
+  if (!/(?:human pilot[\s\S]{0,120}2026-08-05|2026-08-05[\s\S]{0,120}human pilot)/i.test(t) ||
+      !/zero reported findings/i.test(t) ||
+      !/Participant\/Form evidence remains external/i.test(t) ||
+      !/full source-commit identity was not independently verified/i.test(t) ||
+      !/pilot review is complete for sequencing/i.test(t)) {
+    problems.push('owner-attested pilot evidence boundary is missing');
+  }
+
+  if (!/owner supplied 29 official course titles[\s\S]{0,80}Other/i.test(t) ||
+      !/\bdc961b1\b[\s\S]{0,160}accessible, case-insensitive course search/i.test(t) ||
+      !/OAuth registration completion[\s\S]{0,100}student profile editor/i.test(t) ||
+      !/legacy course values remain visible[\s\S]{0,100}deliberately (?:selects|changed)/i.test(t) ||
+      !/submitted field remains `?course`?[\s\S]{0,180}controllers, repositories, APIs, database schema, and migrations did not change/i.test(t) ||
+      !/six-file commit[\s\S]{0,80}433 insertions[\s\S]{0,80}28 deletions/i.test(t) ||
+      !/package-boundary run passed `?74\/74`?/i.test(t) ||
+      !t.includes(CURRENT_COURSE_WORKTREE_PACKAGE_SHA256) ||
+      !/working-tree package identity is not clean-commit or deployed-byte proof/i.test(t) ||
+      !/owner confirmed[\s\S]{0,140}course flows work in Production/i.test(t)) {
+    problems.push('course-catalog implementation or evidence boundary is missing');
+  }
+
+  if (!/Google OAuth is now owner-observed `?In production`?/i.test(t) ||
+      !/only `?openid email profile`?/i.test(t) ||
+      !/sensitive or restricted-scope verification is not required/i.test(t) ||
+      !/owner confirmed Google account creation and sign-in work/i.test(t) ||
+      !/Branding is not verified/i.test(t) ||
+      !/Search Console ownership[\s\S]{0,120}was not completed/i.test(t) ||
+      !/owner chose to defer/i.test(t) ||
+      !/Do not describe OAuth as verified or unlimited/i.test(t) ||
+      !/Public local registration still creates guests only/i.test(t)) {
+    problems.push('OAuth production, basic-scope, or unverified-branding boundary is missing');
+  }
+
+  if (!/current 70-path worktree[\s\S]{0,120}uncommitted multi-feature stabilization candidate/i.test(t) ||
+      !/valid Guided-VR and Free Roam scene arrows/i.test(t) ||
+      !/VR light\/dark theme parity/i.test(t) ||
+      !/offline display label `?Guard House`?/i.test(t) ||
+      !/authenticated notification feed\/panel/i.test(t) ||
+      !/Paga About card/i.test(t) ||
+      !/admin category-dropdown styling and user role\/status filters/i.test(t) ||
+      !/safe Google profile-image synchronization/i.test(t) ||
+      !/POST[\s\S]{0,80}DELETE \/api\/profile\/photo/i.test(t) ||
+      !/CampuSphere\/profile-images/i.test(t) ||
+      !/not accepted[\s\S]{0,160}limited key[\s\S]{0,100}folder permission/i.test(t) ||
+      !/support response remains external and pending/i.test(t) ||
+      !/temporary setup key is disabled/i.test(t) ||
+      !/syncSupabaseContentToMysql\.js --dry-run/i.test(t) ||
+      !t.includes('2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05') ||
+      !/No data was written/i.test(t) ||
+      !/Android 8 installed-PWA crash remains unresolved/i.test(t) ||
+      !/Docker\/client-clone deployment readiness also remains deferred/i.test(t) ||
+      !/fresh session grounds first[\s\S]{0,180}separately authorized session verifies the non-Cloudinary changes/i.test(t) ||
+      !/Cloudinary support remains an external event-based dependency/i.test(t) ||
+      !/if no response has arrived[\s\S]{0,180}verified non-Cloudinary findings one bounded issue at a time/i.test(t) ||
+      !/Manual Cloudinary upload stays deferred/i.test(t) ||
+      !/Grounding prompts do not themselves authorize tests/i.test(t) ||
+      !/missing current full QA, independent review, commit, push, deployment, and Production acceptance/i.test(t) ||
+      !/(?:authorizes no product implementation|It authorizes no product implementation)/i.test(t) ||
+      !/Final Milestone 12 disposition remains (?:an explicit owner\/external closeout decision|external)/i.test(t)) {
+    problems.push('next owner boundary or no-authorization rule is missing');
+  }
+
+  const forbiddenClaims = [
+    /independent(?:ly)?[\s\S]{0,80}(?:GET-only|post-promotion)[\s\S]{0,80}(?:passed|PASS)[\s\S]{0,100}(?:bb17b9b|dc961b1)/i,
+    /Google OAuth[\s\S]{0,100}(?:is|was|has been)[\s\S]{0,60}(?:verified|unlimited)/i,
+    /(?:branding|Search Console ownership)[\s\S]{0,80}(?:is|was|has been) (?:verified|completed)/i,
+    /manual (?:profile-)?photo (?:flow|upload)[\s\S]{0,100}(?:is|was|has been) (?:accepted|complete|verified|production-ready)/i,
+    /Cloudinary[\s\S]{0,120}(?:folder permission|Manager access)[\s\S]{0,80}(?:is|was|has been) (?:granted|confirmed|verified)/i,
+    /support response[\s\S]{0,80}(?:was|has been) received/i,
+    /current 70-path worktree[\s\S]{0,180}(?:full QA passed|Codex GO|deployed|Production acceptance)/i,
+    /\bpassword\s*[:=]\s*\S+/i,
+  ];
+  if (forbiddenClaims.some((rule) => rule.test(t))) {
+    problems.push('continuity scope contains a premature, conflicting, or secret-bearing claim');
+  }
+  return problems;
+}
 
 /** PURE: require the exact committed implementation and R8 lifecycle boundary. */
 function currentOfflineCorrectionEvidenceProblems(value) {
+  if (currentReleaseContinuityProblems(value, { requireMarkers: false }).length === 0) {
+    return [];
+  }
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   const problems = [];
   const committedManifestShape =
@@ -5793,6 +6006,9 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  const carriesPromotedReleaseAuthority =
+    currentReleaseContinuityProblems(t, { requireMarkers: false }).length === 0;
+
   const carriesCurrentAuthority =
     /\bR1-R7\b[\s\S]{0,180}\b(?:and\s+)?D1-D5\b[\s\S]{0,160}\b(?:and\s+)?(?:expanded\s+)?D7\b[\s\S]{0,160}\b(complete|completed)\b[\s\S]{0,80}\bCodex GO\b/i.test(t) &&
     /\bdependency-security remediation\b[\s\S]{0,140}\b(complete|completed)\b[\s\S]{0,80}\bCodex GO\b/i.test(t) &&
@@ -5802,7 +6018,6 @@ function reusablePromptIsCurrent(body) {
     /\bR7\b[\s\S]{0,180}\b(?:complete|completed)\b[\s\S]{0,80}\bCodex GO\b/i.test(t) &&
     recordsAcceptedR7EvidenceText(t) &&
     recordsAcceptedD7EvidenceText(t) &&
-    currentGitLifecycleProblems(t).length === 0 &&
     /\bcontext-only\b[\s\S]{0,160}\bauthorizes none\b/i.test(t) &&
     /\bfinal Milestone 12\b[\s\S]{0,220}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(t) &&
     /\bdeployment is not authorized\b/i.test(t);
@@ -5811,12 +6026,14 @@ function reusablePromptIsCurrent(body) {
      continuity claims. Requiring the deployed-baseline analyzer here closes the
      gap where a prompt body could assert a stale or conflicting production
      baseline that every other authority document is already checked against. */
-  return carriesCurrentAuthority &&
-    currentOfflineCorrectionEvidenceProblems(t).length === 0 &&
-    currentCandidateVerificationProblems(t, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
-    currentGitLifecycleProblems(t).length === 0 &&
-    !declaresStaleOrPrematureAuthority(t) &&
-    deploymentDocumentClaimsAreCurrent(t);
+  if (!carriesCurrentAuthority || !carriesPromotedReleaseAuthority ||
+      declaresStaleOrPrematureAuthority(t)) return false;
+
+  /* The promoted-release prompt deliberately distinguishes owner-observed
+     promotion from the older independently verified fea3b2e smoke. The legacy
+     lifecycle predicates model the pre-promotion state and remain active only
+     for historical fixtures that do not carry the new release authority. */
+  return true;
 }
 
 /** PURE: both reusable prompts extract cleanly AND are independently current. */
@@ -5833,7 +6050,7 @@ function reusablePromptsAreCurrent(doc) {
    denial. The two OFF.2 forms match the current prompt word orders; the older
    state-neutral forms remain accepted for historical fixture coverage. */
 const REUSABLE_PROMPT_WAIT_DENIAL_RE =
-  /\b(?:do not infer that|never use direct SQL[\s\S]{0,400}\bor infer that) (?:OFF\.2 implementation, another pilot, offline work, or deployment is authorized|OFF\.2 implementation, offline mode, deployment, or another pilot is authorized|further implementation, another pilot, Git mutation, or deployment is authorized|further implementation, deployment, Git mutation, or another pilot is authorized|pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)\b/i;
+  /\b(?:do not infer that|never use direct SQL[\s\S]{0,400}\bor infer that) (?:OFF\.2 implementation, another pilot, offline work, or deployment is authorized|OFF\.2 implementation, offline mode, deployment, or another pilot is authorized|further implementation, another pilot, Git mutation, or deployment is authorized|further implementation, deployment, Git mutation, or another pilot is authorized|implementation, Git mutation, vendor work, or deployment is authorized|pilot, offline, or deployment work is next|offline mode, deployment, or pilot work is automatically next)\b/i;
 
 function reusablePromptHasExplicitWaitBoundary(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
@@ -5867,6 +6084,7 @@ function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   return reusablePromptIsCurrent(t) &&
     /fresh context-only grounding session that does not authorize implementation/i.test(t) &&
+    /load and follow the installed code-reviewer skill/i.test(t) &&
     /Do not review, edit, test, implement, stage, commit, push, deploy(?:, promote)?, or perform (?:an R8|a closeout) review/i.test(t) &&
     /After the grounding report, stop and wait for the owner/i.test(t) &&
     /Deployment is not authorized by this prompt/i.test(t) &&
@@ -6114,9 +6332,9 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    continuity evidence until a later commit/handoff synchronization records
    the new source identity. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 168,
-  bytes: '7,088,275',
-  sha256: '9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec',
+  files: 172,
+  bytes: '7,141,628',
+  sha256: '43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7557,14 +7775,14 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-21';
+  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-24';
   /** PURE: all current authority surfaces must carry one synchronized date. */
   function currentCandidateDateProblems(sourceMap, expectedDate = EXPECTED_CURRENT_CANDIDATE_DATE) {
     const problems = [];
     for (const name of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('\\*\\*CURRENT STATUS \\(' + expectedDate.replace(/\./g, '\\.') + '\\b');
-      if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current-status date');
+      const pattern = new RegExp('^## Current Release Continuity \\(' + expectedDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
+      if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized release-continuity date');
     }
     for (const name of ['CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'docs/new-session-grounding-prompts.md']) {
       const value = String(sourceMap && sourceMap[name] || '');
@@ -7572,13 +7790,13 @@ function runDocsCurrentGate() {
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized Last updated date');
     }
     const headings = {
-      'docs/deployment.md': 'Current Production And Post-Deployment Status',
-      'docs/security-checklist.md': 'Current Security And Pilot Status',
-      'docs/test-evidence.md': 'Current Evidence Classification',
+      'docs/deployment.md': 'Current Release Continuity',
+      'docs/security-checklist.md': 'Current Release Continuity',
+      'docs/test-evidence.md': 'Current Release Continuity',
     };
     for (const [name, heading] of Object.entries(headings)) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^## ' + expectedDate.replace(/\./g, '\\.') + ' ' + heading + '\\s*$', 'm');
+      const pattern = new RegExp('^## ' + heading + ' \\(' + expectedDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current heading date');
     }
     return problems;
@@ -7590,24 +7808,24 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'CLAUDE.md': '**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-21 (Asia/Manila)\n**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-21 (Asia/Manila)\n**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'plan.md': '**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'ROADMAP.md': '**CURRENT STATUS (2026-08-21 Milestone 12 R8 authority correction).**',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-21 (Asia/Manila)',
-    'docs/deployment.md': '## 2026-08-21 Current Production And Post-Deployment Status',
-    'docs/security-checklist.md': '## 2026-08-21 Current Security And Pilot Status',
-    'docs/test-evidence.md': '## 2026-08-21 Current Evidence Classification',
+    'AGENTS.md': '## Current Release Continuity (2026-08-24)',
+    'CLAUDE.md': '## Current Release Continuity (2026-08-24)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-24 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-24 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
+    'plan.md': '## Current Release Continuity (2026-08-24)',
+    'ROADMAP.md': '## Current Release Continuity (2026-08-24)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-24 (Asia/Manila)',
+    'docs/deployment.md': '## Current Release Continuity (2026-08-24)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-08-24)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-08-24)',
   };
   ok('fixture: synchronized current dates are accepted and any single stale current date is rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
     currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
-      'docs/security-checklist.md': '## 2026-08-10 Current Security And Pilot Status',
+      'docs/security-checklist.md': '## Current Release Continuity (2026-08-10)',
     })).length > 0 &&
     currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
-      'ROADMAP.md': '**CURRENT STATUS (2026-08-10 candidate).**',
+      'ROADMAP.md': '## Current Release Continuity (2026-08-10)',
     })).length > 0);
 
   // L7: AGENTS.md + CLAUDE.md must not carry the stale claims and must document
@@ -7866,6 +8084,9 @@ function runDocsCurrentGate() {
   /** PURE: require accepted D6/OFF.2-OFF.6 history, the committed verified
    * implementation, and independent final-closeout/release boundaries. */
   function offlineCandidateAuthorityProblems(value) {
+    if (currentReleaseContinuityProblems(value, { requireMarkers: false }).length === 0) {
+      return [];
+    }
     const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     const anchors = [...text.matchAll(/\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b/ig)].map((match) => match.index);
     const scopes = anchors.map((index) => {
@@ -7989,10 +8210,54 @@ function runDocsCurrentGate() {
     'ROADMAP.md',
     'docs/demo-script.md',
     'docs/deployment.md',
-    'docs/new-session-grounding-prompts.md',
     'docs/security-checklist.md',
     'docs/test-evidence.md',
   ];
+
+  for (const name of maintenanceAuthorityDocs) {
+    const problems = currentReleaseContinuityProblems(docs[name]);
+    ok(`${name} records dc961b1 continuity and the current verification/Cloudinary boundary`,
+      problems.length === 0);
+    problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
+  }
+
+  const releaseFixtureSource = docs['CODEX_HANDOFF.md'];
+  const releaseStart = releaseFixtureSource.indexOf(CURRENT_RELEASE_CONTINUITY_START);
+  const releaseEnd = releaseFixtureSource.indexOf(CURRENT_RELEASE_CONTINUITY_END);
+  const CURRENT_RELEASE_CONTINUITY_FIXTURE = releaseStart >= 0 && releaseEnd > releaseStart
+    ? releaseFixtureSource.slice(releaseStart, releaseEnd + CURRENT_RELEASE_CONTINUITY_END.length)
+    : '';
+  const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
+  const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
+  ok('fixture: current post-course continuity is accepted and unsupported variants fail closed',
+    currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_RELEASE_COMMIT_SHA,
+      'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_RELEASE_REVIEW_MANIFEST_SHA256,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /No independent anonymous GET-only\s+post-promotion byte verification has been recorded for\s+`?bb17b9b`? or\s+`?dc961b1`?/,
+      'Independent anonymous GET-only post-promotion verification PASS is recorded for `dc961b1`')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /Do not describe OAuth as verified or\s+unlimited\./,
+      'Google OAuth is verified and unlimited.')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /the dedicated limited\s+key still lacks the required folder permission/,
+      'the dedicated limited key has been granted and verified with Manager access')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /The owner selected this next sequence:[\s\S]{0,500}Grounding prompts do not themselves authorize tests,\s+fixes, browser\/server work, database access, or vendor operations\./,
+      'The current 70-path worktree passed full QA, received Codex GO, and is ready for Production.')).length > 0 &&
+    currentReleaseContinuityProblems(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
+
   for (const name of maintenanceAuthorityDocs) {
     const blocks = currentMaintenanceAuthorityBlocks(docs[name]);
     const problems = blocks.length === 0
@@ -8969,26 +9234,25 @@ function runDocsCurrentGate() {
       'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. This context-only prompt authorizes none of those actions. ' +
       'Deployment is not authorized by this prompt.';
     const CURRENT_AUTHORITY_SUPPLEMENT =
-      'The owner accepts https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. ' +
-      'The separately authorized push automatically triggered Vercel Production. ' +
-      'Bounded anonymous read-only GET-only post-deployment verification passed. ' +
-      'Auto-assign Custom Production Domains is disabled; future main pushes require explicit manual promotion before replacing the live alias. ' +
-      'Documentation/static-assertion-only authority commit db05b549807535840968bf28cdefac4154a6d59d is committed and pushed on main; Owner-observed Vercel evidence showed Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
-      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. ' +
-      'Replacement full verification ran npm test at 4998/4998 with QUALITY-GATES OK and five-stage npm run qa at the same exact contract total. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. ' +
-      'The documentation/static-assertion correction lifecycle is controlled by live Git and the latest external review report. ';
+      'The release lineage is d786bdcb83a196c7263dceae668417d3ced3e95a -> c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64 -> bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd -> dc961b1eeba191d79b96998d96f0a49dac3ffcf8. ' +
+      'At the start of this authority synchronization, local HEAD, origin/main, and remote main matched dc961b1eeba191d79b96998d96f0a49dac3ffcf8. The index was empty; the worktree contained exactly 58 modified tracked paths and 12 untracked paths (70 dirty paths total), with zero stashes. Eleven authority documents plus scripts/quality-gates.js are the 12 tracked authority/static-assertion surfaces; the other 46 tracked paths and all 12 untracked paths belong to the current uncommitted implementation. Preserve this worktree exactly and recompute live Git truth. ' +
+      'The independently reviewed bb17b9b authority delta covered 12 files and 1,854,481 bytes with manifest SHA-256 1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7. The release package pin is 168 files, 7,074,195 bytes, aggregate SHA-256 13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5. ' +
+      'Replacement verification completed with npm test exit 0 and QUALITY-GATES OK; npm run qa exited 0 with DB-PERF-GATE OK, [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and found 0 vulnerabilities; bounded Chrome acceptance completed in Supabase and MySQL modes; final ordered postconditions were 24/24 -> 18/18 -> 46/46. ' +
+      'The clean-commit independent R8 review of bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd returned GO with no critical, high, medium, or low findings. The owner authorized the bb17b9b push and manual Vercel promotion. Owner-observed Vercel evidence showed Ready, Production, main, and an 11-second build. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
+      'No independent anonymous GET-only post-promotion byte verification has been recorded for bb17b9b or dc961b1. fea3b2e11c6331eddc1ee091b165427d8e0218d7 is the last independently post-deployment-verified technical baseline; its smoke is not byte proof for either later commit. ' +
+      'Production uses Supabase/PostgreSQL for application data and sessions; MySQL remains local-development/fallback/rehearsal data. A production offline-guide download is a backend-specific immutable snapshot of current Supabase building and route data and excludes 360/Guided-VR/Free-Roam content, schedules, building photos, Cloudinary media, and private/admin/session data. ' +
+      'The readiness poll now uses /favicon.ico. The local cleanup destroyed 309 harness-shaped anonymous MySQL sessions with cleanup fingerprint SHA-256 a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and left zero candidates and zero scanned residue. Migrations remain exactly 0001-0019; migration 0020 does not exist and is not authorized. Preserve one-writer control and external backup evidence: 109/109 manifest files verified and 86 referenced Cloudinary delivery assets hashed. ' +
+      'The owner-attested human pilot occurred on 2026-08-05 with zero reported findings. Participant/Form evidence remains external, the tested build full source-commit identity was not independently verified, and pilot review is complete for sequencing. ' +
+      'The owner supplied 29 official course titles for this application plus Other. Commit dc961b1 replaced the abbreviated selectors and added an accessible, case-insensitive course search to new-student OAuth registration completion and the existing student profile editor. Existing saved legacy course values remain visible until a student deliberately selects a new value. The submitted field remains course; controllers, repositories, APIs, database schema, and migrations did not change. The six-file commit recorded 433 insertions and 28 deletions. ' +
+      'Course-feature verification recorded npm test exit 0 with QUALITY-GATES OK and five-stage npm run qa exit 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities. The package-boundary run passed 74/74 and reported a then-current working-tree package of 168 files, 7,088,275 bytes, aggregate SHA-256 9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec. The working-tree package identity is not clean-commit or deployed-byte proof. The owner confirmed the registration and profile course flows work in Production; this is owner-observed functional acceptance, not independent review or byte smoke. ' +
+      'Google OAuth is now owner-observed In production and requests only openid email profile. Google Data Access reported that sensitive or restricted-scope verification is not required, and the owner confirmed Google account creation and sign-in work. Branding is not verified; Search Console ownership for campussphere-cspc.vercel.app was not completed, and the owner chose to defer branding. Do not describe OAuth as verified or unlimited. Public local registration still creates guests only. ' +
+      'The current 70-path worktree contains an uncommitted multi-feature stabilization candidate with valid Guided-VR and Free Roam scene arrows, VR light/dark theme parity, the offline display label Guard House, the authenticated notification feed/panel, the Paga About card, admin category-dropdown styling and user role/status filters, safe Google profile-image synchronization, and authenticated POST and DELETE /api/profile/photo. The manual flow targets CampuSphere/profile-images but is not accepted: the dedicated limited key lacks the required folder permission, the support response remains external and pending, and the temporary setup key is disabled. The owner-run scripts/syncSupabaseContentToMysql.js --dry-run preview reported no differences, No data was written, and both fingerprints were 2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05. The Android 8 installed-PWA crash remains unresolved and Docker/client-clone deployment readiness also remains deferred. A fresh session grounds first; a later separately authorized session verifies the non-Cloudinary changes. Cloudinary support remains an external event-based dependency; if no response has arrived, continue with verified non-Cloudinary findings one bounded issue at a time. Manual Cloudinary upload stays deferred. Grounding prompts do not themselves authorize tests. Missing current full QA, independent review, commit, push, deployment, and Production acceptance remain explicit. This authority authorizes no product implementation. Final Milestone 12 disposition remains external. ';
     const CURRENT_BODY =
       CURRENT_AUTHORITY_SUPPLEMENT +
-      'Final Milestone 12 disposition remains external. R1-R7, D1-D5, and expanded D7 are complete and Codex GO. ' +
-      'Dependency-security remediation is complete and Codex GO. Following the accepted 2026-07-22 dependency closeout, a subsequent 2026-07-26 npm advisory drift is remediated: production pins ejs@6.0.1, the jake/filelist/minimatch/brace-expansion chain is absent, and npm audit --omit=dev reports zero vulnerabilities. ' +
-      'M12.P1-R6 is complete and Codex GO. This context-only prompt does not authorize implementation. M12.P1-R7 is complete and Codex GO. ' +
-      'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
-      'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun with separate Playwright BrowserContext objects, no storage carryover, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
-      'Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
-      'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
-      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. ' +
-      'Replacement full verification of the exact 19-file offline UI/accessibility/package implementation passed at 4998/4998 with QUALITY-GATES OK, five-stage npm run qa at the same exact contract total, bounded Chrome acceptance in both supported backends, and ordered postconditions 24/24 -> 18/18 -> 46/46. The implementation d786bdcb83a196c7263dceae668417d3ced3e95a is committed and pushed to origin/main. Its committed implementation manifest SHA-256 92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642 covers 19 files and 2,072,400 bytes. The current package identity is 168 files, 7,074,195 bytes, aggregate SHA-256 13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5. ' +
-      'The clean-commit independent R8 review returned NO-GO solely because stale operative lifecycle authority described the pushed, verified commit as uncommitted and pending; no separate runtime, security, database, or package blocker was found. The documentation/static-assertion correction is a separate byte set whose lifecycle and disposition are controlled by live Git and the latest independent external review report. No promotion is authorized; deployment is not authorized. This context-only prompt authorizes none of those actions. Deployment is not authorized by this prompt.';
+      'R1-R7, D1-D5, and expanded D7 are complete and Codex GO. Dependency-security remediation is complete and Codex GO: following the accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory drift was remediated, production pins ejs@6.0.1, the jake/filelist/minimatch/brace-expansion chain is absent, and npm audit --omit=dev reports zero vulnerabilities. ' +
+      'M12.P1-R6 is complete and Codex GO. This context-only prompt does not authorize implementation. M12.P1-R7 is complete and Codex GO. Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, and full suite 3495/3495 with QUALITY-GATES OK; npm audit --omit=dev reports zero vulnerabilities, while 3492/3492 and 3494/3494 are historical/superseded. ' +
+      'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context BrowserContext run at 3511/3511 with QUALITY-GATES OK, audit zero, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d. ' +
+      'The documentation/static-assertion correction is a separate byte set whose lifecycle and disposition are controlled by live Git and the latest independent external review report. Final ordered postconditions are 24/24 -> 18/18 -> 46/46. Final Milestone 12 disposition remains external. This context-only prompt authorizes none of those actions. Deployment is not authorized by this prompt.';
 
     // Stale in the PREVIOUS direction: R5 still described as awaiting review.
     const STALE_BODY = CURRENT_BODY.replace(
@@ -9062,7 +9326,7 @@ function runDocsCurrentGate() {
       reusablePromptIsCurrent(LEGACY_BODY) === false);
     const CODEX_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation or review. Load and follow the installed code-reviewer skill. ' +
       'Do not perform a code review. Stop and wait for the owner. Never use direct SQL or infer that OFF.2 implementation, another pilot, offline work, or deployment is authorized.';
-    const CLAUDE_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation. ' +
+    const CLAUDE_ROLE_OK = CURRENT_BODY + ' This is a fresh context-only grounding session that does not authorize implementation. Load and follow the installed code-reviewer skill. ' +
       'Do not review, edit, test, implement, stage, commit, push, deploy, or perform an R8 review. After the grounding report, stop and wait for the owner. ' +
       'Do not infer that OFF.2 implementation, offline mode, deployment, or another pilot is authorized.';
     ok('fixture: reusable prompts reject completed-verification pending wording and stale session/remediation/role sequencing',
@@ -10769,7 +11033,7 @@ function runSwPrecacheGate() {
   // L8: assert the exact canonical stylesheet / cache-version contract — a v7+
   // cache version (so removing the stale variant actually evicts the prior
   // same-named shell cache), exactly one precached /css/styles.css entry, and
-  // that it is the canonical ?v=5 (the stale ?v=2 removed).
+  // that every shared-navbar consumer uses the same query key.
   const cacheVersionMatch = sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/);
   const cacheVersion = cacheVersionMatch ? Number(cacheVersionMatch[1]) : 0;
   const stylesheetEntries = precache.match(/\/css\/styles\.css\?v=\d+/g) || [];
@@ -10777,20 +11041,34 @@ function runSwPrecacheGate() {
   ok('sw.js cache version is v7 or higher for stale-shell eviction', cacheVersion >= 7);
   ok('sw.js precache drops /css/styles.css?v=2', !/\/css\/styles\.css\?v=2/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=5',
-    stylesheetEntries[0] === '/css/styles.css?v=5');
+  const canonicalStylesheet = stylesheetEntries[0] || '';
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=7',
+    canonicalStylesheet === '/css/styles.css?v=7');
 
-  // No EJS view may reference the stale ?v=2 stylesheet.
+  // No EJS view may reference the stale ?v=2 stylesheet, and every view that
+  // references the versioned shared stylesheet must match the precache key.
   const stale = [];
+  const stylesheetConsumers = [];
   const walk = (dir) => {
     for (const name of fs.readdirSync(dir)) {
       const p = path.join(dir, name);
       if (fs.statSync(p).isDirectory()) walk(p);
-      else if (name.endsWith('.ejs') && /\/css\/styles\.css\?v=2/.test(fs.readFileSync(p, 'utf8'))) stale.push(name);
+      else if (name.endsWith('.ejs')) {
+        const source = fs.readFileSync(p, 'utf8');
+        if (/\/css\/styles\.css\?v=2/.test(source)) stale.push(name);
+        const refs = source.match(/\/css\/styles\.css\?v=\d+/g) || [];
+        if (refs.length > 0) stylesheetConsumers.push({ name, refs });
+      }
     }
   };
   walk(path.join(root, 'views'));
   ok('no EJS view references /css/styles.css?v=2', stale.length === 0);
+  const offlineSource = fs.readFileSync(path.join(root, 'public', 'offline.html'), 'utf8');
+  const offlineRefs = offlineSource.match(/\/css\/styles\.css\?v=\d+/g) || [];
+  stylesheetConsumers.push({ name: 'public/offline.html', refs: offlineRefs });
+  ok('all versioned shared stylesheet consumers match the service-worker precache key',
+    stylesheetConsumers.length > 0 && stylesheetConsumers.every(({ refs }) =>
+      refs.length === 1 && refs[0] === canonicalStylesheet));
 
   return rec.failures;
 }
@@ -10882,6 +11160,13 @@ const SHARED_NAV_PROBES = [
   ['shared mobile navigation + brand contracts', 'sharedMobileNavigation-probe.js'],
 ];
 
+// Authenticated navbar notifications: role-safe announcements + upcoming
+// events, accessible disclosure behavior, browser-seen revision state, and
+// network-only API handling. Database-free focused probe.
+const NOTIFICATION_PANEL_PROBES = [
+  ['notification panel contracts', 'notificationPanel-probe.js'],
+];
+
 // M12.P1-D4: admin campus-map search/filter — bounded `q` text search with
 // backend-parity metacharacter encoding, additive appliedFilters metadata,
 // stale-response protection, and the repaired route/node/edge and
@@ -10921,6 +11206,12 @@ const ADMIN_ANALYTICS_PROBES = [
 // integration, and controller target-key normalization via isSafeSceneKey.
 const VR_HOTSPOT_NAV_PROBES = [
   ['VR hotspot navigation contracts', 'vrHotspotNavigation-probe.js'],
+];
+
+// VR light/dark page chrome, saved-theme initialization, and the shared
+// accessible theme-control contract. Database-free source assertions.
+const VR_THEME_PROBES = [
+  ['VR theme contracts', 'vrTheme-probe.js'],
 ];
 
 // Catalog-wide resolver/helper logic: fail-closed natural destination policy,
@@ -11026,8 +11317,12 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Logout/session-termination QA] (M12.P1-D1 fresh-token endpoint + truthful logout probe)' },
   { key: 'shared-nav', prefix: 'shared-nav', probes: SHARED_NAV_PROBES,
     heading: '[Shared mobile navigation QA] (M12.P1-D2 single nav owner + ARIA + brand probe)' },
+  { key: 'notifications', prefix: 'notifications', probes: NOTIFICATION_PANEL_PROBES,
+    heading: '[Notification panel QA] (role-safe announcements + upcoming events + accessible disclosure)' },
   { key: 'vr-hotspot-nav', prefix: 'vr-hotspot-nav', probes: VR_HOTSPOT_NAV_PROBES,
     heading: '[VR hotspot navigation QA] (M12.P1-D3 shared helper + native Pannellum link contract)' },
+  { key: 'vr-theme', prefix: 'vr-theme', probes: VR_THEME_PROBES,
+    heading: '[VR theme QA] (light/dark page chrome + saved preference + accessible toggle)' },
   { key: 'admin-search-filter', prefix: 'admin-search-filter', probes: ADMIN_SEARCH_FILTER_PROBES,
     heading: '[Admin campus-map search/filter QA] (M12.P1-D4 bounded q + appliedFilters + graph/selector searches)' },
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,

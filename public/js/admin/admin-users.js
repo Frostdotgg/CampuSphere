@@ -511,8 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = item.dataset.value || 'all';
         currentFilter.role = val;
         if (roleFilterBtn) roleFilterBtn.querySelector('span').textContent = item.textContent;
-        roleFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i => i.classList.remove('bg-accent', 'text-accent-foreground'));
+        roleFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i => {
+          i.classList.remove('bg-accent', 'text-accent-foreground');
+          i.setAttribute('aria-checked', 'false');
+        });
         item.classList.add('bg-accent', 'text-accent-foreground');
+        item.setAttribute('aria-checked', 'true');
+        roleFilterMenu.removeAttribute('data-state');
+        if (roleFilterBtn) {
+          roleFilterBtn.setAttribute('aria-expanded', 'false');
+          roleFilterBtn.focus();
+        }
         renderTable();
       });
     });
@@ -525,8 +534,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = item.dataset.value || 'all';
         currentFilter.status = val;
         if (statusFilterBtn) statusFilterBtn.querySelector('span').textContent = item.textContent;
-        statusFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i => i.classList.remove('bg-accent', 'text-accent-foreground'));
+        statusFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i => {
+          i.classList.remove('bg-accent', 'text-accent-foreground');
+          i.setAttribute('aria-checked', 'false');
+        });
         item.classList.add('bg-accent', 'text-accent-foreground');
+        item.setAttribute('aria-checked', 'true');
+        statusFilterMenu.removeAttribute('data-state');
+        if (statusFilterBtn) {
+          statusFilterBtn.setAttribute('aria-expanded', 'false');
+          statusFilterBtn.focus();
+        }
         renderTable();
       });
     });

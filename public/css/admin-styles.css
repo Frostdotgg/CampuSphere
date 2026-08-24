@@ -227,6 +227,62 @@ html[data-theme="dark"] body {
     border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
     border-radius: 8px;
     box-shadow: 0 18px 38px rgba(10, 22, 40, 0.18);
+    padding: 0.25rem;
+}
+
+/* Toolbar filters live inside a relatively positioned wrapper. The shared
+   dropdown script deliberately leaves these menus in that local coordinate
+   system so they cannot jump to a page-level top/right position. */
+.admin-shell .admin-filter-dropdown,
+.admin-console .admin-filter-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.admin-shell .dropdown-menu-content[data-dropdown-placement="anchor"],
+.admin-console .dropdown-menu-content[data-dropdown-placement="anchor"] {
+    top: calc(100% + 0.5rem);
+    right: 0;
+    left: auto;
+    z-index: 60;
+    max-width: calc(100vw - 1rem);
+}
+
+.admin-shell .dropdown-menu-item,
+.admin-console .dropdown-menu-item {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--popover-foreground);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.admin-shell .dropdown-menu-item:hover,
+.admin-shell .dropdown-menu-item:focus-visible,
+.admin-console .dropdown-menu-item:hover,
+.admin-console .dropdown-menu-item:focus-visible {
+    background: color-mix(in srgb, var(--primary) 10%, var(--popover));
+    color: var(--foreground);
+}
+
+.admin-shell .dropdown-menu-item.bg-accent.text-accent-foreground,
+.admin-shell .dropdown-menu-item[aria-checked="true"],
+.admin-console .dropdown-menu-item.bg-accent.text-accent-foreground,
+.admin-console .dropdown-menu-item[aria-checked="true"] {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.admin-shell .dropdown-menu-item:focus-visible,
+.admin-console .dropdown-menu-item:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--primary) 55%, transparent);
+    outline-offset: -3px;
 }
 
 .admin-shell .modal-box,

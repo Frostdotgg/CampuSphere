@@ -273,32 +273,34 @@
                                 <input id="user-search-input" type="text" placeholder="Search users..." class="ui-input pl-9"
                                     style="width:100%;">
                             </div>
-                            <div class="relative inline-block text-left">
+                            <div class="admin-filter-dropdown relative inline-block text-left">
                                 <button id="role-filter-btn"
                                     class="ui-button ui-button-outline ui-button-size-default dropdown-trigger flex items-center justify-between"
-                                    style="width:140px;" data-dropdown-target="role-filter-menu">
+                                    style="width:140px;" data-dropdown-target="role-filter-menu"
+                                    aria-controls="role-filter-menu" aria-haspopup="menu" aria-expanded="false">
                                     <span>All Roles</span>
                                     <i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
-                                <div id="role-filter-menu" class="dropdown-menu-content p-1" style="width:140px;">
-                                    <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All Roles</div>
-                                    <div class="dropdown-menu-item" data-value="student-cspc">Student</div>
-                                    <div class="dropdown-menu-item" data-value="instructor">Instructor</div>
-                                    <div class="dropdown-menu-item" data-value="admin">Admin</div>
-                                    <div class="dropdown-menu-item" data-value="guest">Guest</div>
+                                <div id="role-filter-menu" class="dropdown-menu-content p-1" data-dropdown-placement="anchor" role="menu" style="width:140px;">
+                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All Roles</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="student-cspc" role="menuitemradio" aria-checked="false">Student</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="instructor" role="menuitemradio" aria-checked="false">Instructor</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="admin" role="menuitemradio" aria-checked="false">Admin</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="guest" role="menuitemradio" aria-checked="false">Guest</button>
                                 </div>
                             </div>
-                            <div class="relative inline-block text-left">
+                            <div class="admin-filter-dropdown relative inline-block text-left">
                                 <button id="status-filter-btn"
                                     class="ui-button ui-button-outline ui-button-size-default dropdown-trigger flex items-center justify-between"
-                                    style="width:140px;" data-dropdown-target="status-filter-menu">
+                                    style="width:140px;" data-dropdown-target="status-filter-menu"
+                                    aria-controls="status-filter-menu" aria-haspopup="menu" aria-expanded="false">
                                     <span>All Status</span>
                                     <i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
-                                <div id="status-filter-menu" class="dropdown-menu-content p-1" style="width:140px;">
-                                    <div class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all">All Status</div>
-                                    <div class="dropdown-menu-item" data-value="active">Active</div>
-                                    <div class="dropdown-menu-item" data-value="inactive">Inactive</div>
+                                <div id="status-filter-menu" class="dropdown-menu-content p-1" data-dropdown-placement="anchor" role="menu" style="width:140px;">
+                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All Status</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="active" role="menuitemradio" aria-checked="false">Active</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="inactive" role="menuitemradio" aria-checked="false">Inactive</button>
                                 </div>
                             </div>
                         </div>

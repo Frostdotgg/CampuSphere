@@ -11,9 +11,9 @@
        window.CampuSphereVrHotspotNavigation global;
      - exact guided Previous/Next/CAS-interior-Explore nav_url passthrough
        and validated Free Roam '/vr/<key>' construction;
-     - native Pannellum decoration (URL + attributes { target: '_self' }),
-       never a scene-navigation clickHandlerFunc, with no input or
-       base-object mutation;
+     - native Pannellum scene-arrow decoration (type: 'scene', URL +
+       attributes { target: '_self' }), never a scene-navigation
+       clickHandlerFunc, with no input or base-object mutation;
      - every malformed/external/traversal/query/fragment/wrong-type/
        wrong-mode/non-object case fails closed without throwing;
      - both VR views include the helper exactly once BEFORE viewer init,
@@ -119,15 +119,18 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
     Object.keys(cfg.attributes).length === 1);
   check('pannellum', 'no scene-navigation clickHandlerFunc is installed',
     !!cfg && !('clickHandlerFunc' in cfg) && !('clickHandlerArgs' in cfg));
+  check('pannellum', 'validated navigation promotes the copy to the native scene-arrow type',
+    !!cfg && cfg.type === 'scene');
   check('pannellum', 'base tooltip fields are preserved on the copy',
-    !!cfg && cfg.pitch === 3 && cfg.yaw === -12 && cfg.type === 'info' && cfg.text === 'Enter CAS');
+    !!cfg && cfg.pitch === 3 && cfg.yaw === -12 && cfg.text === 'Enter CAS');
   check('pannellum', 'the returned config is a NEW object (no base mutation)',
     cfg !== base && JSON.stringify(base) === baseSnapshot);
   check('pannellum', 'the hotspot input is never mutated', JSON.stringify(hs) === hsSnapshot);
 
   const roamCfg = decoratePannellumHotspot({ type: 'info' }, roam('scene-cas-1st-floor-2'), 'free-roam', LOC);
   check('pannellum', 'free-roam mode decorates through the validated key',
-    !!roamCfg && roamCfg.URL === '/vr/scene-cas-1st-floor-2' &&
+    !!roamCfg && roamCfg.type === 'scene' &&
+    roamCfg.URL === '/vr/scene-cas-1st-floor-2' &&
     !!roamCfg.attributes && roamCfg.attributes.target === '_self');
 
   // Defense: navigation-capable keys on a hostile base never survive a
@@ -258,7 +261,8 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   for (const mode of ['guided2', '', null, undefined, 'GUIDED', 'FREE-ROAM', 42]) {
     const r = quiet(() => decoratePannellumHotspot({ type: 'info' }, guided('/vr/scene-a'), mode, LOC));
     check('fail-closed', `unsupported mode ${JSON.stringify(String(mode))} yields a non-navigating copy`,
-      r.threw === false && !!r.value && !('URL' in r.value) && !('clickHandlerFunc' in r.value));
+      r.threw === false && !!r.value && r.value.type === 'info' &&
+      !('URL' in r.value) && !('clickHandlerFunc' in r.value));
   }
 }
 

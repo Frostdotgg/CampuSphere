@@ -107,16 +107,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if(filter.category!=='all' && !cats.includes(filter.category)) filter.category='all';
     catFilterMenu.innerHTML=['all',...cats].map(v=>{
       const label=(v==='all')?'All':v;
-      const active=(filter.category===v)?' bg-accent text-accent-foreground':'';
-      return `<div class="dropdown-menu-item${active}" data-value="${v}">${label}</div>`;
+      const active=filter.category===v;
+      const activeClass=active?' bg-accent text-accent-foreground':'';
+      return `<button type="button" class="dropdown-menu-item${activeClass}" data-value="${v}" role="menuitemradio" aria-checked="${active}">${label}</button>`;
     }).join('');
     setCatFilterLabel();
     catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(item=>{
       item.addEventListener('click',()=>{
         filter.category=item.dataset.value||'all';
         setCatFilterLabel();
-        catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>i.classList.remove('bg-accent','text-accent-foreground'));
+        catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>{
+          i.classList.remove('bg-accent','text-accent-foreground');
+          i.setAttribute('aria-checked','false');
+        });
         item.classList.add('bg-accent','text-accent-foreground');
+        item.setAttribute('aria-checked','true');
         renderAll();
       });
     });
