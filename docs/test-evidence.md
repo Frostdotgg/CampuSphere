@@ -15,16 +15,16 @@ the worktree contained exactly 58 modified tracked paths and 12 untracked paths
 `scripts/quality-gates.js` are the 12 tracked authority/static-assertion
 surfaces; the other 46 tracked paths and all 12 untracked paths belong to the
 current uncommitted implementation. The retained safety branch
-`backup-pre-trailer-strip` points to Git commit SHA-1
+`backup-pre-trailer-strip` points to
 `d387c9151f1582cc4a8fc80002be52e11956335f`. Preserve this worktree exactly
 and recompute live Git truth in every new session rather than reusing this
 time-specific snapshot.
 
-The release lineage is verified offline implementation Git commit SHA-1
+The release lineage is verified offline implementation
 `d786bdcb83a196c7263dceae668417d3ced3e95a`, bounded readiness/session
-maintenance Git commit SHA-1 `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`, independently reviewed
-release-authority Git commit SHA-1 `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
-course-catalog enhancement Git commit SHA-1
+maintenance `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`, independently reviewed
+release authority `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
+course-catalog enhancement
 `dc961b1eeba191d79b96998d96f0a49dac3ffcf8`.
 
 The accepted `bb17b9b` release evidence remains unchanged. Its independently
@@ -91,8 +91,9 @@ supported cleanup destroyed 309 harness-shaped anonymous sessions with
 cleanup fingerprint SHA-256
 `a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
 leaving zero candidates and zero scanned residue. No cleanup is authorized by
-this record. Migrations remain exactly `0001`-`0019`; migration `0020` does not
-exist and is not authorized. Preserve one-writer control and the external
+this record. Migration sources are contiguous through `0020`; owner-applied
+`0020_room_schedule_documents.sql` is recorded before this verification.
+Preserve one-writer control and the external
 backup/restore evidence: 109/109 manifest files verified, isolated Supabase and
 MySQL restore proofs passed, and 86 referenced Cloudinary delivery assets were
 exported and hashed without claiming a Cloudinary management/original-account
@@ -115,23 +116,20 @@ branding work while sign-in functions. Do not describe OAuth as verified or
 unlimited. Public local registration still creates guests only; trusted
 student/instructor identity comes from CSPC Google OAuth.
 
-The current 70-path worktree contains an uncommitted multi-feature
-stabilization candidate. Implemented surfaces include valid Guided-VR and Free
-Roam scene arrows; VR light/dark theme parity; smaller accessible building pins
-online and offline; the offline display label `Guard House`; the authenticated
-notification feed/panel and its cross-page stylesheet ownership; the Paga About
-card; admin category-dropdown styling and user role/status filters; safe Google
-profile-image synchronization; and a server-side manual profile-photo flow.
-The manual flow uses authenticated `POST` and `DELETE /api/profile/photo`,
-memory-only single-file handling, and the exact Cloudinary folder
-`CampuSphere/profile-images`, but it is not accepted: the dedicated limited
-key still lacks the required folder permission, the support response remains
-external and pending, and the temporary setup key is disabled. Do not record
+The current uncommitted candidate is a stabilization candidate that includes the semester room-schedule image
+flow, owner-applied `0020_room_schedule_documents.sql`, admin-pasted Cloudinary
+delivery metadata, accessible image viewing, direct VR schedule-document links,
+valid Guided-VR and Free Roam scene arrows, VR light/dark theme parity; smaller
+accessible building pins online and offline; the offline display label `Guard
+House`; the authenticated notification feed/panel and its cross-page stylesheet
+ownership; the Paga About card; admin category-dropdown styling and user
+role/status filters; safe Google profile-image synchronization; and removal of
+the manual profile-photo upload. Do not record
 or reuse any credential, account identifier, support contact, or secret.
 
 The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` preview was
 read-only and reported no content differences; the Supabase source and MySQL
-target fingerprints both equalled SHA-256
+target fingerprints both equalled
 `2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
 No data was written, and users, role profiles, login sessions, and activity
 logs remained excluded. This is preview evidence only, not an applied sync,
@@ -164,37 +162,6 @@ validation. It authorizes no product implementation, browser/server work,
 database/session access, vendor mutation, Git-history mutation, push,
 promotion, deployment, or production smoke. Final Milestone 12 disposition
 remains an explicit owner/external closeout decision.
-
-After the recorded grounding snapshot, the owner separately authorized a
-bounded supported MySQL reconciliation, verification of the non-Cloudinary
-candidate, and an exact commit/push. The prepared release candidate covers 58
-changed paths relative to `dc961b1`: 49 tracked modifications and nine added
-paths. It contains the Guided-VR/Free Roam arrows, VR theme parity, compact
-online/offline pins and the offline `Guard House` label, authenticated
-notifications, cross-page styling, the Paga card, admin dropdown/user filters,
-safe Google profile-image synchronization, and the content-sync operator. It
-excludes the manual profile-photo upload runtime, endpoints, dependencies, and
-probe. That Cloudinary work remains unaccepted, deferred, and outside this
-release.
-
-Before reconciliation, a full MySQL backup was written outside Git. The
-bounded repair used authenticated supported administrator interfaces only; no
-seed, sync apply, restore, migration, or direct SQL data write was used. Users,
-role profiles, guest profiles, and session rows remained exact; `system_logs`
-grew only through expected audit records. The refreshed MySQL freeze passes
-BE.6 at `46/46`, and the SELECT-only canonical session postcondition passes
-`18/18`.
-
-The exact candidate passed `npm test` and the five-stage `npm run qa` at
-`5104/5104` with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
-`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
-vulnerabilities`. The package boundary is 172 files and 7,141,628 bytes,
-aggregate SHA-256
-`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
-The current Codex code-reviewer pass found no critical, high, medium, or low
-findings. These are local candidate/review facts until live Git records the
-commit/push. They are not deployment, promotion, Production-byte,
-Cloudinary-upload, Android-PWA, or final Milestone 12 acceptance evidence.
 
 Every older section below that labels the pre-promotion maintenance state as
 “current” is retained only as a historical snapshot. This continuity block and

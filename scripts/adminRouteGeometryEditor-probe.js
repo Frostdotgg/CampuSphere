@@ -45,13 +45,14 @@ const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 const EXPECTED_0014_SHA256 = 'ad9179bd0def19567b512e495fd3133211288e253c872b260421a912cc44e6aa';
 const EXPECTED_0015_SHA256 = 'e7c6d828faf07c53d923ed58651a0abb8a834273eefa38aa0c04fbf492f70c99';
 
-// Exact owner-applied migration sequence guard: every position 0001_..0019_
-// must be present exactly once in sorted order, ending at the BE.5 parity
+// Exact migration-source sequence guard: every position 0001_..0020_
+// must be present exactly once in sorted order. Migrations through 0019 are
+// owner-applied; 0020 is source-only pending separate operational approval.
 // migration. Length/first/last alone would accept a corrupted list (e.g.
 // missing 0010 plus a duplicate 0018), so each sorted slot is pinned.
 const EXPECTED_MIGRATION_PREFIXES = Object.freeze(
   Array.from(
-    { length: 19 },
+    { length: 20 },
     (_, index) => `${String(index + 1).padStart(4, '0')}_`
   )
 );
@@ -67,7 +68,8 @@ function hasExactMigrationSequence(files) {
         typeof sorted[index] === 'string' &&
         sorted[index].startsWith(prefix)
     ) &&
-    sorted[18] === '0019_be5_selected_demo_parity.sql'
+    sorted[18] === '0019_be5_selected_demo_parity.sql' &&
+    sorted[19] === '0020_room_schedule_documents.sql'
   );
 }
 
@@ -469,8 +471,11 @@ function runStaticSupabaseChecks() {
     /Edge endpoints cannot be changed after creation/.test(ctrl));
 
   // 0014 + 0015 immutable. 0017, 0018, and 0019 are owner-applied.
-  const h14 = crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, '0014_route_graph_accuracy.sql'))).digest('hex');
-  const h15 = crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, '0015_route_edge_path_geometry.sql'))).digest('hex');
+  const migrationHash = (file) => crypto.createHash('sha256')
+    .update(fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n'), 'utf8')
+    .digest('hex');
+  const h14 = migrationHash('0014_route_graph_accuracy.sql');
+  const h15 = migrationHash('0015_route_edge_path_geometry.sql');
   check(scope, '0014 unchanged (byte-for-byte)', h14 === EXPECTED_0014_SHA256);
   check(scope, '0015 unchanged (byte-for-byte)', h15 === EXPECTED_0015_SHA256);
   const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
@@ -484,7 +489,7 @@ function runStaticSupabaseChecks() {
   // here is unaffected.
   check(scope, '0019_be5_selected_demo_parity.sql is declared (BE.5; owner-applied)',
     sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-  check(scope, 'migration list is exactly 0001-0019', hasExactMigrationSequence(sqlFiles));
+  check(scope, 'migration source list is contiguous 0001-0020', hasExactMigrationSequence(sqlFiles));
   // Database-free negative fixture on an in-memory copy: no migration file is
   // created, renamed, deleted, or modified.
   check(scope, 'migration sequence guard rejects a missing middle migration and duplicate prefix',

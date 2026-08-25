@@ -209,7 +209,8 @@ const loginAccountLimiter = fixedWindow({
   },
 });
 
-// POST /api/update-profile — per (hashed user id + IP). Runs after requireLogin + CSRF.
+// Profile mutations (/api/update-profile) — per
+// (hashed user id + IP). Runs after requireLogin + CSRF.
 const profileUpdateLimiter = fixedWindow({
   ...CFG.profile,
   scope: 'profile',

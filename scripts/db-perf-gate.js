@@ -128,6 +128,10 @@ const INDEXED_FLOWS = [
     sql: 'SELECT id FROM room_schedules WHERE building_id = 1 AND schedule_date >= CURDATE() ORDER BY schedule_date ASC LIMIT 50' },
   { flow: 'schedules: by date range', table: 'room_schedules', cols: ['schedule_date'], sbIndex: 'room_schedules_schedule_date_idx',
     sql: "SELECT id FROM room_schedules WHERE schedule_date BETWEEN '2026-01-01' AND '2026-03-31' ORDER BY schedule_date ASC LIMIT 50" },
+  { flow: 'schedule images: by building and term', table: 'room_schedule_documents', cols: ['building_id', 'semester', 'school_year'], sbIndex: 'room_schedule_documents_building_term_idx',
+    sql: "SELECT id FROM room_schedule_documents WHERE building_id = 1 AND semester = 'first-semester' AND school_year = '2026-2027' LIMIT 50" },
+  { flow: 'VR: schedule image hotspots by document', table: 'vr_hotspots', cols: ['schedule_document_id'], sbIndex: 'vr_hotspots_schedule_document_idx',
+    sql: 'SELECT id FROM vr_hotspots WHERE schedule_document_id = 1 LIMIT 50' },
 ];
 
 async function verifyMysql() {
@@ -240,7 +244,7 @@ async function verifySupabase() {
   critical(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.room_schedules/i.test(sbSql), 'Supabase declares public.room_schedules table (0012)');
   critical(declared.has('room_schedules_building_date_idx'), 'Supabase declares index room_schedules_building_date_idx (0012)');
   critical(declared.has('room_schedules_schedule_date_idx'), 'Supabase declares index room_schedules_schedule_date_idx (0012)');
-  note('0012 room_schedules is DECLARED in database/supabase/0012_room_schedules.sql and has been OWNER-APPLIED in the Supabase SQL editor; live Supabase schedule repository verification is expected/required via scripts/scheduleRepository-probe.js.');
+  note('0012 room_schedules is OWNER-APPLIED legacy fallback storage; its old mutation probe is no longer part of the active semester-image flow.');
 
   // (a.3) VR room-door schedule metadata (migration 0013): nullable schedule
   //       target columns on vr_hotspots plus the lookup index used by admin and
@@ -248,7 +252,20 @@ async function verifySupabase() {
   critical(/ALTER\s+TABLE\s+public\.vr_hotspots[\s\S]{0,600}schedule_building_id/i.test(sbSql), 'Supabase declares vr_hotspots.schedule_building_id (0013)');
   critical(/ALTER\s+TABLE\s+public\.vr_hotspots[\s\S]{0,700}schedule_location_type/i.test(sbSql), 'Supabase declares vr_hotspots.schedule_location_type (0013)');
   critical(declared.has('vr_hotspots_schedule_target_idx'), 'Supabase declares index vr_hotspots_schedule_target_idx (0013)');
-  note('0013 vr_hotspot_schedule_metadata is DECLARED in database/supabase/0013_vr_hotspot_schedule_metadata.sql and has been OWNER-APPLIED in the Supabase SQL editor; live Supabase VR door-schedule verification is expected/required via scripts/vrScheduleHotspot-probe.js.');
+  note('0013 vr_hotspot_schedule_metadata is OWNER-APPLIED legacy fallback metadata; new links use 0020 schedule_document_id.');
+
+  // (a.3.1) Semester room schedule images (0020): source-only until the owner
+  // separately authorizes application. The declaration is still required so
+  // package review can prove both query-path indexes before runtime QA.
+  critical(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.room_schedule_documents/i.test(sbSql),
+    'Supabase declares public.room_schedule_documents table (0020)');
+  critical(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+schedule_document_id/i.test(sbSql),
+    'Supabase declares vr_hotspots.schedule_document_id (0020)');
+  critical(declared.has('room_schedule_documents_building_term_idx'),
+    'Supabase declares index room_schedule_documents_building_term_idx (0020)');
+  critical(declared.has('vr_hotspots_schedule_document_idx'),
+    'Supabase declares index vr_hotspots_schedule_document_idx (0020)');
+  note('0020 room_schedule_documents is DECLARED in source only; applying it and running live query-path checks require separate owner authorization.');
 
   // (a.4) Route graph accuracy (0014) and route edge drawing geometry (0015)
   //       are IMMUTABLE OWNER-APPLIED PREDECESSORS: they shipped the pre-repair

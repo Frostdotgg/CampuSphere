@@ -781,7 +781,8 @@ function normalizeHotspots(rows) {
     schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
     schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
     schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
-    schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label
+    schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
+    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id
   }));
 }
 
@@ -796,7 +797,7 @@ async function loadSceneHotspots(sceneId) {
             h.target_scene_id, t.scene_key AS target_scene_key,
             t.title AS target_title,
             h.schedule_building_id, h.schedule_location_type,
-            h.schedule_location_label, h.schedule_floor_label
+            h.schedule_location_label, h.schedule_floor_label, h.schedule_document_id
        FROM vr_hotspots h
        LEFT JOIN vr_scenes t ON t.id = h.target_scene_id
       WHERE h.scene_id = ?

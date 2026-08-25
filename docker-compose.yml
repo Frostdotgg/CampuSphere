@@ -5,7 +5,8 @@
 # (and the MySQL FALLBACK session store) can be rehearsed on one machine. This is
 # NOT a production deployment and NOT the production session default — production/
 # demo prefers SESSION_STORE=supabase (see docs/deployment.md). This compose
-# deliberately uses SESSION_STORE=mysql for local fallback rehearsal over HTTP:
+# reads SESSION_STORE and the *_DATA_SOURCE switches from .env, with MySQL
+# fallback defaults when those switches are unset:
 #   * It serves plain HTTP on localhost, so the app runs with NODE_ENV defaulting
 #     to "development" — a production __Host- "Secure" session cookie is NOT sent
 #     by browsers over http://, which would break login. Real production runs
@@ -60,10 +61,9 @@ services:
       DB_USER: ${DB_USER:-root}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME:-campusphere_db}
-      # ---- Session: rehearse the FALLBACK persistent MySQL store over HTTP ----
-      # Deliberate for local rehearsal only; production/demo prefers
-      # SESSION_STORE=supabase (set SUPABASE_* below + apply migration 0011).
-      SESSION_STORE: mysql
+      # ---- Session store ----
+      # Read from .env; default to the local MySQL fallback when unset.
+      SESSION_STORE: ${SESSION_STORE:-mysql}
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in your shell or .env}
       # ---- Optional runtime switches (default to MySQL/Leaflet fallback) ----
       AUTH_DATA_SOURCE: ${AUTH_DATA_SOURCE:-mysql}
@@ -71,6 +71,7 @@ services:
       BUILDING_DATA_SOURCE: ${BUILDING_DATA_SOURCE:-mysql}
       ROUTE_DATA_SOURCE: ${ROUTE_DATA_SOURCE:-mysql}
       VR_DATA_SOURCE: ${VR_DATA_SOURCE:-mysql}
+      SCHEDULE_DATA_SOURCE: ${SCHEDULE_DATA_SOURCE:-mysql}
       MAP_RENDERER: ${MAP_RENDERER:-leaflet}
       # ---- Optional Supabase (server-only; set to rehearse supabase mode) ----
       SUPABASE_URL: ${SUPABASE_URL:-}

@@ -40,9 +40,9 @@
          shipped (immutable) 26-pair dataset with mechanical reverse
          derivation, the atomic pair RPC, and service-role-only privileges
        - 0014 content hash is byte-identical to the owner-applied version
-       - 0017 exists; migration list is exactly 0001-0019 (0018 = BE.2 CAS
-         building baseline and 0019 = BE.5 selected-demo parity, both
-         OWNER-APPLIED)
+       - 0017 exists; migration source list is contiguous 0001-0020 (0018 =
+         BE.2 CAS building baseline and 0019 = BE.5 selected-demo parity are
+         owner-applied; 0020 is source-only pending separate authorization)
 
    Prints fixed labels and counts only - never raw DB errors, hosts, keys,
    geometry dumps, cookies, or credentials.
@@ -90,13 +90,13 @@ const RETIRED_PAIRS = [
   ['auditorium', 'mid-campus']
 ];
 
-// Exact owner-applied migration sequence guard: every position 0001_..0019_
-// must be present exactly once in sorted order, ending at the BE.5 parity
+// Exact migration-source sequence guard: every position 0001_..0020_
+// must be present exactly once in sorted order.
 // migration. Length/first/last alone would accept a corrupted list (e.g.
 // missing 0010 plus a duplicate 0018), so each sorted slot is pinned.
 const EXPECTED_MIGRATION_PREFIXES = Object.freeze(
   Array.from(
-    { length: 19 },
+    { length: 20 },
     (_, index) => `${String(index + 1).padStart(4, '0')}_`
   )
 );
@@ -112,7 +112,8 @@ function hasExactMigrationSequence(files) {
         typeof sorted[index] === 'string' &&
         sorted[index].startsWith(prefix)
     ) &&
-    sorted[18] === '0019_be5_selected_demo_parity.sql'
+    sorted[18] === '0019_be5_selected_demo_parity.sql' &&
+    sorted[19] === '0020_room_schedule_documents.sql'
   );
 }
 
@@ -384,8 +385,9 @@ function normalizePoints(points) {
         /GRANT\s+EXECUTE[\s\S]{0,120}TO\s+service_role/i.test(sql));
     }
 
-    const m14 = fs.readFileSync(path.join(root, 'database', 'supabase', '0014_route_graph_accuracy.sql'));
-    const m14Hash = crypto.createHash('sha256').update(m14).digest('hex');
+    const m14 = fs.readFileSync(path.join(root, 'database', 'supabase', '0014_route_graph_accuracy.sql'), 'utf8')
+      .replace(/\r\n/g, '\n');
+    const m14Hash = crypto.createHash('sha256').update(m14, 'utf8').digest('hex');
     check('0014 content hash is unchanged (owner-applied migration is immutable)', m14Hash === EXPECTED_0014_SHA256);
 
     const sqlFiles = fs.readdirSync(path.join(root, 'database', 'supabase')).filter((f) => f.endsWith('.sql')).sort();
@@ -401,7 +403,7 @@ function normalizePoints(points) {
     // live above, so the geometry contract is unaffected.
     check('0019_be5_selected_demo_parity.sql is declared (BE.5; owner-applied)',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('migration list is exactly 0001-0019', hasExactMigrationSequence(sqlFiles));
+    check('migration source list is contiguous 0001-0020', hasExactMigrationSequence(sqlFiles));
     // Database-free negative fixture on an in-memory copy: no migration file is
     // created, renamed, deleted, or modified.
     check('migration sequence guard rejects a missing middle migration and duplicate prefix',

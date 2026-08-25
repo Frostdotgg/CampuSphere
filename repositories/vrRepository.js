@@ -57,6 +57,7 @@ const GUIDED_SCENE_COLUMNS =
 const HOTSPOT_SELECT =
   'hotspot_type, label, text, yaw, pitch, target_scene_id, ' +
   'schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, ' +
+  'schedule_document_id, ' +
   'target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
 
 // Redact anything that could resemble the service role key (a JWT) or a
@@ -174,7 +175,8 @@ async function listHotspotsForScene(sceneId) {
       schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
       schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
       schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
-      schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label
+      schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
+      schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id
     };
   });
 }
@@ -327,7 +329,7 @@ const SCENE_ADMIN_COLUMNS =
 const HOTSPOT_ADMIN_SELECT =
   'id, scene_id, target_scene_id, hotspot_type, label, text, yaw, pitch, ' +
   'display_order, schedule_building_id, schedule_location_type, schedule_location_label, ' +
-  'schedule_floor_label, target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
+  'schedule_floor_label, schedule_document_id, target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
 
 function flattenHotspot(h) {
   if (!h) return null;
@@ -346,6 +348,7 @@ function flattenHotspot(h) {
     schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
     schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
     schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
+    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id,
     target_scene_key: t ? t.scene_key : null,
     target_title: t ? t.title : null
   };
@@ -401,6 +404,7 @@ async function rowExists(table, method, id) {
 function sceneExists(id) { return rowExists('vr_scenes', 'sceneExists', id); }
 function nodeExists(id) { return rowExists('route_nodes', 'nodeExists', id); }
 function buildingExists(id) { return rowExists('buildings', 'buildingExists', id); }
+function scheduleDocumentExists(id) { return rowExists('room_schedule_documents', 'scheduleDocumentExists', id); }
 
 /** Count of hotspots whose target_scene_id points at this scene (delete guard). */
 async function countHotspotsTargetingScene(sceneId) {
@@ -520,6 +524,7 @@ async function insertHotspot(payload) {
       schedule_location_type: payload.schedule_location_type,
       schedule_location_label: payload.schedule_location_label,
       schedule_floor_label: payload.schedule_floor_label,
+      schedule_document_id: payload.schedule_document_id,
       yaw: payload.yaw,
       pitch: payload.pitch,
       display_order: payload.display_order
@@ -544,6 +549,7 @@ async function updateHotspotById(id, payload) {
       schedule_location_type: payload.schedule_location_type,
       schedule_location_label: payload.schedule_location_label,
       schedule_floor_label: payload.schedule_floor_label,
+      schedule_document_id: payload.schedule_document_id,
       yaw: payload.yaw,
       pitch: payload.pitch,
       display_order: payload.display_order,
@@ -585,6 +591,7 @@ module.exports = {
   sceneExists,
   nodeExists,
   buildingExists,
+  scheduleDocumentExists,
   countHotspotsTargetingScene,
   insertScene,
   updateSceneById,

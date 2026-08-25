@@ -24,7 +24,7 @@
     '/register',
     '/logout',
     '/admin',              // covers /admin, /admin/*, /admin/api/*
-    '/api/update-profile'  // covers /api/update-profile and descendants
+    '/api/update-profile' // covers /api/update-profile and descendants
   ];
   function isSensitivePath(pathname) {
     var p = String(pathname || '');

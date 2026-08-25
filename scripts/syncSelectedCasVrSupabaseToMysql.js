@@ -167,6 +167,12 @@ function isRawNumericValid(value) {
 // is optional system-wide: a genuine NULL/undefined means "no floor qualifier";
 // a SUPPLIED floor must normalize to a non-empty string.
 function scheduleIdentity(row, buildingNameById) {
+  if (row.schedule_document_id !== undefined && row.schedule_document_id !== null) {
+    return {
+      ok: false,
+      reason: 'document-linked schedule hotspots require the full content sync with natural document translation'
+    };
+  }
   const buildingId = positiveInt(row.schedule_building_id);
   if (buildingId === null) return { ok: false, reason: 'missing or invalid schedule building id' };
   const bName = buildingNameById.get(buildingId) || null;
@@ -564,7 +570,7 @@ async function readSupabase(sb) {
     'scene_key', SELECTED_KEYS);
   const sceneIds = scenes.map((s) => positiveInt(s.id)).filter((n) => n !== null);
   const hotspots = sceneIds.length ? await selIn('vr_hotspots',
-    'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,yaw,pitch,display_order',
+    'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order',
     'scene_id', sceneIds) : [];
   const nodes = await selAll('route_nodes', 'id,node_key');
   const buildings = await selAll('buildings', 'id,name');
@@ -583,7 +589,7 @@ async function readMysqlSelected(conn) {
   if (sceneIds.length) {
     const [rows] = await q.query(
       'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, schedule_building_id, ' +
-      'schedule_location_type, schedule_location_label, schedule_floor_label, yaw, pitch, display_order ' +
+      'schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
       'FROM vr_hotspots WHERE scene_id IN (?)' + (conn ? ' FOR UPDATE' : ''), [sceneIds]);
     hotspots = rows;
   }
@@ -819,7 +825,7 @@ function makeLiveAdapter(sb, pool) {
       if (selectedIds.length) {
         const [rows] = await conn.query(
           'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, schedule_building_id, ' +
-          'schedule_location_type, schedule_location_label, schedule_floor_label, yaw, pitch, display_order ' +
+          'schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
           'FROM vr_hotspots WHERE scene_id IN (?)', [selectedIds]);
         mHot = rows;
       }

@@ -42,7 +42,7 @@
      Static migrations:
        - 0018 exists, is transactional, data-only, idempotent, natural-key based,
          and has a fail-closed preflight
-       - migration list is exactly 0001-0019
+       - migration source list is contiguous 0001-0020
        - 0019 is declared for the selected-demo parity correction
        - owner-applied 0014-0018 are byte-for-byte unchanged
 
@@ -410,8 +410,10 @@ function verifyBackend(scope, buildings, nodes, edges) {
     check('static', `${m18} exists`, m18Exists);
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('static', `migration list is exactly 0001-0019 (19 files, found ${sqlFiles.length})`,
-      sqlFiles.length === 19);
+    check('static', `migration source list is contiguous 0001-0020 (20 files, found ${sqlFiles.length})`,
+      sqlFiles.length === 20 &&
+      sqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
+      sqlFiles[19] === '0020_room_schedule_documents.sql');
 
     if (m18Exists) {
       const sql = fs.readFileSync(m18Path, 'utf8');
@@ -485,7 +487,9 @@ function verifyBackend(scope, buildings, nodes, edges) {
         oldRejected);
     }
 
-    const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, f))).digest('hex');
+    const sha = (f) => crypto.createHash('sha256')
+      .update(fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n'), 'utf8')
+      .digest('hex');
     for (const [file, expected] of Object.entries(IMMUTABLE)) {
       check('static', `${file.slice(0, 4)} is byte-for-byte unchanged (owner-applied)`, sha(file) === expected);
     }

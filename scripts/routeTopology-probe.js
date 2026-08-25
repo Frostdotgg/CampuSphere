@@ -43,8 +43,8 @@
          and does NOT weaken 0016's NODE_GEOMETRY_ATTACHED runtime guard
        - 0014 / 0015 / 0016 / 0017 remain byte-for-byte unchanged (all four are
          owner-applied and therefore immutable)
-       - migration list is exactly 0001-0019; 0018 is owner-applied and 0019 is
-         declared for the selected-demo parity correction
+       - migration source list is contiguous 0001-0020; 0018-0019 are
+         owner-applied and 0020 is source-only pending separate authorization
 
    Prints fixed labels and counts only - never raw DB errors, hosts, keys,
    cookies, credentials, or geometry payloads.
@@ -673,7 +673,10 @@ function historicalSelectedCasParity(mysql, supabase) {
       sqlFiles.some((f) => f === '0018_cas_building_baseline.sql'));
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('static', `migration list is exactly 0001-0019 (19 files, found ${sqlFiles.length})`, sqlFiles.length === 19);
+    check('static', `migration source list is contiguous 0001-0020 (20 files, found ${sqlFiles.length})`,
+      sqlFiles.length === 20 &&
+      sqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
+      sqlFiles[19] === '0020_room_schedule_documents.sql');
 
     if (m17Exists) {
       const sql = fs.readFileSync(m17Path, 'utf8');
@@ -738,7 +741,9 @@ function historicalSelectedCasParity(mysql, supabase) {
     }
 
     // All five are owner-applied and therefore immutable.
-    const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, f))).digest('hex');
+    const sha = (f) => crypto.createHash('sha256')
+      .update(fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n'), 'utf8')
+      .digest('hex');
     check('static', '0014 is byte-for-byte unchanged (owner-applied)', sha('0014_route_graph_accuracy.sql') === EXPECTED_0014_SHA256);
     check('static', '0015 is byte-for-byte unchanged (owner-applied)', sha('0015_route_edge_path_geometry.sql') === EXPECTED_0015_SHA256);
     check('static', '0016 is byte-for-byte unchanged (owner-applied)', sha('0016_route_geometry_admin_writes.sql') === EXPECTED_0016_SHA256);

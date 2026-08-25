@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Show uploaded image — validated URL set via DOM APIs, never innerHTML.
+        // Show the validated profile image via DOM APIs, never innerHTML.
         avatars.forEach(avatar => {
             avatar.textContent = '';
             const img = document.createElement('img');
@@ -252,6 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
             img.decoding = 'async';
             img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:50%;';
             img.addEventListener('error', () => {
+                // A provider URL can expire or be unavailable. Only the image
+                // that is still mounted may trigger the shared fallback.
                 if (img.parentElement === avatar) applyProfileImage('');
             });
             avatar.appendChild(img);
@@ -327,30 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `<img src="${escapeHtml(safeProfileImg)}" alt="${profileImageAlt}" id="previewProfileImg" referrerpolicy="no-referrer">`
             : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
-        const uploadPhotoArea = `
-            <div class="edit-profile-photo">
-                <div class="edit-photo-preview" id="editPhotoPreviewContainer">
-                    ${currentImg}
-                </div>
-                <div class="edit-photo-controls">
-                    <input type="file" id="profileImageUpload" accept="image/*" style="display:none;">
-                    <button type="button" class="edit-photo-btn upload" id="btnUploadPhoto">Upload Photo</button>
-                    <button type="button" class="edit-photo-btn remove" id="btnRemovePhoto">Remove</button>
-                </div>
-            </div>
-        `;
-        const syncedPhotoArea = `
+        const profilePhotoArea = `
             <div class="edit-profile-photo">
                 <div class="edit-photo-preview" id="editPhotoPreviewContainer">
                     ${currentImg}
                 </div>
                 <p class="edit-photo-sync-note" role="status">
-                    Synced from your Google Account. Change your photo in Google,
-                    then sign out and sign in again to refresh it here.
+                    Profile photos are currently read-only. Google-managed photos
+                    refresh after you sign out and sign in again.
                 </p>
             </div>
         `;
-        const photoUploadArea = isGoogleProfileImage ? syncedPhotoArea : uploadPhotoArea;
 
         if (savedRole === 'student-cspc') {
             const currentCourse = String(profileData.course || '').trim();
@@ -369,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `<option value="${y}" ${profileData.yearLevel === y ? 'selected' : ''}>${y}</option>`
             ).join('');
 
-            modalFields = photoUploadArea + `
+            modalFields = profilePhotoArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
@@ -398,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         } else if (savedRole === 'instructor') {
-            modalFields = photoUploadArea + `
+            modalFields = profilePhotoArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
@@ -421,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         } else if (savedRole === 'guest') {
-            modalFields = photoUploadArea + `
+            modalFields = profilePhotoArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
@@ -440,8 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         } else {
-            // admin — simple name + email + photo only
-            modalFields = photoUploadArea + `
+            // admin — simple name + email + read-only profile photo
+            modalFields = profilePhotoArea + `
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editName">Full Name</label>
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
@@ -646,7 +635,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const closeModal = () => setEditModalOpen(false);
+        const closeModal = () => {
+            setEditModalOpen(false);
+        };
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
         overlay.addEventListener('click', (e) => {
@@ -658,18 +649,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // case that was broken.
 
         saveBtn.addEventListener('click', async () => {
-            let base64String = profileData.profileImage || null;
-            const previewImg = document.getElementById('previewProfileImg');
-            if (previewImg) {
-                base64String = previewImg.src;
-            } else {
-                base64String = null; // Removed
-            }
 
             // Build newData based on role.
             // NOTE: email is intentionally not collected from the input — it is an
             // immutable identity field. The server rejects it if sent.
-            let newData = { ...profileData, profileImage: base64String };
+            let newData = { ...profileData };
             const nameEl = document.getElementById('editName');
             if (nameEl) newData.name = nameEl.value;
 
@@ -707,12 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem(storageKey, JSON.stringify(newData));
             }
 
-            // Immediately apply the new name and image to the avatar label
+            // Immediately apply the new name to the avatar label
             const newName = document.getElementById('editName').value;
             if (navUsername) navUsername.textContent = newName.split(' ')[0];
             if (sidebarName) sidebarName.textContent = newName;
-
-            applyProfileImage(base64String);
 
             // POST to server to persist changes to the database
             if (sessionUser) {
@@ -771,44 +753,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Photo Upload Handlers
-        const btnUpload = document.getElementById('btnUploadPhoto');
-        const btnRemove = document.getElementById('btnRemovePhoto');
-        const fileInput = document.getElementById('profileImageUpload');
         const previewContainer = document.getElementById('editPhotoPreviewContainer');
-
-        if (btnUpload && fileInput) {
-            btnUpload.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            fileInput.addEventListener('change', function () {
-                const file = this.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        // Validate the data-URL and set it via DOM, never innerHTML.
-                        const safeData = safeUrl(e.target.result, { allowDataImage: true });
-                        previewContainer.textContent = '';
-                        if (safeData) {
-                            const img = document.createElement('img');
-                            img.src = safeData;
-                            img.alt = 'Profile';
-                            img.id = 'previewProfileImg';
-                            previewContainer.appendChild(img);
-                        }
-                    }
-                    reader.readAsDataURL(file);
-                }
+        const restorePreviewFallback = () => {
+            if (!previewContainer) return;
+            previewContainer.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        };
+        const previewImage = document.getElementById('previewProfileImg');
+        if (previewImage && previewContainer) {
+            previewImage.referrerPolicy = 'no-referrer';
+            previewImage.addEventListener('error', () => {
+                if (previewImage.parentElement === previewContainer) restorePreviewFallback();
             });
         }
 
-        if (btnRemove) {
-            btnRemove.addEventListener('click', () => {
-                fileInput.value = ''; // clear input
-                previewContainer.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="previewProfileSvg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-            });
-        }
     }
 
     // 4. Logout — truthful shared async flow (M12.P1-D1).

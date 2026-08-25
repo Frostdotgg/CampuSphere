@@ -18,7 +18,7 @@ function deepFreeze(value) {
 
 const SELECTED_DEMO_FREEZE = deepFreeze({
   schema_version: 2,
-  frozen_on: '2026-08-10',
+  frozen_on: '2026-08-25',
   migrations: [
     ['0001_initial_schema.sql', '4a3b751758caaf47795d35ff479ffbba5127b248e950d78db0afcdd811840e3e'],
     ['0002_seed_data.sql', '90b7635cd22cf011b018c6ae63e5c11877d5565cdea37886808cf369761bd9a0'],
@@ -38,7 +38,8 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
     ['0016_route_geometry_admin_writes.sql', 'e567239f81a6ae6190b8fa66a044126204ca0ef5f64bb80c7960a921ecad7dcf'],
     ['0017_route_topology_guard_house.sql', 'bc0b3f38a186b321b3c9c53e4c6f9b7abd8e440da12e1fe25e5400b823670997'],
     ['0018_cas_building_baseline.sql', '2f38221806b98c0aefa0575b180d65b8c3ec86682d83080b1d2aebac62399e48'],
-    ['0019_be5_selected_demo_parity.sql', '684685b8ab2218c13e244289f74af70273c8db0996ff02892e593a8580fc9ae8']
+    ['0019_be5_selected_demo_parity.sql', '684685b8ab2218c13e244289f74af70273c8db0996ff02892e593a8580fc9ae8'],
+    ['0020_room_schedule_documents.sql', '236d514d40c8af6d543ce815214039849c06e311f5fd954fc326c7e3cc301ac7']
   ],
   seed_roster: [
     'Administration Building',
@@ -100,7 +101,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         exact_reverse_geometries: 50,
         routable_destinations: 33,
         total_vr_scenes: 671,
-        total_vr_hotspots: 1396,
+        total_vr_hotspots: 1397,
         selected_vr_scenes: 101,
         selected_source_hotspots: 288,
         selected_schedule_hotspots: 1,
@@ -123,7 +124,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         'Supply & Property Building', 'Technohub Building', 'Villafuerte Hall'
       ],
       fingerprints: {
-        building_route: '6609600ad8195bd420cb5540e9cbb79604e4785edb0d40cd79459081c41b497d',
+        building_route: '0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff',
         selected_vr: '371321de2af6be1ac87fb2f0d7c30a946c5538409022fd2968e21894b97caca2',
         guided_catalog: 'ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6'
       }
@@ -139,7 +140,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         exact_reverse_geometries: 25,
         routable_destinations: 25,
         total_vr_scenes: 664,
-        total_vr_hotspots: 1372,
+        total_vr_hotspots: 1373,
         selected_vr_scenes: 101,
         selected_source_hotspots: 280,
         selected_schedule_hotspots: 0,
@@ -166,9 +167,9 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
     }
   },
   fingerprints: {
-    migrations: '2b916720838073de188a2df5c48d5bccfabc7b568939e2e668ae83843aa18172',
+    migrations: '904978d7acf081c6e2757ff78bbc8c27e71decfedc948326e34fb76ede614de7',
     guided_policy: '41935fcfcdbf4b653e9983d71208c481ab7fc510034df66b18a2f3a43035d81c',
-    manifest: 'db51567e7a84fe37deeee436b305edd7f3e3aada6138e9111645a604fa12c77e'
+    manifest: '17959fa6efa1194afcc3709b7334f7752616bc84fc47528f77b53c8aebaad969'
   }
 });
 

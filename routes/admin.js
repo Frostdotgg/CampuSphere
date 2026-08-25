@@ -12,6 +12,7 @@ const adminBuildingsController = require('../controllers/adminBuildingsControlle
 const adminVrController = require('../controllers/adminVrController');
 const adminRouteController = require('../controllers/adminRouteController');
 const adminScheduleController = require('../controllers/adminScheduleController');
+const adminRoomScheduleDocumentController = require('../controllers/adminRoomScheduleDocumentController');
 const { requireRole } = require('../middleware/roleAuth');
 const { verifyCsrf } = require('../middleware/csrfProtection');
 const { adminMutationLimiter } = require('../middleware/rateLimit');
@@ -135,12 +136,18 @@ router.post('/api/buildings', adminBuildingsController.createBuilding);
 router.put('/api/buildings/:id', adminBuildingsController.updateBuilding);
 router.delete('/api/buildings/:id', adminBuildingsController.deleteBuilding);
 
-// Room Schedule CRUD (Milestone 11, Section 11.5)
+// Legacy time-row schedules remain readable during the image-flow transition,
+// but their mutation endpoints are intentionally retired. Existing rows power
+// the authenticated fallback viewer only.
 router.get('/api/schedules', adminScheduleController.listSchedules);
-router.post('/api/schedules', adminScheduleController.createSchedule);
 router.get('/api/schedules/:id', adminScheduleController.getSchedule);
-router.put('/api/schedules/:id', adminScheduleController.updateSchedule);
-router.delete('/api/schedules/:id', adminScheduleController.deleteSchedule);
+
+// Semester-long room schedule images replace legacy time-slot administration.
+router.get('/api/room-schedule-documents', adminRoomScheduleDocumentController.listDocuments);
+router.post('/api/room-schedule-documents', adminRoomScheduleDocumentController.createDocument);
+router.get('/api/room-schedule-documents/:id', adminRoomScheduleDocumentController.getDocument);
+router.put('/api/room-schedule-documents/:id', adminRoomScheduleDocumentController.updateDocument);
+router.delete('/api/room-schedule-documents/:id', adminRoomScheduleDocumentController.deleteDocument);
 
 module.exports = router;
 

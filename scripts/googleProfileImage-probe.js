@@ -87,8 +87,9 @@ check('profile data reads the server session image and source',
   profile.includes('profileImage: sessionUser.profile_image_url || \'\'') &&
   profile.includes('profileImageSource: sessionUser.profile_image_source || \'\''));
 check('Google-synced Edit Profile state is read-only',
-  profile.includes('Synced from your Google Account') &&
-  profile.includes('const photoUploadArea = isGoogleProfileImage ? syncedPhotoArea : uploadPhotoArea;'));
+  profile.includes('Profile photos are currently read-only') &&
+  !profile.includes('/api/profile/photo') &&
+  !profile.includes('profileImageUpload'));
 check('avatar image loads use no-referrer and error fallback',
   profile.includes("img.referrerPolicy = 'no-referrer';") &&
   profile.includes("if (img.parentElement === avatar) applyProfileImage('');"));
@@ -99,7 +100,7 @@ check('CSP allows Google only as an image origin',
 check('privacy notice names the Google profile picture URL',
   /Google Account profile picture URL/i.test(privacy) && /profile picture URL/i.test(privacy));
 check('service worker cache advances and still precaches profile-script.js',
-  /CACHE_VERSION\s*=\s*'v30'/.test(serviceWorker) &&
+  /CACHE_VERSION\s*=\s*'v32'/.test(serviceWorker) &&
   serviceWorker.includes("'/js/profile-script.js'"));
 
 console.log(`\n${failures.length ? 'GOOGLE PROFILE IMAGE PROBE FAILED' : 'GOOGLE PROFILE IMAGE PROBE PASSED'} (${checks - failures.length}/${checks})`);

@@ -31,6 +31,7 @@ const IGNORED_SOURCE_COLUMNS = new Set(['location']);
 const TABLES = Object.freeze([
   { name: 'buildings', primaryKey: ['id'] },
   { name: 'room_schedules', primaryKey: ['id'], nullColumns: ['created_by_user_id'] },
+  { name: 'room_schedule_documents', primaryKey: ['id'], nullColumns: ['created_by_user_id'] },
   { name: 'news_announcements', primaryKey: ['id'], nullColumns: ['author_id'] },
   { name: 'team_members', primaryKey: ['id'] },
   { name: 'events', primaryKey: ['id'] },
@@ -47,6 +48,7 @@ const TABLES = Object.freeze([
 const DELETE_ORDER = Object.freeze([
   'room_schedules',
   'vr_hotspots',
+  'room_schedule_documents',
   'vr_scenes',
   'route_edges',
   'campus_route_steps',
@@ -293,6 +295,7 @@ function validateRelationships(source, descriptors, schemas) {
   const routes = idSet(byTable.get('campus_routes'));
   const nodes = idSet(byTable.get('route_nodes'));
   const scenes = idSet(byTable.get('vr_scenes'));
+  const scheduleDocuments = idSet(byTable.get('room_schedule_documents'));
 
   for (const row of byTable.get('campus_routes')) assertOptionalForeignKey(row.destination_building_id, buildings, 'campus route building');
   for (const row of byTable.get('campus_route_steps')) assertOptionalForeignKey(row.route_id, routes, 'route step route');
@@ -310,8 +313,10 @@ function validateRelationships(source, descriptors, schemas) {
     assertOptionalForeignKey(row.scene_id, scenes, 'VR hotspot scene');
     assertOptionalForeignKey(row.target_scene_id, scenes, 'VR hotspot target scene');
     assertOptionalForeignKey(row.schedule_building_id, buildings, 'VR hotspot schedule building');
+    assertOptionalForeignKey(row.schedule_document_id, scheduleDocuments, 'VR hotspot room schedule document');
   }
   for (const row of byTable.get('room_schedules')) assertOptionalForeignKey(row.building_id, buildings, 'room schedule building');
+  for (const row of byTable.get('room_schedule_documents')) assertOptionalForeignKey(row.building_id, buildings, 'room schedule document building');
 
   // Force schema metadata to be consumed during validation so a missing target
   // table/column cannot be hidden by an empty source table.

@@ -14,6 +14,7 @@
  *   - route nodes: node_key
  *   - scenes: scene_key
  *   - hotspots: source scene_key + display_order
+ *   - room schedule documents: canonical building name + location_key
  *
  * Numeric IDs are backend-local. MySQL IDs are used only to resolve the source
  * row; every Supabase foreign key is planned from the natural identity above.
@@ -49,7 +50,7 @@ const SCENE_FIELDS = [
 const HOTSPOT_FIELDS = [
   'scene_id', 'target_scene_id', 'hotspot_type', 'label', 'text',
   'schedule_building_id', 'schedule_location_type',
-  'schedule_location_label', 'schedule_floor_label',
+  'schedule_location_label', 'schedule_floor_label', 'schedule_document_id',
   'yaw', 'pitch', 'display_order'
 ];
 
@@ -147,7 +148,7 @@ function sameField(field, left, right) {
   const a = comparable(left);
   const b = comparable(right);
   if (['node_id', 'building_id', 'scene_id', 'target_scene_id',
-    'schedule_building_id', 'display_order'].includes(field)) {
+    'schedule_building_id', 'schedule_document_id', 'display_order'].includes(field)) {
     return a === null && b === null ? true : Number(a) === Number(b);
   }
   if (['initial_yaw', 'initial_pitch', 'yaw', 'pitch'].includes(field)) {
@@ -223,21 +224,28 @@ function validateHotspotRow(row, sourceSceneKey, context, blockers) {
   }
 
   if (type === 'schedule') {
-    if (positiveInt(row.schedule_building_id) === null) {
-      blockers.push(`${context}: schedule hotspot has no valid building.`);
-    }
-    if (!SCHEDULE_LOCATION_TYPES.has(optionalString(row.schedule_location_type))) {
-      blockers.push(`${context}: schedule hotspot has an invalid location type.`);
-    }
-    if (requiredString(row.schedule_location_label, 120) === null) {
-      blockers.push(`${context}: schedule hotspot has an invalid location label.`);
-    }
-    const floor = optionalString(row.schedule_floor_label);
-    if (floor !== null && floor.length > 80) {
-      blockers.push(`${context}: schedule floor label exceeds 80 characters.`);
+    const documentId = positiveInt(row.schedule_document_id);
+    if (documentId === null) {
+      if (positiveInt(row.schedule_building_id) === null) {
+        blockers.push(`${context}: legacy schedule hotspot has no valid building.`);
+      }
+      if (!SCHEDULE_LOCATION_TYPES.has(optionalString(row.schedule_location_type))) {
+        blockers.push(`${context}: legacy schedule hotspot has an invalid location type.`);
+      }
+      if (requiredString(row.schedule_location_label, 120) === null) {
+        blockers.push(`${context}: legacy schedule hotspot has an invalid location label.`);
+      }
+      const floor = optionalString(row.schedule_floor_label);
+      if (floor !== null && floor.length > 80) {
+        blockers.push(`${context}: legacy schedule floor label exceeds 80 characters.`);
+      }
+    } else if ([row.schedule_building_id, row.schedule_location_type,
+      row.schedule_location_label, row.schedule_floor_label]
+      .some((value) => value !== null && value !== undefined && value !== '')) {
+      blockers.push(`${context}: document-linked schedule hotspot also carries legacy metadata.`);
     }
   } else if ([row.schedule_building_id, row.schedule_location_type,
-    row.schedule_location_label, row.schedule_floor_label]
+    row.schedule_location_label, row.schedule_floor_label, row.schedule_document_id]
     .some((value) => value !== null && value !== undefined && value !== '')) {
     blockers.push(`${context}: non-schedule hotspot carries schedule metadata.`);
   }
@@ -258,17 +266,19 @@ async function readMysql() {
       db.query(
         'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, ' +
         'schedule_building_id, schedule_location_type, schedule_location_label, ' +
-        'schedule_floor_label, yaw, pitch, display_order ' +
+        'schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
         'FROM vr_hotspots ORDER BY id ASC'
       ),
       db.query('SELECT id, name FROM buildings ORDER BY id ASC'),
-      db.query('SELECT id, node_key FROM route_nodes ORDER BY id ASC')
+      db.query('SELECT id, node_key FROM route_nodes ORDER BY id ASC'),
+      db.query('SELECT id, building_id, location_key FROM room_schedule_documents ORDER BY id ASC')
     ]);
     return {
       scenes: results[0][0],
       hotspots: results[1][0],
       buildings: results[2][0],
-      nodes: results[3][0]
+      nodes: results[3][0],
+      scheduleDocuments: results[4][0]
     };
   } catch (_) {
     throw new SafeSyncError('Unable to read MySQL VR metadata.');
@@ -294,29 +304,38 @@ async function readSupabase(client = null) {
     throw new SafeSyncError('Supabase server credentials are not configured.');
   }
   const sb = client || getSupabaseClient();
-  const [scenes, hotspots, buildings, nodes] = await Promise.all([
+  const [scenes, hotspots, buildings, nodes, scheduleDocuments] = await Promise.all([
     readAllSupabase(sb, 'vr_scenes',
       'id,scene_key,title,description,image_url,cloudinary_public_id,node_id,building_id,initial_yaw,initial_pitch,display_order,created_at,updated_at'),
     readAllSupabase(sb, 'vr_hotspots',
-      'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,yaw,pitch,display_order,created_at,updated_at'),
+      'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order,created_at,updated_at'),
     readAllSupabase(sb, 'buildings', 'id,name'),
-    readAllSupabase(sb, 'route_nodes', 'id,node_key')
+    readAllSupabase(sb, 'route_nodes', 'id,node_key'),
+    readAllSupabase(sb, 'room_schedule_documents', 'id,building_id,location_key')
   ]);
-  return { scenes, hotspots, buildings, nodes };
+  return { scenes, hotspots, buildings, nodes, scheduleDocuments };
 }
 
 function buildPlan(source, target) {
   const blockers = [];
   const warnings = [];
   const media = { cloudinary: 0, local: 0, missing: 0 };
+  const sourceScheduleDocuments = Array.isArray(source.scheduleDocuments) ? source.scheduleDocuments : [];
+  const targetScheduleDocuments = Array.isArray(target.scheduleDocuments) ? target.scheduleDocuments : [];
 
   const sourceSceneById = uniqueById(source.scenes, 'MySQL scenes', blockers);
   const sourceBuildingById = uniqueById(source.buildings, 'MySQL buildings', blockers);
+  const sourceScheduleDocumentById = uniqueById(sourceScheduleDocuments, 'MySQL room schedule documents', blockers);
   const sourceNodeById = uniqueById(source.nodes, 'MySQL route nodes', blockers);
 
   const sourceSceneGroups = groupBy(source.scenes, (row) => sceneKey(row.scene_key));
   const targetSceneGroups = groupBy(target.scenes, (row) => sceneKey(row.scene_key));
   const targetBuildingGroups = groupBy(target.buildings, (row) => canonicalKey(row.name));
+  const targetBuildingById = uniqueById(target.buildings, 'Supabase buildings', blockers);
+  const targetScheduleDocumentGroups = groupBy(targetScheduleDocuments, (row) => {
+    const building = targetBuildingById.get(positiveInt(row.building_id));
+    return building ? `${canonicalKey(building.name)}::${optionalString(row.location_key) || ''}` : null;
+  });
   const targetNodeGroups = groupBy(target.nodes, (row) => optionalString(row.node_key));
   const targetScenesByPublicId = groupBy(
     target.scenes.filter((row) => optionalString(row.cloudinary_public_id) !== null),
@@ -528,6 +547,25 @@ function buildPlan(source, target) {
       }
     }
 
+    let scheduleDocumentId = null;
+    if (row.schedule_document_id !== null && row.schedule_document_id !== undefined) {
+      const sourceDocument = sourceScheduleDocumentById.get(positiveInt(row.schedule_document_id));
+      const sourceDocumentBuilding = sourceDocument
+        ? sourceBuildingById.get(positiveInt(sourceDocument.building_id))
+        : null;
+      if (!sourceDocument || !sourceDocumentBuilding || optionalString(sourceDocument.location_key) === null) {
+        blockers.push(`${context}: orphaned or invalid MySQL room schedule document reference.`);
+      } else {
+        const targetDocument = oneNaturalMatch(
+          targetScheduleDocumentGroups,
+          `${canonicalKey(sourceDocumentBuilding.name)}::${optionalString(sourceDocument.location_key)}`,
+          `${context} room schedule document`,
+          blockers
+        );
+        scheduleDocumentId = targetDocument ? positiveInt(targetDocument.id) : null;
+      }
+    }
+
     if (slot === null || sourceSceneKey === null) {
       hotspotPlan.push({ slot: '<invalid>', action: 'blocked', changed_fields: [] });
       continue;
@@ -549,6 +587,7 @@ function buildPlan(source, target) {
       schedule_location_type: optionalString(row.schedule_location_type),
       schedule_location_label: optionalString(row.schedule_location_label),
       schedule_floor_label: optionalString(row.schedule_floor_label),
+      schedule_document_id: scheduleDocumentId,
       yaw: angle(row.yaw, -180, 180),
       pitch: angle(row.pitch, -90, 90),
       display_order: orderInt(row.display_order)
@@ -620,6 +659,9 @@ function datasetFingerprint(dataset) {
 }
 
 function vrFingerprint(target) {
+  // Rollback owns only the two tables this utility mutates. Schedule documents
+  // participate in preflight/natural-key resolution but are never backed up or
+  // written here, so they must not widen the rollback fingerprint scope.
   return datasetFingerprint({ scenes: target.scenes, hotspots: target.hotspots });
 }
 

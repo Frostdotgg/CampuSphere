@@ -305,29 +305,19 @@
                         <p class="form-hint">Required for a “scene” hotspot. Ignored for info/exit.</p>
                     </div>
                     <div id="vr-hotspot-schedule-group" style="display:none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="vr-hotspot-schedule-building">Schedule building</label>
-                                <select name="schedule_building_id" id="vr-hotspot-schedule-building">
-                                    <option value="">Select a building…</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="vr-hotspot-schedule-type">Location type</label>
-                                <select name="schedule_location_type" id="vr-hotspot-schedule-type">
-                                    <option value="room">room</option>
-                                    <option value="facility">facility</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label for="vr-hotspot-schedule-search">Search room schedules</label>
+                            <input type="search" id="vr-hotspot-schedule-search" class="ui-input" autocomplete="off"
+                                placeholder="Building, room, semester, or school year…" aria-controls="vr-hotspot-schedule-document"
+                                aria-describedby="vr-hotspot-schedule-status">
+                            <p id="vr-hotspot-schedule-status" class="form-hint" role="status" aria-live="polite">Loading room schedules…</p>
                         </div>
                         <div class="form-group">
-                            <label for="vr-hotspot-schedule-label">Location label</label>
-                            <input type="text" name="schedule_location_label" id="vr-hotspot-schedule-label" class="ui-input" maxlength="120" placeholder="e.g. GF-101">
-                        </div>
-                        <div class="form-group">
-                            <label for="vr-hotspot-schedule-floor">Floor label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label>
-                            <input type="text" name="schedule_floor_label" id="vr-hotspot-schedule-floor" class="ui-input" maxlength="80" placeholder="e.g. Ground Floor">
-                            <p class="form-hint">Matches room_schedules rows exactly by building, type, location label, and optional floor label.</p>
+                            <label for="vr-hotspot-schedule-document">Room schedule</label>
+                            <select name="schedule_document_id" id="vr-hotspot-schedule-document">
+                                <option value="">Select a room schedule…</option>
+                            </select>
+                            <p class="form-hint">The hotspot stays linked when the semester, school year, or image is replaced.</p>
                         </div>
                     </div>
                     <div class="form-group">
@@ -405,10 +395,6 @@
     </button>
     <%# M12.P1-R6: guarded so a missing Lucide bundle cannot throw and abort the page. %>
     <script nonce="<%= cspNonce %>">if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); }</script>
-    <!-- Building options for the schedule-hotspot dropdown (id/name/category
-         only — no details, coordinates, or media metadata). Consumed by
-         /js/admin/admin-vr.js; the form still submits schedule_building_id. -->
-    <script id="vr-admin-buildings-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson((typeof buildings !== 'undefined' && Array.isArray(buildings) ? buildings : []).map(b => ({ id: b.id, name: b.name, category: b.category }))) %></script>
 </body>
 
 </html>

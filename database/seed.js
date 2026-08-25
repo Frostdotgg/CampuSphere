@@ -158,6 +158,7 @@ async function seed() {
             // CREATE TABLE in schema.sql; the ensure covers pre-existing DBs.
             ['room_schedules', 'idx_room_schedules_building_date', 'building_id, schedule_date'],
             ['room_schedules', 'idx_room_schedules_schedule_date', 'schedule_date'],
+            ['room_schedule_documents', 'idx_room_schedule_documents_building_term', 'building_id, semester, school_year'],
         ];
         for (const [t, i, c] of PERF_INDEXES) {
             await ensureIndex(t, i, c);
@@ -221,6 +222,7 @@ async function seed() {
         await ensureColumn('vr_hotspots', 'schedule_location_type', "ENUM('room','facility') NULL AFTER schedule_building_id");
         await ensureColumn('vr_hotspots', 'schedule_location_label', 'VARCHAR(120) NULL AFTER schedule_location_type');
         await ensureColumn('vr_hotspots', 'schedule_floor_label', 'VARCHAR(80) NULL AFTER schedule_location_label');
+        await ensureColumn('vr_hotspots', 'schedule_document_id', 'INT NULL AFTER schedule_floor_label');
 
         // ---- Route edge drawing geometry (Pre-Milestone-12 RF.2) ----
         // Existing MySQL databases need the nullable path_geometry column for
@@ -231,10 +233,20 @@ async function seed() {
             'idx_vr_hotspots_schedule_target',
             'schedule_building_id, schedule_location_type, schedule_location_label'
         );
+        await ensureIndex(
+            'vr_hotspots',
+            'idx_vr_hotspots_schedule_document',
+            'schedule_document_id'
+        );
         await ensureForeignKey(
             'vr_hotspots',
             'fk_vr_hotspots_schedule_building',
             'FOREIGN KEY (schedule_building_id) REFERENCES buildings(id) ON DELETE SET NULL'
+        );
+        await ensureForeignKey(
+            'vr_hotspots',
+            'fk_vr_hotspots_schedule_document',
+            'FOREIGN KEY (schedule_document_id) REFERENCES room_schedule_documents(id) ON DELETE RESTRICT'
         );
 
         console.log('Seeding System Settings...');

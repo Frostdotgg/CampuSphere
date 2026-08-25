@@ -73,9 +73,9 @@ If `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is missing, the OAuth flow is si
 
 #### Supabase (cloud data target)
 
-CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migrations under `database/supabase/` (`0001` through `0019`, all owner-applied) are the migration source of truth - see **[docs/deployment.md](docs/deployment.md)** for env vars and apply order. Migrations `0011_supabase_session_store.sql`, `0012_room_schedules.sql`, and `0013_vr_hotspot_schedule_metadata.sql` provide Supabase sessions and real admin-managed room scheduling; migrations `0014`-`0019` provide the verified road graph, owner-managed edge geometry, atomic admin geometry writes, the authoritative Guard House topology, the CAS baseline, and selected-demo parity. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The refreshed candidate freezes MySQL at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, and 50 valid geometries; and the shared catalog at 25 active Guided VR destinations, 472 configured steps, and 99 unique scene keys. `config/selectedDemoFreeze.js` records those backend-specific facts without disabling normal admin edits or future reviewed additions.
+CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0020`; `0001`-`0020` are owner-applied, including `0020_room_schedule_documents.sql` for the current verification candidate. See **[docs/deployment.md](docs/deployment.md)** for env vars and apply order. Migrations `0011_supabase_session_store.sql`, `0012_room_schedules.sql`, and `0013_vr_hotspot_schedule_metadata.sql` provide Supabase sessions and the preserved legacy schedule fallback; migration `0020` adds semester-long room schedule image records and direct VR hotspot links. Owner-applied migrations `0014`-`0019` provide the verified road graph, owner-managed edge geometry, atomic admin geometry writes, the authoritative Guard House topology, the CAS baseline, and selected-demo parity. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The refreshed candidate freezes MySQL at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, and 50 valid geometries; and the shared catalog at 25 active Guided VR destinations, 472 configured steps, and 99 unique scene keys. `config/selectedDemoFreeze.js` records those backend-specific facts without disabling normal admin edits or future reviewed additions.
 
-Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary delivery metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room schedules remain real admin-managed data, not enrollment or instructor-load simulation.
+Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary delivery metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room scheduling stores one admin-managed current-semester image per room or facility; this admin-managed data is not SIS, enrollment, assigned-class, or instructor-load simulation. Schedule hotspots link to that stable record. `SCHEDULE_DATA_SOURCE` must match `BUILDING_DATA_SOURCE` for building-linked flows and `VR_DATA_SOURCE` for new schedule hotspots; numeric IDs are never guessed across backends. Admins provide an HTTPS Cloudinary delivery URL; CampuSphere does not upload, transform, or delete the asset. Legacy time rows remain read-only fallback data during transition, and schedule images remain outside offline-guide packages.
 
 ```
 # Supabase (server-only; enable per-domain via *_DATA_SOURCE switches)
@@ -92,7 +92,7 @@ Rules:
 - Supabase access is **server-side only**. Express code may read these via `process.env`; browser code must never see them.
 - The **value** of `SUPABASE_SERVICE_ROLE_KEY` must never appear in EJS templates, anything under `public/`, a `window` global, screenshots, or any committed file. The variable name itself can appear in docs (including this README) and in `.env.example` with a placeholder; the real key value belongs only in an untracked local `.env` and in the deployment environment. Treat the value like a database root password.
 - **Supabase Auth is not used.** CampuSphere keeps Express session auth and the existing Google OAuth flow (see `controllers/authController.js`).
-- **Cloudinary** media-delivery variables are **server-only** and documented in the **Cloudinary** subsection below.
+- **Cloudinary** delivery URLs are administrator-supplied metadata and documented in the **Cloudinary** subsection below.
 
 Connectivity smoke check (read-only, safe to run repeatedly):
 
@@ -102,25 +102,16 @@ node scripts/supabase-smoke.js
 
 The script SKIPs cleanly and exits 0 if the Supabase env vars are unset **and** Supabase is not the selected session store, so it is also safe to run on a developer machine that has not yet configured Supabase. When the env vars are set, it issues a single `system_settings.select('setting_key').limit(1)` query and prints PASS or FAIL. When `SESSION_STORE=supabase` is selected, missing Supabase env makes it **fail closed** (not skip) and it additionally checks that the `app_sessions` table (migration `0011`) is reachable. It never logs the service role key or the project URL.
 
-#### Cloudinary (media delivery target)
+#### Cloudinary (media delivery and admin-pasted asset metadata)
 
-CampuSphere delivers campus images and 360° VR panoramas through **Cloudinary** (Milestone 10). Only delivery **metadata** is stored in the database (e.g. `image_url`, `cloudinary_public_id`); the credentials are **server-only** and read by server code (`config/cloudinary.js`) — never by the browser. Cloudinary is **optional**: when the variables are unset the app falls back to the local `/img/*` and `/img/vr/*` placeholders and keeps working (local dev, the MySQL fallback, and the Supabase runtime are unaffected).
-
-```
-# Cloudinary (server-only; media delivery)
-CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-CLOUDINARY_API_KEY=replace-with-server-only-api-key
-CLOUDINARY_API_SECRET=replace-with-server-only-api-secret
-```
+CampuSphere delivers campus images and 360-degree VR panoramas through **Cloudinary** (Milestone 10). Administrators paste validated delivery metadata such as `image_url` and `cloudinary_public_id`; approved media is served from `https://res.cloudinary.com`, and the application does not upload or manage vendor assets. Google-managed profile photos remain read-only and manual profile-photo upload is deferred. When no remote asset is configured the app falls back to local `/img/*` and `/img/vr/*` placeholders.
 
 Rules:
 
-- `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` are **secrets** — treat them like `SUPABASE_SERVICE_ROLE_KEY`. Their **values** (and any signed-upload data) must never appear in EJS templates, anything under `public/`, a `window` global, `res.locals`/`app.locals`, response JSON, logs, screenshots, or any committed file; the variable **names** may appear in docs and in `.env.example` with placeholders only. The real values belong only in an untracked local `.env` and in the deployment environment.
-- `CLOUDINARY_CLOUD_NAME` is **public** delivery metadata (it appears in every `https://res.cloudinary.com/<cloud_name>/…` URL); it is kept with the server-only config for convenience.
-- **Asset upload and credential entry are owner-controlled** and done outside the app (the Cloudinary dashboard). CampuSphere has **no** browser direct-upload, unsigned-upload preset, or Cloudinary Admin API flow.
-- **The Cloudinary media path is live (Sections 10.4–10.6):** `image_url` is validated server-side (`utils/mediaUrl.js` — a safe local `/img/` path or an `https://res.cloudinary.com/…` URL only; everything else rejected); the CSP allows `res.cloudinary.com` for **media delivery only** (`img-src`/`media-src`, plus `connect-src` because Pannellum XHR-loads the panorama — **never** `script-src`); the service worker may bounded-cache approved Cloudinary media but **never** caches authenticated HTML or mirrors `/img/vr/*`; the VR viewer renders a sanitized Cloudinary panorama where configured and otherwise falls back to the placeholder/offline message; and admins can store/update `image_url` + `cloudinary_public_id` on buildings and VR scenes.
-- `cloudinary_public_id` is **admin/server metadata only** — it never appears in public or runtime responses (e.g. `/api/buildings`, `/vr`, `/api/vr/routes/*`).
-- Uploading the final 360 panoramas is **owner-controlled** asset work (validated at the Milestone 10 end-to-end gate), **not** an app feature.
+- Cloudinary delivery URLs are validated server-side by `utils/mediaUrl.js`; only the approved delivery host or local placeholders are accepted.
+- `cloudinary_public_id` is administrator/server metadata only and never appears in public/runtime responses.
+- Campus/VR asset upload and credential entry are owner-controlled outside the app. CampuSphere has no browser direct-upload, unsigned-upload preset, SDK write, or Cloudinary Admin API flow.
+- Uploading final 360 panoramas is owner-controlled asset work; manual profile-photo upload is deferred and excluded from this candidate.
 
 ### Database Setup
 
@@ -184,7 +175,8 @@ The server listens on `PORT` (default `3000`).
 
 See **[docs/deployment.md](docs/deployment.md)** for the full deployment and
 environment guide: every required env var, server-only secret handling, the
-Supabase SQL apply order (`0001`–`0019`), MySQL fallback seed steps, production
+Supabase SQL apply order (`0001`–`0020`, with `0020` still requiring separate
+owner apply authorization), MySQL fallback seed steps, production
 session/cookie/proxy policy, CSRF/rate-limit/Helmet/PWA boundaries, OAuth
 redirect-URI variants, the QA gates, and troubleshooting. Container packaging is
 provided by `Dockerfile`, `.dockerignore`, and a local-rehearsal

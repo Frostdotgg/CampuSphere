@@ -1,0 +1,29 @@
+<div class="room-schedule-viewer" id="roomScheduleViewer" hidden role="dialog" aria-modal="true"
+    aria-labelledby="roomScheduleViewerTitle" aria-describedby="roomScheduleViewerMeta">
+    <div class="room-schedule-viewer__dialog" role="document">
+        <header class="room-schedule-viewer__header">
+            <div>
+                <h2 id="roomScheduleViewerTitle">Room schedule</h2>
+                <p id="roomScheduleViewerMeta"></p>
+            </div>
+            <button type="button" class="room-schedule-viewer__close" id="roomScheduleViewerClose" aria-label="Close room schedule">
+                <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </header>
+        <div class="room-schedule-viewer__body">
+            <p class="room-schedule-viewer__status" id="roomScheduleViewerStatus" role="status" aria-live="polite">Loading schedule…</p>
+            <div class="room-schedule-viewer__toolbar" id="roomScheduleViewerToolbar" hidden>
+                <button type="button" class="room-schedule-viewer__zoom" id="roomScheduleViewerZoom"
+                    aria-pressed="false">Zoom to read</button>
+            </div>
+            <div class="room-schedule-viewer__frame" id="roomScheduleViewerFrame" hidden>
+                <img id="roomScheduleViewerImage" alt="" decoding="async" referrerpolicy="no-referrer">
+            </div>
+            <ul class="room-schedule-viewer__legacy-list" id="roomScheduleViewerLegacyList" hidden></ul>
+        </div>
+        <footer class="room-schedule-viewer__footer">
+            <a class="room-schedule-viewer__original" id="roomScheduleViewerOriginal" href="#" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Open full-size image</a>
+            <button type="button" class="room-schedule-viewer__done" id="roomScheduleViewerDone">Done</button>
+        </footer>
+    </div>
+</div>

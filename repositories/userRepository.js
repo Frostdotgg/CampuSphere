@@ -56,6 +56,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
+const { normalizeMediaUrl } = require('../utils/mediaUrl');
 const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
 
 const SALT_ROUNDS = 10;

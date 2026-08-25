@@ -65,7 +65,9 @@ function migrationRecords() {
     .sort()
     .map((name) => [
       name,
-      crypto.createHash('sha256').update(fs.readFileSync(path.join(MIGRATION_DIR, name))).digest('hex')
+      crypto.createHash('sha256')
+        .update(fs.readFileSync(path.join(MIGRATION_DIR, name), 'utf8').replace(/\r\n/g, '\n'), 'utf8')
+        .digest('hex')
     ]);
 }
 
@@ -177,6 +179,9 @@ function expandedSelectedVrFingerprint(vr, scenes) {
     schedule_location_type: hotspot.schedule_location_type == null ? null : hotspot.schedule_location_type,
     schedule_location_label: hotspot.schedule_location_label == null ? null : hotspot.schedule_location_label,
     schedule_floor_label: hotspot.schedule_floor_label == null ? null : hotspot.schedule_floor_label,
+    ...(hotspot.schedule_document_id == null
+      ? {}
+      : { schedule_document_id: positiveInt(hotspot.schedule_document_id) }),
     yaw: Number(hotspot.yaw),
     pitch: Number(hotspot.pitch),
     display_order: Number(hotspot.display_order)
@@ -369,7 +374,7 @@ async function readMysql() {
     [SELECTED_KEYS]);
   const sceneIds = scenes.map((scene) => positiveInt(scene.id)).filter(Boolean);
   const [hotspots] = await db.query(
-    'SELECT id,scene_id,target_scene_id,hotspot_type,label,`text` AS text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,yaw,pitch,display_order FROM vr_hotspots WHERE scene_id IN (?)',
+    'SELECT id,scene_id,target_scene_id,hotspot_type,label,`text` AS text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order FROM vr_hotspots WHERE scene_id IN (?)',
     [sceneIds]);
   const [allScenes] = await db.query('SELECT id,scene_key FROM vr_scenes');
   const [totals] = await db.query('SELECT (SELECT COUNT(*) FROM vr_scenes) scenes, (SELECT COUNT(*) FROM vr_hotspots) hotspots');
@@ -405,7 +410,7 @@ async function readSupabase() {
     .in('scene_key', SELECTED_KEYS).order('id'));
   const sceneIds = scenes.map((scene) => positiveInt(scene.id)).filter(Boolean);
   const hotspots = await selectPaged(() => sb.from('vr_hotspots').select(
-    'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,yaw,pitch,display_order')
+    'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order')
     .in('scene_id', sceneIds).order('id'));
   const allScenes = await selectPaged(() => sb.from('vr_scenes').select('id,scene_key').order('id'));
   const sceneTotal = await sb.from('vr_scenes').select('id', { count: 'exact', head: true });
@@ -442,8 +447,9 @@ function runPureChecks(migrations, policy) {
     !GUIDED_VR_ROUTES.some((active) => canonicalKey(active.destination_name) === canonicalKey(deferred.destination_name) ||
       active.destination_node_key === deferred.destination_node_key)));
   check('pure', 'migration hashes are SHA-256 values', migrations.every((entry) => /^[a-f0-9]{64}$/.test(entry[1])));
-  check('pure', 'migration sequence is contiguous 0001 through 0019', migrations.length === 19 &&
-    migrations.every((entry, index) => entry[0].startsWith(String(index + 1).padStart(4, '0') + '_')));
+  check('pure', 'migration source sequence is contiguous 0001 through 0020', migrations.length === 20 &&
+    migrations.every((entry, index) => entry[0].startsWith(String(index + 1).padStart(4, '0') + '_')) &&
+    migrations[19][0] === '0020_room_schedule_documents.sql');
 }
 
 function runSourceChecks() {

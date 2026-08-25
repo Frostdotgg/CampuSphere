@@ -23,6 +23,7 @@
 
 const db = require('../config/db');
 const vrDataSource = require('../config/vrDataSource');
+const scheduleDataSource = require('../config/scheduleDataSource');
 const vrRepository = require('../repositories/vrRepository');
 const auditService = require('../services/auditService');
 const { normalizeMediaUrl, validateCloudinaryPublicId } = require('../utils/mediaUrl');
@@ -35,13 +36,10 @@ const DESC_MAX = 5000;
 const IMG_MAX = 255;
 const LABEL_MAX = 150;
 const TEXT_MAX = 5000;
-const SCHEDULE_LOCATION_LABEL_MAX = 120;
-const SCHEDULE_FLOOR_LABEL_MAX = 80;
 const ORDER_MAX = 2147483647; // signed 32-bit INT ceiling in both schemas
 const YAW_MIN = -180, YAW_MAX = 180;   // panorama yaw range
 const PITCH_MIN = -90, PITCH_MAX = 90; // panorama pitch range
 const HOTSPOT_TYPES = ['scene', 'info', 'exit', 'schedule'];
-const SCHEDULE_LOCATION_TYPES = ['room', 'facility'];
 
 // Section 10.6: admin scene shape adds cloudinary_public_id (admin-only — the
 // public/runtime scene shapes in vrController never carry it).
@@ -54,6 +52,7 @@ const HOTSPOT_SELECT_SQL =
   'SELECT h.id, h.scene_id, h.target_scene_id, h.hotspot_type, h.label, ' +
   'h.`text` AS text, h.yaw, h.pitch, h.display_order, ' +
   'h.schedule_building_id, h.schedule_location_type, h.schedule_location_label, h.schedule_floor_label, ' +
+  'h.schedule_document_id, ' +
   't.scene_key AS target_scene_key, t.title AS target_title ' +
   'FROM vr_hotspots h LEFT JOIN vr_scenes t ON t.id = h.target_scene_id';
 
@@ -300,19 +299,13 @@ function validateHotspot(body) {
   let schedule_location_type = null;
   let schedule_location_label = null;
   let schedule_floor_label = null;
+  let schedule_document_id = null;
   if (type === 'schedule') {
-    const b = optId(body.schedule_building_id);
-    if (!b.ok || b.value === null) return { ok: false, message: 'A schedule hotspot requires a valid building id.' };
-    const locType = typeof body.schedule_location_type === 'string' ? body.schedule_location_type.trim() : '';
-    if (!SCHEDULE_LOCATION_TYPES.includes(locType)) return { ok: false, message: 'Invalid schedule location type.' };
-    const locLabel = reqStr(body.schedule_location_label, SCHEDULE_LOCATION_LABEL_MAX);
-    if (!locLabel.ok) return { ok: false, message: 'Schedule location label is required and must be ' + SCHEDULE_LOCATION_LABEL_MAX + ' characters or fewer.' };
-    const floorLabel = optStr(body.schedule_floor_label, SCHEDULE_FLOOR_LABEL_MAX);
-    if (!floorLabel.ok) return { ok: false, message: 'Schedule floor label must be ' + SCHEDULE_FLOOR_LABEL_MAX + ' characters or fewer.' };
-    schedule_building_id = b.value;
-    schedule_location_type = locType;
-    schedule_location_label = locLabel.value;
-    schedule_floor_label = floorLabel.value;
+    const documentId = optId(body.schedule_document_id);
+    if (!documentId.ok || documentId.value === null) {
+      return { ok: false, message: 'A schedule hotspot requires a room schedule selection.' };
+    }
+    schedule_document_id = documentId.value;
   }
 
   return {
@@ -328,22 +321,29 @@ function validateHotspot(body) {
       schedule_building_id,
       schedule_location_type,
       schedule_location_label,
-      schedule_floor_label
+      schedule_floor_label,
+      schedule_document_id
     }
   };
 }
 
-async function assertScheduleHotspotBuilding(v, conn) {
+async function assertScheduleHotspotDocument(v, conn) {
   if (!v || v.hotspot_type !== 'schedule') return;
+  if (scheduleDataSource.getScheduleDataSource() !== vrDataSource.getVrDataSource()) {
+    throw new ApiError(
+      409,
+      'Room schedule and VR data sources must match before a schedule hotspot can be saved.'
+    );
+  }
   if (vrDataSource.isSupabase()) {
-    if (!(await vrRepository.buildingExists(v.schedule_building_id))) {
-      throw new ApiError(404, 'Building not found.');
+    if (!(await vrRepository.scheduleDocumentExists(v.schedule_document_id))) {
+      throw new ApiError(404, 'Room schedule not found.');
     }
     return;
   }
   const q = conn || db;
-  const [b] = await q.query('SELECT id FROM buildings WHERE id = ? LIMIT 1', [v.schedule_building_id]);
-  if (!b.length) throw new ApiError(404, 'Building not found.');
+  const [rows] = await q.query('SELECT id FROM room_schedule_documents WHERE id = ? LIMIT 1', [v.schedule_document_id]);
+  if (!rows.length) throw new ApiError(404, 'Room schedule not found.');
 }
 
 /* ============================================================
@@ -558,7 +558,7 @@ exports.createHotspot = async (req, res) => {
         if (Number(v.value.target_scene_id) === Number(sceneId)) throw new ApiError(400, 'A scene hotspot cannot target its own scene.');
         if (!(await vrRepository.sceneExists(v.value.target_scene_id))) throw new ApiError(404, 'Target scene not found.');
       }
-      await assertScheduleHotspotBuilding(v.value);
+      await assertScheduleHotspotDocument(v.value);
       hotspot = await vrRepository.insertHotspot(Object.assign({ scene_id: sceneId }, v.value));
     } else {
       hotspot = await withTx(async (conn) => {
@@ -569,13 +569,13 @@ exports.createHotspot = async (req, res) => {
           const [t] = await conn.query('SELECT id FROM vr_scenes WHERE id = ? LIMIT 1', [v.value.target_scene_id]);
           if (!t.length) throw new ApiError(404, 'Target scene not found.');
         }
-        await assertScheduleHotspotBuilding(v.value, conn);
+        await assertScheduleHotspotDocument(v.value, conn);
         const [result] = await conn.query(
-          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, yaw, pitch, display_order) ' +
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order) ' +
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [sceneId, v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
            v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
-           v.value.yaw, v.value.pitch, v.value.display_order]
+           v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order]
         );
         const [rows] = await conn.query(HOTSPOT_SELECT_SQL + ' WHERE h.id = ?', [result.insertId]);
         return rows[0];
@@ -605,7 +605,7 @@ exports.updateHotspot = async (req, res) => {
         if (Number(v.value.target_scene_id) === Number(existing.scene_id)) throw new ApiError(400, 'A scene hotspot cannot target its own scene.');
         if (!(await vrRepository.sceneExists(v.value.target_scene_id))) throw new ApiError(404, 'Target scene not found.');
       }
-      await assertScheduleHotspotBuilding(v.value);
+      await assertScheduleHotspotDocument(v.value);
       hotspot = await vrRepository.updateHotspotById(id, v.value);
       if (!hotspot) throw new ApiError(404, 'Hotspot not found.');
     } else {
@@ -618,12 +618,12 @@ exports.updateHotspot = async (req, res) => {
           const [t] = await conn.query('SELECT id FROM vr_scenes WHERE id = ? LIMIT 1', [v.value.target_scene_id]);
           if (!t.length) throw new ApiError(404, 'Target scene not found.');
         }
-        await assertScheduleHotspotBuilding(v.value, conn);
+        await assertScheduleHotspotDocument(v.value, conn);
         await conn.query(
-          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, schedule_building_id = ?, schedule_location_type = ?, schedule_location_label = ?, schedule_floor_label = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
+          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, schedule_building_id = ?, schedule_location_type = ?, schedule_location_label = ?, schedule_floor_label = ?, schedule_document_id = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
           [v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
            v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
-           v.value.yaw, v.value.pitch, v.value.display_order, id]
+           v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order, id]
         );
         const [rows] = await conn.query(HOTSPOT_SELECT_SQL + ' WHERE h.id = ?', [id]);
         return rows[0];

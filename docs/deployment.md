@@ -2,7 +2,7 @@
 
 Milestone 8, Section 8.9 (updated in Milestone 9, Section 9.7 for the Supabase
 session store). This document covers environment variables, secret handling,
-Supabase migration order, Cloudinary media env (server-only), MySQL fallback setup, production session policy
+Supabase migration order, administrator-pasted Cloudinary media metadata, MySQL fallback setup, production session policy
 (Supabase-preferred, MySQL fallback), the security middleware, OAuth redirect
 URIs, Docker packaging, the Vercel demo/UAT target, the QA gates, and
 troubleshooting.
@@ -23,17 +23,16 @@ the worktree contained exactly 58 modified tracked paths and 12 untracked paths
 `scripts/quality-gates.js` are the 12 tracked authority/static-assertion
 surfaces; the other 46 tracked paths and all 12 untracked paths belong to the
 current uncommitted implementation. The retained safety branch
-`backup-pre-trailer-strip` points to Git commit SHA-1
-`d387c9151f1582cc4a8fc80002be52e11956335f`. Preserve this worktree exactly
+`backup-pre-trailer-strip` points to
+Git commit SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`. Preserve this worktree exactly
 and recompute live Git truth in every new session rather than reusing this
 time-specific snapshot.
 
-The release lineage is verified offline implementation Git commit SHA-1
-`d786bdcb83a196c7263dceae668417d3ced3e95a`, bounded readiness/session
+The release lineage is verified offline implementation
+Git commit SHA-1 `d786bdcb83a196c7263dceae668417d3ced3e95a`, bounded readiness/session
 maintenance Git commit SHA-1 `c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64`, independently reviewed
-release-authority Git commit SHA-1 `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
-course-catalog enhancement Git commit SHA-1
-`dc961b1eeba191d79b96998d96f0a49dac3ffcf8`.
+release authority Git commit SHA-1 `bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd`, and searchable
+course-catalog enhancement Git commit SHA-1 `dc961b1eeba191d79b96998d96f0a49dac3ffcf8`.
 
 The accepted `bb17b9b` release evidence remains unchanged. Its independently
 reviewed authority delta covered 12 files and 1,854,481 bytes, with manifest
@@ -99,8 +98,9 @@ supported cleanup destroyed 309 harness-shaped anonymous sessions with
 cleanup fingerprint SHA-256
 `a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d`,
 leaving zero candidates and zero scanned residue. No cleanup is authorized by
-this record. Migrations remain exactly `0001`-`0019`; migration `0020` does not
-exist and is not authorized. Preserve one-writer control and the external
+this record. Migration sources are contiguous through `0020`; owner-applied
+`0020_room_schedule_documents.sql` is recorded before this verification.
+Preserve one-writer control and the external
 backup/restore evidence: 109/109 manifest files verified, isolated Supabase and
 MySQL restore proofs passed, and 86 referenced Cloudinary delivery assets were
 exported and hashed without claiming a Cloudinary management/original-account
@@ -123,24 +123,21 @@ branding work while sign-in functions. Do not describe OAuth as verified or
 unlimited. Public local registration still creates guests only; trusted
 student/instructor identity comes from CSPC Google OAuth.
 
-The current 70-path worktree contains an uncommitted multi-feature
-stabilization candidate. Implemented surfaces include valid Guided-VR and Free
-Roam scene arrows; VR light/dark theme parity; smaller accessible building pins
-online and offline; the offline display label `Guard House`; the authenticated
-notification feed/panel and its cross-page stylesheet ownership; the Paga About
-card; admin category-dropdown styling and user role/status filters; safe Google
-profile-image synchronization; and a server-side manual profile-photo flow.
-The manual flow uses authenticated `POST` and `DELETE /api/profile/photo`,
-memory-only single-file handling, and the exact Cloudinary folder
-`CampuSphere/profile-images`, but it is not accepted: the dedicated limited
-key still lacks the required folder permission, the support response remains
-external and pending, and the temporary setup key is disabled. Do not record
+The current uncommitted candidate is a stabilization candidate that includes the semester room-schedule image
+flow, owner-applied `0020_room_schedule_documents.sql`, admin-pasted Cloudinary
+delivery metadata, accessible image viewing, direct VR schedule-document links,
+valid Guided-VR and Free Roam scene arrows, VR light/dark theme parity; smaller
+accessible building pins online and offline; the offline display label `Guard
+House`; the authenticated notification feed/panel and its cross-page stylesheet
+ownership; the Paga About card; admin category-dropdown styling and user
+role/status filters; safe Google profile-image synchronization; and removal of
+the manual profile-photo upload. Do not record
 or reuse any credential, account identifier, support contact, or secret.
 
 The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` preview was
 read-only and reported no content differences; the Supabase source and MySQL
-target fingerprints both equalled SHA-256
-`2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
+target fingerprints both equalled
+sync preview fingerprint SHA-256 `2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
 No data was written, and users, role profiles, login sessions, and activity
 logs remained excluded. This is preview evidence only, not an applied sync,
 backup, restore proof, or current database verification. Existing instructor
@@ -172,37 +169,6 @@ validation. It authorizes no product implementation, browser/server work,
 database/session access, vendor mutation, Git-history mutation, push,
 promotion, deployment, or production smoke. Final Milestone 12 disposition
 remains an explicit owner/external closeout decision.
-
-After the recorded grounding snapshot, the owner separately authorized a
-bounded supported MySQL reconciliation, verification of the non-Cloudinary
-candidate, and an exact commit/push. The prepared release candidate covers 58
-changed paths relative to `dc961b1`: 49 tracked modifications and nine added
-paths. It contains the Guided-VR/Free Roam arrows, VR theme parity, compact
-online/offline pins and the offline `Guard House` label, authenticated
-notifications, cross-page styling, the Paga card, admin dropdown/user filters,
-safe Google profile-image synchronization, and the content-sync operator. It
-excludes the manual profile-photo upload runtime, endpoints, dependencies, and
-probe. That Cloudinary work remains unaccepted, deferred, and outside this
-release.
-
-Before reconciliation, a full MySQL backup was written outside Git. The
-bounded repair used authenticated supported administrator interfaces only; no
-seed, sync apply, restore, migration, or direct SQL data write was used. Users,
-role profiles, guest profiles, and session rows remained exact; `system_logs`
-grew only through expected audit records. The refreshed MySQL freeze passes
-BE.6 at `46/46`, and the SELECT-only canonical session postcondition passes
-`18/18`.
-
-The exact candidate passed `npm test` and the five-stage `npm run qa` at
-`5104/5104` with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
-`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
-vulnerabilities`. The package boundary is 172 files and 7,141,628 bytes,
-aggregate SHA-256
-`43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db`.
-The current Codex code-reviewer pass found no critical, high, medium, or low
-findings. These are local candidate/review facts until live Git records the
-commit/push. They are not deployment, promotion, Production-byte,
-Cloudinary-upload, Android-PWA, or final Milestone 12 acceptance evidence.
 
 Every older section below that labels the pre-promotion maintenance state as
 “current” is retained only as a historical snapshot. This continuity block and
@@ -780,34 +746,12 @@ Required for any MySQL data-source (`*_DATA_SOURCE=mysql`) or fallback, and for
 and additionally requires migration `0011_supabase_session_store.sql` (the
 server-only `public.app_sessions` table) to be applied. **Supabase Auth is not used.**
 
-### Cloudinary (server-only; media delivery)
+### Cloudinary (media delivery and admin-pasted asset metadata)
 
-| Variable | Required | Default | Purpose |
-| --- | --- | --- | --- |
-| `CLOUDINARY_CLOUD_NAME` | no | _(none)_ | Cloudinary cloud name. **Public** delivery metadata (appears in every `https://res.cloudinary.com/<cloud_name>/…` URL); kept server-side with the other Cloudinary config. |
-| `CLOUDINARY_API_KEY` | no | _(none)_ | **Secret**, server-only. See §2. |
-| `CLOUDINARY_API_SECRET` | no | _(none)_ | **Secret**, server-only. See §2. |
+Cloudinary is an optional delivery host for campus images and 360-degree VR panoramas. Administrators paste a validated HTTPS delivery URL and public ID; approved media is served from `https://res.cloudinary.com`, and CampuSphere does not upload, delete, transform, or manage Cloudinary assets. Manual profile-photo upload is deferred and excluded from this candidate; Google-managed profile photos remain read-only.
 
-Cloudinary is the media-delivery target for campus images and 360° VR panoramas;
-the database stores only delivery **metadata** (`image_url`, `cloudinary_public_id`).
-The variables are read only by server code (`config/cloudinary.js`) and are
-**optional** — when unset, the app falls back to the local `/img/*` and
-`/img/vr/*` placeholders, so local dev, the MySQL fallback, and the Supabase
-runtime are unaffected. Real asset upload and credential entry are
-**owner-controlled** (the Cloudinary dashboard); CampuSphere has **no** browser
-direct-upload, unsigned-upload preset, Cloudinary Admin API, or SDK flow. As of
-Sections 10.4–10.6 the media path is **live**: `image_url` is validated
-server-side (`utils/mediaUrl.js`: a safe local `/img/` path or an
-`https://res.cloudinary.com/…` URL only); the CSP allows `res.cloudinary.com`
-for media delivery (`img-src`/`media-src`, plus `connect-src` for Pannellum's
-XHR panorama load — **never** `script-src`); the
-service worker may bounded-cache approved Cloudinary media but never caches
-authenticated HTML or mirrors `/img/vr/*`; the VR viewer renders a sanitized
-Cloudinary panorama where configured and otherwise falls back; and admins can
-store/update `image_url` + `cloudinary_public_id` on buildings and VR scenes.
-`cloudinary_public_id` is admin/server metadata only and never appears in
-public/runtime responses. Uploading the final 360 panoramas is owner-controlled
-asset work (validated at the Milestone 10 end-to-end gate), not an app feature.
+The URL boundary is enforced by `utils/mediaUrl.js`: approved Cloudinary delivery URLs and local `/img/*` / `/img/vr/*` fallbacks are accepted, while other external origins are rejected. `cloudinary_public_id` is administrator/server metadata and never appears in public/runtime responses. No Cloudinary credential is read by the application, and no browser direct-upload, unsigned-upload preset, SDK write, or Cloudinary Admin API flow exists.
+
 ### Runtime data-source switches (consumed today)
 
 These are **live** — each controller/repository reads its switch at request time.
@@ -821,7 +765,7 @@ The `supabase` modes require `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`.
 | `BUILDING_DATA_SOURCE` | `mysql` \| `supabase` | `config/mapRuntime.js` | building reads (`/buildings`, `/map`, admin) |
 | `ROUTE_DATA_SOURCE` | `mysql` \| `supabase` | `config/mapRuntime.js` | search / routes / pathfinding reads |
 | `VR_DATA_SOURCE` | `mysql` \| `supabase` | `config/vrDataSource.js` | VR scene/hotspot + guided route reads |
-| `SCHEDULE_DATA_SOURCE` | `mysql` \| `supabase` | `config/scheduleDataSource.js` | room/facility schedule reads + admin schedule CRUD (real **admin-managed** data - not SIS/enrollment/instructor-load simulation; `supabase` mode requires migrations `0012_room_schedules.sql` and `0013_vr_hotspot_schedule_metadata.sql`, owner-applied) |
+| `SCHEDULE_DATA_SOURCE` | `mysql` \| `supabase` | `config/scheduleDataSource.js` | semester room-schedule image reads + admin document CRUD, with legacy time-row reads retained only as fallback. Must match `BUILDING_DATA_SOURCE` for building-linked flows and `VR_DATA_SOURCE` for new schedule hotspots; numeric IDs are not guessed across backends. This is real **admin-managed** data, not SIS/enrollment/instructor-load simulation. `supabase` mode requires `0012`, `0013`, and separately owner-applied `0020_room_schedule_documents.sql`. |
 | `MAP_RENDERER` | `leaflet` \| `maplibre` | `config/mapRuntime.js` | map library used by the map views |
 
 The final Supabase-backed runtime is:
@@ -1267,10 +1211,7 @@ database root password. It must **never** be:
 - included in screenshots, recordings, logs, or error output,
 - baked into a Docker image (it is provided at **runtime** only).
 
-The same applies to `SESSION_SECRET`, `GOOGLE_CLIENT_SECRET`, `DB_PASS`, and the
-Cloudinary secrets `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` (and any
-signed-upload data). The app's logging is sanitized (no secrets/cookies/session
-ids/SQL/stacks in normal output); keep it that way. The Docker image ships
+The same applies to `SESSION_SECRET`, `GOOGLE_CLIENT_SECRET`, and `DB_PASS`. The app logging is sanitized (no secrets/cookies/session ids/SQL/stacks in normal output); keep it that way. The Docker image ships
 **no** `.env` (see §8).
 
 ---
@@ -1302,13 +1243,14 @@ project owner in the Supabase SQL editor.
 0017_route_topology_guard_house.sql
 0018_cas_building_baseline.sql
 0019_be5_selected_demo_parity.sql
+0020_room_schedule_documents.sql
 ```
 
 **Existing project** — apply only the migrations not yet run, in ascending order.
 All migrations are written to be idempotent/additive where practical
 (`CREATE ... IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
-> **Production GO gate:** migrations through `0019_be5_selected_demo_parity.sql`
+> **Production GO gate:** migrations through `0020_room_schedule_documents.sql`
 > **must be applied before final production GO** — including
 > `0010_performance_indexes.sql` (DB performance/index parity, required by
 > `npm run qa:db`), `0011_supabase_session_store.sql` (the server-only
@@ -1316,7 +1258,11 @@ All migrations are written to be idempotent/additive where practical
 > `0012_room_schedules.sql` (the server-only `public.room_schedules` table
 > required by the room-scheduling runtime when `SCHEDULE_DATA_SOURCE=supabase`;
 > owner-applied), plus `0013_vr_hotspot_schedule_metadata.sql` (nullable
-> schedule-target metadata on VR hotspots for room-door schedule interaction).
+> schedule-target metadata on VR hotspots for the legacy room-door fallback),
+> plus `0020_room_schedule_documents.sql` (one current semester image record per
+> room/facility and the direct `vr_hotspots.schedule_document_id` link).
+> Migration `0020` is recorded as owner-applied for this implementation. Any
+> future schema change requires separate owner operational authorization.
 > Room schedules are real **admin-managed** room/facility data - not SIS,
 > enrollment, or instructor-load simulation. Migrations `0014` through `0019`
 > are also owner-applied and provide the verified campus route graph,
@@ -1434,7 +1380,7 @@ not just the data-source switches. The Supabase portions SKIP cleanly when
 `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are unset — but if
 `SESSION_STORE=supabase` or any `*_DATA_SOURCE=supabase` runtime is selected
 while the Supabase env or its required migration is unavailable (`0011` for
-sessions, `0012` for room schedules), the QA gates and the DB-perf/smoke checks
+sessions, `0012` plus `0020` for the image-based room schedule flow), the QA gates and the DB-perf/smoke checks
 **fail closed** instead of skipping.
 
 Manual defense evidence and clean-demo notes are tracked separately:
@@ -1781,8 +1727,9 @@ cannot be produced by any agent:
   CampuSphere adds no feedback table, API mutation, or migration.
 
 Also apply migration `0011_supabase_session_store.sql` to the Supabase project
-before the first deploy (see the SQL apply order section; migrations `0001`
-through `0019` are owner-applied).
+before the first deploy. Migrations `0001` through `0019` are recorded as
+owner-applied; `0020_room_schedule_documents.sql` must be separately authorized,
+applied, and verified before deploying the semester-image schedule flow.
 
 #### Fail-closed Vercel production profile (M12.P1-R2)
 
@@ -1935,13 +1882,13 @@ because inside the app container `localhost` is the container itself.
 | Symptom | Cause & fix |
 | --- | --- |
 | Server exits at startup: "SESSION_SECRET is required / must be ≥32 chars / must not be a placeholder" | Production requires a strong `SESSION_SECRET`. Set a 32+ char random value (and apply the same bar to every `SESSION_SECRET_PREVIOUS`). |
-| Server exits: "SESSION_STORE=memory is not allowed in production" | Use `SESSION_STORE=supabase` (preferred - set `SUPABASE_*` and apply migration `0011`) or `SESSION_STORE=mysql` (fallback - provide `DB_*`). For full Supabase data mode, also apply `0012_room_schedules.sql` and `0013_vr_hotspot_schedule_metadata.sql`. Memory store is dev-only. |
+| Server exits: "SESSION_STORE=memory is not allowed in production" | Use `SESSION_STORE=supabase` (preferred - set `SUPABASE_*` and apply migration `0011`) or `SESSION_STORE=mysql` (fallback - provide `DB_*`). For full Supabase data mode, also apply `0012_room_schedules.sql`, `0013_vr_hotspot_schedule_metadata.sql`, and `0020_room_schedule_documents.sql`. Memory store is dev-only. |
 | Login appears to succeed but you are immediately logged out (prod) | The Secure `__Host-` cookie was not sent: you are serving over HTTP, or the proxy isn't forwarding `X-Forwarded-Proto=https`. Terminate TLS and set `TRUST_PROXY` (§5). Or, for a non-HTTPS rehearsal, run with `NODE_ENV` unset/development. |
 | `/auth/google` redirects to `/auth?error=oauth_failed` | `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` missing. OAuth is optional; local login still works. |
 | Google `redirect_uri_mismatch` | `GOOGLE_REDIRECT_URI` doesn't exactly match an Authorized redirect URI in Google Cloud. Register the exact scheme/host/port/path (§7). |
 | App can't reach MySQL in Docker (`ECONNREFUSED`/timeout) | `DB_HOST` points at `localhost` inside the container. In Compose use `DB_HOST=mysql` (the service name); standalone, point it at the reachable host. |
-| Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply migrations through `0019` in order; `0011` is required for Supabase sessions, `0012`-`0013` for scheduling/VR targets, and `0014`-`0019` for road-following routing, CAS baseline, selected-demo parity, and admin geometry. Verify with `npm run qa:smoke` and the focused probes. |
-| `npm run qa:db` fails on a missing index or route-geometry count | Apply the Supabase migrations through `0019` (§3) and run `node database/seed.js` for MySQL. Re-measure the selected backend rather than assuming parity: the current candidate freezes MySQL at 44 nodes / 100 edges / 50 reverse pairs / 100 geometries and Supabase at 26 / 50 / 25 / 50. |
+| Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply authorized migrations through `0020` in order; `0011` is required for Supabase sessions, `0012`-`0013` for the legacy schedule fallback, `0014`-`0019` for road-following routing/CAS/admin geometry, and `0020` for semester schedule images/direct VR links. Verify with `npm run qa:smoke` and the focused probes. |
+| `npm run qa:db` fails on a missing index or route-geometry count | After authorization, apply the Supabase migrations through `0020` (§3) and run `node database/seed.js` for MySQL. Re-measure the selected backend rather than assuming parity: the current candidate freezes MySQL at 44 nodes / 100 edges / 50 reverse pairs / 100 geometries and Supabase at 26 / 50 / 25 / 50. |
 | `npm test` / `npm run qa` fails | Ensure MySQL is running and seeded; Supabase portions SKIP cleanly only when no Supabase runtime is selected. Selected Supabase runtimes fail closed when credentials or required migrations are missing. Re-run the named focused probe or gate for detail. |
 
 ---

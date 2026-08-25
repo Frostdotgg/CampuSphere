@@ -2,6 +2,20 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
+## Current migration status (2026-08-25)
+
+Migration sources are contiguous from `0001` through `0020`. Migrations
+`0001`-`0020` are owner-applied. `0020_room_schedule_documents.sql` is the
+semester room-schedule image migration; it creates
+`room_schedule_documents` and adds the nullable indexed
+`vr_hotspots.schedule_document_id` foreign key. It was applied by the owner
+before dual-backend runtime verification; application acceptance remains a
+separate evidence boundary.
+
+The older milestone-by-milestone application notes below are retained as
+historical setup guidance; this current-status block controls when their
+migration counts differ.
+
 ## 1. Purpose
 
 This folder holds the SQL that defines the Supabase / PostgreSQL / PostGIS

@@ -915,6 +915,125 @@ html[data-theme="dark"] body {
     }
 }
 
+/* Semester room schedule image management */
+.schedule-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: .75rem;
+}
+
+.schedule-document-card {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    background: var(--card);
+}
+
+#schedule-list {
+    display: grid;
+    gap: .75rem;
+}
+
+.schedule-document-card__thumbnail {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    background: var(--muted);
+    display: grid;
+    place-items: center;
+}
+
+.schedule-document-card__thumbnail-error {
+    padding: .75rem;
+    color: var(--muted-foreground);
+    font-size: .8rem;
+    text-align: center;
+}
+
+.schedule-document-card__thumbnail img,
+.schedule-image-preview img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #fff;
+}
+
+.schedule-document-card__content h4,
+.schedule-document-card__content p {
+    margin: 0;
+}
+
+.schedule-document-card__content h4 {
+    color: var(--foreground);
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.schedule-document-card__term {
+    margin-top: .35rem !important;
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.schedule-document-card__meta {
+    margin-top: .25rem !important;
+    color: var(--muted-foreground);
+    font-size: .85rem;
+}
+
+.schedule-document-card__actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.schedule-document-card__actions .ui-button { min-height: 44px; }
+
+.schedule-image-preview {
+    margin-top: .5rem;
+    padding: .75rem;
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    background: var(--muted);
+}
+
+.schedule-image-preview__label {
+    margin: 0 0 .5rem;
+    color: var(--foreground);
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.schedule-image-preview img {
+    aspect-ratio: 16 / 10;
+    border-radius: .5rem;
+}
+
+@media (max-width: 760px) {
+    .schedule-form-grid { grid-template-columns: 1fr; }
+
+    .schedule-document-card {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .schedule-document-card__actions {
+        justify-content: stretch;
+    }
+
+    .schedule-document-card__actions .ui-button {
+        min-height: 44px;
+        flex: 1 1 9rem;
+    }
+}
+
 /* ============================================
    VR Scene & Hotspot Administration (Section 7.8)
    ============================================ */

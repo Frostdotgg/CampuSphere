@@ -221,48 +221,38 @@
                     <!-- ======== Room Schedules (Milestone 11, Section 11.5) ======== -->
                     <div class="ui-card border-border" id="schedule-card">
                         <div class="p-6 pb-0">
-                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Room Schedules</h3>
-                            <p class="text-sm text-muted-foreground">Manage real room/facility schedule entries tied to campus buildings.</p>
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Room Schedule Images</h3>
+                            <p class="text-sm text-muted-foreground">Keep one current semester schedule image for each room or facility.</p>
                         </div>
                         <div class="p-6 pt-4">
                             <div class="graph-panel-bar admin-filter-bar" style="flex-wrap:wrap;gap:0.5rem;">
-                                <%# M12.P1-D4: bounded server-backed text search across title, building,
-                                    room/facility label, floor, and description. Enter applies; typing
+                                <%# Bounded server-backed text search across building, room/facility,
+                                    floor, semester, and school year. Enter applies; typing
                                     alone never calls the server. %>
                                 <div class="admin-search-field">
                                     <label for="schedule-search">Search schedules</label>
                                     <input type="search" id="schedule-search" class="ui-input" maxlength="100" aria-describedby="schedule-result-status"
-                                        autocomplete="off" placeholder="Title, building, room, floor, description…">
+                                        autocomplete="off" placeholder="Building, room, floor, semester, school year…">
                                 </div>
                                 <select id="schedule-filter-building" aria-label="Filter by building" class="ui-input" style="max-width:220px;">
                                     <option value="">All buildings</option>
                                 </select>
-                                <input type="date" id="schedule-filter-from" aria-label="From date" class="ui-input" style="max-width:170px;">
-                                <input type="date" id="schedule-filter-to" aria-label="To date" class="ui-input" style="max-width:170px;">
-                                <select id="schedule-filter-audience" aria-label="Filter by audience" class="ui-input" style="max-width:170px;">
-                                    <option value="">All audiences</option>
-                                    <option value="all">all</option>
-                                    <option value="student-cspc">student-cspc</option>
-                                    <option value="instructor">instructor</option>
-                                    <option value="guest">guest</option>
-                                    <option value="admin">admin</option>
+                                <select id="schedule-filter-semester" aria-label="Filter by semester" class="ui-input" style="max-width:180px;">
+                                    <option value="">All semesters</option>
+                                    <option value="first-semester">First Semester</option>
+                                    <option value="second-semester">Second Semester</option>
+                                    <option value="midyear">Midyear</option>
                                 </select>
-                                <select id="schedule-filter-status" aria-label="Filter by status" class="ui-input" style="max-width:160px;">
-                                    <option value="">All statuses</option>
-                                    <option value="scheduled">scheduled</option>
-                                    <option value="cancelled">cancelled</option>
-                                    <option value="completed">completed</option>
-                                </select>
+                                <input type="text" id="schedule-filter-school-year" aria-label="Filter by school year" class="ui-input" maxlength="9" style="max-width:150px;" placeholder="2026-2027">
                                 <button id="schedule-apply-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="filter" class="mr-2 h-4 w-4"></i>Apply</button>
                                 <button id="schedule-clear-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="x" class="mr-2 h-4 w-4"></i>Clear</button>
                                 <button id="add-schedule-btn" type="button" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Schedule</button>
                             </div>
-                            <%# Live result summary: count plus the date window the SERVER actually
-                                applied (from appliedFilters), so the default window is never a guess. %>
+                            <%# Live result summary for the server-applied room, semester, year, and search filters. %>
                             <p id="schedule-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
                             <div id="schedule-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading schedules…</p></div>
                             <div id="schedule-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p id="schedule-error-text" class="text-sm text-muted-foreground">Could not load schedules.</p><button id="schedule-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
-                            <div id="schedule-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No schedule entries in this date window. Use “Add Schedule” to create one.</p></div>
+                            <div id="schedule-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No room schedule images yet. Choose “Add Schedule” to create the first one.</p></div>
                             <div id="schedule-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No schedules match the current filters. Adjust the search or choose “Clear”.</p></div>
                             <div id="schedule-list" hidden></div>
                         </div>
@@ -499,31 +489,29 @@
             <form id="schedule-form">
                 <div class="modal-body">
                     <div class="form-error"></div>
-                    <%# M12.P1-D4: client-side building filter above the native select. The
-                        select itself stays a keyboard-usable native control and always keeps
-                        the currently selected option, even when it does not match the search. %>
                     <div class="form-group">
                         <label for="schedule-building-search">Search buildings</label>
                         <input type="search" id="schedule-building-search" class="ui-input" autocomplete="off" aria-describedby="schedule-building-count" placeholder="Filter by building name…">
                         <p id="schedule-building-count" class="admin-field-count" aria-live="polite"></p>
                     </div>
                     <div class="form-group"><label for="schedule-building">Building</label><select name="building_id" id="schedule-building" required><option value="">Select a building…</option></select></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                    <div class="schedule-form-grid">
                         <div class="form-group"><label for="schedule-location-type">Location type</label><select name="location_type" id="schedule-location-type" required><option value="room">room</option><option value="facility">facility</option></select></div>
                         <div class="form-group"><label for="schedule-location-label">Location label</label><input type="text" name="location_label" id="schedule-location-label" class="ui-input" maxlength="120" required placeholder="e.g. Room 204 or Gymnasium"></div>
                     </div>
                     <div class="form-group"><label for="schedule-floor-label">Floor label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="floor_label" id="schedule-floor-label" class="ui-input" maxlength="80" placeholder="e.g. 2nd Floor"></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
-                        <div class="form-group"><label for="schedule-date">Date</label><input type="date" name="schedule_date" id="schedule-date" class="ui-input" required></div>
-                        <div class="form-group"><label for="schedule-start-time">Start time</label><input type="time" name="start_time" id="schedule-start-time" class="ui-input" required></div>
-                        <div class="form-group"><label for="schedule-end-time">End time</label><input type="time" name="end_time" id="schedule-end-time" class="ui-input" required></div>
+                    <p id="schedule-identity-hint" class="form-hint" hidden>This schedule is linked to a VR hotspot. Its building and room identity are locked; semester, school year, and image can still be updated.</p>
+                    <div class="schedule-form-grid">
+                        <div class="form-group"><label for="schedule-semester">Semester</label><select name="semester" id="schedule-semester" required><option value="first-semester">First Semester</option><option value="second-semester">Second Semester</option><option value="midyear">Midyear</option></select></div>
+                        <div class="form-group"><label for="schedule-school-year">School year</label><input type="text" name="school_year" id="schedule-school-year" class="ui-input" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" required placeholder="2026-2027" aria-describedby="schedule-school-year-hint"><small id="schedule-school-year-hint">Use consecutive years in YYYY-YYYY format.</small></div>
                     </div>
-                    <div class="form-group"><label for="schedule-title">Title / Purpose</label><input type="text" name="title" id="schedule-title" class="ui-input" maxlength="150" required placeholder="e.g. Org meeting, Facility maintenance"></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-                        <div class="form-group"><label for="schedule-audience">Audience</label><select name="audience" id="schedule-audience" required><option value="all">all</option><option value="student-cspc">student-cspc</option><option value="instructor">instructor</option><option value="guest">guest</option><option value="admin">admin</option></select></div>
-                        <div class="form-group"><label for="schedule-status">Status</label><select name="status" id="schedule-status" required><option value="scheduled">scheduled</option><option value="cancelled">cancelled</option><option value="completed">completed</option></select></div>
+                    <div class="form-group"><label for="schedule-image-url">Cloudinary schedule image URL</label><input type="url" name="image_url" id="schedule-image-url" class="ui-input" maxlength="1000" required placeholder="https://res.cloudinary.com/…" aria-describedby="schedule-image-hint"><small id="schedule-image-hint">Prepare an approved, participant-PII-free image in Cloudinary first, then paste its HTTPS delivery URL and public ID. CampuSphere does not upload or delete Cloudinary assets.</small></div>
+                    <div class="form-group"><label for="schedule-cloudinary-id">Cloudinary public ID <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="cloudinary_public_id" id="schedule-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. CampuSphere/room-schedules/ab4-cslab"></div>
+                    <div class="schedule-image-preview" id="schedule-image-preview" hidden>
+                        <p class="schedule-image-preview__label">Image preview</p>
+                        <img id="schedule-image-preview-img" alt="Selected room schedule preview" loading="lazy" referrerpolicy="no-referrer">
+                        <p id="schedule-image-preview-error" class="form-error" role="alert"></p>
                     </div>
-                    <div class="form-group"><label for="schedule-description">Description <span class="text-muted-foreground" style="font-weight:400;">(optional, public-safe text)</span></label><textarea name="description" id="schedule-description" maxlength="1000" placeholder="Short public-safe note about this schedule entry..."></textarea></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button>

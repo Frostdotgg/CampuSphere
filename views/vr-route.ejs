@@ -39,6 +39,7 @@
         })();
     </script>
     <link rel="stylesheet" href="/css/styles.css?v=7">
+    <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -502,7 +503,7 @@
         .vr-hotspot__schedule-btn {
             display: inline-flex;
             align-items: center;
-            min-height: 36px;
+            min-height: 44px;
             margin-top: 0.45rem;
             border: 1px solid var(--vr-border-strong);
             border-radius: 8px;
@@ -528,53 +529,6 @@
             font-weight: 700;
             text-decoration: none;
         }
-        .vr-schedule-panel {
-            position: fixed;
-            right: 18px;
-            bottom: 18px;
-            width: min(390px, calc(100vw - 24px));
-            max-height: min(70vh, 560px);
-            overflow: auto;
-            z-index: 30;
-            background: var(--vr-panel);
-            color: var(--vr-text);
-            border: 1px solid var(--vr-border-strong);
-            border-radius: 12px;
-            box-shadow: 0 18px 45px var(--vr-panel-shadow);
-        }
-        .vr-schedule-panel[hidden] { display: none; }
-        .vr-schedule-panel__head {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 14px 16px 10px;
-            border-bottom: 1px solid var(--vr-border);
-        }
-        .vr-schedule-panel__title { margin: 0; font-size: 1rem; line-height: 1.3; }
-        .vr-schedule-panel__meta { margin: 3px 0 0; font-size: .82rem; opacity: .72; }
-        .vr-schedule-panel__close {
-            width: 34px;
-            height: 34px;
-            flex: 0 0 auto;
-            border-radius: 8px;
-            border: 1px solid var(--vr-border-strong);
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-        }
-        .vr-schedule-panel__body { padding: 12px 16px 16px; }
-        .vr-schedule-status { margin: 0; font-size: .9rem; color: var(--vr-panel-muted); }
-        .vr-schedule-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-        .vr-schedule-row {
-            border: 1px solid var(--vr-border);
-            border-radius: 8px;
-            padding: 10px 12px;
-            background: var(--vr-surface-soft);
-        }
-        .vr-schedule-row__title { margin: 0; font-size: .95rem; font-weight: 700; }
-        .vr-schedule-row__time, .vr-schedule-row__desc { margin: 4px 0 0; font-size: .84rem; line-height: 1.45; }
-        .vr-schedule-row__time { color: var(--vr-panel-muted); }
-        .vr-schedule-row__desc { color: var(--vr-text); opacity: .9; }
 
         .vr-empty {
             text-align: center;
@@ -617,13 +571,6 @@
             .vr-steplist__item a { min-height: 38px; }
             .vr-meta { gap: 0.4rem; }
             .vr-chip { font-size: 0.78rem; }
-            .vr-schedule-panel {
-                left: 12px;
-                right: 12px;
-                bottom: 12px;
-                width: auto;
-                max-height: 62vh;
-            }
         }
     </style>
 </head>
@@ -790,10 +737,11 @@
                                 <% if (h.nav_kind === 'next') { %>Next: <%= h.target_title || h.target_scene_key %><% } else if (h.nav_kind === 'prev') { %>Previous: <%= h.target_title || h.target_scene_key %><% } else { %>Explore: <%= h.target_title || h.target_scene_key %><% } %>
                             </a>
                             <% } %>
-                            <% if (hType === 'schedule' && h.schedule_building_id && h.schedule_location_type && h.schedule_location_label) { %>
+                            <% if (hType === 'schedule' && (h.schedule_document_id || (h.schedule_building_id && h.schedule_location_type && h.schedule_location_label))) { %>
                             <button type="button" class="vr-hotspot__schedule-btn"
                                 data-vr-schedule-hotspot
                                 data-schedule-title="<%= h.label || 'Room schedule' %>"
+                                data-schedule-document-id="<%= h.schedule_document_id || '' %>"
                                 data-schedule-building-id="<%= h.schedule_building_id %>"
                                 data-schedule-location-type="<%= h.schedule_location_type %>"
                                 data-schedule-location-label="<%= h.schedule_location_label %>"
@@ -821,23 +769,12 @@
         </div>
         <% } %>
 
-        <aside class="vr-schedule-panel" id="vrSchedulePanel" hidden aria-live="polite">
-            <div class="vr-schedule-panel__head">
-                <div>
-                    <h2 class="vr-schedule-panel__title" id="vrScheduleTitle">Room schedule</h2>
-                    <p class="vr-schedule-panel__meta" id="vrScheduleMeta"></p>
-                </div>
-                <button type="button" class="vr-schedule-panel__close" id="vrScheduleClose" aria-label="Close schedule">X</button>
-            </div>
-            <div class="vr-schedule-panel__body">
-                <p class="vr-schedule-status" id="vrScheduleStatus"></p>
-                <ul class="vr-schedule-list" id="vrScheduleList"></ul>
-            </div>
-        </aside>
+        <%- include('partials/room-schedule-viewer') %>
     </main>
 
     <%- include('partials/theme-toggle') %>
 
+    <script src="/js/room-schedule-viewer.js"></script>
     <script src="/js/vr-schedule.js"></script>
     <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
         inline viewer initialization below. %>
@@ -889,7 +826,7 @@
             // window-location callback and no schedule-helper fallback
             // coupling. A rejected or missing target stays a non-navigating
             // info point. info/exit hotspots keep their label tooltip;
-            // schedule hotspots keep the schedule panel behavior via
+            // schedule hotspots open the shared image viewer via
             // vr-schedule.js.
             function buildHotspots() {
                 var list = Array.isArray(data.hotspots) ? data.hotspots : [];

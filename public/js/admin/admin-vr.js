@@ -41,10 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const hotspotTargetSearch = document.getElementById('vr-hotspot-target-search');
   const hotspotTargetStatus = document.getElementById('vr-hotspot-target-status');
   const hotspotScheduleGroup = document.getElementById('vr-hotspot-schedule-group');
-  const hotspotScheduleBuilding = document.getElementById('vr-hotspot-schedule-building');
-  const hotspotScheduleType = document.getElementById('vr-hotspot-schedule-type');
-  const hotspotScheduleLabel = document.getElementById('vr-hotspot-schedule-label');
-  const hotspotScheduleFloor = document.getElementById('vr-hotspot-schedule-floor');
+  const hotspotScheduleSearch = document.getElementById('vr-hotspot-schedule-search');
+  const hotspotScheduleSelect = document.getElementById('vr-hotspot-schedule-document');
+  const hotspotScheduleStatus = document.getElementById('vr-hotspot-schedule-status');
   const hotspotSceneLabel = document.getElementById('vr-hotspot-scene-label');
 
   const deleteModal = document.getElementById('vr-delete-modal');
@@ -66,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingDelete = null;           // { kind:'scene'|'hotspot', id, sceneId }
   let requestBusy = false;
   let lastFocused = null;
+  let roomScheduleDocuments = [];
+  const SCHEDULE_PAGE_SIZE = 200;
+  const SCHEDULE_MAX_ROWS = 2000;
 
   // ---- Small helpers ----
   function showToast(message, type) {
@@ -81,43 +83,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
   }
 
-  // ---- Schedule-hotspot building dropdown (pre-Milestone-12 UX repair) ----
-  // Server-provided options via #vr-admin-buildings-json ({ id, name,
-  // category } only, safeJson-escaped). The <select> keeps
-  // name="schedule_building_id", so the create/update payload shape and the
-  // admin API validation are unchanged.
-  const buildingNameById = {};
-  (function initScheduleBuildingSelect() {
-    let buildings = [];
-    try {
-      const el = document.getElementById('vr-admin-buildings-json');
-      const parsed = el ? JSON.parse(el.textContent) : [];
-      if (Array.isArray(parsed)) buildings = parsed;
-    } catch (e) { buildings = []; }
-    buildings.forEach((b) => {
-      const id = toId(b.id);
-      if (id === null || !str(b.name)) return;
-      buildingNameById[id] = str(b.name);
-      if (hotspotScheduleBuilding) {
-        const opt = document.createElement('option');
-        opt.value = String(id);
-        opt.textContent = str(b.name) + (str(b.category) ? ' (' + str(b.category) + ')' : '');
-        hotspotScheduleBuilding.appendChild(opt);
-      }
+  function scheduleDocumentLabel(documentRow) {
+    const location = str(documentRow.location_label) || 'Unnamed room';
+    const floor = str(documentRow.floor_label);
+    const building = str(documentRow.building_name) || ('Building #' + str(documentRow.building_id));
+    const semester = str(documentRow.semester).replace(/-/g, ' ');
+    return building + ' — ' + location + (floor ? ' · ' + floor : '') + ' · ' + semester + ' ' + str(documentRow.school_year);
+  }
+
+  function renderScheduleDocumentOptions(selectedId) {
+    if (!hotspotScheduleSelect) return;
+    const query = hotspotScheduleSearch ? hotspotScheduleSearch.value.trim().toLocaleLowerCase('en') : '';
+    const selected = selectedId == null ? toId(hotspotScheduleSelect.value) : toId(selectedId);
+    const matching = roomScheduleDocuments.filter((documentRow) =>
+      !query || scheduleDocumentLabel(documentRow).toLocaleLowerCase('en').includes(query)
+    );
+    hotspotScheduleSelect.textContent = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = roomScheduleDocuments.length ? 'Select a room schedule…' : 'No room schedules available';
+    hotspotScheduleSelect.appendChild(placeholder);
+    matching.forEach((documentRow) => {
+      const id = toId(documentRow.id);
+      if (id === null) return;
+      const option = document.createElement('option');
+      option.value = String(id);
+      option.textContent = scheduleDocumentLabel(documentRow);
+      hotspotScheduleSelect.appendChild(option);
     });
-  })();
-  // Editing a hotspot whose stored building is missing from the option list
-  // must not silently clear it on save: carry the original id as a fallback.
-  function ensureBuildingOption(id) {
-    if (!hotspotScheduleBuilding || id === null) return;
-    const opts = hotspotScheduleBuilding.options;
-    for (let i = 0; i < opts.length; i++) {
-      if (opts[i].value === String(id)) return;
+    if (selected !== null && !matching.some((documentRow) => toId(documentRow.id) === selected)) {
+      const stored = roomScheduleDocuments.find((documentRow) => toId(documentRow.id) === selected);
+      const option = document.createElement('option');
+      option.value = String(selected);
+      option.textContent = stored ? scheduleDocumentLabel(stored) : 'Unavailable schedule #' + selected;
+      hotspotScheduleSelect.appendChild(option);
     }
-    const opt = document.createElement('option');
-    opt.value = String(id);
-    opt.textContent = 'Building #' + id;
-    hotspotScheduleBuilding.appendChild(opt);
+    hotspotScheduleSelect.value = selected === null ? '' : String(selected);
+    if (hotspotScheduleStatus) {
+      hotspotScheduleStatus.textContent = roomScheduleDocuments.length
+        ? `${matching.length} of ${roomScheduleDocuments.length} room schedules shown.`
+        : 'No room schedules exist yet. Create one from Admin Campus Map first.';
+    }
   }
 
   function orderOf(s) { const n = Number(s && s.display_order); return Number.isFinite(n) ? n : 0; }
@@ -341,12 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (h.hotspot_type === 'scene' && h.target_scene_key) {
       subText += ' · → ' + str(h.target_scene_key);
     } else if (h.hotspot_type === 'schedule') {
-      subText += ' · schedule ' + str(h.schedule_location_type || 'room') + ' ' + str(h.schedule_location_label);
-      if (str(h.schedule_floor_label)) subText += ' · ' + str(h.schedule_floor_label);
-      if (h.schedule_building_id != null) {
-        const bName = buildingNameById[numOf(h.schedule_building_id)];
-        subText += ' · ' + (bName || ('building #' + numOf(h.schedule_building_id)));
-      }
+      const documentId = toId(h.schedule_document_id);
+      const documentRow = roomScheduleDocuments.find((candidate) => toId(candidate.id) === documentId);
+      subText += documentRow
+        ? ' · ' + scheduleDocumentLabel(documentRow)
+        : (documentId === null ? ' · legacy schedule target — relink required' : ' · schedule #' + documentId);
     }
     sub.textContent = subText;
 
@@ -383,6 +388,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let json = null;
     try { json = await res.json(); } catch (e) { json = null; }
     return { redirected: false, status: res.status, json };
+  }
+
+  async function loadScheduleDocuments() {
+    if (hotspotScheduleSelect) hotspotScheduleSelect.disabled = true;
+    try {
+      const documents = [];
+      let total = 0;
+      while (documents.length < SCHEDULE_MAX_ROWS) {
+        const result = await apiRequest('/admin/api/room-schedule-documents?limit=200' +
+          (documents.length ? '&offset=' + documents.length : ''));
+        if (result.redirected) return;
+        if (result.status !== 200 || !result.json || result.json.success !== true || !Array.isArray(result.json.documents)) {
+          throw new Error('schedule list unavailable');
+        }
+        total = Number(result.json.total) || 0;
+        if (total > SCHEDULE_MAX_ROWS) throw new Error('schedule list exceeds safe client bound');
+        documents.push(...result.json.documents);
+        if (result.json.documents.length < SCHEDULE_PAGE_SIZE || documents.length >= total) break;
+      }
+      if (documents.length !== total) throw new Error('incomplete schedule list');
+      roomScheduleDocuments = documents;
+      renderScheduleDocumentOptions();
+    } catch (error) {
+      roomScheduleDocuments = [];
+      renderScheduleDocumentOptions();
+      if (hotspotScheduleStatus) hotspotScheduleStatus.textContent = 'Unable to load room schedules. Reload this page to retry.';
+    } finally {
+      if (hotspotScheduleSelect) hotspotScheduleSelect.disabled = false;
+    }
   }
 
   async function load() {
@@ -633,6 +667,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (hotspotTargetSearch) {
     hotspotTargetSearch.addEventListener('input', () => { renderTargetOptions(); });
   }
+  if (hotspotScheduleSearch) {
+    hotspotScheduleSearch.addEventListener('input', () => { renderScheduleDocumentOptions(); });
+  }
 
   function applyHotspotTypeUi() {
     const type = hotspotTypeSelect ? hotspotTypeSelect.value : '';
@@ -652,10 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (hotspotScheduleGroup) hotspotScheduleGroup.style.display = isSchedule ? '' : 'none';
     if (!isSchedule) {
-      if (hotspotScheduleBuilding) hotspotScheduleBuilding.value = '';
-      if (hotspotScheduleType) hotspotScheduleType.value = 'room';
-      if (hotspotScheduleLabel) hotspotScheduleLabel.value = '';
-      if (hotspotScheduleFloor) hotspotScheduleFloor.value = '';
+      if (hotspotScheduleSearch) hotspotScheduleSearch.value = '';
+      if (hotspotScheduleSelect) hotspotScheduleSelect.value = '';
+      renderScheduleDocumentOptions(null);
     }
   }
   if (hotspotTypeSelect) hotspotTypeSelect.addEventListener('change', applyHotspotTypeUi);
@@ -692,14 +728,8 @@ document.addEventListener('DOMContentLoaded', () => {
     hotspotForm.yaw.value = String(numOf(h.yaw));
     hotspotForm.pitch.value = String(numOf(h.pitch));
     hotspotForm.display_order.value = String(numOf(h.display_order));
-    if (hotspotScheduleBuilding) {
-      const bid = h.schedule_building_id == null ? null : toId(h.schedule_building_id);
-      ensureBuildingOption(bid);
-      hotspotScheduleBuilding.value = bid === null ? '' : String(bid);
-    }
-    if (hotspotScheduleType) hotspotScheduleType.value = str(h.schedule_location_type) === 'facility' ? 'facility' : 'room';
-    if (hotspotScheduleLabel) hotspotScheduleLabel.value = str(h.schedule_location_label);
-    if (hotspotScheduleFloor) hotspotScheduleFloor.value = str(h.schedule_floor_label);
+    if (hotspotScheduleSearch) hotspotScheduleSearch.value = '';
+    renderScheduleDocumentOptions(toId(h.schedule_document_id));
     populateTargetSelect(sceneId, h.target_scene_id != null ? toId(h.target_scene_id) : null);
     applyHotspotTypeUi();
     if (hotspotSceneLabel) hotspotSceneLabel.textContent = scene ? ('Scene: ' + str(scene.scene_key)) : '';
@@ -729,17 +759,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!t) { showFormError(hotspotModal, 'A scene hotspot requires a target scene.'); return; }
         payload.target_scene_id = t;
       } else if (type === 'schedule') {
-        const b = hotspotScheduleBuilding ? hotspotScheduleBuilding.value.trim() : '';
-        const lt = hotspotScheduleType ? hotspotScheduleType.value.trim() : '';
-        const ll = hotspotScheduleLabel ? hotspotScheduleLabel.value.trim() : '';
-        const fl = hotspotScheduleFloor ? hotspotScheduleFloor.value.trim() : '';
-        if (!b) { showFormError(hotspotModal, 'A schedule hotspot requires a building.'); return; }
-        if (lt !== 'room' && lt !== 'facility') { showFormError(hotspotModal, 'Invalid schedule location type.'); return; }
-        if (!ll) { showFormError(hotspotModal, 'A schedule hotspot requires a location label.'); return; }
-        payload.schedule_building_id = b;
-        payload.schedule_location_type = lt;
-        payload.schedule_location_label = ll;
-        payload.schedule_floor_label = fl;
+        const documentId = hotspotScheduleSelect ? hotspotScheduleSelect.value.trim() : '';
+        if (!documentId) { showFormError(hotspotModal, 'Select a room schedule for this hotspot.'); return; }
+        payload.schedule_document_id = documentId;
       }
 
       requestBusy = true;
@@ -861,5 +883,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (retryBtn) retryBtn.addEventListener('click', () => load());
 
   // ---- Initial load ----
+  loadScheduleDocuments();
   load();
 });

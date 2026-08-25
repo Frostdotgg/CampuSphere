@@ -1,5 +1,40 @@
 # CampuSphere Room Scheduling Domain Contract
 
+## Replacement Contract: Semester Image Per Room (2026-08-25)
+
+This section supersedes the original Milestone 11 time-row model below for all
+new administration and user-facing behavior. The older text is retained only
+as the historical contract for legacy fallback rows.
+
+- One `room_schedule_documents` record represents the current semester image
+  for a unique building + location type + room/facility label + optional floor.
+  The normalized `location_key` enforces that identity; a new semester updates
+  the existing record and keeps its numeric ID.
+- Required admin values are building, `room|facility`, location label,
+  `first-semester|second-semester|midyear`, consecutive `YYYY-YYYY` school year,
+  and an HTTPS URL on the exact `res.cloudinary.com` delivery host. Floor and a
+  conservative Cloudinary public ID are optional. No OCR, class, year/section,
+  instructor, student, time slot, or schedule-grid cell is parsed or stored.
+- CampuSphere performs no Cloudinary upload, transformation, management, or
+  deletion request. The administrator uploads externally and pastes delivery
+  metadata. The approved image must contain no participant PII.
+- `vr_hotspots.schedule_document_id` is the direct link. Building and schedule
+  sources must match for building-linked administration/display, and schedule
+  and VR sources must match before a hotspot link is saved. Numeric IDs are
+  never guessed across backends. The foreign key uses delete
+  restriction; admins must relink/remove hotspots before deleting a document
+  or changing its building/room identity. Term and image updates keep the same
+  ID and remain available while linked.
+- Authenticated building details and VR views use the same accessible image
+  viewer. Public API shapes omit Cloudinary public ID, creator identity,
+  timestamps, and normalized keys, and responses are private/no-store.
+- Legacy `room_schedules` rows and legacy hotspot metadata are read-only
+  transition fallback. Their mutation routes are retired. Offline guide
+  packages continue to exclude every schedule and Cloudinary asset.
+- Supabase migration source `0020_room_schedule_documents.sql` exists but is
+  not applied by this candidate. Application and runtime verification require
+  separate owner authorization. Source-only checks do not constitute GO.
+
 Milestone 11, Section 11.2: Schedule Domain Model and Validation Plan.
 
 Status: **written contract only — nothing in this document is implemented yet.**

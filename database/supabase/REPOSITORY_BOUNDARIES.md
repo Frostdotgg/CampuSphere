@@ -112,8 +112,8 @@ Method responsibilities (no implementation; signatures only):
   transaction or equivalent atomic operation so a half-created user
   is never persisted.
 - `updateUserName(userId, { first_name, last_name })` -> void.
-- `updateUserProfileImage(userId, pictureUrl)` -> void. Stores only a
-  validated HTTPS Google-hosted profile-picture URL and bumps `updated_at`.
+- `updateUserProfileImage(userId, imageUrl)` -> void. Accepts only a validated
+  HTTPS Google-hosted profile-picture URL and bumps `updated_at`.
 - `loadRoleProfile(userId, role)` -> object with the role-specific
   fields (`student_id_number/course/year_level/...`,
   `employee_id/department/position/...`, `address/phone_number`) or

@@ -109,6 +109,40 @@ CREATE TABLE IF NOT EXISTS room_schedules (
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Semester-long room schedule images. One persistent record represents the
+-- current schedule for one physical room/facility; updating its semester,
+-- school year, or image keeps every linked VR hotspot current.
+CREATE TABLE IF NOT EXISTS room_schedule_documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    building_id INT NOT NULL,
+    location_type ENUM('room','facility') NOT NULL,
+    location_label VARCHAR(120) NOT NULL,
+    floor_label VARCHAR(80) NULL,
+    -- SHA-256 of the server-normalized type/floor/label identity. Keeping the
+    -- key ASCII and fixed-width makes cross-backend uniqueness deterministic.
+    location_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    semester ENUM('first-semester','second-semester','midyear') NOT NULL,
+    school_year CHAR(9) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    image_url VARCHAR(1000) NOT NULL,
+    cloudinary_public_id VARCHAR(255) NULL,
+    created_by_user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_room_schedule_documents_location (building_id, location_key),
+    KEY idx_room_schedule_documents_building_term (building_id, semester, school_year),
+    CONSTRAINT fk_room_schedule_documents_building
+        FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_room_schedule_documents_creator
+        FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_room_schedule_documents_school_year
+        CHECK (
+            school_year REGEXP '^[0-9]{4}-[0-9]{4}$'
+            AND CAST(SUBSTRING(school_year, 1, 4) AS UNSIGNED) BETWEEN 2000 AND 2199
+            AND CAST(SUBSTRING(school_year, 6, 4) AS UNSIGNED) =
+                CAST(SUBSTRING(school_year, 1, 4) AS UNSIGNED) + 1
+        )
+);
+
 CREATE TABLE IF NOT EXISTS news_announcements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -277,6 +311,9 @@ CREATE TABLE IF NOT EXISTS vr_hotspots (
     schedule_location_type ENUM('room','facility') NULL,
     schedule_location_label VARCHAR(120) NULL,
     schedule_floor_label VARCHAR(80) NULL,
+    -- Preferred schedule target. Legacy location metadata remains nullable for
+    -- transitional read-only fallback until every old hotspot is relinked.
+    schedule_document_id INT NULL,
     yaw DECIMAL(6,2) NOT NULL DEFAULT 0,
     pitch DECIMAL(6,2) NOT NULL DEFAULT 0,
     display_order INT DEFAULT 0,
@@ -285,9 +322,12 @@ CREATE TABLE IF NOT EXISTS vr_hotspots (
     -- Section 8.8 follow-up: hotspots are read per scene ordered by display_order, id.
     KEY idx_vr_hotspots_scene_display (scene_id, display_order, id),
     KEY idx_vr_hotspots_schedule_target (schedule_building_id, schedule_location_type, schedule_location_label),
+    KEY idx_vr_hotspots_schedule_document (schedule_document_id),
     FOREIGN KEY (scene_id) REFERENCES vr_scenes(id) ON DELETE CASCADE,
     FOREIGN KEY (target_scene_id) REFERENCES vr_scenes(id) ON DELETE SET NULL,
-    FOREIGN KEY (schedule_building_id) REFERENCES buildings(id) ON DELETE SET NULL
+    FOREIGN KEY (schedule_building_id) REFERENCES buildings(id) ON DELETE SET NULL,
+    CONSTRAINT fk_vr_hotspots_schedule_document
+        FOREIGN KEY (schedule_document_id) REFERENCES room_schedule_documents(id) ON DELETE RESTRICT
 );
 
 -- ===== System audit logs (Milestone 7) =====

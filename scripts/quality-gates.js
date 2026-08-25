@@ -25,13 +25,10 @@
      - Cloudinary docs/env alignment (.env.example/README/deployment match the live
        10.4-10.6 implementation, no stale "future-only" wording, no real secret values)
      - sanitized response leak scan (no stack/SQL/secret/cookie in error bodies)
-     - room scheduling (Milestone 11): spawns the four schedule
-       probes (scheduleRepository-probe, adminScheduleCrud-probe,
-       publicScheduleDisplay-probe, vrScheduleHotspot-probe) covering repository backend parity,
-       admin-only schedule CRUD/validation, the public building schedule
-       display with empty-state, leak-boundary, and cleanup checks — plus a
-       static docs gate asserting the schedule/deployment wording is current
-       (SCHEDULE_DATA_SOURCE, migrations 0001-0017, admin-managed-not-SIS)
+     - room scheduling: runs the database-free semester-image contract probe
+       covering schema/source, admin/auth/privacy, direct VR linkage, accessible
+       viewer, legacy read-only fallback, sync, and indexes. Runtime CRUD parity
+       waits for separately authorized migration 0020 application.
 
    Runtime modes (each forces the child SESSION_STORE so this gate verifies the
    session-store runtime, not just the data-source switches — Milestone 9, 9.6):
@@ -1551,8 +1548,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v30 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 30 &&
+    ok('sw.js is v32 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 32 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -2418,34 +2415,37 @@ function runVrRuntimeGate() {
 }
 
 /* ---------------- static admin VR schedule-UX gate (no server) ---------------- */
-// Pre-Milestone-12 UX repair: admins pick the schedule building from a
-// dropdown (options provided server-side as { id, name, category } only via
-// safeJson) instead of typing an internal numeric id. The <select> keeps
-// name="schedule_building_id", so the admin API payload contract is unchanged.
+// Semester-image flow: admins search and select an existing room schedule
+// document. The saved hotspot stores only schedule_document_id; its room,
+// semester, school year, and image update automatically with that record.
 function runAdminVrScheduleUxGate() {
   const rec = makeRecorder('admin-vr-ux');
   const { ok } = rec;
   const root = path.join(__dirname, '..');
   const view = fs.readFileSync(path.join(root, 'views', 'admin', 'vr.ejs'), 'utf8');
   const js = fs.readFileSync(path.join(root, 'public', 'js', 'admin', 'admin-vr.js'), 'utf8');
-  const ctrl = fs.readFileSync(path.join(root, 'controllers', 'adminController.js'), 'utf8');
-  ok('vr.ejs schedule building field is a <select> named schedule_building_id',
-    /<select name="schedule_building_id" id="vr-hotspot-schedule-building">/.test(view));
-  ok('vr.ejs has no numeric schedule_building_id input',
-    !/<input[^>]*name="schedule_building_id"/.test(view));
-  ok('vr.ejs provides safeJson building options mapped to { id, name, category } only',
-    /id="vr-admin-buildings-json"/.test(view) &&
-    /safeJson\(/.test(view) &&
-    /\.map\(b => \(\{ id: b\.id, name: b\.name, category: b\.category \}\)\)/.test(view));
-  ok('adminController.vr loads buildings and shapes { id, name, category }',
-    /exports\.vr = async \(req, res\)/.test(ctrl) &&
-    /id: b\.id,\s*name: b\.name,\s*category: b\.category/.test(ctrl));
-  ok('admin-vr.js populates the building dropdown from the JSON payload',
-    /initScheduleBuildingSelect/.test(js) && /vr-admin-buildings-json/.test(js));
-  ok('admin-vr.js payload still sends schedule_building_id',
-    /payload\.schedule_building_id = b;/.test(js));
-  ok('admin-vr.js validation says "building", not "building id"',
-    js.includes('requires a building.') && !js.includes('requires a building id.'));
+  const ctrl = fs.readFileSync(path.join(root, 'controllers', 'adminVrController.js'), 'utf8');
+  ok('vr.ejs has a native schedule document select named schedule_document_id',
+    /<select name="schedule_document_id" id="vr-hotspot-schedule-document">/.test(view));
+  ok('vr.ejs has no legacy editable schedule metadata inputs',
+    !/<(?:input|select)[^>]*name="schedule_(?:building_id|location_type|location_label|floor_label)"/.test(view));
+  ok('vr.ejs has a labelled schedule search with live result status',
+    /<label for="vr-hotspot-schedule-search">Search room schedules<\/label>/.test(view) &&
+    /id="vr-hotspot-schedule-search"[^>]*type="search"|type="search"[^>]*id="vr-hotspot-schedule-search"/.test(view) &&
+    /id="vr-hotspot-schedule-status"[^>]*aria-live="polite"/.test(view));
+  ok('admin-vr.js loads bounded room schedule documents from the admin API',
+    /apiRequest\('\/admin\/api\/room-schedule-documents\?limit=200'/.test(js) &&
+    /SCHEDULE_MAX_ROWS\s*=\s*2000/.test(js) && /&offset=/.test(js));
+  ok('admin-vr.js filters schedule documents locally and creates options safely',
+    /function renderScheduleDocumentOptions\(/.test(js) &&
+    /scheduleDocumentLabel\(documentRow\)\.toLocaleLowerCase\('en'\)\.includes\(query\)/.test(js) &&
+    /document\.createElement\('option'\)/.test(js));
+  ok('admin-vr.js schedule payload sends only schedule_document_id',
+    /payload\.schedule_document_id = documentId;/.test(js) &&
+    !/payload\.schedule_(?:building_id|location_type|location_label|floor_label)\s*=/.test(js));
+  ok('adminVrController requires the selected document and fails closed on backend mismatch',
+    ctrl.includes('A schedule hotspot requires a room schedule selection.') &&
+    ctrl.includes('scheduleDataSource.getScheduleDataSource() !== vrDataSource.getVrDataSource()'));
 
   // Searchable Target-scene selector (Add/Edit Hotspot modal):
   ok('vr.ejs has the labeled type="search" target search input with autocomplete off',
@@ -5877,8 +5877,8 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
       !/destroyed 309 harness-shaped anonymous (?:MySQL )?sessions/i.test(t) ||
       !t.includes('a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d') ||
       !/zero candidates[\s\S]{0,80}zero scanned residue/i.test(t) ||
-      !/Migrations (?:remain|are) exactly `?0001`?-`?0019`?/i.test(t) ||
-      !/migration `?0020`? does not exist and is not authorized/i.test(t) ||
+      !/migration sources (?:remain|are) contiguous through `?0020`?/i.test(t) ||
+      !/owner[- ]applied `?0020_room_schedule_documents\.sql`?/i.test(t) ||
       !/109\/109 (?:manifest files verified|verified backup\/restore files)/i.test(t) ||
       !/86 referenced Cloudinary (?:delivery )?assets/i.test(t)) {
     problems.push('cleanup, migration, or backup boundary is missing');
@@ -5917,7 +5917,11 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     problems.push('OAuth production, basic-scope, or unverified-branding boundary is missing');
   }
 
-  if (!/current 70-path worktree[\s\S]{0,120}uncommitted multi-feature stabilization candidate/i.test(t) ||
+  if (!/current uncommitted candidate[\s\S]{0,180}stabilization candidate/i.test(t) ||
+      !/semester room-schedule image flow/i.test(t) ||
+      !/owner-applied `?0020_room_schedule_documents\.sql`?/i.test(t) ||
+      !/admin-pasted Cloudinary delivery metadata/i.test(t) ||
+      !/direct VR schedule-document links/i.test(t) ||
       !/valid Guided-VR and Free Roam scene arrows/i.test(t) ||
       !/VR light\/dark theme parity/i.test(t) ||
       !/offline display label `?Guard House`?/i.test(t) ||
@@ -5925,11 +5929,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
       !/Paga About card/i.test(t) ||
       !/admin category-dropdown styling and user role\/status filters/i.test(t) ||
       !/safe Google profile-image synchronization/i.test(t) ||
-      !/POST[\s\S]{0,80}DELETE \/api\/profile\/photo/i.test(t) ||
-      !/CampuSphere\/profile-images/i.test(t) ||
-      !/not accepted[\s\S]{0,160}limited key[\s\S]{0,100}folder permission/i.test(t) ||
-      !/support response remains external and pending/i.test(t) ||
-      !/temporary setup key is disabled/i.test(t) ||
+      !/(?:removal|removed) of (?:the )?manual profile-photo upload/i.test(t) ||
       !/syncSupabaseContentToMysql\.js --dry-run/i.test(t) ||
       !t.includes('2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05') ||
       !/No data was written/i.test(t) ||
@@ -5950,7 +5950,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     /independent(?:ly)?[\s\S]{0,80}(?:GET-only|post-promotion)[\s\S]{0,80}(?:passed|PASS)[\s\S]{0,100}(?:bb17b9b|dc961b1)/i,
     /Google OAuth[\s\S]{0,100}(?:is|was|has been)[\s\S]{0,60}(?:verified|unlimited)/i,
     /(?:branding|Search Console ownership)[\s\S]{0,80}(?:is|was|has been) (?:verified|completed)/i,
-    /manual (?:profile-)?photo (?:flow|upload)[\s\S]{0,100}(?:is|was|has been) (?:accepted|complete|verified|production-ready)/i,
+    /manual (?:profile-)?photo (?:flow|upload)[^.;]{0,100}(?:is|was|has been) (?:accepted|complete|verified|production-ready)/i,
     /Cloudinary[\s\S]{0,120}(?:folder permission|Manager access)[\s\S]{0,80}(?:is|was|has been) (?:granted|confirmed|verified)/i,
     /support response[\s\S]{0,80}(?:was|has been) received/i,
     /current 70-path worktree[\s\S]{0,180}(?:full QA passed|Codex GO|deployed|Production acceptance)/i,
@@ -6327,14 +6327,13 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   sha256: '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5',
 });
 
-/* The deployable bytes now include the approved course-catalog feature. Keep
-   this candidate pin separate from the handoff's pre-feature release
-   continuity evidence until a later commit/handoff synchronization records
-   the new source identity. */
+/* The deployable bytes now include the room-schedule image candidate and the
+   deferred profile-upload removal. Keep this live-worktree pin separate from
+   accepted historical release evidence until a clean commit is reviewed. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 172,
-  bytes: '7,141,628',
-  sha256: '43ca180186e8bb85152ac04e60a3226fda55c5885d632d26ff5de26a6db611db',
+  files: 180,
+  bytes: '7,189,621',
+  sha256: 'c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7775,18 +7774,23 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_CURRENT_CANDIDATE_DATE = '2026-08-24';
-  /** PURE: all current authority surfaces must carry one synchronized date. */
-  function currentCandidateDateProblems(sourceMap, expectedDate = EXPECTED_CURRENT_CANDIDATE_DATE) {
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-24';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-08-25';
+  /** PURE: all current authority surfaces must carry synchronized dates. */
+  function currentCandidateDateProblems(
+    sourceMap,
+    releaseDate = EXPECTED_RELEASE_CONTINUITY_DATE,
+    lastUpdatedDate = EXPECTED_LAST_UPDATED_DATE
+  ) {
     const problems = [];
     for (const name of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^## Current Release Continuity \\(' + expectedDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
+      const pattern = new RegExp('^## Current Release Continuity \\(' + releaseDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized release-continuity date');
     }
     for (const name of ['CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'docs/new-session-grounding-prompts.md']) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^Last updated:\\s*' + expectedDate.replace(/\./g, '\\.') + '\\s*\\(Asia/Manila\\)\\s*$', 'm');
+      const pattern = new RegExp('^Last updated:\\s*' + lastUpdatedDate.replace(/\./g, '\\.') + '\\s*\\(Asia/Manila\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized Last updated date');
     }
     const headings = {
@@ -7796,30 +7800,30 @@ function runDocsCurrentGate() {
     };
     for (const [name, heading] of Object.entries(headings)) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^## ' + heading + ' \\(' + expectedDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
+      const pattern = new RegExp('^## ' + heading + ' \\(' + releaseDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current heading date');
     }
     return problems;
   }
 
   const liveDateProblems = currentCandidateDateProblems(docs);
-  ok('all live authority and evidence surfaces carry the synchronized current candidate date',
+  ok('accepted continuity headings and feature-candidate update dates remain explicit',
     liveDateProblems.length === 0);
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
     'AGENTS.md': '## Current Release Continuity (2026-08-24)',
     'CLAUDE.md': '## Current Release Continuity (2026-08-24)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-24 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-24 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-25 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-25 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
     'plan.md': '## Current Release Continuity (2026-08-24)',
     'ROADMAP.md': '## Current Release Continuity (2026-08-24)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-24 (Asia/Manila)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-25 (Asia/Manila)',
     'docs/deployment.md': '## Current Release Continuity (2026-08-24)',
     'docs/security-checklist.md': '## Current Release Continuity (2026-08-24)',
     'docs/test-evidence.md': '## Current Release Continuity (2026-08-24)',
   };
-  ok('fixture: synchronized current dates are accepted and any single stale current date is rejected',
+  ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
     currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
       'docs/security-checklist.md': '## Current Release Continuity (2026-08-10)',
@@ -8188,13 +8192,17 @@ function runDocsCurrentGate() {
       if (start < 0) break;
       const tail = operative.slice(start);
       const delimiters = [
-        '\n\nDependency-security remediation',
-        '\n\nThe independent read-only closeout review',
-        '\n\n- The Guided-VR runtime/catalog remediation',
-        '\n\n## Codex Grounding Prompt',
-        '\n\n## Claude Code Grounding Prompt',
-        '\n\n| Evidence class',
-      ].map((marker) => tail.indexOf(marker)).filter((index) => index >= 0);
+        'Dependency-security remediation',
+        'The independent read-only closeout review',
+        '- The Guided-VR runtime/catalog remediation',
+        '## Codex Grounding Prompt',
+        '## Claude Code Grounding Prompt',
+        '| Evidence class',
+      ].map((marker) => {
+        const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = new RegExp('\\r?\\n\\r?\\n' + escapedMarker).exec(tail);
+        return match ? match.index : -1;
+      }).filter((index) => index >= 0);
       blocks.push(tail.slice(0, delimiters.length ? Math.min(...delimiters) : tail.length));
       cursor = start + 'The current local maintenance correction is'.length;
     }
@@ -8249,8 +8257,8 @@ function runDocsCurrentGate() {
       'Google OAuth is verified and unlimited.')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /the dedicated limited\s+key still lacks the required folder permission/,
-      'the dedicated limited key has been granted and verified with Manager access')).length > 0 &&
+      /removal\s+of\s+the\s+manual\s+profile-photo\s+upload/,
+      'manual profile-photo upload is accepted and production-ready')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       /The owner selected this next sequence:[\s\S]{0,500}Grounding prompts do not themselves authorize tests,\s+fixes, browser\/server work, database access, or vendor operations\./,
@@ -9241,14 +9249,18 @@ function runDocsCurrentGate() {
       'The clean-commit independent R8 review of bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd returned GO with no critical, high, medium, or low findings. The owner authorized the bb17b9b push and manual Vercel promotion. Owner-observed Vercel evidence showed Ready, Production, main, and an 11-second build. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
       'No independent anonymous GET-only post-promotion byte verification has been recorded for bb17b9b or dc961b1. fea3b2e11c6331eddc1ee091b165427d8e0218d7 is the last independently post-deployment-verified technical baseline; its smoke is not byte proof for either later commit. ' +
       'Production uses Supabase/PostgreSQL for application data and sessions; MySQL remains local-development/fallback/rehearsal data. A production offline-guide download is a backend-specific immutable snapshot of current Supabase building and route data and excludes 360/Guided-VR/Free-Roam content, schedules, building photos, Cloudinary media, and private/admin/session data. ' +
-      'The readiness poll now uses /favicon.ico. The local cleanup destroyed 309 harness-shaped anonymous MySQL sessions with cleanup fingerprint SHA-256 a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and left zero candidates and zero scanned residue. Migrations remain exactly 0001-0019; migration 0020 does not exist and is not authorized. Preserve one-writer control and external backup evidence: 109/109 manifest files verified and 86 referenced Cloudinary delivery assets hashed. ' +
+      'The readiness poll now uses /favicon.ico. The local cleanup destroyed 309 harness-shaped anonymous MySQL sessions with cleanup fingerprint SHA-256 a50b800e370439e0257cb7667d3fdb567af9dab88b87c3aeca6f32593598d18d and left zero candidates and zero scanned residue. Migration sources are contiguous through 0020; owner-applied 0020_room_schedule_documents.sql is recorded before this verification. Preserve one-writer control and external backup evidence: 109/109 manifest files verified and 86 referenced Cloudinary delivery assets hashed. ' +
       'The owner-attested human pilot occurred on 2026-08-05 with zero reported findings. Participant/Form evidence remains external, the tested build full source-commit identity was not independently verified, and pilot review is complete for sequencing. ' +
       'The owner supplied 29 official course titles for this application plus Other. Commit dc961b1 replaced the abbreviated selectors and added an accessible, case-insensitive course search to new-student OAuth registration completion and the existing student profile editor. Existing saved legacy course values remain visible until a student deliberately selects a new value. The submitted field remains course; controllers, repositories, APIs, database schema, and migrations did not change. The six-file commit recorded 433 insertions and 28 deletions. ' +
       'Course-feature verification recorded npm test exit 0 with QUALITY-GATES OK and five-stage npm run qa exit 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities. The package-boundary run passed 74/74 and reported a then-current working-tree package of 168 files, 7,088,275 bytes, aggregate SHA-256 9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec. The working-tree package identity is not clean-commit or deployed-byte proof. The owner confirmed the registration and profile course flows work in Production; this is owner-observed functional acceptance, not independent review or byte smoke. ' +
       'Google OAuth is now owner-observed In production and requests only openid email profile. Google Data Access reported that sensitive or restricted-scope verification is not required, and the owner confirmed Google account creation and sign-in work. Branding is not verified; Search Console ownership for campussphere-cspc.vercel.app was not completed, and the owner chose to defer branding. Do not describe OAuth as verified or unlimited. Public local registration still creates guests only. ' +
       'The current 70-path worktree contains an uncommitted multi-feature stabilization candidate with valid Guided-VR and Free Roam scene arrows, VR light/dark theme parity, the offline display label Guard House, the authenticated notification feed/panel, the Paga About card, admin category-dropdown styling and user role/status filters, safe Google profile-image synchronization, and authenticated POST and DELETE /api/profile/photo. The manual flow targets CampuSphere/profile-images but is not accepted: the dedicated limited key lacks the required folder permission, the support response remains external and pending, and the temporary setup key is disabled. The owner-run scripts/syncSupabaseContentToMysql.js --dry-run preview reported no differences, No data was written, and both fingerprints were 2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05. The Android 8 installed-PWA crash remains unresolved and Docker/client-clone deployment readiness also remains deferred. A fresh session grounds first; a later separately authorized session verifies the non-Cloudinary changes. Cloudinary support remains an external event-based dependency; if no response has arrived, continue with verified non-Cloudinary findings one bounded issue at a time. Manual Cloudinary upload stays deferred. Grounding prompts do not themselves authorize tests. Missing current full QA, independent review, commit, push, deployment, and Production acceptance remain explicit. This authority authorizes no product implementation. Final Milestone 12 disposition remains external. ';
     const CURRENT_BODY =
-      CURRENT_AUTHORITY_SUPPLEMENT +
+      CURRENT_AUTHORITY_SUPPLEMENT
+        .replace('The current 70-path worktree', 'The current uncommitted candidate is a stabilization candidate that includes the semester room-schedule image flow,')
+        .replace('and authenticated POST and DELETE /api/profile/photo.', 'and removal of the manual profile-photo upload.')
+        .replace(/ The manual flow targets[\s\S]*?temporary setup key is disabled\./, ' The candidate never calls Cloudinary management or upload APIs.') +
+      'The current uncommitted candidate includes the semester room-schedule image flow, owner-applied 0020_room_schedule_documents.sql, admin-pasted Cloudinary delivery metadata, accessible image viewing, direct VR schedule-document links, valid Guided-VR and Free Roam scene arrows, VR light/dark theme parity, the offline display label Guard House, the authenticated notification feed/panel, the Paga About card, admin category-dropdown styling and user role/status filters, safe Google profile-image synchronization, and removal of the manual profile-photo upload. ' +
       'R1-R7, D1-D5, and expanded D7 are complete and Codex GO. Dependency-security remediation is complete and Codex GO: following the accepted 2026-07-22 dependency closeout, the subsequent 2026-07-26 npm advisory drift was remediated, production pins ejs@6.0.1, the jake/filelist/minimatch/brace-expansion chain is absent, and npm audit --omit=dev reports zero vulnerabilities. ' +
       'M12.P1-R6 is complete and Codex GO. This context-only prompt does not authorize implementation. M12.P1-R7 is complete and Codex GO. Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, and full suite 3495/3495 with QUALITY-GATES OK; npm audit --omit=dev reports zero vulnerabilities, while 3492/3492 and 3494/3494 are historical/superseded. ' +
       'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context BrowserContext run at 3511/3511 with QUALITY-GATES OK, audit zero, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d. ' +
@@ -10752,7 +10764,7 @@ async function runBoundedAnonymousDenialGate() {
       requires.length === 1 && requires[0] === '../services/auditService');
   }
 
-  /* ---- no new table, and no new migration ---- */
+  /* ---- migration inventory and no anonymous-denial persistence ---- */
   {
     let migrations = [];
     try {
@@ -10760,9 +10772,9 @@ async function runBoundedAnonymousDenialGate() {
         .filter((n) => n.endsWith('.sql')).sort();
     } catch (e) { /* empty list fails below */ }
     const numbers = migrations.map((n) => (n.match(/^(\d{4})/) || [])[1]).filter(Boolean);
-    ok('Supabase migrations remain exactly 0001-0019 (R5 adds none)',
-      numbers.length === 19 && numbers[0] === '0001' && numbers[numbers.length - 1] === '0019' &&
-      !numbers.some((n) => Number(n) >= 20));
+    ok('Supabase migration sources are contiguous through 0020 (R5 added no denial table)',
+      numbers.length === 20 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+      migrations.includes('0020_room_schedule_documents.sql'));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',
@@ -11073,7 +11085,7 @@ function runSwPrecacheGate() {
   return rec.failures;
 }
 
-/* -------- static room-scheduling docs/deployment wording gate (M11, 11.7) -------- */
+/* -------- static room-scheduling docs/deployment wording gate (semester images) -------- */
 function runScheduleDocsGate() {
   const rec = makeRecorder('schedule-docs');
   const { ok } = rec;
@@ -11088,23 +11100,28 @@ function runScheduleDocsGate() {
   const dbPerfGate = readIf(path.join('scripts', 'db-perf-gate.js'));
 
   ok('.env.example documents SCHEDULE_DATA_SOURCE', envEx.includes('SCHEDULE_DATA_SOURCE'));
-  ok('.env.example names 0012_room_schedules and 0013_vr_hotspot_schedule_metadata for the schedule runtime',
-    envEx.includes('0012_room_schedules') && envEx.includes('0013_vr_hotspot_schedule_metadata'));
-  ok('README documents schedule migrations and the current 0001-0019 span',
+  ok('.env.example names legacy schedule migrations plus owner-applied 0020 for the image runtime',
+    envEx.includes('0012_room_schedules') && envEx.includes('0013_vr_hotspot_schedule_metadata') &&
+    envEx.includes('0020_room_schedule_documents'));
+  ok('README documents schedule migrations and the current owner-applied 0001-0020 span',
     readme.includes('0012_room_schedules') &&
     readme.includes('0013_vr_hotspot_schedule_metadata') &&
-    /0001[\s\S]{0,40}0019/.test(readme));
+    readme.includes('0020_room_schedule_documents') &&
+    /0001[\s\S]{0,80}0020/.test(readme));
   ok('README drops stale 0001-0011-as-current migration span', !/0001.{1,3}0011/.test(readme));
-  ok('deployment.md lists 0012_room_schedules and 0013_vr_hotspot_schedule_metadata in the apply order',
-    deploy.includes('0012_room_schedules') && deploy.includes('0013_vr_hotspot_schedule_metadata'));
+  ok('deployment.md lists 0012, 0013, and 0020 in the apply order',
+    deploy.includes('0012_room_schedules') && deploy.includes('0013_vr_hotspot_schedule_metadata') &&
+    deploy.includes('0020_room_schedule_documents'));
   ok('deployment.md documents SCHEDULE_DATA_SOURCE', deploy.includes('SCHEDULE_DATA_SOURCE'));
-  ok('deployment.md production GO gate covers 0012 and 0013',
-    /GO gate[\s\S]{0,700}0012_room_schedules[\s\S]{0,700}0013_vr_hotspot_schedule_metadata/i.test(deploy));
+  ok('deployment.md production GO gate covers 0012, 0013, and owner-applied 0020',
+    /GO gate[\s\S]{0,900}0012_room_schedules[\s\S]{0,900}0013_vr_hotspot_schedule_metadata[\s\S]{0,900}0020_room_schedule_documents/i.test(deploy) &&
+    /0020[\s\S]{0,180}separate owner operational authorization/i.test(deploy));
   for (const [name, doc] of [['AGENTS.md', agents], ['CLAUDE.md', claude]]) {
-    ok(`${name} documents SCHEDULE_DATA_SOURCE + scheduleRepository`,
-      doc.includes('SCHEDULE_DATA_SOURCE') && doc.includes('scheduleRepository'));
-    ok(`${name} documents 0013 VR hotspot schedule metadata`,
-      doc.includes('0013_vr_hotspot_schedule_metadata'));
+    ok(`${name} documents SCHEDULE_DATA_SOURCE + roomScheduleDocumentRepository`,
+      doc.includes('SCHEDULE_DATA_SOURCE') && doc.includes('roomScheduleDocumentRepository'));
+    ok(`${name} documents the owner-applied 0020 direct-link boundary`,
+      doc.includes('0020_room_schedule_documents') && doc.includes('schedule_document_id') &&
+      /0020[\s\S]{0,180}owner-applied/i.test(doc));
   }
   // Anti-scope wording: schedules are real admin-managed data, never
   // SIS/enrollment/instructor-load simulation.
@@ -11113,33 +11130,26 @@ function runScheduleDocsGate() {
       /admin-managed[\s\S]{0,400}(SIS|enrollment)/i.test(doc));
   }
   ok('grounding prompts no longer claim 0013 should not exist', !/0013 should not exist/i.test(grounding));
-  ok('grounding prompts carry the 0001-0019 current truth', /0001[\s\S]{0,40}0019/.test(grounding));
+  ok('grounding prompts preserve the accepted historical 0001-0019 boundary', /0001[\s\S]{0,40}0019/.test(grounding));
   ok('db-perf gate no longer claims 0013 owner apply is pending',
     !/(0013[\s\S]{0,160}owner apply is required|owner apply is required[\s\S]{0,160}0013)/i.test(dbPerfGate));
 
   return rec.failures;
 }
 
-/* -------- room-scheduling probe gates (Milestone 11) --------
-   Spawns the standalone schedule probes so `npm test` covers repository
-   backend parity, admin-only schedule CRUD/validation, public building
-   schedule display, and VR room-door schedule interaction. Each
-   probe is self-terminating (with-server harness / pool-closing) and prints
-   only fixed PASS/FAIL labels. Supabase skip/fail mirrors the contract-suite
-   policy above: unconfigured Supabase may SKIP its phase ONLY when no
-   Supabase runtime/session mode is selected; a selected Supabase mode with
-   missing env fails closed. */
+/* -------- semester room-schedule image probe gate --------
+   Database-free and network-free. Runtime CRUD parity stays a separate gate
+   until migration 0020 is explicitly authorized and applied to the selected
+   verification backends. The old time-row probes remain in source as legacy
+   transition evidence but are no longer registered in the active flow. */
 const SCHEDULE_PROBES = [
-  ['schedule repository parity', 'scheduleRepository-probe.js'],
-  ['admin schedule CRUD contracts', 'adminScheduleCrud-probe.js'],
-  ['public schedule display contracts', 'publicScheduleDisplay-probe.js'],
-  ['VR room-door schedule hotspot contracts', 'vrScheduleHotspot-probe.js'],
+  ['semester room schedule image contracts', 'roomScheduleDocument-probe.js'],
 ];
 
 // Milestone 11, Section 11.8C (+ BE.4): Free Roam 360 (map entry ->
 // /vr/scene-guard-house scene browser at the Guard House, routeless; /vr
-// stays a compatible fallback). Kept separate from SCHEDULE_PROBES so the
-// "four room-scheduling probes" docs wording stays accurate.
+// stays a compatible fallback). Kept separate from SCHEDULE_PROBES because it
+// exercises the Free Roam domain rather than schedule-document behavior.
 const FREE_ROAM_PROBES = [
   ['free-roam VR scene browser contracts', 'freeRoamVr-probe.js'],
 ];
@@ -11310,7 +11320,7 @@ const SESSION_RESIDUE_PROBES = [
    exact strings previously used inline, so console output is unchanged. */
 const SPAWNED_PROBE_STAGES = [
   { key: 'schedule', prefix: 'schedule', probes: SCHEDULE_PROBES,
-    heading: '[Room scheduling QA] (repository parity + admin CRUD + public display + VR room-door probes)' },
+    heading: '[Room scheduling QA] (semester image source contracts + direct VR linkage + legacy fallback)' },
   { key: 'free-roam', prefix: 'free-roam', probes: FREE_ROAM_PROBES,
     heading: '[Free Roam 360 QA] (map entry + /vr scene browser + routeless-contract probe)' },
   { key: 'logout', prefix: 'logout', probes: LOGOUT_PROBES,
@@ -12310,7 +12320,18 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error('[quality-gates] FATAL:', e && e.message ? e.message : 'unknown error');
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error('[quality-gates] FATAL:', e && e.message ? e.message : 'unknown error');
+    process.exitCode = 1;
+  });
+}
+
+// Export selected database-free analyzers so a migration-source candidate can
+// verify its static gate changes without starting the server or touching a DB.
+module.exports = {
+  runAdminVrScheduleUxGate,
+  runBuildingDeleteTxGate,
+  runDocsCurrentGate,
+  runScheduleDocsGate,
+};

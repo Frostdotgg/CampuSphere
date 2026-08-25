@@ -5,9 +5,11 @@
 
 const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
+const scheduleDataSource = require('../config/scheduleDataSource');
 const buildingRepository = require('../repositories/buildingRepository');
 const routeRepository = require('../repositories/routeRepository');
 const scheduleRepository = require('../repositories/scheduleRepository');
+const roomScheduleDocumentRepository = require('../repositories/roomScheduleDocumentRepository');
 const auditService = require('../services/auditService');
 const routeAvailability = require('../services/routeAvailability');
 const V = require('../utils/adminValidation');
@@ -294,6 +296,16 @@ exports.deleteBuilding = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid building id.' });
   }
 
+  // Cross-backend numeric IDs are not a safe natural identity. Fail closed
+  // before dependency checks or deletion if the building and schedule domains
+  // do not point at the same backend.
+  if (scheduleDataSource.isSupabase() !== mapRuntime.isBuildingSupabase()) {
+    return res.status(409).json({
+      success: false,
+      message: 'Building and room schedule data sources must match before a building can be deleted.'
+    });
+  }
+
   try {
     // R5 / Section 7.9 destructive-delete guard: a building referenced by a
     // campus route as its destination must NOT be deleted. The DB FK is
@@ -322,7 +334,8 @@ exports.deleteBuilding = async (req, res) => {
         return res.status(409).json({ success: false, message: ROUTE_REF_MESSAGE });
       }
       const scheduleRefs = await scheduleRepository.countSchedulesByBuilding(id);
-      if (scheduleRefs > 0) {
+      const scheduleDocumentRefs = (await roomScheduleDocumentRepository.listDocuments({ buildingId: id, limit: 1 })).total;
+      if (scheduleRefs > 0 || scheduleDocumentRefs > 0) {
         return res.status(409).json({ success: false, message: SCHEDULE_REF_MESSAGE });
       }
       await buildingRepository.delete(id);
@@ -330,6 +343,7 @@ exports.deleteBuilding = async (req, res) => {
       // Runtime-source schedule guard (see comment above); the tx re-check
       // below covers same-backend races, and the MySQL FK RESTRICT backstops.
       const scheduleRefs = await scheduleRepository.countSchedulesByBuilding(id);
+      const scheduleDocumentRefs = (await roomScheduleDocumentRepository.listDocuments({ buildingId: id, limit: 1 })).total;
       // L2 TOCTOU hardening: lock the target building row, re-check route
       // references, and delete inside ONE transaction. SELECT ... FOR UPDATE
       // holds the building row's lock, so a concurrent campus_routes insert
@@ -352,12 +366,17 @@ exports.deleteBuilding = async (req, res) => {
         // Schedule guard: the runtime-source count captured before the tx,
         // plus a same-backend re-check on the tx connection while the
         // building row is locked (mirrors the route re-check above).
-        if (scheduleRefs > 0) return { status: 409, reason: 'schedule' };
+        if (scheduleRefs > 0 || scheduleDocumentRefs > 0) return { status: 409, reason: 'schedule' };
         const [schedRefs] = await conn.query(
           'SELECT id FROM room_schedules WHERE building_id = ? LIMIT 1',
           [id]
         );
         if (schedRefs.length > 0) return { status: 409, reason: 'schedule' };
+        const [scheduleImageRefs] = await conn.query(
+          'SELECT id FROM room_schedule_documents WHERE building_id = ? LIMIT 1',
+          [id]
+        );
+        if (scheduleImageRefs.length > 0) return { status: 409, reason: 'schedule' };
 
         await conn.query('DELETE FROM buildings WHERE id = ?', [id]);
         return { status: 200 };

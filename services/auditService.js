@@ -84,6 +84,10 @@ const ACTIONS = Object.freeze([
   'admin.schedule.create',
   'admin.schedule.update',
   'admin.schedule.delete',
+  // Semester-long room schedule image administration.
+  'admin.room_schedule_document.create',
+  'admin.room_schedule_document.update',
+  'admin.room_schedule_document.delete',
   'admin.settings.update',
   // VR scene/hotspot administration (Milestone 7, Section 7.8)
   'admin.vr.scene.create',

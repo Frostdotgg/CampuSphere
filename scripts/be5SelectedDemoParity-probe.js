@@ -429,10 +429,11 @@ function runMigrationTests() {
   const migrationName = '0019_be5_selected_demo_parity.sql';
   const migrationPath = path.join(dir, migrationName);
   const files = fs.readdirSync(dir).filter((file) => file.endsWith('.sql')).sort();
-  check(section, 'migration list is exactly 0001-0019',
-    files.length === 19 &&
+  check(section, 'migration source list is contiguous 0001-0020',
+    files.length === 20 &&
     files[0].startsWith('0001_') &&
-    files[18] === migrationName);
+    files[18] === migrationName &&
+    files[19] === '0020_room_schedule_documents.sql');
 
   const sql = fs.readFileSync(migrationPath, 'utf8');
   const body = sql.replace(/--[^\n]*/g, '');
@@ -495,9 +496,10 @@ function runMigrationTests() {
     '0018_cas_building_baseline.sql': '2f38221806b98c0aefa0575b180d65b8c3ec86682d83080b1d2aebac62399e48'
   };
   const hashesMatch = Object.entries(immutable).every(([file, expected]) => {
+    const canonicalBytes = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
     const actual = crypto
       .createHash('sha256')
-      .update(fs.readFileSync(path.join(dir, file)))
+      .update(canonicalBytes, 'utf8')
       .digest('hex');
     return actual === expected;
   });

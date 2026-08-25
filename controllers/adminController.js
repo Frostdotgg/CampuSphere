@@ -230,38 +230,16 @@ exports.logs = (req, res) => {
 /**
  * GET /admin/vr — VR Scene & Hotspot Administration (Milestone 7, Section 7.8)
  *
- * Pre-Milestone-12 UX repair: the schedule-hotspot form offers a building
- * dropdown instead of a raw numeric id, so the page loads the building list
- * through the same runtime-source pattern as campusMap — but passes ONLY
- * { id, name, category } to the view (no details/coords/media metadata).
- * The admin API contract is unchanged: the form still submits
- * schedule_building_id.
+ * Schedule documents are loaded through the bounded admin JSON API by the
+ * page client. No building/media rows need to be embedded in this view.
  */
-exports.vr = async (req, res) => {
+exports.vr = (req, res) => {
   const baseLocals = {
     title: 'CampuSphere Admin | VR Tour',
     description: 'Manage VR scenes and hotspots.',
     activePage: 'vr'
   };
-  try {
-    let rows;
-    if (mapRuntime.isBuildingSupabase()) {
-      rows = await buildingRepository.listAllOrderedByName();
-    } else {
-      [rows] = await db.query('SELECT id, name, category FROM buildings ORDER BY name ASC');
-    }
-    const buildings = rows.map((b) => ({
-      id: b.id,
-      name: b.name,
-      category: b.category != null ? b.category : null
-    }));
-    res.render('admin/vr', { ...baseLocals, buildings });
-  } catch (error) {
-    logServerError('admin.vr', req);
-    // The page stays usable without the dropdown data; the API contract and
-    // server-side validation are unaffected.
-    res.render('admin/vr', { ...baseLocals, buildings: [] });
-  }
+  res.render('admin/vr', baseLocals);
 };
 
 /* ========================================

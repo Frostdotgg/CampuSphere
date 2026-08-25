@@ -16,6 +16,7 @@
     <title>CampuSphere | Campus Buildings</title>
 
     <link rel="stylesheet" href="/css/styles.css?v=7">
+    <link rel="stylesheet" href="/css/room-schedule-viewer.css">
 
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -234,14 +235,12 @@
                      Real admin-managed entries only; rendered with
                      createElement/textContent — never unescaped HTML. -->
                     <div class="info-section" id="schedulePanel" style="margin-top:1rem;">
-                        <div class="info-section__title">Room &amp; Facility Schedules <span
-                                style="font-weight:400;font-size:.72rem;color:var(--gray-500);text-transform:none;">(upcoming
-                                14 days)</span></div>
+                        <div class="info-section__title">Current Semester Room Schedules</div>
                         <p id="scheduleLoading"
                             style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;">Loading schedules…
                         </p>
                         <p id="scheduleEmpty" style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;"
-                            hidden>No schedules in this date window.</p>
+                            hidden>No room schedule images are available for this building.</p>
                         <p id="scheduleError" style="color:var(--gray-500);font-size:.85rem;padding:.35rem 0;margin:0;"
                             hidden>Unable to load schedules.</p>
                         <ul class="info-list" id="scheduleList" hidden></ul>
@@ -615,98 +614,10 @@
 
 
 
-            /* ===== SCHEDULES (Milestone 11, Section 11.6) =====
-
-               Fetches the authenticated schedule window for the opened building.
-
-               Every API-derived value is rendered via createElement/textContent;
-
-               nothing from the response is placed into innerHTML. */
-
-            let scheduleReqSeq = 0;
-
             function loadBuildingSchedules(buildingId) {
-
-                const seq = ++scheduleReqSeq;
-
-                const loading = document.getElementById('scheduleLoading');
-
-                const empty = document.getElementById('scheduleEmpty');
-
-                const error = document.getElementById('scheduleError');
-
-                const list = document.getElementById('scheduleList');
-
-                if (!loading || !empty || !error || !list) return;
-
-                loading.hidden = false; empty.hidden = true; error.hidden = true; list.hidden = true;
-
-                while (list.firstChild) list.removeChild(list.firstChild);
-
-                fetch('/api/buildings/' + encodeURIComponent(buildingId) + '/schedules', { headers: { Accept: 'application/json' } })
-
-                    .then(r => r.json().then(j => ({ ok: r.ok, j })).catch(() => ({ ok: false, j: null })))
-
-                    .then(({ ok, j }) => {
-
-                        if (seq !== scheduleReqSeq) return; // superseded by a newer modal open
-
-                        loading.hidden = true;
-
-                        if (!ok || !j || j.success !== true || !Array.isArray(j.schedules)) { error.hidden = false; return; }
-
-                        if (j.schedules.length === 0) { empty.hidden = false; return; }
-
-                        j.schedules.forEach(s => {
-
-                            const li = document.createElement('li');
-
-                            const when = document.createElement('div');
-
-                            when.style.cssText = 'font-weight:600;';
-
-                            when.textContent = (s.schedule_date || '') + ' · ' + (s.start_time || '') + '–' + (s.end_time || '');
-
-                            const what = document.createElement('div');
-
-                            what.textContent = s.title || '';
-
-                            const where = document.createElement('div');
-
-                            where.style.cssText = 'font-size:.8rem;color:var(--gray-500);';
-
-                            const parts = [s.location_type, s.location_label];
-
-                            if (s.floor_label) parts.push(s.floor_label);
-
-                            if (s.audience && s.audience !== 'all') parts.push('for ' + s.audience);
-
-                            where.textContent = parts.filter(Boolean).join(' · ');
-
-                            li.appendChild(when); li.appendChild(what); li.appendChild(where);
-
-                            if (s.description) {
-
-                                const d = document.createElement('div');
-
-                                d.style.cssText = 'font-size:.8rem;color:var(--gray-500);';
-
-                                d.textContent = s.description;
-
-                                li.appendChild(d);
-
-                            }
-
-                            list.appendChild(li);
-
-                        });
-
-                        list.hidden = false;
-
-                    })
-
-                    .catch(() => { if (seq !== scheduleReqSeq) return; loading.hidden = true; error.hidden = false; });
-
+                if (window.CampuSphereBuildingSchedules) {
+                    window.CampuSphereBuildingSchedules.load(buildingId);
+                }
             }
 
 
@@ -911,6 +822,11 @@
             renderGrid();
 
         </script>
+
+        <%- include('partials/room-schedule-viewer') %>
+
+        <script src="/js/room-schedule-viewer.js"></script>
+        <script src="/js/building-room-schedules.js"></script>
 
         <!-- Edit Profile Script -->
 
