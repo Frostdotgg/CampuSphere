@@ -5,7 +5,192 @@ evidence without committing private data. Store actual screenshots or recordings
 outside the repo unless they have been reviewed and explicitly approved.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-08-24)
+## Current Release Continuity (2026-08-28)
+
+Live Git at the start of this synchronization is branch `main`, with local
+`HEAD`, `origin/main`, and remote `main` all equal to pushed Git commit SHA-1
+`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`,
+`feat: add semester room schedule flow`). The index and worktree are clean,
+there are zero dirty paths and zero stashes, and predecessor Git commits are
+Git commit SHA-1 `2b4f42df3f79347c70af07f7b98f70be55b701bd` (the
+non-Cloudinary stabilization) and Git commit SHA-1
+`dc961b1eeba191d79b96998d96f0a49dac3ffcf8` (the searchable
+course catalog). Recompute live Git truth in every new session; this snapshot
+does not authorize normalization when live truth differs.
+
+This synchronization itself now has an exact unstaged 12-path authority delta:
+the 11 authority documents plus `scripts/quality-gates.js`. The index is empty,
+there are no untracked paths, and zero stashes remain. These working-tree facts
+supersede the clean-start snapshot for a new session until this authority delta
+is separately accepted, committed, and pushed.
+
+At the synchronization checkpoint, the product candidate was committed locally
+as Git commit SHA-1 `38905b7b2b103caa9ed0575f1031b30344944970` (`feat: add
+public FAQ and institutional settings`) on top of `e481d03`. At that
+checkpoint, local `HEAD` was this product commit while `origin/main` and
+remote `main` remained `e481d03`; the index was empty and exactly the 12
+authority paths remained unstaged, with no untracked paths and zero stashes.
+The product commit had not yet been pushed at that checkpoint; authority
+synchronization and push were separate boundaries. Recompute live Git truth
+before relying on this checkpoint.
+
+The retained safety branch `backup-pre-trailer-strip` still points to Git
+commit SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`.
+
+Accepted history remains separate and unchanged: Milestones 8-11, RF.1-RF.6,
+BE.1-BE.6, OFF.1-OFF.6, M12.P1 R1-R7, D1-D7, dependency-security
+remediation, the independently reviewed `bb17b9b` release authority, and the
+owner-observed later Production/OAuth/course evidence retain their recorded
+dispositions. The abbreviated operative lineage is
+`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03`.
+
+The pushed `e481d03` candidate contains the completed non-Cloudinary campus
+stabilization plus the semester room-schedule image flow. The stabilization
+includes valid Guided-VR and Free Roam scene arrows, VR light/dark parity,
+compact accessible online/offline building pins, the offline label `Guard
+House`, the authenticated notification feed/panel and shared styling, the Paga
+About card, admin category-dropdown styling and user role/status filters, safe
+Google profile-image synchronization, and removal of the manual profile-photo
+upload. Manual Cloudinary upload remains deferred and the application does not
+call Cloudinary upload, delete, or management APIs for the schedule flow.
+
+The room-schedule design is one semester-long image document per room/facility.
+An administrator pastes an approved HTTPS Cloudinary delivery URL and optional
+public ID; no image bytes are uploaded by CampuSphere. A schedule hotspot stores
+`schedule_document_id`, and updating the linked document updates every viewer
+without rewriting hotspot metadata. The shared accessible responsive viewer is
+available from building details and VR; legacy time-row/hotspot metadata remains
+read-only fallback, and schedules remain excluded from the offline package.
+The owner applied `0020_room_schedule_documents.sql` to Supabase, local MySQL
+schema parity was verified, and migration sources are contiguous through
+`0020`. Do not reapply migration 0020 without a new explicit database
+authorization.
+
+Accepted `e481d03` verification remains a separate evidence class: its exact
+source passed `npm test` at `4998/4998` with `QUALITY-GATES OK`; five-stage
+`npm run qa` exited 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
+vulnerabilities`. Focused room-schedule verification passed `58/58`, the
+package boundary passed `74/74`, BE.6 passed `46/46`, and the final session
+residue contract passed `18/18`.
+
+The product commit `38905b7` was independently reviewed in the order
+Security -> Performance -> Correctness -> Maintainability with no critical,
+high, medium, or low findings. Its current read-only verification exited 0 for
+`npm test` with `QUALITY-GATES OK` and for `npm run qa` with
+`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Focused product
+probes passed: public FAQ `38/38`, site settings `26/26`, settings runtime
+`20/20`, package boundary `74/74`, BE.6 `46/46`, and final session residue
+`18/18`. The current wrapper did not emit a standalone aggregate count, so the
+accepted `4998/4998` total above is not relabeled as a new product total. This
+records verification and review only; Final Milestone 12 remains external.
+
+Authority-sync validation on 2026-08-26 is separate incomplete/rejected
+evidence. After the documentation corrections, the exported source-only
+`docs-current` gate passed. The full `npm test` rerun was not green because two
+read-only live-state postconditions changed: Supabase now has 665 total VR
+scenes against the 664-scene freeze, and exactly one intended-role canonical
+Supabase administrator session was unexpired at classification time. The
+newest additional scene is outside the selected 101-scene verification scope
+and has zero outgoing hotspots and zero incoming scene links; all building and
+route semantics, selected-VR and Guided-catalog fingerprints, and all 25
+active Guided routes still passed. The session was due to expire at
+2026-08-26 13:30:36 Asia/Manila. No scene, freeze, session, account, or other
+data was changed. Recompute both conditions live; do not delete content,
+refresh the freeze, or revoke a session without a separate explicit owner
+authorization. No authority-sync `npm run qa` was run.
+
+The accepted `e481d03` runtime package identity remains historical: 180 files,
+7,189,621 bytes, aggregate SHA-256
+`c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216`.
+The current product commit package identity is 186 files, 7,220,073 bytes,
+aggregate SHA-256
+`c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`.
+Documentation and `scripts/` are outside the deployment package; this package
+identity is source/package evidence, not deployed-byte proof.
+
+Commit `e481d03` is committed and pushed to `main`, but no owner-authorized promotion,
+Production acceptance, or independent anonymous deployed-byte verification is
+recorded for it. Do not infer current Vercel deployment state from older
+screenshots. The last independently post-deployment-verified technical
+Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains; owner-observed
+Production behavior for later commits remains a separate evidence class and is
+not byte proof for `e481d03`.
+
+Production architecture remains Supabase/PostgreSQL for application data and
+sessions, with MySQL for local development, fallback, and rehearsal. The stored
+frozen verification baseline remains MySQL 34 buildings / 44 route nodes / 100
+directed edges / 50 exact reverse pairs / 100 valid geometries; Supabase 25 /
+26 / 50 / 25 / 50; and the shared Guided-VR catalog 25 active destinations /
+472 configured steps / 99 unique scene keys. The accepted candidate's final
+canonical-session postcondition was zero unexpired residue (`18/18`). The supported MySQL CCS route
+node/geometry correction and the exact previously authorized session
+revocations are closed operational history, not authorization for further data
+or session mutation.
+
+The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` remains
+read-only preview evidence: it reported no content differences and equal
+fingerprints SHA-256
+`2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
+No data was written, and this is not an applied sync, current database
+verification, backup, or restore claim. Preserve the external backup/restore
+record of 109/109 files and 86 referenced Cloudinary delivery assets without
+putting credentials, signed URLs, database identifiers, backup paths,
+participant PII, developer-contact emails, or verification artifacts in Git.
+
+Google OAuth remains owner-observed `In production` and requests only `openid
+email profile`; Google Data Access reported that sensitive or restricted-scope
+verification is not required, and the owner confirmed account creation and
+sign-in work. Branding/Search Console ownership remains deferred and unverified.
+Do not describe OAuth as independently verified or unlimited. The owner-attested
+2026-08-05 human pilot remains accepted with zero reported findings, while
+participant/Form evidence and full source-commit identity remain external.
+
+The owner-observed Android 8 installed-PWA behavior is now classified as an
+unsupported Android/Chrome platform compatibility observation, not a confirmed
+CampuSphere code defect and not a proven hardware failure. Chrome 138 was the
+last release for Android 8/9, current Chrome requires Android 10+, and the exact
+old-device crash cause was not reproduced with device logs. The supported
+mobile presentation target is Android 10+ with a current Chrome release;
+further Android 8 investigation requires a separate bounded authorization and
+sanitized device evidence.
+
+The participant-facing public FAQ is implemented and committed in product commit `38905b7` as a
+public, server-rendered `/faq` page backed by the existing dual-backend
+administrator-managed FAQ data. It is available to signed-out visitors and
+signed-in users, with public and signed-in top navigation, a shared light/dark
+theme control, accessible native accordions, search and category filters, and
+escaped admin-authored text. Admin FAQ CRUD remains at `/admin/faqs` and
+`/admin/api/faqs`; saving publishes a row immediately, with no schema or
+migration change. The focused `publicFaq-probe.js` passed `38/38`; the FAQ is
+standalone and is not embedded in the dashboard. The FAQ implementation is
+committed locally and not pushed; the authority synchronization and push
+remain separate boundaries. Promotion and deployment are not authorized.
+
+Keep evidence classes separate: accepted historical release/R8 evidence;
+course-feature and owner-observed Production/OAuth evidence; live Git truth;
+accepted `e481d03` source/package/review/push evidence; current product commit
+`38905b7` source/package/verification/review evidence; owner-applied migration
+0020; the read-only sync preview; the Android compatibility observation;
+missing promotion, Production acceptance, and deployed-byte proof for the
+current product; and the external Final Milestone 12 disposition.
+This synchronization changed the authority documents plus
+`scripts/quality-gates.js`; the FAQ implementation is separately authorized as
+a separately committed local product. No new session may infer authority to
+promote, deploy, alter SQL/data/sessions, contact Cloudinary or another vendor,
+or run Production smoke. Deployment is not authorized by this synchronization.
+
+Every older section below that presents an earlier candidate or lifecycle as
+"current" is retained only as an explicitly historical snapshot. This block and
+fresh live repository/vendor evidence win when they conflict.
+
+Final Milestone 12 disposition remains external.
+<!-- M12 RELEASE CONTINUITY END -->
+
+<!-- M12 HISTORICAL RELEASE CONTINUITY START -->
+## Historical Release Continuity (2026-08-24; superseded)
 
 Live Git at the start of this authority synchronization was branch `main`,
 with local `HEAD`, `origin/main`, and remote `main` all equal to pushed Git
@@ -166,7 +351,7 @@ remains an explicit owner/external closeout decision.
 Every older section below that labels the pre-promotion maintenance state as
 “current” is retained only as a historical snapshot. This continuity block and
 live repository/vendor evidence win when they conflict.
-<!-- M12 RELEASE CONTINUITY END -->
+<!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 
 ## Historical 2026-08-21 Pre-Promotion Evidence Classification
 
@@ -457,7 +642,7 @@ require explicit manual promotion before they replace the live alias.
 | Full contract suite (bounded review-finding remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4623/4624 checks passed; one `docs-current` failure; exit 1; no `QUALITY-GATES OK`** | Runtime, dual-backend catalog, supported fixture cleanup, and embedded `18/18` residue were green. The sole failure was the reusable Codex prompt lacking an explicit review-open sentence within the fail-closed authority scope; corrected before the exact green row above |
 | Full contract suite (Guided-VR catalog-remediation pre-disclosure candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/pre-disclosure: 4609/4609 PASS; exit 0; does not validate the later failure-disclosure documentation bytes** | One `QUALITY-GATES OK`, zero `[FAIL]` lines, and clean embedded `18/18` residue before QA. Superseded by the current exact row after the bounded session correction and fresh matrix |
 | Full contract suite (Guided-VR catalog-remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4,591 PASS plus eight documentation-only failures; exit 1; no `QUALITY-GATES OK`** | Every runtime/database/catalog probe and embedded `18/18` residue postcondition passed. Failures were confined to secret-label/current routing wording, reusable-prompt currency, two stale-current safety rows, and three unset suite/QA evidence contracts. This run is retained only as measurement evidence |
-| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; focused package gate `74/74`** | Current maintenance-correction package evidence; replacement verification remains separately gated and does not authorize deployment. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
+| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`; focused package gate `74/74`** | Current product package evidence; replacement verification remains separately gated and does not authorize deployment. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency second execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,774/3,777 checks passed, three `docs-current` failures, exit 1; no `QUALITY-GATES OK`** | The frozen candidate passed its hash/Git preflight, syntax checks, and focused logout probe at `75/75`. `npm test` then completed once and failed only the three recorded documentation contracts: `docs/test-evidence.md` did not distinguish the deployed runtime baseline from the documentation-only commit, and both `docs/test-evidence.md` and `docs/deployment.md` carried a claim-scoped stale deployment conflict. Embedded residue and BE.6 reported `18/18` and `46/46`, but stop-on-red prevented `npm run qa` and the final independent `24/24 -> 18/18 -> 46/46`; no retry was run, and clean embedded checks do not promote the red suite |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency first execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,742/3,772 checks passed, 30 failed, exit 1; no `QUALITY-GATES OK`** | The single execution exposed static documentation/analyzer contract failures plus the long-hex false positive. It did not establish acceptance evidence and was not retried. The focused logout probe had already passed `75/75`, and the test transcript emitted zero escaped logout-destroy error lines; those facts do not convert this red suite into a pass |
 | Full contract suite (M12.P1 SEC-51 gate-hardening correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3760/3760` PASS — later found FAIL-OPEN by independent Codex review on contradictory-scope deployed SHAs and superseded by the correction row above; retained as history, NOT accepted evidence** | `+5` versus the superseded `3755`: five separately named rejecting fixtures for five fail-open cases found by independent Codex adversarial review, which passed only 7 of 12 cases. Two cases escaped topic detection — a stale claim after a semicolon, and a stale claim in the following sentence — because topic matching was per-claim, so a clause that did not repeat the topic was skipped. Three more defeated SHA co-occurrence: a row or prose statement naming a DIFFERENT 40-character SHA as the deployed baseline while mentioning the expected SHA nearby for comparison. Both classes are now closed. Topic is matched on the containing EVIDENCE SCOPE — one table row, or one prose paragraph — so a following claim cannot escape by omitting the topic, while scope boundaries stop context crossing into an unrelated row or paragraph. A new pure `claimBindsShaToDeployedBaseline()` replaces co-occurrence with explicit binding: the claim must be non-historical, contain exactly ONE full 40-character SHA, that SHA must be the expected one, and it must be grammatically attached to the deployed production baseline. Historical and past-bounded exemptions remain per-claim. The pre-existing regression fixture is restored verbatim rather than reworded to suit the detector. Superseded: `3755/3755` was recorded as green but is historical/superseded — independent adversarial review later found it fail-open, so it is retained as history and is NOT accepted evidence |

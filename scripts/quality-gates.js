@@ -249,6 +249,21 @@ async function runSuite(base, mode) {
     ok('L3 anon GET /home -> 200 HTML', home.status === 200 && /<!DOCTYPE|<html/i.test(homeBody));
     ok('L3 anon GET /home sets no session cookie', !setsSessionCookie(home));
 
+    /* Public FAQ is intentionally readable before sign-in. Keep this runtime
+       check beside the other fresh no-cookie public surfaces: it proves the
+       route is SSR HTML, uncached, pilot-index protected, and does not create
+       an anonymous session. */
+    const faq = await fetch(base + '/faq', { redirect: 'manual', headers: { Accept: 'text/html' } });
+    const faqBody = await faq.text();
+    ok('FAQ anon GET /faq -> 200 HTML (no redirect, no login required)',
+      faq.status === 200 && /<!DOCTYPE|<html/i.test(faqBody));
+    ok('FAQ anon GET /faq sets no session cookie', !setsSessionCookie(faq));
+    ok('FAQ anon GET /faq is explicitly uncached', faq.headers.get('cache-control') === 'no-store');
+    ok('FAQ anon GET /faq carries the exact pilot X-Robots-Tag',
+      faq.headers.get('x-robots-tag') === 'noindex, nofollow, noarchive');
+    ok('FAQ anon GET /faq renders the seeded public question and no admin controls',
+      /How do I open the campus map\?/i.test(faqBody) && !/Add FAQ|\/admin\/api\/faqs/i.test(faqBody));
+
     const bld = await fetch(base + '/buildings', { redirect: 'manual', headers: { Accept: 'text/html' } });
     await bld.text();
     ok('L3 anon GET /buildings -> 302 /auth', bld.status === 302 && /\/auth/.test(bld.headers.get('location') || ''));
@@ -453,6 +468,15 @@ async function runSuite(base, mode) {
   // not break the success path). Admin's valid login is asserted in section 9.
   ok('L4 valid login still authenticates (student)', student.ok && /\/dashboard/.test(student.loc));
 
+  const signedFaq = await fetch(base + '/faq', {
+    headers: { Accept: 'text/html', Cookie: student.jar.header() },
+  });
+  const signedFaqBody = await signedFaq.text();
+  ok('FAQ signed-in GET /faq -> 200 with dashboard chrome',
+    signedFaq.status === 200 && /id="dashNav"/.test(signedFaqBody));
+  ok('FAQ signed-in navigation marks the FAQ link active',
+    /class="[^"]*dash-nav__tab--active[^"]*"[^>]*id="tabFaq"/.test(signedFaqBody));
+
   // 6. Authorization: student hitting admin API -> 403 JSON
   r = await fetch(base + '/admin/api/users', { headers: { Accept: 'application/json', Cookie: student.jar.header() } });
   body = await r.text(); errorBodies.push(body); o = parseJson(body);
@@ -509,7 +533,7 @@ async function runSuite(base, mode) {
     r = await fetch(base + '/admin/api/faqs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
-      body: JSON.stringify({ question: `${PREFIX} What time does the library open?`, answer: 'Demo answer.', category: 'general', display_order: 999 }),
+      body: JSON.stringify({ question: `${PREFIX} <b>What time does the library open?</b>`, answer: '<script>faq-probe</script><img src=x onerror=faqProbe>', category: 'general', display_order: 999 }),
     });
     body = await r.text(); o = parseJson(body);
     createdId = o && o.faq && o.faq.id;
@@ -530,6 +554,17 @@ async function runSuite(base, mode) {
     o = parseJson(await r.text());
     const list = o && (o.faqs || o.data || []);
     ok('Admin CRUD: list includes created FAQ', Array.isArray(list) && list.some((f) => f.id === createdId));
+
+    // The public page must escape admin-authored text. This request is read-only
+    // and uses the same temporary row that the finally block removes below.
+    const publicWithProbeFaq = await fetch(base + '/faq', { headers: { Accept: 'text/html' } });
+    const publicWithProbeFaqBody = await publicWithProbeFaq.text();
+    ok('Public FAQ escapes temporary admin-authored HTML',
+      publicWithProbeFaq.status === 200 &&
+      publicWithProbeFaqBody.includes('&lt;script&gt;faq-probe&lt;/script&gt;') &&
+      publicWithProbeFaqBody.includes('&lt;img src=x onerror=faqProbe&gt;') &&
+      !publicWithProbeFaqBody.includes('<script>faq-probe</script>') &&
+      !/<img[^>]*onerror=faqProbe/i.test(publicWithProbeFaqBody));
 
     // delete -> 200
     if (createdId) {
@@ -4187,7 +4222,7 @@ function runPilotReadinessGate() {
   const view = read('views/privacy.ejs');
 
   ok('routes/index.js registers GET /privacy',
-    /router\.get\(\s*'\/privacy'\s*,\s*pageController\.privacy\s*\)/.test(routes));
+    /router\.get\(\s*'\/privacy'\s*,[\s\S]*?pageController\.privacy\s*\)/.test(routes));
   ok('GET /privacy is anonymous (no requireLogin on the privacy route)',
     !/router\.get\(\s*'\/privacy'[^)]*requireLogin/.test(routes));
   ok('pageController exports a privacy handler that renders the privacy view',
@@ -4221,9 +4256,9 @@ function runPilotReadinessGate() {
     footer.includes(EXPECTED_CSPC_SITE_URL));
   ok('the anonymous footer links the official CSPC privacy policy',
     footer.includes(EXPECTED_CSPC_POLICY_URL));
-  ok('the removed Student Portal / FAQ / Contact / Terms placeholders are not back',
+  ok('the anonymous footer links the real public FAQ page and keeps other placeholders out',
+    /href=["']\/faq["']/.test(footer) &&
     !/>\s*Student Portal\s*</.test(footer) &&
-    !/>\s*FAQ\s*</.test(footer) &&
     !/>\s*Contact Us\s*</.test(footer) &&
     !/>\s*Terms of Use\s*</.test(footer));
 
@@ -5777,6 +5812,12 @@ const CURRENT_RELEASE_AUTHORITY_COMMIT_SHA =
   'bb17b9b603583bcc2934e3ffab1cbdcb7d6b0ddd';
 const CURRENT_RELEASE_COMMIT_SHA =
   'dc961b1eeba191d79b96998d96f0a49dac3ffcf8';
+const CURRENT_PUSHED_CANDIDATE_COMMIT_SHA =
+  'e481d0343313e6356438393a783b48d838f01a36';
+const CURRENT_PUSHED_CANDIDATE_PREDECESSOR_SHA =
+  '2b4f42df3f79347c70af07f7b98f70be55b701bd';
+const CURRENT_PUSHED_CANDIDATE_PACKAGE_SHA256 =
+  'c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -5815,6 +5856,91 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   }
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  /* Current post-schedule authority. Older fixtures intentionally continue
+     through the historical analyzer below so accepted release evidence stays
+     testable without allowing those lifecycle claims back into live docs. */
+  if (t.includes(CURRENT_PUSHED_CANDIDATE_COMMIT_SHA)) {
+    if (!t.includes(CURRENT_PUSHED_CANDIDATE_PREDECESSOR_SHA) ||
+        !t.includes(CURRENT_RELEASE_COMMIT_SHA) ||
+        !/HEAD[\s\S]{0,140}origin\/main[\s\S]{0,140}remote `?main`?[\s\S]{0,180}e481d03/i.test(t) ||
+        !/(?:index and worktree are clean|clean index\/worktree|index\/worktree were clean)/i.test(t) ||
+        !/zero dirty paths[\s\S]{0,100}zero stashes/i.test(t)) {
+      problems.push('e481d03 Git identity or clean pushed lifecycle is missing');
+    }
+    if (!/semester room-schedule (?:image|document) flow/i.test(t) ||
+        !/schedule_document_id/i.test(t) ||
+        !/(?:no image bytes are uploaded|no upload\/delete\/management|no upload, delete, or management)/i.test(t) ||
+        !/legacy[\s\S]{0,120}read-only fallback/i.test(t) ||
+        !/(?:schedules remain|schedules stay)[\s\S]{0,80}(?:excluded|offline-excluded)/i.test(t)) {
+      problems.push('current room-schedule behavior or Cloudinary boundary is missing');
+    }
+    if (!/(?:owner (?:applied|applied `?)0020_room_schedule_documents\.sql|0020_room_schedule_documents\.sql[\s\S]{0,80}owner-applied)/i.test(t) ||
+        !/(?:MySQL schema (?:parity )?was verified|matching MySQL schema is verified|local MySQL[\s\S]{0,80}verified)/i.test(t) ||
+        !/(?:Do not reapply|do not apply SQL|do not apply or reapply SQL)/i.test(t)) {
+      problems.push('owner-applied 0020 and no-reapply boundary is missing');
+    }
+    if (!/npm test[\s\S]{0,80}4998\/4998/i.test(t) ||
+        !/(?:schedule|room-schedule)[\s\S]{0,80}58\/58/i.test(t) ||
+        !/package[\s\S]{0,80}74\/74/i.test(t) ||
+        !/BE\.6[\s\S]{0,60}46\/46/i.test(t) ||
+        !/residue[\s\S]{0,80}18\/18/i.test(t)) {
+      problems.push('current verification totals are incomplete');
+    }
+    if (!t.includes(CURRENT_PUSHED_CANDIDATE_PACKAGE_SHA256) ||
+        !/180 files[\s\S]{0,80}7,189,621 bytes/i.test(t)) {
+      problems.push('current runtime package identity is missing');
+    }
+    if (!/(?:no critical, high, medium, or low findings|no critical\/high\/medium\/low findings|independently reviewed with no findings)/i.test(t) ||
+        !/(?:committed,? and pushed|commit,? and push)/i.test(t)) {
+      problems.push('current independent review or push evidence is missing');
+    }
+    if (!/(?:no owner-authorized promotion|No promotion|no promotion)/i.test(t) ||
+        !/Production acceptance/i.test(t) ||
+        !/(?:deployed-byte verification|deployed-byte proof)/i.test(t) ||
+        /e481d03[^.]{0,160}(?:is|was|has been) (?:promoted|deployed|Production current)/i.test(t)) {
+      problems.push('e481d03 deployment evidence boundary is missing or contradicted');
+    }
+    if (!/Android 8[\s\S]{0,120}unsupported[\s\S]{0,120}(?:compatibility|platform)/i.test(t) ||
+        !/not a confirmed[\s\S]{0,80}(?:CampuSphere|app|code) (?:defect|bug)/i.test(t) ||
+        !/(?:not a proven hardware failure|not a confirmed[\s\S]{0,80}(?:defect|bug)[\s\S]{0,60}or proven hardware failure)/i.test(t) ||
+        !/Android 10\+[\s\S]{0,100}(?:current )?Chrome/i.test(t)) {
+      problems.push('Android 8 unsupported-platform classification is missing');
+    }
+    const publicFaqCandidate =
+      /participant-facing public FAQ(?: page)?[\s\S]{0,220}(?:implemented|available|candidate)/i.test(t) &&
+      /(?:GET\s+)?\/faq/i.test(t) &&
+      /publicFaq-probe\.js/i.test(t);
+    const publicFaqBoundary =
+      /(?:separate|independent)[^.]{0,100}(?:review|commit|push|promotion|deployment)[^.]{0,100}(?:boundary|authorization|gated|not authorized)/i.test(t) ||
+      /implementation[^.]{0,120}(?:unstaged|uncommitted|not committed|not pushed)/i.test(t);
+    if (!/admin FAQ CRUD/i.test(t) || !publicFaqCandidate || !publicFaqBoundary) {
+      problems.push('public FAQ implementation evidence or lifecycle boundary is missing');
+    }
+    const implementationBoundary =
+      /(?:authorizes no product implementation|does not authorize implementation|does not authorize planning or implementation)/i.test(t) ||
+      /FAQ implementation[^.]{0,180}(?:local candidate|unstaged|uncommitted|not pushed|separate(?:ly)? authorized)/i.test(t) ||
+      /participant-facing public FAQ[^.]{0,220}(?:commit|push|promotion|deployment)[^.]{0,120}(?:separate|independent|not|remain|require)/i.test(t);
+    if (!/Final Milestone 12 disposition remains external/i.test(t) ||
+        !implementationBoundary ||
+        !/(?:Deployment is not authorized|no[\s\S]{0,100}promotion, deployment)/i.test(t)) {
+      problems.push('final closeout or no-implementation/deployment boundary is missing');
+    }
+    const staleCurrentClaims = [
+      /current uncommitted candidate/i,
+      /authorized, uncommitted candidate/i,
+      /migration 0020[\s\S]{0,80}(?:does not exist|pending|not applied)/i,
+      /Android 8 installed-PWA crash remains unresolved/i,
+      /missing current full QA, independent review, commit, push/i,
+      /next boundary[\s\S]{0,100}verify the non-Cloudinary changes/i,
+      /already implemented public FAQ page/i,
+    ];
+    if (staleCurrentClaims.some((rule) => rule.test(t))) {
+      problems.push('stale pre-e481d03 operative lifecycle claim remains');
+    }
+    return problems;
+  }
+
   const exactLineage =
     t.includes('d786bdcb83a196c7263dceae668417d3ced3e95a') &&
     t.includes('c00db76c5be0fe9c8dfdc8168a4c4303c6a0aa64') &&
@@ -6008,6 +6134,15 @@ function reusablePromptIsCurrent(body) {
 
   const carriesPromotedReleaseAuthority =
     currentReleaseContinuityProblems(t, { requireMarkers: false }).length === 0;
+
+  if (t.includes(CURRENT_PUSHED_CANDIDATE_COMMIT_SHA)) {
+    return carriesPromotedReleaseAuthority &&
+      /fresh context-only grounding session/i.test(t) &&
+      /load and follow the installed code-reviewer skill/i.test(t) &&
+      /public FAQ page/i.test(t) &&
+      /Deployment is not authorized by this prompt/i.test(t) &&
+      /context-only prompt authorizes none/i.test(t);
+  }
 
   const carriesCurrentAuthority =
     /\bR1-R7\b[\s\S]{0,180}\b(?:and\s+)?D1-D5\b[\s\S]{0,160}\b(?:and\s+)?(?:expanded\s+)?D7\b[\s\S]{0,160}\b(complete|completed)\b[\s\S]{0,80}\bCodex GO\b/i.test(t) &&
@@ -6322,18 +6457,18 @@ function analyzeProvenanceRemediationRow(md) {
    technical Production baseline remain historical authority and are not
    silently relabelled by this implementation. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 168,
-  bytes: '7,074,195',
-  sha256: '13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5',
+  files: 186,
+  bytes: '7,220,073',
+  sha256: 'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621',
 });
 
 /* The deployable bytes now include the room-schedule image candidate and the
    deferred profile-upload removal. Keep this live-worktree pin separate from
    accepted historical release evidence until a clean commit is reviewed. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 180,
-  bytes: '7,189,621',
-  sha256: 'c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216',
+  files: 186,
+  bytes: '7,220,073',
+  sha256: 'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7774,8 +7909,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-24';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-08-25';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-28';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-08-28';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -7797,6 +7932,8 @@ function runDocsCurrentGate() {
       'docs/deployment.md': 'Current Release Continuity',
       'docs/security-checklist.md': 'Current Release Continuity',
       'docs/test-evidence.md': 'Current Release Continuity',
+      'docs/demo-script.md': 'Current Release Continuity',
+      'docs/new-session-grounding-prompts.md': 'Current Release Continuity',
     };
     for (const [name, heading] of Object.entries(headings)) {
       const value = String(sourceMap && sourceMap[name] || '');
@@ -7812,16 +7949,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-08-24)',
-    'CLAUDE.md': '## Current Release Continuity (2026-08-24)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-25 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-25 (Asia/Manila)\n## Current Release Continuity (2026-08-24)',
-    'plan.md': '## Current Release Continuity (2026-08-24)',
-    'ROADMAP.md': '## Current Release Continuity (2026-08-24)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-25 (Asia/Manila)',
-    'docs/deployment.md': '## Current Release Continuity (2026-08-24)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-08-24)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-08-24)',
+    'AGENTS.md': '## Current Release Continuity (2026-08-28)',
+    'CLAUDE.md': '## Current Release Continuity (2026-08-28)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
+    'plan.md': '## Current Release Continuity (2026-08-28)',
+    'ROADMAP.md': '## Current Release Continuity (2026-08-28)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-08-28)',
+    'docs/deployment.md': '## Current Release Continuity (2026-08-28)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-08-28)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-08-28)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -8088,10 +8226,18 @@ function runDocsCurrentGate() {
   /** PURE: require accepted D6/OFF.2-OFF.6 history, the committed verified
    * implementation, and independent final-closeout/release boundaries. */
   function offlineCandidateAuthorityProblems(value) {
-    if (currentReleaseContinuityProblems(value, { requireMarkers: false }).length === 0) {
+    const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    /* Once a document carries the marked current-release block, evaluate that
+       block in isolation. Historical sections intentionally retain the old
+       "current uncommitted candidate" wording; allowing those archived claims
+       to contaminate the live e481d03 block makes this helper fail even when
+       current authority is correct. Marker-free fixtures still use the
+       unscoped analyzer below. */
+    const hasCurrentMarkers = text.includes(CURRENT_RELEASE_CONTINUITY_START) &&
+      text.includes(CURRENT_RELEASE_CONTINUITY_END);
+    if (currentReleaseContinuityProblems(value, { requireMarkers: hasCurrentMarkers }).length === 0) {
       return [];
     }
-    const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     const anchors = [...text.matchAll(/\b(?:OFF\.2-OFF\.6|OFF\.2\s*(?:through|-)\s*OFF\.6)\b/ig)].map((match) => match.index);
     const scopes = anchors.map((index) => {
       const candidates = [index + 25000];
@@ -8224,7 +8370,7 @@ function runDocsCurrentGate() {
 
   for (const name of maintenanceAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records dc961b1 continuity and the current verification/Cloudinary boundary`,
+    ok(`${name} records e481d03 continuity and the current verification/deployment boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -8237,32 +8383,32 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current post-course continuity is accepted and unsupported variants fail closed',
+  ok('fixture: current post-e481d03 continuity is accepted and stale/false variants fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_RELEASE_COMMIT_SHA,
+      CURRENT_PUSHED_CANDIDATE_COMMIT_SHA,
       'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_RELEASE_REVIEW_MANIFEST_SHA256,
+      CURRENT_PUSHED_CANDIDATE_PACKAGE_SHA256,
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /No independent anonymous GET-only\s+post-promotion byte verification has been recorded for\s+`?bb17b9b`? or\s+`?dc961b1`?/,
-      'Independent anonymous GET-only post-promotion verification PASS is recorded for `dc961b1`')).length > 0 &&
+      /no owner-authorized promotion/i,
+      'owner-authorized promotion')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /Do not describe OAuth as verified or\s+unlimited\./,
-      'Google OAuth is verified and unlimited.')).length > 0 &&
+      /unsupported Android\/Chrome platform compatibility observation/i,
+      'confirmed CampuSphere Android code bug')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /removal\s+of\s+the\s+manual\s+profile-photo\s+upload/,
-      'manual profile-photo upload is accepted and production-ready')).length > 0 &&
+      /participant-facing public FAQ(?: page)?/i,
+      'already implemented public FAQ page')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /The owner selected this next sequence:[\s\S]{0,500}Grounding prompts do not themselves authorize tests,\s+fixes, browser\/server work, database access, or vendor operations\./,
-      'The current 70-path worktree passed full QA, received Codex GO, and is ready for Production.')).length > 0 &&
+      /Do not reapply migration 0020 without a new explicit database\s+authorization\./,
+      'Reapply migration 0020 in every new session.')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 
@@ -9586,12 +9732,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`; focused package gate `74/74`** | current maintenance-correction package evidence; replacement verification remains separately gated |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5`** | current maintenance-correction package evidence; accepted technical Production predecessor is historical: 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`; focused package gate `74/74`** | current product package evidence; accepted e481d03 package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`** | current product package evidence; accepted e481d03 package is historical: 180 files, 7,189,621 bytes, aggregate SHA-256 `c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -9810,7 +9957,7 @@ function runDocsCurrentGate() {
       analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_HIST + '\n' + INV_STALE_HIST).length === 0 &&
       analyzeSupersededCandidateRows(Q_HDR + INV_CURRENT_CITES_OLD).length === 0 &&
       analyzeSecurityChecklistPackageBoundaryRow(
-        SEC37_HDR + SEC37_CURRENT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
+        SEC37_HDR + SEC37_CURRENT_PRODUCT, EXPECTED_CURRENT_PACKAGE_INVENTORY).length === 0);
     ok('fixture: stale current status or stale, duplicated, and missing SEC-37 current package claims are rejected',
       analyzeSupersededCandidateRows(Q_HDR + SUITE_STALE_CURRENT).length > 0 &&
       analyzeSupersededCandidateRows(Q_HDR + INV_STALE_CURRENT).length > 0 &&
@@ -11170,6 +11317,19 @@ const SHARED_NAV_PROBES = [
   ['shared mobile navigation + brand contracts', 'sharedMobileNavigation-probe.js'],
 ];
 
+// Public participant-facing FAQ: dual-backend SSR route, escaped admin content,
+// anonymous/signed-in discovery, progressive-enhancement search/filter UX, and
+// explicit exclusion from the offline/service-worker package.
+const PUBLIC_FAQ_PROBES = [
+  ['public FAQ contracts', 'publicFaq-probe.js'],
+];
+
+// Administrator-managed institutional settings are projected into the
+// signed-in About page and shared public footers. Database-free focused probe.
+const SITE_SETTINGS_PROBES = [
+  ['site settings projection contracts', 'siteSettings-probe.js'],
+];
+
 // Authenticated navbar notifications: role-safe announcements + upcoming
 // events, accessible disclosure behavior, browser-seen revision state, and
 // network-only API handling. Database-free focused probe.
@@ -11327,6 +11487,10 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Logout/session-termination QA] (M12.P1-D1 fresh-token endpoint + truthful logout probe)' },
   { key: 'shared-nav', prefix: 'shared-nav', probes: SHARED_NAV_PROBES,
     heading: '[Shared mobile navigation QA] (M12.P1-D2 single nav owner + ARIA + brand probe)' },
+  { key: 'public-faq', prefix: 'public-faq', probes: PUBLIC_FAQ_PROBES,
+    heading: '[Public FAQ QA] (dual-backend SSR + escaped content + accessible search/filter + online-only boundary)' },
+  { key: 'site-settings', prefix: 'site-settings', probes: SITE_SETTINGS_PROBES,
+    heading: '[Site settings QA] (admin-managed About/footer projection + allowlist + safe fallbacks)' },
   { key: 'notifications', prefix: 'notifications', probes: NOTIFICATION_PANEL_PROBES,
     heading: '[Notification panel QA] (role-safe announcements + upcoming events + accessible disclosure)' },
   { key: 'vr-hotspot-nav', prefix: 'vr-hotspot-nav', probes: VR_HOTSPOT_NAV_PROBES,

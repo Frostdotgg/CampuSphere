@@ -1,19 +1,17 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-08-25 (Asia/Manila)
+Last updated: 2026-08-28 (Asia/Manila)
 
-## Current Feature-Candidate Override
+## Current Pushed-Candidate Override
 
-The room-schedule image implementation is now merged into the original
-worktree as an authorized, uncommitted candidate. Migration source
-`0020_room_schedule_documents.sql` is owner-applied in the selected Supabase
-and local MySQL stores. Any older prompt below saying 0020 does not exist is
+The room-schedule image implementation and preceding non-Cloudinary
+stabilization are verified, reviewed, committed, and pushed through `e481d03`.
+Migration `0020_room_schedule_documents.sql` is owner-applied in Supabase and
+the matching MySQL schema is verified. Any older prompt below saying 0020 does
+not exist, the candidate is uncommitted, or verification/push is pending is
 historical for its earlier byte set. A fresh session must not touch either
-database, call Cloudinary, run runtime QA/browser acceptance, mutate Git
-history, push, or deploy unless the owner separately authorizes that exact
-boundary.
-
-Last updated: 2026-08-24 (Asia/Manila)
+database, call Cloudinary, run runtime QA/browser acceptance, mutate Git,
+promote, or deploy unless the owner separately authorizes that exact boundary.
 
 The two sections titled `Codex Grounding Prompt` and
 `Claude Code Grounding Prompt` below are the only current copy-paste prompts.
@@ -25,7 +23,192 @@ pre-promotion snapshot below is historical and must not be used as current
 authority.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-08-24)
+## Current Release Continuity (2026-08-28)
+
+Live Git at the start of this synchronization is branch `main`, with local
+`HEAD`, `origin/main`, and remote `main` all equal to pushed Git commit SHA-1
+`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`,
+`feat: add semester room schedule flow`). The index and worktree are clean,
+there are zero dirty paths and zero stashes, and predecessor Git commits are
+Git commit SHA-1 `2b4f42df3f79347c70af07f7b98f70be55b701bd` (the
+non-Cloudinary stabilization) and Git commit SHA-1
+`dc961b1eeba191d79b96998d96f0a49dac3ffcf8` (the searchable
+course catalog). Recompute live Git truth in every new session; this snapshot
+does not authorize normalization when live truth differs.
+
+This synchronization itself now has an exact unstaged 12-path authority delta:
+the 11 authority documents plus `scripts/quality-gates.js`. The index is empty,
+there are no untracked paths, and zero stashes remain. These working-tree facts
+supersede the clean-start snapshot for a new session until this authority delta
+is separately accepted, committed, and pushed.
+
+At the synchronization checkpoint, the product candidate was committed locally
+as Git commit SHA-1 `38905b7b2b103caa9ed0575f1031b30344944970` (`feat: add
+public FAQ and institutional settings`) on top of `e481d03`. At that
+checkpoint, local `HEAD` was this product commit while `origin/main` and
+remote `main` remained `e481d03`; the index was empty and exactly the 12
+authority paths remained unstaged, with no untracked paths and zero stashes.
+The product commit had not yet been pushed at that checkpoint; authority
+synchronization and push were separate boundaries. Recompute live Git truth
+before relying on this checkpoint.
+
+The retained safety branch `backup-pre-trailer-strip` still points to Git
+commit SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`.
+
+Accepted history remains separate and unchanged: Milestones 8-11, RF.1-RF.6,
+BE.1-BE.6, OFF.1-OFF.6, M12.P1 R1-R7, D1-D7, dependency-security
+remediation, the independently reviewed `bb17b9b` release authority, and the
+owner-observed later Production/OAuth/course evidence retain their recorded
+dispositions. The abbreviated operative lineage is
+`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03`.
+
+The pushed `e481d03` candidate contains the completed non-Cloudinary campus
+stabilization plus the semester room-schedule image flow. The stabilization
+includes valid Guided-VR and Free Roam scene arrows, VR light/dark parity,
+compact accessible online/offline building pins, the offline label `Guard
+House`, the authenticated notification feed/panel and shared styling, the Paga
+About card, admin category-dropdown styling and user role/status filters, safe
+Google profile-image synchronization, and removal of the manual profile-photo
+upload. Manual Cloudinary upload remains deferred and the application does not
+call Cloudinary upload, delete, or management APIs for the schedule flow.
+
+The room-schedule design is one semester-long image document per room/facility.
+An administrator pastes an approved HTTPS Cloudinary delivery URL and optional
+public ID; no image bytes are uploaded by CampuSphere. A schedule hotspot stores
+`schedule_document_id`, and updating the linked document updates every viewer
+without rewriting hotspot metadata. The shared accessible responsive viewer is
+available from building details and VR; legacy time-row/hotspot metadata remains
+read-only fallback, and schedules remain excluded from the offline package.
+The owner applied `0020_room_schedule_documents.sql` to Supabase, local MySQL
+schema parity was verified, and migration sources are contiguous through
+`0020`. Do not reapply migration 0020 without a new explicit database
+authorization.
+
+Accepted `e481d03` verification remains a separate evidence class: its exact
+source passed `npm test` at `4998/4998` with `QUALITY-GATES OK`; five-stage
+`npm run qa` exited 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0
+vulnerabilities`. Focused room-schedule verification passed `58/58`, the
+package boundary passed `74/74`, BE.6 passed `46/46`, and the final session
+residue contract passed `18/18`.
+
+The product commit `38905b7` was independently reviewed in the order
+Security -> Performance -> Correctness -> Maintainability with no critical,
+high, medium, or low findings. Its current read-only verification exited 0 for
+`npm test` with `QUALITY-GATES OK` and for `npm run qa` with
+`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Focused product
+probes passed: public FAQ `38/38`, site settings `26/26`, settings runtime
+`20/20`, package boundary `74/74`, BE.6 `46/46`, and final session residue
+`18/18`. The current wrapper did not emit a standalone aggregate count, so the
+accepted `4998/4998` total above is not relabeled as a new product total. This
+records verification and review only; Final Milestone 12 remains external.
+
+Authority-sync validation on 2026-08-26 is separate incomplete/rejected
+evidence. After the documentation corrections, the exported source-only
+`docs-current` gate passed. The full `npm test` rerun was not green because two
+read-only live-state postconditions changed: Supabase now has 665 total VR
+scenes against the 664-scene freeze, and exactly one intended-role canonical
+Supabase administrator session was unexpired at classification time. The
+newest additional scene is outside the selected 101-scene verification scope
+and has zero outgoing hotspots and zero incoming scene links; all building and
+route semantics, selected-VR and Guided-catalog fingerprints, and all 25
+active Guided routes still passed. The session was due to expire at
+2026-08-26 13:30:36 Asia/Manila. No scene, freeze, session, account, or other
+data was changed. Recompute both conditions live; do not delete content,
+refresh the freeze, or revoke a session without a separate explicit owner
+authorization. No authority-sync `npm run qa` was run.
+
+The accepted `e481d03` runtime package identity remains historical: 180 files,
+7,189,621 bytes, aggregate SHA-256
+`c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216`.
+The current product commit package identity is 186 files, 7,220,073 bytes,
+aggregate SHA-256
+`c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`.
+Documentation and `scripts/` are outside the deployment package; this package
+identity is source/package evidence, not deployed-byte proof.
+
+Commit `e481d03` is pushed to `main`, but no owner-authorized promotion,
+Production acceptance, or independent anonymous deployed-byte verification is
+recorded for it. Do not infer current Vercel deployment state from older
+screenshots. The last independently post-deployment-verified technical
+Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains; owner-observed
+Production behavior for later commits remains a separate evidence class and is
+not byte proof for `e481d03`.
+
+Production architecture remains Supabase/PostgreSQL for application data and
+sessions, with MySQL for local development, fallback, and rehearsal. The stored
+frozen verification baseline remains MySQL 34 buildings / 44 route nodes / 100
+directed edges / 50 exact reverse pairs / 100 valid geometries; Supabase 25 /
+26 / 50 / 25 / 50; and the shared Guided-VR catalog 25 active destinations /
+472 configured steps / 99 unique scene keys. The accepted candidate's final
+canonical-session postcondition was zero unexpired residue (`18/18`). The supported MySQL CCS route
+node/geometry correction and the exact previously authorized session
+revocations are closed operational history, not authorization for further data
+or session mutation.
+
+The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` remains
+read-only preview evidence: it reported no content differences and equal
+fingerprints SHA-256
+`2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05`.
+No data was written, and this is not an applied sync, current database
+verification, backup, or restore claim. Preserve the external backup/restore
+record of 109/109 files and 86 referenced Cloudinary delivery assets without
+putting credentials, signed URLs, database identifiers, backup paths,
+participant PII, developer-contact emails, or verification artifacts in Git.
+
+Google OAuth remains owner-observed `In production` and requests only `openid
+email profile`; Google Data Access reported that sensitive or restricted-scope
+verification is not required, and the owner confirmed account creation and
+sign-in work. Branding/Search Console ownership remains deferred and unverified.
+Do not describe OAuth as independently verified or unlimited. The owner-attested
+2026-08-05 human pilot remains accepted with zero reported findings, while
+participant/Form evidence and full source-commit identity remain external.
+
+The owner-observed Android 8 installed-PWA behavior is now classified as an
+unsupported Android/Chrome platform compatibility observation, not a confirmed
+CampuSphere code defect and not a proven hardware failure. Chrome 138 was the
+last release for Android 8/9, current Chrome requires Android 10+, and the exact
+old-device crash cause was not reproduced with device logs. The supported
+mobile presentation target is Android 10+ with a current Chrome release;
+further Android 8 investigation requires a separate bounded authorization and
+sanitized device evidence.
+
+The participant-facing public FAQ is implemented and committed in product commit `38905b7` as a
+public, server-rendered `/faq` page backed by the existing dual-backend
+administrator-managed FAQ data. It is available to signed-out visitors and
+signed-in users, with public and signed-in top navigation, a shared light/dark
+theme control, accessible native accordions, search and category filters, and
+escaped admin-authored text. Admin FAQ CRUD remains at `/admin/faqs` and
+`/admin/api/faqs`; saving publishes a row immediately, with no schema or
+migration change. The focused `publicFaq-probe.js` passed `38/38`; the FAQ is
+standalone and is not embedded in the dashboard. The FAQ implementation is
+committed locally and not yet pushed; the authority synchronization and push
+remain separate boundaries. Promotion and deployment are not authorized.
+
+Keep evidence classes separate: accepted historical release/R8 evidence;
+course-feature and owner-observed Production/OAuth evidence; live Git truth;
+accepted `e481d03` source/package/review/push evidence; current product commit
+`38905b7` source/package/verification/review evidence; owner-applied migration
+0020; the read-only sync preview; the Android compatibility observation;
+missing promotion, Production acceptance, and deployed-byte proof for the
+current product; and the external Final Milestone 12 disposition.
+This synchronization changed the authority documents plus
+`scripts/quality-gates.js`; the FAQ implementation is separately authorized as
+a separately committed local product. No new session may infer authority to
+promote, deploy, alter SQL/data/sessions, contact Cloudinary or another vendor,
+or run Production smoke. Deployment is not authorized by this synchronization.
+
+Every older section below that presents an earlier candidate or lifecycle as
+"current" is retained only as an explicitly historical snapshot. This block and
+fresh live repository/vendor evidence win when they conflict.
+
+Final Milestone 12 disposition remains external.
+<!-- M12 RELEASE CONTINUITY END -->
+
+<!-- M12 HISTORICAL RELEASE CONTINUITY START -->
+## Historical Release Continuity (2026-08-24; superseded)
 
 Live Git at the start of this authority synchronization was branch `main`,
 with local `HEAD`, `origin/main`, and remote `main` all equal to pushed Git
@@ -187,8 +370,443 @@ remains an explicit owner/external closeout decision.
 Every older section below that labels the pre-promotion maintenance state as
 “current” is retained only as a historical snapshot. This continuity block and
 live repository/vendor evidence win when they conflict.
-<!-- M12 RELEASE CONTINUITY END -->
+<!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 ## Codex Grounding Prompt
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
+handoff owner, and delivery coordinator.
+
+This is a fresh context-only grounding session that does not authorize
+implementation or review. Change nothing. Do not edit, create, delete, move,
+stage, commit, push, promote, deploy, access either database, mutate sessions,
+contact Cloudinary or another vendor, start a server, use a browser, or run
+tests, QA, probes, audits, manifests, or smoke checks. Do not copy credentials,
+participant PII, developer-contact emails, database identifiers, backup paths,
+signed URLs, verification artifacts, or secrets into Git or the report.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually
+  available. Availability is not authorization.
+- Load and follow the installed code-reviewer skill completely before any later
+  code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Prefer context-mode or an equivalent read-only large-file tool. If absent,
+  report it and use bounded read-only reads. Browser/Chrome/Playwright
+  availability is not authorization.
+
+Read the authority documents, implementation surfaces, probes, migration
+filenames, and read-only Git truth in the order recorded by the repository
+handoff. Report capabilities and files inspected, exact live Git truth,
+evidence classes, authority inconsistencies, and the next authorization
+boundary only.
+
+Recorded release authority (recompute it against live truth):
+- At the recorded synchronization start, HEAD, origin/main, and remote main
+  all matched pushed commit e481d0343313e6356438393a783b48d838f01a36
+  (e481d03); the index and worktree are clean, with zero dirty paths and zero
+  stashes. The preceding commits are 2b4f42df3f79347c70af07f7b98f70be55b701bd
+  and dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+- e481d03 contains the verified non-Cloudinary stabilization and semester
+  room-schedule image flow. One schedule document serves each room/facility;
+  schedule_document_id links viewers; no image bytes are uploaded by
+  CampuSphere; legacy rows remain a read-only fallback; schedules remain
+  excluded from the offline package.
+- The owner applied 0020_room_schedule_documents.sql; matching MySQL schema
+  parity was verified. Do not reapply SQL or access either database.
+- Recorded candidate evidence is npm test 4998/4998 with QUALITY-GATES OK,
+  room-schedule 58/58, package-boundary 74/74, BE.6 46/46, residue 18/18,
+  and an independent review with no critical, high, medium, or low findings.
+- The recorded runtime package identity is 180 files and 7,189,621 bytes,
+  SHA-256 c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+  e481d03 is committed and pushed, but no owner-authorized promotion,
+  Production acceptance, or independent deployed-byte verification is
+  recorded for it.
+- Android 8 is an unsupported Android/Chrome platform compatibility observation,
+  not a confirmed CampuSphere code defect and not a proven hardware failure;
+  Android 10+ current Chrome is the supported presentation target.
+
+The participant-facing public FAQ page is implemented and committed locally in product commit
+38905b7 as a server-rendered /faq page backed by the existing dual-backend
+administrator-managed FAQ data. It is available to signed-out and signed-in
+users with public/signed-in navigation, native accordions, search, category
+filters, a shared theme control, and escaped admin-authored text. Admin FAQ
+CRUD remains at /admin/faqs and /admin/api/faqs; saving publishes immediately
+with no schema or migration change. The FAQ is standalone and is not embedded
+in the dashboard. The focused publicFaq-probe.js passes 38/38. The FAQ
+implementation was separately authorized, committed in product commit 38905b7,
+and included in the pushed main lineage. It has not been promoted or deployed;
+no Production acceptance or independent deployed-byte verification is recorded.
+A separate promotion/deployment authorization boundary remains; promotion and
+deployment remain unauthorized by this prompt.
+
+Final Milestone 12 disposition remains external. Do not infer that
+implementation, Git mutation, vendor work, or deployment is authorized. Do not
+perform a code review. Stop and wait for the owner. Deployment is not authorized by this prompt. This context-only prompt authorizes none of those actions.
+```
+
+## Historical Codex Grounding Prompt (2026-08-26 pre-FAQ; superseded; do not use)
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
+handoff owner, and delivery coordinator.
+
+This is a fresh context-only grounding session that does not authorize
+implementation or review. Change nothing. Do not edit, format, create, delete,
+move, stage, commit, amend, stash, reset, clean, tag, push, promote, deploy,
+link Vercel, alter Google OAuth, apply or reapply SQL, access or mutate either
+database, clear sessions, invoke Cloudinary/Upstash management APIs, start a
+server, use a browser, or run tests, QA, probes, audits, manifests, or smoke
+checks. Do not copy credentials, participant PII, developer-contact emails,
+database identifiers, backup paths, Search Console verification artifacts,
+signed URLs, or secrets into Git or the report.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually
+  available in this session. Availability is not authorization.
+- Load and follow the installed code-reviewer skill completely before any later
+  code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Use context-mode or an equivalent read-only large-file tool for long files
+  when available. If it is unavailable, report that and use bounded read-only
+  file reads. Browser/Chrome/Playwright availability is not authorization.
+- Report missing named capabilities and use only a safe read-only fallback.
+
+Read completely and in this order:
+1. CODEX_HANDOFF.md
+2. CLAUDE_HANDOFF.md
+3. plan.md, especially Current Release Continuity, M12 interfaces, anti-scope,
+   assumptions, backup/restore, and data-cutover notes
+4. ROADMAP.md, especially privacy/pilot/release gates, OFF.2-OFF.6,
+   Milestones 12-13, blockers, and recommended order
+5. AGENTS.md
+6. CLAUDE.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
+   and deployment-boundary probes
+9. controllers/scheduleController.js, controllers/adminScheduleController.js,
+   repositories/scheduleRepository.js,
+   database/migrations/0020_room_schedule_documents.sql,
+   database/supabase/migrations/0020_room_schedule_documents.sql,
+   views/admin/schedules.ejs, views/partials/room-schedule-viewer.ejs,
+   public/js/room-schedule-viewer.js,
+   public/js/admin/admin-schedules.js, and
+   scripts/roomScheduleDocument-probe.js
+10. controllers/vrController.js, routes/vr.js, routes/buildings.js,
+    views/vr.ejs, views/building-details.ejs,
+    public/js/vr-hotspot-navigation.js, and the VR/building schedule-link
+    surfaces
+11. controllers/notificationController.js,
+    services/notificationFeedService.js, public/js/notification-panel.js,
+    views/partials/dash-navbar.ejs, admin category/user-filter surfaces,
+    profile/Google-image synchronization surfaces, and relevant probes
+12. public/offline.html, public/css/offline.css,
+    public/js/offline-guide-manager.js, public/js/pwa.js, public/sw.js,
+    controllers/offlineGuideController.js, services/offlineGuideService.js,
+    and relevant source-only map/offline/PWA probes
+13. scripts/syncSupabaseContentToMysql.js, only to understand its fail-closed
+    dry-run/apply boundary and protected-table exclusions; do not run it
+14. scripts/quality-gates.js and the docs-current, schedule, notification,
+    admin, VR, map/offline, auth/profile, package, routing, course, and
+    legacy-preservation assertions
+15. every database and Supabase migration filename, then read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
+
+The former manual-upload files middleware/profilePhotoUpload.js,
+services/profileImageService.js, and scripts/profilePhotoUpload-probe.js were
+removed. Their absence is expected; do not recreate them or report them as
+missing required inputs.
+
+Reconcile these recorded facts against live truth, which wins:
+- At this synchronization's start, branch main, HEAD, origin/main, and remote
+  main matched e481d0343313e6356438393a783b48d838f01a36. The index/worktree
+  were clean, with zero dirty paths and zero stashes. After the authority edits,
+  the expected live tree is exactly 12 modified tracked paths: the 11 authority
+  documents plus scripts/quality-gates.js, with an empty index, no untracked
+  paths, and zero stashes. Any other live difference is an inconsistency to
+  report, not permission to normalize it. The recorded safety branch
+  backup-pre-trailer-strip points to Git commit SHA-1
+  d387c9151f1582cc4a8fc80002be52e11956335f.
+- The lineage through the current candidate is Git commit SHA-1
+  dc961b1eeba191d79b96998d96f0a49dac3ffcf8 -> Git commit SHA-1
+  2b4f42df3f79347c70af07f7b98f70be55b701bd -> e481d03. Accepted earlier
+  release/R8 history remains separate.
+- e481d03 contains the verified non-Cloudinary stabilization and semester
+  room-schedule image flow. The schedule is one document per room/facility;
+  admins paste an approved HTTPS Cloudinary delivery URL and optional public
+  ID; CampuSphere performs no upload/delete/management API call. Building and
+  VR viewers share the record, hotspots store schedule_document_id, legacy
+  rows/metadata remain read-only fallback, and schedules stay offline-excluded.
+- The owner applied 0020_room_schedule_documents.sql to Supabase and the local
+  MySQL schema was verified. Migrations are contiguous through 0020. Do not
+  reapply it, create another migration, or access either database.
+- Current candidate evidence is npm test 4998/4998 with QUALITY-GATES OK;
+  five-stage npm run qa green with DB-PERF-GATE OK, [supabase-smoke] PASS,
+  IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities; schedule 58/58;
+  package 74/74; BE.6 46/46; residue 18/18; and an ordered independent review
+  with no critical/high/medium/low findings.
+- Keep that accepted exact-source evidence separate from the rejected/incomplete
+  2026-08-26 authority-sync rerun. The source-only docs-current gate is green,
+  but full npm test stopped on two read-only live-state postconditions:
+  Supabase has 665 total VR scenes versus the frozen 664, with the newest extra
+  scene outside the selected 101-scene scope and carrying zero incoming or
+  outgoing links; and one intended-role canonical Supabase admin session was
+  unexpired at classification time, due to expire at 2026-08-26 13:30:36
+  Asia/Manila. All selected-VR/Guided fingerprints and all 25 active routes
+  passed. Nothing was mutated and authority-sync npm run qa was not run.
+- The runtime package identity is 180 files, 7,189,621 bytes, SHA-256
+  c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+  This is source/package evidence, not deployed-byte proof.
+- e481d03 is committed and pushed. No owner-authorized promotion, Production
+  acceptance, or independent deployed-byte verification is recorded for it.
+  Do not infer current Vercel state from older screenshots.
+- Production uses Supabase/PostgreSQL for application data and sessions;
+  MySQL remains local development/fallback/rehearsal. The stored freeze baseline remains
+  MySQL 34/44/100/50/100, Supabase 25/26/50/25/50, and shared Guided VR
+  25 active destinations / 472 steps / 99 scene keys.
+- The owner-run syncSupabaseContentToMysql.js --dry-run was read-only, reported
+  no differences, and recorded equal fingerprints
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05.
+  It wrote no data and is not current database, backup, restore, or apply proof.
+- Manual profile-photo upload is removed/deferred; safe Google profile-image
+  synchronization remains. Do not contact Cloudinary or create privileged keys.
+- Android 8 is an unsupported Android/Chrome compatibility observation, not a
+  confirmed CampuSphere bug or proven hardware failure. Chrome 138 was the last
+  Android 8/9 release; Android 10+ current Chrome is the supported presentation
+  target. Exact old-device causality lacks sanitized device logs.
+- Admin FAQ CRUD exists at /admin/faqs and /admin/api/faqs, but no participant
+  FAQ route/page exists. A public FAQ page is the selected next product task,
+  but it follows resolution or explicit acceptance of the live verification
+  drift and is not authorized by this grounding prompt.
+- Final Milestone 12 disposition remains external.
+
+Keep evidence classes separate: accepted historical release/R8 evidence;
+course and owner-observed Production/OAuth facts; live Git; current e481d03
+verification/review/package/commit/push; owner-applied migration 0020; the
+read-only sync preview; Android compatibility; missing e481d03 promotion,
+Production acceptance, and deployed-byte proof; and the external Milestone 12
+disposition.
+
+Return only: capabilities and files inspected; exact live Git truth versus this
+record; evidence classification; authority inconsistencies; and the next
+authorization boundary. The immediate next boundary is a separate owner
+authorization for a bounded read-only recheck and decision on the extra
+Supabase scene/freeze and canonical session state. Only after that gate is
+green or explicitly accepted is the later boundary a separate authorization
+to plan and implement the participant-facing public FAQ page. Do not perform a
+code review, compute a manifest, run verification, issue a GO/NO-GO, contact a
+vendor, plan the feature, or infer implementation. Stop and wait for the owner.
+Final Milestone 12 disposition remains external. Deployment is not authorized
+by this prompt. This context-only prompt authorizes none of those actions. Do
+not infer that implementation, Git mutation, vendor work, or deployment is
+authorized.
+```
+
+## Claude Code Grounding Prompt
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Claude Code acting as CampuSphere's implementation partner and
+evidence recorder. Codex remains the independent review/quality gate, and the
+owner controls Git, database, vendor, OAuth, and deployment decisions.
+
+This is a fresh context-only grounding session that does not authorize
+implementation. Do not review, edit, test, implement, stage, commit, push,
+deploy, promote, or perform a closeout review. Change nothing. Do not access
+either database, mutate sessions, contact Cloudinary or another vendor, start a
+server, use a browser, or run probes, audits, manifests, or smoke checks. Do
+not record credentials, participant PII, developer-contact emails, database
+identifiers, backup paths, signed URLs, verification artifacts, or secrets.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually
+  available. Availability is not authorization.
+- Load and follow the installed code-reviewer skill completely before any later
+  code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Prefer context-mode or an equivalent read-only large-file tool; if absent,
+  report it and use bounded read-only reads. Browser/Chrome/Playwright
+  availability is not authorization.
+
+Read the authority documents, implementation surfaces, probes, migration
+filenames, and read-only Git truth in the repository's recorded order. Return
+only capabilities and files inspected, exact live Git truth, evidence classes,
+authority inconsistencies, and the next authorization boundary.
+
+Recorded release authority (recompute it against live truth):
+- At the recorded synchronization start, HEAD, origin/main, and remote main
+  all matched pushed commit e481d0343313e6356438393a783b48d838f01a36
+  (e481d03); the index and worktree are clean, with zero dirty paths and zero
+  stashes. The preceding commits are 2b4f42df3f79347c70af07f7b98f70be55b701bd
+  and dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+- e481d03 contains the verified non-Cloudinary stabilization and semester
+  room-schedule image flow. One schedule document serves each room/facility;
+  schedule_document_id links viewers; no image bytes are uploaded by
+  CampuSphere; legacy rows remain a read-only fallback; schedules remain
+  excluded from the offline package.
+- The owner applied 0020_room_schedule_documents.sql; matching MySQL schema
+  parity was verified. Do not reapply SQL or access either database.
+- Recorded candidate evidence is npm test 4998/4998 with QUALITY-GATES OK,
+  room-schedule 58/58, package-boundary 74/74, BE.6 46/46, residue 18/18,
+  and an independent review with no critical, high, medium, or low findings.
+- The recorded runtime package identity is 180 files and 7,189,621 bytes,
+  SHA-256 c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+  e481d03 is committed and pushed, but no owner-authorized promotion,
+  Production acceptance, or independent deployed-byte verification is
+  recorded for it.
+- Android 8 is an unsupported Android/Chrome platform compatibility observation,
+  not a confirmed CampuSphere code defect and not a proven hardware failure;
+  Android 10+ current Chrome is the supported presentation target.
+
+The participant-facing public FAQ page is implemented and committed locally in product commit
+38905b7 as a server-rendered /faq page backed by the existing dual-backend
+administrator-managed FAQ data. It is available to signed-out and signed-in
+users with public/signed-in navigation, native accordions, search, category
+filters, a shared theme control, and escaped admin-authored text. Admin FAQ
+CRUD remains at /admin/faqs and /admin/api/faqs; saving publishes immediately
+with no schema or migration change. The FAQ is standalone and is not embedded
+in the dashboard. The focused publicFaq-probe.js passes 38/38. The FAQ
+implementation was separately authorized, committed in product commit 38905b7,
+and included in the pushed main lineage. It has not been promoted or deployed;
+no Production acceptance or independent deployed-byte verification is recorded.
+A separate promotion/deployment authorization boundary remains; promotion and
+deployment remain unauthorized by this prompt.
+
+Final Milestone 12 disposition remains external. Do not infer that
+implementation, Git mutation, vendor work, or deployment is authorized. After
+the grounding report, stop and wait for the owner. Deployment is not authorized by this prompt. This context-only prompt authorizes none of those actions.
+```
+
+## Historical Claude Code Grounding Prompt (2026-08-26 pre-FAQ; superseded; do not use)
+
+```text
+Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+
+You are Claude Code acting as CampuSphere's implementation partner and evidence
+recorder. Codex remains the independent review/quality gate, and the owner
+controls Git, database, vendor, OAuth, and deployment decisions.
+
+This is a fresh context-only grounding session that does not authorize
+implementation. Do not review, edit, test, implement, stage, commit, push,
+deploy, promote, or perform a closeout review. Change nothing. Do not format,
+create, delete, move, amend, stash, reset, clean, tag, link Vercel, alter Google
+OAuth, apply or reapply SQL, access or mutate either database, clear sessions,
+invoke Cloudinary/Upstash management APIs, start a server, use a browser, or
+run tests, QA, probes, audits, manifests, or smoke checks. Do not record
+credentials, participant PII, developer-contact emails, database identifiers,
+backup paths, Search Console verification artifacts, signed URLs, or secrets.
+
+Capability grounding:
+- Inventory the skills, plugins, apps, MCP servers, and tools actually
+  available. Availability is not authorization.
+- Load and follow the installed code-reviewer skill completely before any later
+  code, security, database, UI, quality, deployment, or GO/NO-GO finding.
+- Prefer context-mode or an equivalent read-only large-file tool. If absent,
+  report it and use bounded read-only reads. Browser/Chrome/Playwright
+  availability is not authorization.
+- Report missing named capabilities and use only a safe read-only fallback.
+
+Read completely and in this order:
+1. CLAUDE_HANDOFF.md
+2. CODEX_HANDOFF.md
+3. plan.md and ROADMAP.md, especially Current Release Continuity, M12
+   interfaces, privacy/release gates, anti-scope, assumptions, backup/restore,
+   data cutover, blockers, and recommended order
+4. CLAUDE.md and AGENTS.md
+5. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+6. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and package/
+   deployment-boundary probes
+7. the room-schedule controllers/repository, both 0020 migration sources,
+   admin schedule view/script, shared viewer partial/script, building and VR
+   linkage, and scripts/roomScheduleDocument-probe.js
+8. relevant notification, admin category/user-filter, Google profile-image,
+   Guided-VR/Free-Roam, map, offline, PWA, and source-only probe surfaces
+9. scripts/syncSupabaseContentToMysql.js for its fail-closed dry-run/apply and
+   protected-table boundaries only; do not run it
+10. scripts/quality-gates.js, every database/Supabase migration filename, and
+    read-only Git truth: branch, HEAD, origin/main, remote main, status,
+    staged/unstaged/untracked paths, stashes, safety refs, and recent graph
+
+The former manual-upload files middleware/profilePhotoUpload.js,
+services/profileImageService.js, and scripts/profilePhotoUpload-probe.js were
+removed. Their absence is expected. Do not recreate them or classify them as
+missing inputs.
+
+Reconcile these facts against live truth, which wins:
+- At synchronization start main/HEAD/origin/main/remote main matched
+  e481d0343313e6356438393a783b48d838f01a36, with a clean index/worktree,
+  zero dirty paths, and zero stashes. After this sync's edits, the expected
+  live state is exactly 12 modified tracked authority/static-assertion paths,
+  nothing staged or untracked, and zero stashes. Safety branch
+  backup-pre-trailer-strip points to Git commit SHA-1
+  d387c9151f1582cc4a8fc80002be52e11956335f. Lineage is Git commit SHA-1
+  dc961b1eeba191d79b96998d96f0a49dac3ffcf8 -> Git commit SHA-1
+  2b4f42df3f79347c70af07f7b98f70be55b701bd -> e481d03.
+- e481d03 is verified, independently reviewed with no findings, committed, and
+  pushed. Evidence is npm test 4998/4998; five-stage QA green and audit zero;
+  schedule 58/58; package 74/74; BE.6 46/46; residue 18/18. Runtime package:
+  180 files, 7,189,621 bytes, SHA-256
+  c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+- The later 2026-08-26 authority-sync rerun is separate incomplete/rejected
+  evidence. Source-only docs-current is green, while full npm test stopped on
+  Supabase total VR scenes 665 versus frozen 664 and one unexpired canonical
+  administrator session. The newest extra scene is outside the selected
+  101-scene scope with zero incoming/outgoing links; selected fingerprints and
+  all 25 Guided routes passed. Nothing was mutated, and no authority-sync QA
+  was run. Recompute live before any conclusion.
+- The candidate includes the non-Cloudinary stabilization and semester
+  room-schedule document flow. Admins paste approved HTTPS Cloudinary delivery
+  metadata; CampuSphere performs no upload/delete/management call. Building and
+  VR viewers share schedule_document_id; legacy data is read-only fallback;
+  schedules remain offline-excluded.
+- 0020_room_schedule_documents.sql is owner-applied in Supabase and local MySQL
+  parity is verified. Do not apply SQL or create another migration.
+- Production data/sessions use Supabase; MySQL is local fallback/rehearsal.
+  The stored freeze baseline is MySQL 34/44/100/50/100, Supabase
+  25/26/50/25/50, and Guided
+  VR 25 destinations / 472 steps / 99 scene keys.
+- The sync-to-MySQL dry-run reported no differences and equal fingerprint
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05;
+  it wrote nothing and is not current database or apply evidence.
+- No promotion, Production acceptance, or deployed-byte proof is recorded for
+  e481d03. Current Vercel state is unknown. Owner-observed older Production and
+  OAuth evidence remains separate.
+- Manual profile upload is removed/deferred; safe Google image sync remains.
+  Android 8 is an unsupported Chrome/platform observation, not a confirmed app
+  bug or proven hardware failure; Android 10+ current Chrome is supported.
+- Existing admin FAQ CRUD has no participant-facing route/page. The selected
+  next task is a public FAQ page backed by the existing dual-backend FAQ data,
+  after the operational verification state is resolved or explicitly accepted;
+  this prompt does not authorize planning or implementation.
+- Final Milestone 12 disposition remains external.
+
+Keep accepted history, owner observations, current source verification/review,
+Git/package truth, owner-applied migration evidence, dry-run preview, Android
+compatibility, missing deployment evidence, and external closeout separate.
+
+Return only a grounding report containing capabilities/files inspected, exact
+live Git versus the recorded snapshot, evidence classes, authority
+inconsistencies, and the next authorization boundary. The immediate boundary
+is a separate owner authorization for a bounded read-only operational recheck
+and decision on the extra Supabase scene/freeze and canonical session state.
+Only after that gate is green or explicitly accepted is the later boundary a
+separate owner authorization to plan and implement the participant-facing
+public FAQ page. Do not plan fixes, run verification, contact a vendor, or
+implement anything during grounding. After the grounding report, stop and wait
+for the owner. Final Milestone 12 disposition remains external. Deployment is
+not authorized by this prompt. This context-only prompt authorizes none of
+those actions. Do not infer that implementation, Git mutation, vendor work, or
+deployment is authorized.
+```
+
+## Historical Codex Grounding Prompt (2026-08-24 pre-e481d03; superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
@@ -406,7 +1024,7 @@ not infer that implementation, Git mutation, vendor work, or deployment is
 authorized.
 ```
 
-## Claude Code Grounding Prompt
+## Historical Claude Code Grounding Prompt (2026-08-24 pre-e481d03; superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
