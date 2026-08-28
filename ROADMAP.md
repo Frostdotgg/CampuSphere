@@ -157,30 +157,24 @@ the authenticated map or retain CampuSphere dynamic caches/catalog records.
 
 Live Git at the start of this synchronization is branch `main`, with local
 `HEAD`, `origin/main`, and remote `main` all equal to pushed Git commit SHA-1
-`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`,
-`feat: add semester room schedule flow`). The index and worktree are clean,
-there are zero dirty paths and zero stashes, and predecessor Git commits are
-Git commit SHA-1 `2b4f42df3f79347c70af07f7b98f70be55b701bd` (the
-non-Cloudinary stabilization) and Git commit SHA-1
-`dc961b1eeba191d79b96998d96f0a49dac3ffcf8` (the searchable
-course catalog). Recompute live Git truth in every new session; this snapshot
-does not authorize normalization when live truth differs.
+`0c906db0b33b93ff450b8de0b94a80a54c97d63a` (`0c906db`,
+`docs: synchronize FAQ and settings release authority`). Its parent is pushed
+product commit `38905b7b2b103caa9ed0575f1031b30344944970` (`38905b7`,
+`feat: add public FAQ and institutional settings`), whose parent is
+`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`). The index and
+worktree were clean, with zero dirty paths and zero stashes. Recompute live Git
+truth in every new session; this start-of-sync snapshot never authorizes
+normalization when live truth differs.
 
-This synchronization itself now has an exact unstaged 12-path authority delta:
-the 11 authority documents plus `scripts/quality-gates.js`. The index is empty,
-there are no untracked paths, and zero stashes remain. These working-tree facts
-supersede the clean-start snapshot for a new session until this authority delta
-is separately accepted, committed, and pushed.
-
-At the synchronization checkpoint, the product candidate was committed locally
-as Git commit SHA-1 `38905b7b2b103caa9ed0575f1031b30344944970` (`feat: add
-public FAQ and institutional settings`) on top of `e481d03`. At that
-checkpoint, local `HEAD` was this product commit while `origin/main` and
-remote `main` remained `e481d03`; the index was empty and exactly the 12
-authority paths remained unstaged, with no untracked paths and zero stashes.
-The product commit had not yet been pushed at that checkpoint; authority
-synchronization and push were separate boundaries. Recompute live Git truth
-before relying on this checkpoint.
+This synchronization is authority/static-contract work only. At its pre-commit
+checkpoint, its exact delta is 12 modified tracked paths: the 11 authority
+documents plus `scripts/quality-gates.js`, with an empty index, no untracked
+paths, and zero stashes. That checkpoint is intentionally unstaged,
+uncommitted, and unpushed for owner inspection. If the owner authorizes the
+commit and push, the resulting successor must be a clean `main` state whose
+local `HEAD`, `origin/main`, and remote `main` agree and whose diff from
+`0c906db` contains exactly those 12 paths. Every new session must recompute
+which state is live; neither state authorizes promotion or deployment.
 
 The retained safety branch `backup-pre-trailer-strip` still points to Git
 commit SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`.
@@ -190,7 +184,8 @@ BE.1-BE.6, OFF.1-OFF.6, M12.P1 R1-R7, D1-D7, dependency-security
 remediation, the independently reviewed `bb17b9b` release authority, and the
 owner-observed later Production/OAuth/course evidence retain their recorded
 dispositions. The abbreviated operative lineage is
-`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03`.
+`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03 ->
+38905b7 -> 0c906db`.
 
 The pushed `e481d03` candidate contains the completed non-Cloudinary campus
 stabilization plus the semester room-schedule image flow. The stabilization
@@ -222,7 +217,7 @@ vulnerabilities`. Focused room-schedule verification passed `58/58`, the
 package boundary passed `74/74`, BE.6 passed `46/46`, and the final session
 residue contract passed `18/18`.
 
-The product commit `38905b7` was independently reviewed in the order
+The pushed product commit `38905b7` was independently reviewed in the order
 Security -> Performance -> Correctness -> Maintainability with no critical,
 high, medium, or low findings. Its current read-only verification exited 0 for
 `npm test` with `QUALITY-GATES OK` and for `npm run qa` with
@@ -258,14 +253,15 @@ aggregate SHA-256
 Documentation and `scripts/` are outside the deployment package; this package
 identity is source/package evidence, not deployed-byte proof.
 
-Commit `e481d03` is committed and pushed to `main`, but no owner-authorized promotion,
-Production acceptance, or independent anonymous deployed-byte verification is
-recorded for it. Do not infer current Vercel deployment state from older
-screenshots. The last independently post-deployment-verified technical
-Production baseline
+Product commit `38905b7` and authority-only commit `0c906db` are committed
+and pushed to `main`, but no owner-authorized promotion, Production
+acceptance, or independent anonymous deployed-byte verification is recorded
+for the current product lineage. Do not infer current Vercel deployment state
+from older screenshots. The last independently post-deployment-verified
+technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains; owner-observed
 Production behavior for later commits remains a separate evidence class and is
-not byte proof for `e481d03`.
+not byte proof for `38905b7` or `0c906db`.
 
 Production architecture remains Supabase/PostgreSQL for application data and
 sessions, with MySQL for local development, fallback, and rehearsal. The stored
@@ -273,10 +269,10 @@ frozen verification baseline remains MySQL 34 buildings / 44 route nodes / 100
 directed edges / 50 exact reverse pairs / 100 valid geometries; Supabase 25 /
 26 / 50 / 25 / 50; and the shared Guided-VR catalog 25 active destinations /
 472 configured steps / 99 unique scene keys. The accepted candidate's final
-canonical-session postcondition was zero unexpired residue (`18/18`). The supported MySQL CCS route
-node/geometry correction and the exact previously authorized session
-revocations are closed operational history, not authorization for further data
-or session mutation.
+canonical-session postcondition was zero unexpired residue (`18/18`). The
+supported local MySQL administrator-session revocation and the MySQL CCS
+route-node/geometry correction are closed operational history. Do not repeat
+the revocation or infer authorization for further data or session mutation.
 
 The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` remains
 read-only preview evidence: it reported no content differences and equal
@@ -314,21 +310,48 @@ escaped admin-authored text. Admin FAQ CRUD remains at `/admin/faqs` and
 `/admin/api/faqs`; saving publishes a row immediately, with no schema or
 migration change. The focused `publicFaq-probe.js` passed `38/38`; the FAQ is
 standalone and is not embedded in the dashboard. The FAQ implementation is
-committed locally and not pushed; the authority synchronization and push
-remain separate boundaries. Promotion and deployment are not authorized.
+committed and pushed in the current `main` lineage. Promotion and deployment
+remain separate, unauthorized boundaries.
+
+The same product commit completes the administrator-managed institutional
+settings projection. The fixed ten-key allowlist reads from the selected
+Supabase or MySQL backend and safely supplies the signed-in `/about` page plus
+the shared public and signed-in footers. The existing Description field owns
+both About narrative paragraphs: at most two blocks separated by one blank
+line. A legacy single paragraph receives the safe default context paragraph at
+read time without an automatic database write. The original About layout is
+preserved, all settings render through escaped output and validated links, and
+no schema or migration changed. Focused evidence is site settings `26/26` and
+the bounded local MySQL runtime probe `20/20`, including exact restoration of
+the original ten settings.
+
+The accepted offline implementation remains an explicit user-requested
+download stored in browser IndexedDB, with MapLibre rendering a bounded,
+content-addressed CSPC PMTiles archive; the online map continues to use current
+OSM/Leaflet data. The client's future requirement is that a connected Update
+Offline Map action eventually obtain a newly prepared CSPC-scoped PMTiles
+version when a new physical CSPC building footprint appears upstream in OSM,
+so the footprint remains visible after disconnection. That refresh pipeline is
+not implemented: the current user click does not convert live OSM data into
+PMTiles, and no hosting, automation, deployment, or vendor design is selected
+or authorized by this synchronization.
 
 Keep evidence classes separate: accepted historical release/R8 evidence;
 course-feature and owner-observed Production/OAuth evidence; live Git truth;
-accepted `e481d03` source/package/review/push evidence; current product commit
-`38905b7` source/package/verification/review evidence; owner-applied migration
-0020; the read-only sync preview; the Android compatibility observation;
-missing promotion, Production acceptance, and deployed-byte proof for the
-current product; and the external Final Milestone 12 disposition.
-This synchronization changed the authority documents plus
-`scripts/quality-gates.js`; the FAQ implementation is separately authorized as
-a separately committed local product. No new session may infer authority to
-promote, deploy, alter SQL/data/sessions, contact Cloudinary or another vendor,
-or run Production smoke. Deployment is not authorized by this synchronization.
+accepted `e481d03` source/package/review/push evidence; pushed product commit
+`38905b7` source/package/verification/review evidence; pushed authority-only
+commit `0c906db`; owner-applied migration 0020; the read-only sync preview;
+the Android compatibility observation; the unimplemented offline-map refresh
+request; missing promotion, Production acceptance, and deployed-byte proof for
+the current product; and the external Final Milestone 12 disposition.
+This synchronization changes only the 11 authority documents plus
+`scripts/quality-gates.js`. At the pre-commit checkpoint these paths are
+intentionally unstaged; after an authorized commit and push, the successor is
+the clean `main` state described above. No new session may infer authority to
+review, implement, test, commit, push, promote, deploy, alter SQL/data/sessions,
+contact Cloudinary or another vendor, run Production smoke, or issue a
+GO/NO-GO. Both fresh-session prompts must ground, report, and wait for the
+owner. Deployment is not authorized by this synchronization.
 
 Every older section below that presents an earlier candidate or lifecycle as
 "current" is retained only as an explicitly historical snapshot. This block and

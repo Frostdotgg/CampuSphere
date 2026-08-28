@@ -4,14 +4,18 @@ Last updated: 2026-08-28 (Asia/Manila)
 
 ## Current Pushed-Candidate Override
 
-The room-schedule image implementation and preceding non-Cloudinary
-stabilization are verified, reviewed, committed, and pushed through `e481d03`.
-Migration `0020_room_schedule_documents.sql` is owner-applied in Supabase and
-the matching MySQL schema is verified. Any older prompt below saying 0020 does
-not exist, the candidate is uncommitted, or verification/push is pending is
-historical for its earlier byte set. A fresh session must not touch either
-database, call Cloudinary, run runtime QA/browser acceptance, mutate Git,
-promote, or deploy unless the owner separately authorizes that exact boundary.
+The public FAQ and institutional-settings product is verified, reviewed,
+committed, and pushed through product commit `38905b7`; its authority-only
+successor `0c906db` is also pushed. The earlier room-schedule implementation
+remains pushed through `e481d03`, and migration
+`0020_room_schedule_documents.sql` is owner-applied in Supabase with matching
+verified MySQL schema. No promotion, Production acceptance, or deployed-byte
+proof is recorded for the current product lineage. Any older prompt below that
+describes the product or authority commits as unpushed, the FAQ as a future
+task, or the current offline-map refresh request as implemented is historical.
+A fresh session must not touch either database, call a vendor, run runtime
+verification, mutate Git, promote, or deploy unless the owner separately
+authorizes that exact boundary.
 
 The two sections titled `Codex Grounding Prompt` and
 `Claude Code Grounding Prompt` below are the only current copy-paste prompts.
@@ -27,30 +31,24 @@ authority.
 
 Live Git at the start of this synchronization is branch `main`, with local
 `HEAD`, `origin/main`, and remote `main` all equal to pushed Git commit SHA-1
-`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`,
-`feat: add semester room schedule flow`). The index and worktree are clean,
-there are zero dirty paths and zero stashes, and predecessor Git commits are
-Git commit SHA-1 `2b4f42df3f79347c70af07f7b98f70be55b701bd` (the
-non-Cloudinary stabilization) and Git commit SHA-1
-`dc961b1eeba191d79b96998d96f0a49dac3ffcf8` (the searchable
-course catalog). Recompute live Git truth in every new session; this snapshot
-does not authorize normalization when live truth differs.
+`0c906db0b33b93ff450b8de0b94a80a54c97d63a` (`0c906db`,
+`docs: synchronize FAQ and settings release authority`). Its parent is pushed
+product commit `38905b7b2b103caa9ed0575f1031b30344944970` (`38905b7`,
+`feat: add public FAQ and institutional settings`), whose parent is
+`e481d0343313e6356438393a783b48d838f01a36` (`e481d03`). The index and
+worktree were clean, with zero dirty paths and zero stashes. Recompute live Git
+truth in every new session; this start-of-sync snapshot never authorizes
+normalization when live truth differs.
 
-This synchronization itself now has an exact unstaged 12-path authority delta:
-the 11 authority documents plus `scripts/quality-gates.js`. The index is empty,
-there are no untracked paths, and zero stashes remain. These working-tree facts
-supersede the clean-start snapshot for a new session until this authority delta
-is separately accepted, committed, and pushed.
-
-At the synchronization checkpoint, the product candidate was committed locally
-as Git commit SHA-1 `38905b7b2b103caa9ed0575f1031b30344944970` (`feat: add
-public FAQ and institutional settings`) on top of `e481d03`. At that
-checkpoint, local `HEAD` was this product commit while `origin/main` and
-remote `main` remained `e481d03`; the index was empty and exactly the 12
-authority paths remained unstaged, with no untracked paths and zero stashes.
-The product commit had not yet been pushed at that checkpoint; authority
-synchronization and push were separate boundaries. Recompute live Git truth
-before relying on this checkpoint.
+This synchronization is authority/static-contract work only. At its pre-commit
+checkpoint, its exact delta is 12 modified tracked paths: the 11 authority
+documents plus `scripts/quality-gates.js`, with an empty index, no untracked
+paths, and zero stashes. That checkpoint is intentionally unstaged,
+uncommitted, and unpushed for owner inspection. If the owner authorizes the
+commit and push, the resulting successor must be a clean `main` state whose
+local `HEAD`, `origin/main`, and remote `main` agree and whose diff from
+`0c906db` contains exactly those 12 paths. Every new session must recompute
+which state is live; neither state authorizes promotion or deployment.
 
 The retained safety branch `backup-pre-trailer-strip` still points to Git
 commit SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`.
@@ -60,7 +58,8 @@ BE.1-BE.6, OFF.1-OFF.6, M12.P1 R1-R7, D1-D7, dependency-security
 remediation, the independently reviewed `bb17b9b` release authority, and the
 owner-observed later Production/OAuth/course evidence retain their recorded
 dispositions. The abbreviated operative lineage is
-`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03`.
+`d786bdc -> c00db76 -> bb17b9b -> dc961b1 -> 2b4f42d -> e481d03 ->
+38905b7 -> 0c906db`.
 
 The pushed `e481d03` candidate contains the completed non-Cloudinary campus
 stabilization plus the semester room-schedule image flow. The stabilization
@@ -92,7 +91,7 @@ vulnerabilities`. Focused room-schedule verification passed `58/58`, the
 package boundary passed `74/74`, BE.6 passed `46/46`, and the final session
 residue contract passed `18/18`.
 
-The product commit `38905b7` was independently reviewed in the order
+The pushed product commit `38905b7` was independently reviewed in the order
 Security -> Performance -> Correctness -> Maintainability with no critical,
 high, medium, or low findings. Its current read-only verification exited 0 for
 `npm test` with `QUALITY-GATES OK` and for `npm run qa` with
@@ -128,14 +127,15 @@ aggregate SHA-256
 Documentation and `scripts/` are outside the deployment package; this package
 identity is source/package evidence, not deployed-byte proof.
 
-Commit `e481d03` is pushed to `main`, but no owner-authorized promotion,
-Production acceptance, or independent anonymous deployed-byte verification is
-recorded for it. Do not infer current Vercel deployment state from older
-screenshots. The last independently post-deployment-verified technical
-Production baseline
+Product commit `38905b7` and authority-only commit `0c906db` are committed
+and pushed to `main`, but no owner-authorized promotion, Production
+acceptance, or independent anonymous deployed-byte verification is recorded
+for the current product lineage. Do not infer current Vercel deployment state
+from older screenshots. The last independently post-deployment-verified
+technical Production baseline
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains; owner-observed
 Production behavior for later commits remains a separate evidence class and is
-not byte proof for `e481d03`.
+not byte proof for `38905b7` or `0c906db`.
 
 Production architecture remains Supabase/PostgreSQL for application data and
 sessions, with MySQL for local development, fallback, and rehearsal. The stored
@@ -143,10 +143,10 @@ frozen verification baseline remains MySQL 34 buildings / 44 route nodes / 100
 directed edges / 50 exact reverse pairs / 100 valid geometries; Supabase 25 /
 26 / 50 / 25 / 50; and the shared Guided-VR catalog 25 active destinations /
 472 configured steps / 99 unique scene keys. The accepted candidate's final
-canonical-session postcondition was zero unexpired residue (`18/18`). The supported MySQL CCS route
-node/geometry correction and the exact previously authorized session
-revocations are closed operational history, not authorization for further data
-or session mutation.
+canonical-session postcondition was zero unexpired residue (`18/18`). The
+supported local MySQL administrator-session revocation and the MySQL CCS
+route-node/geometry correction are closed operational history. Do not repeat
+the revocation or infer authorization for further data or session mutation.
 
 The owner-run `scripts/syncSupabaseContentToMysql.js --dry-run` remains
 read-only preview evidence: it reported no content differences and equal
@@ -184,21 +184,48 @@ escaped admin-authored text. Admin FAQ CRUD remains at `/admin/faqs` and
 `/admin/api/faqs`; saving publishes a row immediately, with no schema or
 migration change. The focused `publicFaq-probe.js` passed `38/38`; the FAQ is
 standalone and is not embedded in the dashboard. The FAQ implementation is
-committed locally and not yet pushed; the authority synchronization and push
-remain separate boundaries. Promotion and deployment are not authorized.
+committed and pushed in the current `main` lineage. Promotion and deployment
+remain separate, unauthorized boundaries.
+
+The same product commit completes the administrator-managed institutional
+settings projection. The fixed ten-key allowlist reads from the selected
+Supabase or MySQL backend and safely supplies the signed-in `/about` page plus
+the shared public and signed-in footers. The existing Description field owns
+both About narrative paragraphs: at most two blocks separated by one blank
+line. A legacy single paragraph receives the safe default context paragraph at
+read time without an automatic database write. The original About layout is
+preserved, all settings render through escaped output and validated links, and
+no schema or migration changed. Focused evidence is site settings `26/26` and
+the bounded local MySQL runtime probe `20/20`, including exact restoration of
+the original ten settings.
+
+The accepted offline implementation remains an explicit user-requested
+download stored in browser IndexedDB, with MapLibre rendering a bounded,
+content-addressed CSPC PMTiles archive; the online map continues to use current
+OSM/Leaflet data. The client's future requirement is that a connected Update
+Offline Map action eventually obtain a newly prepared CSPC-scoped PMTiles
+version when a new physical CSPC building footprint appears upstream in OSM,
+so the footprint remains visible after disconnection. That refresh pipeline is
+not implemented: the current user click does not convert live OSM data into
+PMTiles, and no hosting, automation, deployment, or vendor design is selected
+or authorized by this synchronization.
 
 Keep evidence classes separate: accepted historical release/R8 evidence;
 course-feature and owner-observed Production/OAuth evidence; live Git truth;
-accepted `e481d03` source/package/review/push evidence; current product commit
-`38905b7` source/package/verification/review evidence; owner-applied migration
-0020; the read-only sync preview; the Android compatibility observation;
-missing promotion, Production acceptance, and deployed-byte proof for the
-current product; and the external Final Milestone 12 disposition.
-This synchronization changed the authority documents plus
-`scripts/quality-gates.js`; the FAQ implementation is separately authorized as
-a separately committed local product. No new session may infer authority to
-promote, deploy, alter SQL/data/sessions, contact Cloudinary or another vendor,
-or run Production smoke. Deployment is not authorized by this synchronization.
+accepted `e481d03` source/package/review/push evidence; pushed product commit
+`38905b7` source/package/verification/review evidence; pushed authority-only
+commit `0c906db`; owner-applied migration 0020; the read-only sync preview;
+the Android compatibility observation; the unimplemented offline-map refresh
+request; missing promotion, Production acceptance, and deployed-byte proof for
+the current product; and the external Final Milestone 12 disposition.
+This synchronization changes only the 11 authority documents plus
+`scripts/quality-gates.js`. At the pre-commit checkpoint these paths are
+intentionally unstaged; after an authorized commit and push, the successor is
+the clean `main` state described above. No new session may infer authority to
+review, implement, test, commit, push, promote, deploy, alter SQL/data/sessions,
+contact Cloudinary or another vendor, run Production smoke, or issue a
+GO/NO-GO. Both fresh-session prompts must ground, report, and wait for the
+owner. Deployment is not authorized by this synchronization.
 
 Every older section below that presents an earlier candidate or lifecycle as
 "current" is retained only as an explicitly historical snapshot. This block and
@@ -380,34 +407,100 @@ You are Codex for CampuSphere: senior reviewer, security/DB/UI quality gate,
 handoff owner, and delivery coordinator.
 
 This is a fresh context-only grounding session that does not authorize
-implementation or review. Change nothing. Do not edit, create, delete, move,
-stage, commit, push, promote, deploy, access either database, mutate sessions,
-contact Cloudinary or another vendor, start a server, use a browser, or run
-tests, QA, probes, audits, manifests, or smoke checks. Do not copy credentials,
-participant PII, developer-contact emails, database identifiers, backup paths,
-signed URLs, verification artifacts, or secrets into Git or the report.
+implementation or review. Change nothing. Do not edit, format, create, delete,
+move, stage, commit, amend, stash, reset, clean, tag, push, promote, deploy,
+link Vercel, alter Google OAuth, apply or reapply SQL, access or mutate either
+database, clear sessions, invoke Cloudinary/Upstash management APIs, start a
+server, use a browser, or run tests, QA, probes, audits, manifests, or smoke
+checks. Do not copy credentials, participant PII, developer-contact emails,
+database identifiers, backup paths, Search Console verification artifacts,
+signed URLs, or secrets into Git or the report.
 
 Capability grounding:
 - Inventory the skills, plugins, apps, MCP servers, and tools actually
   available. Availability is not authorization.
 - Load and follow the installed code-reviewer skill completely before any later
   code, security, database, UI, quality, deployment, or GO/NO-GO finding.
-- Prefer context-mode or an equivalent read-only large-file tool. If absent,
-  report it and use bounded read-only reads. Browser/Chrome/Playwright
-  availability is not authorization.
+- Use context-mode (`ctx_execute_file` or `ctx_batch_execute`) or an equivalent
+  read-only large-file tool for long files when available. If unavailable,
+  report that and use bounded read-only file reads. Browser/Chrome/Playwright
+  availability is not authorization. Context7 may be used only for official
+  library documentation in a later, separately authorized task.
+- Report missing named capabilities and use only a safe read-only fallback.
 
-Read the authority documents, implementation surfaces, probes, migration
-filenames, and read-only Git truth in the order recorded by the repository
-handoff. Report capabilities and files inspected, exact live Git truth,
-evidence classes, authority inconsistencies, and the next authorization
-boundary only.
+Read completely and in this order:
+1. CODEX_HANDOFF.md
+2. CLAUDE_HANDOFF.md
+3. plan.md, especially Current Release Continuity, M12 interfaces, anti-scope,
+   assumptions, backup/restore, data-cutover, and offline-map notes
+4. ROADMAP.md, especially privacy/pilot/release gates, OFF.2-OFF.6,
+   Milestones 12-13, blockers, and recommended order
+5. AGENTS.md
+6. CLAUDE.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
+   and deployment-boundary probe sources
+9. controllers/faqController.js, controllers/pageController.js,
+   controllers/adminContentController.js, controllers/adminController.js,
+   services/siteSettingsService.js, repositories/siteContentRepository.js,
+   utils/siteSettingsDescription.js, routes/index.js, views/faq.ejs,
+   views/about.ejs, views/admin/settings.ejs, views/admin/faqs.ejs, the shared
+   navigation/footer partials, public/js/public-faq.js,
+   public/js/admin/admin-settings.js, public/css/faq.css,
+   public/css/admin-styles.css, scripts/publicFaq-probe.js,
+   scripts/siteSettings-probe.js, and scripts/siteSettingsRuntime-probe.js
+10. controllers/scheduleController.js,
+    controllers/adminScheduleController.js,
+    repositories/scheduleRepository.js, both
+    0020_room_schedule_documents.sql migration sources, the admin schedule and
+    shared viewer surfaces, controllers/vrController.js, routes/vr.js,
+    routes/buildings.js, views/vr.ejs, views/building-details.ejs,
+    public/js/vr-hotspot-navigation.js, the VR/building schedule-link surfaces,
+    and scripts/roomScheduleDocument-probe.js
+11. controllers/notificationController.js,
+    services/notificationFeedService.js, public/js/notification-panel.js,
+    views/partials/dash-navbar.ejs, admin category/user-filter surfaces,
+    profile/Google-image synchronization surfaces, and relevant probes
+12. public/offline.html, public/css/offline.css,
+    public/js/offline-guide-manager.js, public/js/pwa.js, public/sw.js,
+    controllers/offlineGuideController.js, services/offlineGuideService.js,
+    and relevant source-only map/offline/PWA probes
+13. scripts/syncSupabaseContentToMysql.js only to understand its fail-closed
+    dry-run/apply boundary and protected-table exclusions; do not run it
+14. scripts/quality-gates.js and the docs-current, FAQ/settings, schedule,
+    notification, admin, VR, map/offline, auth/profile, package, routing,
+    course, and legacy-preservation assertions
+15. every database and Supabase migration filename, then read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
 
-Recorded release authority (recompute it against live truth):
-- At the recorded synchronization start, HEAD, origin/main, and remote main
-  all matched pushed commit e481d0343313e6356438393a783b48d838f01a36
-  (e481d03); the index and worktree are clean, with zero dirty paths and zero
-  stashes. The preceding commits are 2b4f42df3f79347c70af07f7b98f70be55b701bd
-  and dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+The former manual-upload files middleware/profilePhotoUpload.js,
+services/profileImageService.js, and scripts/profilePhotoUpload-probe.js were
+removed. Their absence is expected; do not recreate them or report them as
+missing required inputs.
+
+Recorded release authority (recompute it against live truth, which wins):
+- At this synchronization's start, branch main, HEAD, origin/main, and remote
+  main matched pushed commit 0c906db0b33b93ff450b8de0b94a80a54c97d63a.
+  The index/worktree were clean, with zero dirty paths and zero stashes. After
+  this authority sync, the pre-commit checkpoint is exactly 12 modified
+  tracked paths: the 11 authority documents plus scripts/quality-gates.js,
+  with an empty index, no untracked paths, and zero stashes. That checkpoint
+  is intentionally unstaged, uncommitted, and unpushed. If the owner authorizes
+  the commit and push, the resulting successor must be a clean main state whose
+  local HEAD, origin/main, and remote main agree and whose diff from 0c906db
+  contains exactly those 12 paths. Any other live difference is an
+  inconsistency to report, not permission to normalize it. The safety branch
+  backup-pre-trailer-strip points to
+  d387c9151f1582cc4a8fc80002be52e11956335f.
+- The current pushed lineage is dc961b1eeba191d79b96998d96f0a49dac3ffcf8
+  -> 2b4f42df3f79347c70af07f7b98f70be55b701bd
+  -> e481d0343313e6356438393a783b48d838f01a36
+  -> 38905b7b2b103caa9ed0575f1031b30344944970
+  -> 0c906db0b33b93ff450b8de0b94a80a54c97d63a. Accepted earlier
+  release/R8 history remains separate.
 - e481d03 contains the verified non-Cloudinary stabilization and semester
   room-schedule image flow. One schedule document serves each room/facility;
   schedule_document_id links viewers; no image bytes are uploaded by
@@ -415,35 +508,92 @@ Recorded release authority (recompute it against live truth):
   excluded from the offline package.
 - The owner applied 0020_room_schedule_documents.sql; matching MySQL schema
   parity was verified. Do not reapply SQL or access either database.
-- Recorded candidate evidence is npm test 4998/4998 with QUALITY-GATES OK,
-  room-schedule 58/58, package-boundary 74/74, BE.6 46/46, residue 18/18,
-  and an independent review with no critical, high, medium, or low findings.
-- The recorded runtime package identity is 180 files and 7,189,621 bytes,
-  SHA-256 c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
-  e481d03 is committed and pushed, but no owner-authorized promotion,
-  Production acceptance, or independent deployed-byte verification is
-  recorded for it.
+- Accepted e481d03 evidence is npm test 4998/4998 with QUALITY-GATES OK;
+  five-stage npm run qa green; schedule 58/58; package 74/74; BE.6 46/46;
+  residue 18/18. Its historical runtime package identity is 180 files,
+  7,189,621 bytes, SHA-256
+  c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+- Pushed product commit 38905b7 was independently reviewed in the order
+  Security -> Performance -> Correctness -> Maintainability with no critical,
+  high, medium, or low findings. Its read-only npm test and five-stage npm run
+  qa exited 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS,
+  IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities. Focused evidence is
+  FAQ 38/38, site settings 26/26, settings runtime 20/20, package 74/74,
+  BE.6 46/46, and residue 18/18. The wrapper emitted no standalone aggregate
+  count, so do not relabel 4998/4998 as the product total.
+- The current product package identity is 186 files, 7,220,073 bytes,
+  SHA-256 c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621.
+  This is source/package evidence, not deployed-byte proof.
+- Product commit 38905b7 and authority-only commit 0c906db are committed and
+  pushed. No owner-authorized promotion, Production acceptance, or independent
+  deployed-byte verification is recorded for the current product lineage. Do
+  not infer current Vercel state from older screenshots.
 - Android 8 is an unsupported Android/Chrome platform compatibility observation,
   not a confirmed CampuSphere code defect and not a proven hardware failure;
   Android 10+ current Chrome is the supported presentation target.
+- Production application data and sessions use Supabase/PostgreSQL; MySQL is
+  local-development/fallback/rehearsal. The stored freeze remains MySQL
+  34/44/100/50/100, Supabase 25/26/50/25/50, and Guided VR 25 active
+  destinations / 472 steps / 99 scene keys.
+- The owner-run syncSupabaseContentToMysql.js --dry-run was read-only, reported
+  no differences and fingerprint
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05;
+  it is not apply, backup, restore, or current database proof.
+- The rejected/incomplete 2026-08-26 authority-sync rerun remains historical:
+  it observed 665 total Supabase VR scenes versus frozen 664 and one unexpired
+  canonical administrator session. Nothing was mutated in that rerun. Keep it
+  separate from later product evidence BE.6 46/46 and residue 18/18; the
+  supported local MySQL administrator-session revocation is now closed history.
+- Manual profile-photo upload remains removed/deferred and safe Google image
+  synchronization remains. Google OAuth Production behavior is owner-observed,
+  not independent deployed-byte proof. Do not contact Cloudinary or create a
+  privileged key.
 
-The participant-facing public FAQ page is implemented and committed locally in product commit
-38905b7 as a server-rendered /faq page backed by the existing dual-backend
-administrator-managed FAQ data. It is available to signed-out and signed-in
-users with public/signed-in navigation, native accordions, search, category
-filters, a shared theme control, and escaped admin-authored text. Admin FAQ
-CRUD remains at /admin/faqs and /admin/api/faqs; saving publishes immediately
-with no schema or migration change. The FAQ is standalone and is not embedded
-in the dashboard. The focused publicFaq-probe.js passes 38/38. The FAQ
-implementation was separately authorized, committed in product commit 38905b7,
-and included in the pushed main lineage. It has not been promoted or deployed;
-no Production acceptance or independent deployed-byte verification is recorded.
-A separate promotion/deployment authorization boundary remains; promotion and
-deployment remain unauthorized by this prompt.
+The participant-facing public FAQ is implemented and pushed in product commit
+38905b7 as a public server-rendered /faq page backed by existing dual-backend
+administrator-managed FAQ data. It supports signed-out and signed-in users,
+public and signed-in navigation, native accordions, search, category filters,
+the shared theme control, and escaped admin-authored text. Admin FAQ CRUD stays
+at /admin/faqs and /admin/api/faqs; saving publishes immediately with no schema
+or migration change. The FAQ is standalone, not embedded in /dashboard.
 
-Final Milestone 12 disposition remains external. Do not infer that
-implementation, Git mutation, vendor work, or deployment is authorized. Do not
-perform a code review. Stop and wait for the owner. Deployment is not authorized by this prompt. This context-only prompt authorizes none of those actions.
+The same product commit completes the institutional settings projection through a fixed
+ten-key allowlist in the selected Supabase/MySQL backend. Settings safely feed
+the signed-in /about page and shared public/signed-in footers. The existing
+Description field owns at most two About narrative blocks separated by one
+blank line; a legacy single paragraph receives the safe default context at
+read time without an automatic write. The original About layout is preserved,
+output is escaped, links are validated, and no schema or migration changed.
+The supported local MySQL administrator-session revocation is closed history;
+do not repeat it or mutate any session.
+
+Offline truth must remain precise: Update Offline Map explicitly downloads an
+immutable CSPC package to browser IndexedDB. MapLibre reads the bounded,
+content-addressed PMTiles archive offline; the online map uses OSM/Leaflet. The
+client's future requirement is for the connected action to obtain a newly
+prepared CSPC-scoped PMTiles version after a new physical CSPC building
+footprint appears upstream in OSM, so it remains visible offline. This refresh
+pipeline is not implemented. The user click does not convert live OSM into
+PMTiles, and no hosting, automation, deployment, or vendor design has been
+selected or authorized.
+
+Keep evidence classes separate: accepted historical release/R8 evidence;
+owner-observed Production/OAuth facts; live Git; accepted e481d03 evidence;
+pushed 38905b7 verification/review/package evidence; pushed authority-only
+0c906db; owner-applied migration 0020; read-only sync preview; Android
+compatibility; the unimplemented offline refresh; missing current promotion,
+Production acceptance, and deployed-byte proof; and external Milestone 12.
+
+Return only: capabilities and files inspected; exact live Git truth versus the
+record; evidence classification; authority inconsistencies; and the next
+authorization boundary. The next move is to wait for a separate owner
+authorization; do not automatically start deployment or offline-map work. Do
+not perform a code review, compute a manifest, run verification, issue a
+GO/NO-GO, contact a vendor, plan or implement a feature, or infer
+implementation. Final Milestone 12 disposition remains external. Stop and wait
+for the owner. Deployment is not authorized by this prompt. This context-only
+prompt authorizes none of those actions. Do not infer that implementation, Git
+mutation, vendor work, or deployment is authorized.
 ```
 
 ## Historical Codex Grounding Prompt (2026-08-26 pre-FAQ; superseded; do not use)
@@ -618,32 +768,93 @@ owner controls Git, database, vendor, OAuth, and deployment decisions.
 
 This is a fresh context-only grounding session that does not authorize
 implementation. Do not review, edit, test, implement, stage, commit, push,
-deploy, promote, or perform a closeout review. Change nothing. Do not access
-either database, mutate sessions, contact Cloudinary or another vendor, start a
-server, use a browser, or run probes, audits, manifests, or smoke checks. Do
-not record credentials, participant PII, developer-contact emails, database
-identifiers, backup paths, signed URLs, verification artifacts, or secrets.
+deploy, promote, or perform a closeout review. Change nothing. Do not format,
+create, delete, move, amend, stash, reset, clean, tag, link Vercel, alter Google
+OAuth, apply or reapply SQL, access or mutate either database, clear sessions,
+invoke Cloudinary/Upstash management APIs, start a server, use a browser, or
+run tests, QA, probes, audits, manifests, or smoke checks. Do not record
+credentials, participant PII, developer-contact emails, database identifiers,
+backup paths, Search Console verification artifacts, signed URLs, or secrets.
 
 Capability grounding:
 - Inventory the skills, plugins, apps, MCP servers, and tools actually
   available. Availability is not authorization.
 - Load and follow the installed code-reviewer skill completely before any later
   code, security, database, UI, quality, deployment, or GO/NO-GO finding.
-- Prefer context-mode or an equivalent read-only large-file tool; if absent,
-  report it and use bounded read-only reads. Browser/Chrome/Playwright
-  availability is not authorization.
+- Use context-mode (`ctx_execute_file` or `ctx_batch_execute`) or an equivalent
+  read-only large-file tool for long files when available. If unavailable,
+  report that and use bounded read-only file reads. Browser/Chrome/Playwright
+  availability is not authorization. Context7 may be used only for official
+  library documentation in a later, separately authorized task.
+- Report missing named capabilities and use only a safe read-only fallback.
 
-Read the authority documents, implementation surfaces, probes, migration
-filenames, and read-only Git truth in the repository's recorded order. Return
-only capabilities and files inspected, exact live Git truth, evidence classes,
-authority inconsistencies, and the next authorization boundary.
+Read completely and in this order:
+1. CODEX_HANDOFF.md
+2. CLAUDE_HANDOFF.md
+3. plan.md, especially Current Release Continuity, M12 interfaces, anti-scope,
+   assumptions, backup/restore, data-cutover, and offline-map notes
+4. ROADMAP.md, especially privacy/pilot/release gates, OFF.2-OFF.6,
+   Milestones 12-13, blockers, and recommended order
+5. AGENTS.md
+6. CLAUDE.md
+7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, and docs/new-session-grounding-prompts.md
+8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
+   and deployment-boundary probe sources
+9. controllers/faqController.js, controllers/pageController.js,
+   controllers/adminContentController.js, controllers/adminController.js,
+   services/siteSettingsService.js, repositories/siteContentRepository.js,
+   utils/siteSettingsDescription.js, routes/index.js, views/faq.ejs,
+   views/about.ejs, views/admin/settings.ejs, views/admin/faqs.ejs, the shared
+   navigation/footer partials, public/js/public-faq.js,
+   public/js/admin/admin-settings.js, public/css/faq.css,
+   public/css/admin-styles.css, scripts/publicFaq-probe.js,
+   scripts/siteSettings-probe.js, and scripts/siteSettingsRuntime-probe.js
+10. the room-schedule controllers/repository, both 0020 migration sources,
+    admin schedule and shared viewer surfaces, controllers/vrController.js,
+    routes/vr.js, routes/buildings.js, views/vr.ejs,
+    views/building-details.ejs, public/js/vr-hotspot-navigation.js, the
+    VR/building schedule-link surfaces, and
+    scripts/roomScheduleDocument-probe.js
+11. the notification controller/service/panel/navbar, admin category and user
+    filters, profile/Google-image synchronization surfaces, and relevant probes
+12. public/offline.html, public/css/offline.css,
+    public/js/offline-guide-manager.js, public/js/pwa.js, public/sw.js,
+    controllers/offlineGuideController.js, services/offlineGuideService.js,
+    and relevant source-only map/offline/PWA probes
+13. scripts/syncSupabaseContentToMysql.js only for its fail-closed dry-run/apply
+    and protected-table boundaries; do not run it
+14. scripts/quality-gates.js and the docs-current, FAQ/settings, schedule,
+    notification, admin, VR, map/offline, auth/profile, package, routing,
+    course, and legacy-preservation assertions
+15. every database and Supabase migration filename, then read-only Git truth:
+    branch, HEAD, origin/main, remote main, status, staged/unstaged/untracked
+    paths, stashes, safety refs, and recent graph
 
-Recorded release authority (recompute it against live truth):
-- At the recorded synchronization start, HEAD, origin/main, and remote main
-  all matched pushed commit e481d0343313e6356438393a783b48d838f01a36
-  (e481d03); the index and worktree are clean, with zero dirty paths and zero
-  stashes. The preceding commits are 2b4f42df3f79347c70af07f7b98f70be55b701bd
-  and dc961b1eeba191d79b96998d96f0a49dac3ffcf8.
+The former manual-upload files middleware/profilePhotoUpload.js,
+services/profileImageService.js, and scripts/profilePhotoUpload-probe.js were
+removed. Their absence is expected; do not recreate them or classify them as
+missing inputs.
+
+Recorded release authority (recompute it against live truth, which wins):
+- At this synchronization's start branch main, HEAD, origin/main, and remote
+  main matched pushed commit 0c906db0b33b93ff450b8de0b94a80a54c97d63a,
+  with a clean index/worktree, zero dirty paths, and zero stashes. The
+  pre-commit checkpoint is exactly 12 modified tracked paths: the 11 authority
+  documents plus scripts/quality-gates.js, nothing staged or untracked, and
+  zero stashes. That checkpoint is intentionally unstaged, uncommitted, and
+  unpushed. If the owner authorizes the commit and push, the resulting
+  successor must be a clean main state whose local HEAD, origin/main, and
+  remote main agree and whose diff from 0c906db contains exactly those 12
+  paths. Any other live difference is an inconsistency, not permission to
+  normalize it. Safety branch backup-pre-trailer-strip points to
+  d387c9151f1582cc4a8fc80002be52e11956335f.
+- Current pushed lineage is dc961b1eeba191d79b96998d96f0a49dac3ffcf8
+  -> 2b4f42df3f79347c70af07f7b98f70be55b701bd
+  -> e481d0343313e6356438393a783b48d838f01a36
+  -> 38905b7b2b103caa9ed0575f1031b30344944970
+  -> 0c906db0b33b93ff450b8de0b94a80a54c97d63a.
 - e481d03 contains the verified non-Cloudinary stabilization and semester
   room-schedule image flow. One schedule document serves each room/facility;
   schedule_document_id links viewers; no image bytes are uploaded by
@@ -651,35 +862,75 @@ Recorded release authority (recompute it against live truth):
   excluded from the offline package.
 - The owner applied 0020_room_schedule_documents.sql; matching MySQL schema
   parity was verified. Do not reapply SQL or access either database.
-- Recorded candidate evidence is npm test 4998/4998 with QUALITY-GATES OK,
-  room-schedule 58/58, package-boundary 74/74, BE.6 46/46, residue 18/18,
-  and an independent review with no critical, high, medium, or low findings.
-- The recorded runtime package identity is 180 files and 7,189,621 bytes,
-  SHA-256 c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
-  e481d03 is committed and pushed, but no owner-authorized promotion,
-  Production acceptance, or independent deployed-byte verification is
-  recorded for it.
+- Accepted e481d03 evidence is npm test 4998/4998 with QUALITY-GATES OK;
+  five-stage QA green; schedule 58/58; package 74/74; BE.6 46/46; residue
+  18/18. Historical package: 180 files, 7,189,621 bytes, SHA-256
+  c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216.
+- Pushed product commit 38905b7 was independently reviewed Security ->
+  Performance -> Correctness -> Maintainability with no findings. npm test and
+  five-stage npm run qa exited 0; focused evidence is FAQ 38/38, site settings
+  26/26, settings runtime 20/20, package 74/74, BE.6 46/46, and residue 18/18.
+  The wrapper emitted no standalone aggregate count. Product package: 186
+  files, 7,220,073 bytes, SHA-256
+  c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621.
+- Product commit 38905b7 and authority-only commit 0c906db are pushed. No
+  current promotion, Production acceptance, or deployed-byte proof is
+  recorded; do not infer Vercel state from older screenshots.
 - Android 8 is an unsupported Android/Chrome platform compatibility observation,
   not a confirmed CampuSphere code defect and not a proven hardware failure;
   Android 10+ current Chrome is the supported presentation target.
+- Production application data and sessions use Supabase/PostgreSQL; MySQL is
+  local-development/fallback/rehearsal. The stored freeze remains MySQL
+  34/44/100/50/100, Supabase 25/26/50/25/50, and Guided VR 25 active
+  destinations / 472 steps / 99 scene keys.
+- The owner-run syncSupabaseContentToMysql.js --dry-run was read-only, reported
+  no differences and fingerprint
+  2504a0474b0481964d447f5f538b9e4e1cd77ef0116c4299c12d0a81eae5bf05;
+  it is not apply, backup, restore, or current database proof.
+- The rejected/incomplete 2026-08-26 authority-sync rerun remains historical:
+  it observed 665 total Supabase VR scenes versus frozen 664 and one unexpired
+  canonical administrator session. Nothing was mutated in that rerun. Keep it
+  separate from later product evidence BE.6 46/46 and residue 18/18; the
+  supported local MySQL administrator-session revocation is now closed history.
+- Manual profile-photo upload remains removed/deferred and safe Google image
+  synchronization remains. Google OAuth Production behavior is owner-observed,
+  not independent deployed-byte proof. Do not contact Cloudinary or create a
+  privileged key.
 
-The participant-facing public FAQ page is implemented and committed locally in product commit
-38905b7 as a server-rendered /faq page backed by the existing dual-backend
-administrator-managed FAQ data. It is available to signed-out and signed-in
-users with public/signed-in navigation, native accordions, search, category
-filters, a shared theme control, and escaped admin-authored text. Admin FAQ
-CRUD remains at /admin/faqs and /admin/api/faqs; saving publishes immediately
-with no schema or migration change. The FAQ is standalone and is not embedded
-in the dashboard. The focused publicFaq-probe.js passes 38/38. The FAQ
-implementation was separately authorized, committed in product commit 38905b7,
-and included in the pushed main lineage. It has not been promoted or deployed;
-no Production acceptance or independent deployed-byte verification is recorded.
-A separate promotion/deployment authorization boundary remains; promotion and
-deployment remain unauthorized by this prompt.
+The participant-facing public FAQ is pushed in 38905b7 as public server-rendered /faq
+with signed-out/signed-in navigation, native accordions, search/category
+filters, shared theme, and escaped admin text. Admin CRUD remains at
+/admin/faqs and /admin/api/faqs. It is standalone, not in /dashboard.
 
-Final Milestone 12 disposition remains external. Do not infer that
-implementation, Git mutation, vendor work, or deployment is authorized. After
-the grounding report, stop and wait for the owner. Deployment is not authorized by this prompt. This context-only prompt authorizes none of those actions.
+The same commit completes the fixed ten-key institutional-settings projection
+from selected Supabase/MySQL to signed-in /about and shared footers. Description
+owns at most two About blocks separated by one blank line; legacy one-paragraph
+data receives safe default context at read time without automatic write. The
+original layout remains; output is escaped, links validated, and no migration
+changed. The supported local MySQL administrator-session revocation is closed;
+do not repeat it.
+
+Offline truth: Update Offline Map downloads an immutable CSPC package to
+IndexedDB. MapLibre reads bounded content-addressed PMTiles offline; online uses
+OSM/Leaflet. The future client request is to obtain a newly prepared CSPC-scoped
+PMTiles version after a new physical CSPC building footprint appears upstream
+in OSM. This is not implemented; the click does not convert live OSM to
+PMTiles, and no hosting,
+automation, deployment, or vendor design is selected or authorized.
+
+Keep historical releases, owner observations, live Git, e481d03, pushed
+38905b7 verification/review/package evidence, pushed 0c906db authority,
+owner-applied migration, dry-run preview, Android compatibility, unimplemented
+offline refresh, missing deployment evidence, and external closeout separate.
+
+Return only a grounding report containing capabilities/files inspected, exact
+live Git versus the record, evidence classes, authority inconsistencies, and
+the next authorization boundary. Wait for a separate owner authorization; do
+not automatically begin deployment or offline-map work. Final Milestone 12
+disposition remains external. Do not infer that implementation, Git mutation,
+vendor work, or deployment is authorized. After the grounding report, stop and
+wait for the owner. Deployment is not authorized by this prompt. This
+context-only prompt authorizes none of those actions.
 ```
 
 ## Historical Claude Code Grounding Prompt (2026-08-26 pre-FAQ; superseded; do not use)

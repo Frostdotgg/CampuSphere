@@ -5818,6 +5818,12 @@ const CURRENT_PUSHED_CANDIDATE_PREDECESSOR_SHA =
   '2b4f42df3f79347c70af07f7b98f70be55b701bd';
 const CURRENT_PUSHED_CANDIDATE_PACKAGE_SHA256 =
   'c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216';
+const CURRENT_PRODUCT_COMMIT_SHA =
+  '38905b7b2b103caa9ed0575f1031b30344944970';
+const CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA =
+  '0c906db0b33b93ff450b8de0b94a80a54c97d63a';
+const CURRENT_PRODUCT_PACKAGE_SHA256 =
+  'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -5856,6 +5862,141 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   }
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  /* Current post-FAQ/settings authority. Keep the earlier e481d03 analyzer
+     below for explicitly historical fixtures, but require the complete pushed
+     product lifecycle and the still-unimplemented offline-refresh boundary in
+     every live authority surface. */
+  if (t.includes(CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA)) {
+    const requiredLineage =
+      t.includes('dc961b1') && t.includes('2b4f42d') &&
+      t.includes(CURRENT_PUSHED_CANDIDATE_COMMIT_SHA) &&
+      t.includes(CURRENT_PRODUCT_COMMIT_SHA) &&
+      t.includes(CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA);
+    if (!requiredLineage ||
+        !/HEAD[\s\S]{0,120}origin\/main[\s\S]{0,120}remote `?main`?[\s\S]{0,180}(?:0c906db|0c906db0b33b93ff450b8de0b94a80a54c97d63a)/i.test(t) ||
+        !/(?:index and worktree were clean|index\/worktree were clean|clean index\/worktree)/i.test(t) ||
+        !/zero dirty paths[\s\S]{0,100}zero stashes/i.test(t)) {
+      problems.push('current product Git identity or clean pushed start is missing');
+    }
+    const hasPreCommitCheckpoint =
+      /pre-commit checkpoint[\s\S]{0,180}12 modified tracked paths/i.test(t) &&
+      /unstaged, uncommitted, and unpushed/i.test(t);
+    const hasSuccessorTransition =
+      /if the owner authorizes the commit and push[\s\S]{0,260}resulting successor[\s\S]{0,260}clean (?:`?main`?|main) state[\s\S]{0,260}(?:local `?HEAD`?|local HEAD)[\s\S]{0,160}origin\/main[\s\S]{0,160}remote `?main`?[\s\S]{0,300}diff from[\s\S]{0,80}0c906db[\s\S]{0,120}exactly those 12 paths/i.test(t);
+    if (!hasPreCommitCheckpoint || !hasSuccessorTransition ||
+        !/11 authority documents[\s\S]{0,100}scripts\/quality-gates\.js/i.test(t) ||
+        !/(?:empty index|nothing staged)/i.test(t) ||
+        !/no untracked paths|nothing[\s\S]{0,40}untracked/i.test(t) ||
+        !/zero stashes/i.test(t)) {
+      problems.push('exact intentionally dirty 12-path authority boundary is missing');
+    }
+
+    if (!/semester room-schedule (?:image|document) flow/i.test(t) ||
+        !/schedule_document_id/i.test(t) ||
+        !/(?:no image bytes are uploaded|no upload\/delete\/management|no upload, delete, or management)/i.test(t) ||
+        !/legacy[\s\S]{0,120}read-only fallback/i.test(t) ||
+        !/(?:schedules remain|schedules stay)[\s\S]{0,80}(?:excluded|offline-excluded)/i.test(t)) {
+      problems.push('room-schedule behavior or Cloudinary boundary is missing');
+    }
+    if (!/0020_room_schedule_documents\.sql/i.test(t) ||
+        !/(?:owner-applied|owner applied)/i.test(t) ||
+        !/(?:MySQL schema (?:parity )?was verified|matching MySQL schema is verified|local MySQL[\s\S]{0,80}verified)/i.test(t) ||
+        !/(?:Do not reapply|do not apply SQL|do not apply or reapply SQL)/i.test(t)) {
+      problems.push('owner-applied 0020 and no-reapply boundary is missing');
+    }
+
+    if (!/npm test[\s\S]{0,120}(?:exited? 0|4998\/4998)[\s\S]{0,100}QUALITY-GATES OK/i.test(t) ||
+        !/npm run qa[\s\S]{0,160}(?:exited? 0|green)/i.test(t) ||
+        !/(?:public )?FAQ[\s\S]{0,240}38\/38/i.test(t) ||
+        !/site settings[\s\S]{0,80}26\/26/i.test(t) ||
+        !/settings runtime[\s\S]{0,80}20\/20/i.test(t) ||
+        !/package[\s\S]{0,80}74\/74/i.test(t) ||
+        !/BE\.6[\s\S]{0,60}46\/46/i.test(t) ||
+        !/residue[\s\S]{0,80}18\/18/i.test(t) ||
+        !/no standalone aggregate count|did not emit a standalone aggregate count/i.test(t)) {
+      problems.push('current product verification evidence is incomplete');
+    }
+    if (!/(?:Security\s*->\s*Performance\s*->\s*Correctness\s*->\s*Maintainability|in the order Security[\s\S]{0,100}Maintainability)/i.test(t) ||
+        !/(?:no critical, high, medium, or low findings|no critical\/high\/medium\/low findings|with no findings)/i.test(t)) {
+      problems.push('ordered independent product review evidence is missing');
+    }
+    if (!t.includes(CURRENT_PRODUCT_PACKAGE_SHA256) ||
+        !/186 files[\s\S]{0,80}7,220,073 bytes/i.test(t)) {
+      problems.push('current product package identity is missing');
+    }
+    if (!/(?:38905b7|product commit)[\s\S]{0,140}(?:0c906db|authority-only commit)[\s\S]{0,140}(?:committed and pushed|are pushed|is also pushed)/i.test(t) ||
+        !/(?:no owner-authorized promotion|No promotion|No current promotion|no current promotion)/i.test(t) ||
+        !/Production acceptance/i.test(t) ||
+        !/(?:deployed-byte verification|deployed-byte proof)/i.test(t)) {
+      problems.push('current push evidence or deployment boundary is missing');
+    }
+
+    if (!/participant-facing (?:public )?FAQ|public FAQ/i.test(t) ||
+        !/(?:GET\s+)?\/faq(?!s)/i.test(t) ||
+        !/signed-out[\s\S]{0,100}signed-in/i.test(t) ||
+        !/native accordions/i.test(t) || !/search/i.test(t) ||
+        !/category filters/i.test(t) || !/(?:shared )?(?:light\/dark )?theme/i.test(t) ||
+        !/escaped admin(?:-authored)? (?:text|output)/i.test(t) ||
+        !/\/admin\/faqs/i.test(t) || !/\/admin\/api\/faqs/i.test(t) ||
+        !/standalone[\s\S]{0,80}not (?:embedded )?in (?:the )?\/?dashboard/i.test(t)) {
+      problems.push('public FAQ behavior or standalone boundary is missing');
+    }
+
+    if (!/(?:institutional settings projection|institutional-settings projection)/i.test(t) ||
+        !/(?:fixed ten-key allowlist|fixed ten-key)/i.test(t) ||
+        !/(?:selected Supabase or MySQL|selected Supabase\/MySQL)/i.test(t) ||
+        !/\/about/i.test(t) || !/shared[\s\S]{0,80}footers/i.test(t) ||
+        !/Description(?: field)?[\s\S]{0,100}(?:at most two|owns[\s\S]{0,60}two)/i.test(t) ||
+        !/blank line/i.test(t) ||
+        !/legacy (?:single paragraph|one-paragraph data)[\s\S]{0,140}(?:default context|safe default context)[\s\S]{0,100}(?:without an automatic|without automatic)/i.test(t) ||
+        !/original About layout|original layout/i.test(t) ||
+        !/escaped output|output is escaped/i.test(t) ||
+        !/validated links|links (?:are )?validated/i.test(t) ||
+        !/no schema or migration changed|no migration changed/i.test(t)) {
+      problems.push('institutional settings projection or safe Description contract is missing');
+    }
+    if (!/local MySQL administrator-session revocation[\s\S]{0,100}closed/i.test(t) ||
+        !/(?:Do not repeat|do not repeat)/i.test(t)) {
+      problems.push('closed administrator-session revocation boundary is missing');
+    }
+
+    if (!/Update Offline Map/i.test(t) || !/IndexedDB/i.test(t) ||
+        !/MapLibre/i.test(t) || !/PMTiles/i.test(t) ||
+        !/OSM\/Leaflet|OSM[\s\S]{0,40}Leaflet/i.test(t) ||
+        !/(?:future requirement|future client request|client's future requirement)/i.test(t) ||
+        !/new physical CSPC building footprint/i.test(t) ||
+        !/not implemented/i.test(t) ||
+        !/(?:click does not convert live OSM|user click does not convert live OSM)/i.test(t) ||
+        !/no hosting, automation, deployment, or vendor design/i.test(t)) {
+      problems.push('offline package truth or unimplemented refresh boundary is missing');
+    }
+
+    if (!/Android 8[\s\S]{0,120}unsupported[\s\S]{0,120}(?:compatibility|platform)/i.test(t) ||
+        !/not a confirmed[\s\S]{0,80}(?:CampuSphere|app|code) (?:defect|bug)/i.test(t) ||
+        !/Android 10\+[\s\S]{0,100}(?:current )?Chrome/i.test(t)) {
+      problems.push('Android 8 unsupported-platform classification is missing');
+    }
+    if (!/Final Milestone 12 disposition remains external/i.test(t) ||
+        !/(?:ground, report, and wait|stop and wait|wait for a separate owner authorization)/i.test(t) ||
+        !/(?:Deployment is not authorized|deployment remain(?:s)? unauthorized)/i.test(t)) {
+      problems.push('final closeout or grounding wait boundary is missing');
+    }
+
+    const staleCurrentClaims = [
+      /product commit[^.]{0,140}(?:not yet pushed|not pushed|committed locally)/i,
+      /FAQ implementation[^.]{0,140}(?:not yet pushed|not pushed|committed locally)/i,
+      /public FAQ page is the selected next product task/i,
+      /(?:38905b7|0c906db)[^.]{0,160}(?:is|was|has been) (?:promoted|deployed|Production current)/i,
+      /offline(?:-map)? refresh[^.]{0,160}(?:is|was|has been) (?:implemented|complete|deployed|authorized)/i,
+      /current user click[^.]{0,120}(?:converts|builds|generates) (?:live )?OSM/i,
+      /e481d03[^.]{0,160}(?:HEAD|origin\/main|remote main)[^.]{0,80}(?:current|matched)/i,
+    ];
+    if (staleCurrentClaims.some((rule) => rule.test(t))) {
+      problems.push('stale or premature current-product authority remains');
+    }
+    return problems;
+  }
 
   /* Current post-schedule authority. Older fixtures intentionally continue
      through the historical analyzer below so accepted release evidence stays
@@ -6134,6 +6275,18 @@ function reusablePromptIsCurrent(body) {
 
   const carriesPromotedReleaseAuthority =
     currentReleaseContinuityProblems(t, { requireMarkers: false }).length === 0;
+
+  if (t.includes(CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA)) {
+    return carriesPromotedReleaseAuthority &&
+      /fresh context-only grounding session/i.test(t) &&
+      /load and follow the installed code-reviewer skill/i.test(t) &&
+      /(?:context-mode|ctx_execute_file|ctx_batch_execute)/i.test(t) &&
+      /public FAQ/i.test(t) &&
+      /(?:institutional settings|site settings)/i.test(t) &&
+      /(?:stop and wait|wait for a separate owner authorization)/i.test(t) &&
+      /Deployment is not authorized by this prompt/i.test(t) &&
+      /context-only prompt authorizes none/i.test(t);
+  }
 
   if (t.includes(CURRENT_PUSHED_CANDIDATE_COMMIT_SHA)) {
     return carriesPromotedReleaseAuthority &&
@@ -8368,9 +8521,14 @@ function runDocsCurrentGate() {
     'docs/test-evidence.md',
   ];
 
-  for (const name of maintenanceAuthorityDocs) {
+  const currentReleaseAuthorityDocs = [
+    ...maintenanceAuthorityDocs,
+    'docs/new-session-grounding-prompts.md',
+  ];
+
+  for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records e481d03 continuity and the current verification/deployment boundary`,
+    ok(`${name} records 0c906db continuity and the current verification/deployment boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -8383,15 +8541,19 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current post-e481d03 continuity is accepted and stale/false variants fail closed',
+  ok('fixture: current post-0c906db continuity is accepted and stale/false variants fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PUSHED_CANDIDATE_COMMIT_SHA,
+      CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA,
       'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PUSHED_CANDIDATE_PACKAGE_SHA256,
+      CURRENT_PRODUCT_COMMIT_SHA,
+      'dddddddddddddddddddddddddddddddddddddddd')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_PRODUCT_PACKAGE_SHA256,
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -8403,8 +8565,16 @@ function runDocsCurrentGate() {
       'confirmed CampuSphere Android code bug')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /participant-facing public FAQ(?: page)?/i,
-      'already implemented public FAQ page')).length > 0 &&
+      /public, server-rendered `\/faq` page/i,
+      'private help surface')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /institutional\s+settings projection/i,
+      'omitted settings projection')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /That refresh pipeline is\s+not implemented/i,
+      'That refresh pipeline is complete and deployed')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       /Do not reapply migration 0020 without a new explicit database\s+authorization\./,
