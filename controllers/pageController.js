@@ -3,6 +3,12 @@
    Handles Landing, Home, and About pages
    ======================================== */
 
+const {
+  DEFAULT_SCHOOL_DESCRIPTION,
+  expandLegacySchoolDescription,
+  splitSchoolDescription,
+} = require('../utils/siteSettingsDescription');
+
 
 
 /**
@@ -44,10 +50,16 @@ exports.home = (req, res) => {
  * GET /about — About Us
  */
 exports.about = (req, res) => {
+  const siteSettings = res.locals.siteSettings || {};
+  const schoolDescription = expandLegacySchoolDescription(
+    siteSettings.school_description || DEFAULT_SCHOOL_DESCRIPTION
+  ) || DEFAULT_SCHOOL_DESCRIPTION;
+  const schoolDescriptionParts = splitSchoolDescription(schoolDescription);
   res.render('about', {
     title: 'CampuSphere | About Us',
-    description: 'Learn about the CampuSphere team and the CSPC virtual map tour project.',
+    description: schoolDescriptionParts[0] || 'Learn about the CampuSphere team and the CSPC virtual map tour project.',
+    siteSettings: { ...siteSettings, school_description: schoolDescription },
+    schoolDescriptionParts,
     activeTab: 'tabAbout'
   });
 };
-

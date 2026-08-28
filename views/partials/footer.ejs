@@ -1,3 +1,4 @@
+<% const footerSettings = (typeof siteSettings === 'object' && siteSettings) ? siteSettings : {}; %>
 <footer class="footer" id="footer">
     <div class="container">
         <div class="footer__inner">
@@ -9,7 +10,8 @@
                 </div>
                 <p class="footer__desc">
                     A role-based online portal with Progressive Web App for interactive
-                    campus mapping at Camarines Sur Polytechnic Colleges, Nabua, Cam. Sur.
+                    campus mapping at <%= footerSettings.school_name || 'Camarines Sur Polytechnic Colleges' %>,
+                    <%= footerSettings.school_address || 'Nabua, Camarines Sur, Philippines' %>.
                 </p>
                 <div class="footer__sdg">
                     <span class="footer__sdg-badge footer__sdg-badge--sdg4">
@@ -36,24 +38,23 @@
                     <li><a href="/">Home</a></li>
                     <li><a href="/map">Campus Map</a></li>
                     <li><a href="/buildings">Buildings</a></li>
+                    <li><a href="/faq">FAQs</a></li>
                     <li><a href="/about">About</a></li>
                     <li><a href="/auth">Sign In</a></li>
                 </ul>
             </div>
 
             <%# M12.P1-R8: every link below must resolve to a real destination.
-                The former Student Portal, FAQ, and Contact Us entries were empty
-                placeholder anchors with no destination to point at, so they were
-                REMOVED rather than given an invented URL. Do not reintroduce a
-                placeholder anchor here: the fail-closed pilot-readiness gate
-                scans this whole file and rejects any empty-fragment anchor,
-                including one written inside a comment. %>
+                FAQ now points to the public, server-rendered FAQ page; do not
+                replace it with an empty-fragment placeholder. %>
             <!-- Column 3: Resources -->
             <div>
                 <h4 class="footer__heading">Resources</h4>
                 <ul class="footer__list">
-                    <li><a href="https://cspc.edu.ph/" rel="noopener noreferrer" target="_blank">CSPC Official
-                            Website</a></li>
+                    <li><a href="<%= footerSettings.contact_website || 'https://cspc.edu.ph' %>"
+                            rel="noopener noreferrer" target="_blank"><%= footerSettings.school_acronym || 'CSPC' %>
+                            Official Website</a></li>
+                    <li><a href="/faq">Frequently Asked Questions</a></li>
                     <li><a href="/privacy">Privacy Notice</a></li>
                 </ul>
             </div>

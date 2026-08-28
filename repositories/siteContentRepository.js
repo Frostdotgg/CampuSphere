@@ -5,9 +5,9 @@
    Milestone 7, Section 7.3.
 
    Supabase-backed FAQ CRUD and allowlisted system_settings reads /
-   batch updates. Consumed by the (later) admin FAQ + settings
-   controllers once Sections 7.5 / 7.6 wire them; no controller,
-   route, view, or public file imports this module yet.
+   batch updates. Consumed by the admin FAQ controller and the public
+   FAQ controller, while settings access remains available to its
+   dedicated admin path.
 
    Boundary rules (see database/supabase/REPOSITORY_BOUNDARIES.md s11):
    - Imports `config/supabase.js` ONLY. It does NOT import

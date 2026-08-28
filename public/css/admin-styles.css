@@ -586,6 +586,14 @@ html[data-theme="dark"] body {
     overflow-wrap: anywhere;
 }
 
+.field-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    overflow-wrap: anywhere;
+}
+
 .field-error[hidden] {
     display: none;
 }
@@ -600,6 +608,18 @@ html[data-theme="dark"] body {
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
+}
+
+.settings-preview-link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.settings-preview-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 @media (max-width: 640px) {

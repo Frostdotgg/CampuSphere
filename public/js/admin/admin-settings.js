@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { key: 'contact_website', label: 'Website', max: 2048, url: true },
     { key: 'contact_hours', label: 'Office hours', max: 255 },
   ];
+  const DESCRIPTION_MAX_LENGTH = 2000;
+  const DESCRIPTION_MAX_BLOCKS = 2;
   const CURRENT_YEAR = new Date().getFullYear();
   const MIN_YEAR = 1900;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,6 +46,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Helpers ----
   function input(key) { return document.getElementById('set-' + key); }
   function errEl(key) { return document.getElementById('err-' + key); }
+
+  function normalizeDescription(raw) {
+    const normalized = String(raw == null ? '' : raw).replace(/\r\n?/g, '\n').trim();
+    if (!normalized) return { ok: false, message: 'Description is required.' };
+    if (normalized.length > DESCRIPTION_MAX_LENGTH) {
+      return { ok: false, message: 'Description must be ' + DESCRIPTION_MAX_LENGTH + ' characters or fewer.' };
+    }
+    const blocks = normalized.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
+    if (blocks.length > DESCRIPTION_MAX_BLOCKS) {
+      return { ok: false, message: 'Description may contain at most two paragraphs separated by one blank line.' };
+    }
+    return { ok: true, value: blocks.join('\n\n'), blocks };
+  }
+
+  function displayDescription(raw) {
+    const field = input('school_description');
+    const legacy = field && field.dataset ? field.dataset.legacyDescription : '';
+    const context = field && field.dataset ? field.dataset.defaultContext : '';
+    const parsed = normalizeDescription(raw);
+    const value = parsed.ok ? parsed.value : String(raw == null ? '' : raw);
+    if (legacy && context && value === legacy) return legacy + '\n\n' + context;
+    return value;
+  }
 
   function refreshIcons() {
     if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
@@ -92,7 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function populate(settings) {
     FIELDS.forEach((f) => {
       const i = input(f.key);
-      if (i) i.value = settings[f.key] == null ? '' : String(settings[f.key]);
+      if (i) {
+        i.value = f.key === 'school_description'
+          ? displayDescription(settings[f.key])
+          : settings[f.key] == null ? '' : String(settings[f.key]);
+      }
     });
     const fy = input('school_founded');
     if (fy) fy.max = String(CURRENT_YEAR);
@@ -103,7 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const o = {};
     FIELDS.forEach((f) => {
       const i = input(f.key);
-      o[f.key] = i ? String(i.value).trim() : '';
+      const raw = i ? String(i.value) : '';
+      o[f.key] = f.key === 'school_description'
+        ? (normalizeDescription(raw).value || raw.trim())
+        : raw.trim();
     });
     return o;
   }
@@ -133,6 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const v = String(raw).trim();
       if (v === '') { fail(f.key, f.label + ' is required.'); continue; }
       if (v.length > f.max) { fail(f.key, f.label + ' must be ' + f.max + ' characters or fewer.'); continue; }
+      if (f.key === 'school_description') {
+        const parsedDescription = normalizeDescription(raw);
+        if (!parsedDescription.ok) fail(f.key, parsedDescription.message);
+        continue;
+      }
       if (f.email && !EMAIL_RE.test(v)) { fail(f.key, 'Enter a valid email address.'); continue; }
       if (f.url) {
         let u = null;

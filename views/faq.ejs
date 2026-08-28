@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head') %>
+    <script nonce="<%= cspNonce %>">
+        (function () {
+            var dark = false;
+            try {
+                dark = localStorage.getItem('campussphere-theme') === 'dark';
+            } catch (_) { /* theme preference is best effort */ }
+            if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+        })();
+    </script>
+    <link rel="stylesheet" href="/css/faq.css?v=2">
+</head>
+
+<body class="faq-page<%= typeof user !== 'undefined' && user ? ' faq-page--authenticated' : '' %>">
+    <% if (typeof user !== 'undefined' && user) { %>
+        <%- include('partials/dash-navbar', { activeTab: activeTab }) %>
+    <% } else { %>
+        <%- include('partials/navbar', { activePublicPage: activePublicPage }) %>
+    <% } %>
+
+    <main class="faq-main" id="faqMain" data-faq-root>
+        <div class="faq-container">
+            <header class="faq-hero">
+                <p class="faq-eyebrow">Help and guidance</p>
+                <h1 class="faq-title">Frequently Asked Questions</h1>
+                <p class="faq-intro">Find practical answers about campus maps, routes, guided tours, offline access, and your CampuSphere account.</p>
+            </header>
+
+            <% if (loadFailed) { %>
+                <section class="faq-state faq-state--error" role="alert" aria-labelledby="faq-error-title">
+                    <h2 id="faq-error-title">FAQs are temporarily unavailable</h2>
+                    <p>Please try again shortly. You can still use the rest of CampuSphere while this page reconnects to its content source.</p>
+                </section>
+            <% } else if (!faqs || faqs.length === 0) { %>
+                <section class="faq-state" aria-labelledby="faq-empty-title">
+                    <h2 id="faq-empty-title">No FAQs are published yet</h2>
+                    <p>Check back soon for answers from the CampuSphere team.</p>
+                </section>
+            <% } else { %>
+                <section class="faq-controls" data-faq-controls aria-label="FAQ filters" hidden>
+                    <div class="faq-control-group">
+                        <label for="faq-search">Search FAQs</label>
+                        <input id="faq-search" class="faq-input" type="search" autocomplete="off"
+                            placeholder="Search questions and answers" spellcheck="false">
+                    </div>
+                    <div class="faq-control-group">
+                        <label for="faq-category">Filter by category</label>
+                        <select id="faq-category" class="faq-select">
+                            <option value="">All categories</option>
+                            <% categories.forEach(function (category) { %>
+                                <option value="<%= category %>"><%= category %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <button id="faq-clear" class="faq-clear" type="button" hidden>Clear filters</button>
+                </section>
+
+                <p id="faq-status" class="faq-status" role="status" aria-live="polite"></p>
+                <p id="faq-filtered-empty" class="faq-state faq-state--filtered" hidden>
+                    No FAQs match those filters. Try a different search or category.
+                </p>
+
+                <section class="faq-list" id="faqList" aria-label="Frequently asked questions">
+                    <% faqs.forEach(function (faq) { %>
+                        <details class="faq-item" data-faq-item data-category="<%= faq.displayCategory %>">
+                            <summary class="faq-summary">
+                                <span class="faq-summary__question"><%= faq.question %></span>
+                                <span class="faq-summary__category"><%= faq.displayCategory %></span>
+                                <svg class="faq-summary__icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                <p><%= faq.answer %></p>
+                            </div>
+                        </details>
+                    <% }); %>
+                </section>
+            <% } %>
+        </div>
+    </main>
+
+    <% if (typeof user !== 'undefined' && user) { %>
+        <%- include('partials/dash-footer') %>
+    <% } else { %>
+        <%- include('partials/footer') %>
+    <% } %>
+
+    <%- include('partials/theme-toggle') %>
+    <script src="/js/public-faq.js" defer></script>
+</body>
+
+</html>

@@ -1,3 +1,4 @@
+<% var activePublicPageValue = typeof activePublicPage !== 'undefined' ? activePublicPage : ''; %>
 <nav class="navbar" id="navbar">
     <div class="container navbar__inner">
         <!-- Brand -->
@@ -10,6 +11,7 @@
         <div class="navbar__links" id="navLinks">
             <a href="/" class="navbar__link">Home</a>
             <a href="/#features" class="navbar__link">Features</a>
+            <a href="/faq" class="navbar__link<%= activePublicPageValue === 'faq' ? ' navbar__link--active' : '' %>"<%= activePublicPageValue === 'faq' ? ' aria-current="page"' : '' %>>FAQ</a>
             <div class="navbar__actions">
                 <% if (typeof user !== 'undefined' && user) { %>
                     <a href="/dashboard" class="navbar__cta">Dashboard</a>

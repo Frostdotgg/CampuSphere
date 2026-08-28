@@ -1,6 +1,7 @@
+<% const dashboardFooterSettings = (typeof siteSettings === 'object' && siteSettings) ? siteSettings : {}; %>
 <footer class="dash-footer">
     <div class="dash-footer__inner">
-        <p>&copy; 2026 Camarines Sur Polytechnic Colleges. All rights reserved.</p>
+        <p>&copy; 2026 <%= dashboardFooterSettings.school_name || 'Camarines Sur Polytechnic Colleges' %>. All rights reserved.</p>
         <p>CampuSphere - Your Digital Campus Guide</p>
     </div>
 </footer>

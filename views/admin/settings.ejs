@@ -100,7 +100,7 @@
             <header class="admin-page-header flex h-16 items-center justify-between border-b border-border bg-card px-6 shrink-0">
                 <div>
                     <h1 class="text-xl font-semibold text-foreground">Settings</h1>
-                    <p class="text-sm text-muted-foreground">Manage your institution's public information</p>
+                    <p class="text-sm text-muted-foreground">Manage your institution's public information. Changes appear on the <a href="/about" class="settings-preview-link">About page</a> and shared footers.</p>
                 </div>
             </header>
 
@@ -159,7 +159,11 @@
                                 </div>
                                 <div class="settings-field">
                                     <label for="set-school_description">Description</label>
-                                    <textarea id="set-school_description" name="school_description" class="ui-input" maxlength="2000" rows="4" aria-describedby="err-school_description"></textarea>
+                                    <textarea id="set-school_description" name="school_description" class="ui-input" maxlength="2000" rows="7"
+                                        data-legacy-description="<%= legacySchoolDescription || '' %>"
+                                        data-default-context="<%= defaultSchoolContext || '' %>"
+                                        aria-describedby="hint-school_description err-school_description"></textarea>
+                                    <p class="field-hint" id="hint-school_description">Use one blank line to separate the institution overview from the campus context shown in the second About paragraph.</p>
                                     <p class="field-error" id="err-school_description" role="alert" hidden></p>
                                 </div>
                             </div>

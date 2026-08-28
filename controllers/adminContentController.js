@@ -9,6 +9,10 @@ const contentRepository = require('../repositories/contentRepository');
 const siteContentRepository = require('../repositories/siteContentRepository');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
+const {
+  SCHOOL_DESCRIPTION_MAX_LENGTH,
+  canonicalizeSchoolDescription,
+} = require('../utils/siteSettingsDescription');
 
 // Standardized announcement category + audience values (Milestone 4).
 // R7 repair: the allowlist is the UNION of the admin UI options and every
@@ -797,7 +801,7 @@ const SETTINGS_SPEC = [
   { key: 'school_acronym', label: 'Acronym', max: 20 },
   { key: 'school_address', label: 'School address', max: 255 },
   { key: 'school_founded', label: 'Founded year', year: true },
-  { key: 'school_description', label: 'Description', max: 2000 },
+  { key: 'school_description', label: 'Description', max: SCHOOL_DESCRIPTION_MAX_LENGTH },
   { key: 'contact_address', label: 'Contact address', max: 255 },
   { key: 'contact_phone', label: 'Phone', max: 50 },
   { key: 'contact_email', label: 'Email', max: 254, email: true },
@@ -884,6 +888,12 @@ function validateSettingsPayload(body, currentYear) {
     }
     if (v.length > spec.max) {
       return { ok: false, message: `${spec.label} must be ${spec.max} characters or fewer.` };
+    }
+    if (spec.key === 'school_description') {
+      const parsedDescription = canonicalizeSchoolDescription(v);
+      if (!parsedDescription.ok) return { ok: false, message: parsedDescription.message };
+      out[spec.key] = parsedDescription.value;
+      continue;
     }
     if (spec.email && !SETTINGS_EMAIL_RE.test(v)) {
       return { ok: false, message: 'Email must be a valid email address.' };

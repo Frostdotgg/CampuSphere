@@ -305,7 +305,7 @@ async function seed() {
             },
             {
                 question: 'Can I use CampuSphere offline?',
-                answer: 'After you open a page once while online, you can reopen the campus map, the building directory, and VR routes you already viewed without a connection. Signing in and live updates still need internet.',
+                answer: 'Download the Offline Campus Guide from the signed-in Campus Map while you are online. The package contains the 2D campus map, Main Gate routes, and text building details. It does not include Guided VR, Free Roam, schedules, or building photos. Sign-in and live updates still require internet.',
                 category: 'Offline Access',
                 display_order: 5
             },

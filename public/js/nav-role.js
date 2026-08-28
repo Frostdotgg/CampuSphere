@@ -16,19 +16,19 @@
     /* ---- Which pages (routes) each role may visit ---- */
     const rolePageAccess = {
         'anonymous': PUBLIC_PAGES,
-        'student-cspc': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/'],
-        'instructor': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/'],
-        'admin': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/', '/admin'],
-        'guest': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/']
+        'student-cspc': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/'],
+        'instructor': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/'],
+        'admin': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/', '/admin'],
+        'guest': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/']
     };
 
     /* ---- Which nav-tab IDs each role can see ---- */
     const roleNavAccess = {
         'anonymous': ['tabHome', 'mobileLoginBtn'],
-        'student-cspc': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout'],
-        'instructor': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout'],
-        'admin': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout'],
-        'guest': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout']
+        'student-cspc': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
+        'instructor': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
+        'admin': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
+        'guest': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile']
     };
 
     // Roles that may use the VR viewer (Milestone 5). Anonymous

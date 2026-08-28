@@ -14,6 +14,10 @@ const auditRepository = require('../repositories/auditRepository');
 const routeAvailability = require('../services/routeAvailability');
 const adminAnalyticsService = require('../services/adminAnalyticsService');
 const { logServerError } = require('../utils/serverLog');
+const {
+  LEGACY_SCHOOL_DESCRIPTION,
+  DEFAULT_SCHOOL_CONTEXT,
+} = require('../utils/siteSettingsDescription');
 
 /**
  * GET /admin — Admin Dashboard
@@ -496,7 +500,9 @@ exports.settings = (req, res) => {
   res.render('admin/settings', {
     title: 'CampuSphere Admin | Settings',
     description: 'CampuSphere system settings.',
-    activePage: 'settings'
+    activePage: 'settings',
+    legacySchoolDescription: LEGACY_SCHOOL_DESCRIPTION,
+    defaultSchoolContext: DEFAULT_SCHOOL_CONTEXT,
   });
 };
 
