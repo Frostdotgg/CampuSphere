@@ -1,0 +1,69 @@
+name: Publish offline CSPC map
+
+on:
+  schedule:
+    # Protomaps publishes daily builds; the publisher steps back when the most
+    # recent file is not ready yet. The device still updates only on user click.
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: 'Create the dedicated Drive folder and empty manifest (first setup only)'
+        required: false
+        default: false
+        type: boolean
+      rollback_version:
+        description: 'Optional 64-hex release version to roll back to'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campusphere-offline-map-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install checksum-pinned PMTiles CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/go-pmtiles_1.31.2_Linux_x86_64.tar.gz"
+          curl --fail --silent --show-error --location \
+            --output "$archive" \
+            'https://github.com/protomaps/go-pmtiles/releases/download/v1.31.2/go-pmtiles_1.31.2_Linux_x86_64.tar.gz'
+          echo '3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f  '"$archive" | sha256sum --check --status
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          test -x "$RUNNER_TEMP/pmtiles"
+
+      - name: Install production dependencies for the publisher
+        run: npm ci --ignore-scripts --omit=dev
+
+      - name: Publish the latest validated release
+        env:
+          PMTILES_BIN: ${{ runner.temp }}/pmtiles
+          OFFLINE_MAP_DRIVE_FOLDER_ID: ${{ secrets.OFFLINE_MAP_DRIVE_FOLDER_ID }}
+          OFFLINE_MAP_DRIVE_MANIFEST_FILE_ID: ${{ secrets.OFFLINE_MAP_DRIVE_MANIFEST_FILE_ID }}
+          OFFLINE_MAP_PUBLIC_MANIFEST_URL: ${{ secrets.OFFLINE_MAP_PUBLIC_MANIFEST_URL }}
+          OFFLINE_MAP_GOOGLE_CLIENT_ID: ${{ secrets.OFFLINE_MAP_GOOGLE_CLIENT_ID }}
+          OFFLINE_MAP_GOOGLE_CLIENT_SECRET: ${{ secrets.OFFLINE_MAP_GOOGLE_CLIENT_SECRET }}
+          OFFLINE_MAP_GOOGLE_REFRESH_TOKEN: ${{ secrets.OFFLINE_MAP_GOOGLE_REFRESH_TOKEN }}
+          OFFLINE_MAP_SIGNING_PRIVATE_KEY: ${{ secrets.OFFLINE_MAP_SIGNING_PRIVATE_KEY }}
+          OFFLINE_MAP_DRIVE_PARENT_ID: ${{ secrets.OFFLINE_MAP_DRIVE_PARENT_ID }}
+          OFFLINE_MAP_BOOTSTRAP: ${{ inputs.bootstrap }}
+          OFFLINE_MAP_ROLLBACK_VERSION: ${{ inputs.rollback_version }}
+        run: node scripts/publishOfflineMapRelease.js

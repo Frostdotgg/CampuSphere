@@ -65,6 +65,7 @@ const mapRoutes = require('./routes/map');
 const vrRoutes = require('./routes/vr');
 const adminRoutes = require('./routes/admin');
 const profileController = require('./controllers/profileController');
+const offlineMapController = require('./controllers/offlineMapController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -194,6 +195,16 @@ app.get('/favicon.ico', (_req, res) => {
 
 /* ---- Static Files ---- */
 app.use(express.static(path.join(__dirname, 'public')));
+
+/* ---- Dynamic content-addressed offline map releases ----
+   The bundled PMTiles archive remains served by express.static for the
+   transition release. A newly published Google Drive archive is exposed at
+   the same hash-shaped path so existing offline-guide clients can consume it
+   without a schema or service-worker migration. This route is deliberately
+   before express-session: the map is public OSM-derived data, must not create
+   a session cookie, and can be cached at Vercel's edge while the browser keeps
+   its explicit IndexedDB-only offline boundary. */
+app.get('/maps/cspc-campus-:sha256.pmtiles', offlineMapController.download);
 
 /* ---- Session Middleware (Milestone 8, Section 8.4) ----
    The policy, the store, and the readiness coordinator were all resolved once

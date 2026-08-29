@@ -18,6 +18,10 @@ const { normalizeBuildingRows } = require('../utils/buildingData');
 const { findShortestPath } = require('../utils/pathfinding');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const basemapManifest = require('../public/maps/manifest.json');
+const {
+  getCurrentRelease,
+  guideBasemapFromRelease
+} = require('./offlineMapReleaseService');
 
 const SCHEMA = 'campusphere.offline-guide/1';
 const MAX_PACKAGE_BYTES = 2 * 1024 * 1024;
@@ -199,7 +203,7 @@ function makeRoute(building, graph) {
 }
 
 /* Pure package builder used by the focused OFF.3-OFF.5 probe. */
-function buildGuide({ buildings, nodeRows, edgeRows }) {
+function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
   const graph = normalizeGraph(nodeRows, edgeRows);
   const origin = graph.nodes.find((node) => node.key === routeAvailability.START_NODE_KEY);
   if (!origin || origin.lat == null || origin.lng == null) {
@@ -237,6 +241,24 @@ function buildGuide({ buildings, nodeRows, edgeRows }) {
   safeBuildings.sort((a, b) => a.name.localeCompare(b.name, 'en'));
   routes.sort((a, b) => a.destinationName.localeCompare(b.destinationName, 'en'));
 
+  const selectedBasemap = basemap || {
+    asset: basemapManifest.asset,
+    bytes: basemapManifest.bytes,
+    sha256: basemapManifest.sha256,
+    bounds: basemapManifest.bounds,
+    center: basemapManifest.center,
+    minzoom: basemapManifest.minzoom,
+    maxzoom: basemapManifest.maxzoom,
+    attribution: basemapManifest.attribution,
+    version: basemapManifest.sha256,
+    publishedAt: null,
+    lastCheckedAt: null,
+    osmSnapshotAt: null,
+    sourceVersion: basemapManifest.source && basemapManifest.source.version
+      ? basemapManifest.source.version
+      : 'bundled'
+  };
+
   return {
     origin: {
       key: routeAvailability.START_NODE_KEY,
@@ -244,16 +266,7 @@ function buildGuide({ buildings, nodeRows, edgeRows }) {
       lat: origin.lat,
       lng: origin.lng
     },
-    basemap: {
-      asset: basemapManifest.asset,
-      bytes: basemapManifest.bytes,
-      sha256: basemapManifest.sha256,
-      bounds: basemapManifest.bounds,
-      center: basemapManifest.center,
-      minzoom: basemapManifest.minzoom,
-      maxzoom: basemapManifest.maxzoom,
-      attribution: basemapManifest.attribution
-    },
+    basemap: selectedBasemap,
     buildings: safeBuildings,
     routes
   };
@@ -302,6 +315,7 @@ async function loadGuideSnapshot() {
 
 async function createOfflineGuidePackage() {
   const snapshot = await loadGuideSnapshot();
+  const release = await getCurrentRelease();
 
   const index = await routeAvailability.buildAvailabilityIndex({
     routeSource: snapshot.routeSource,
@@ -320,7 +334,8 @@ async function createOfflineGuidePackage() {
   const guide = buildGuide({
     buildings: decorated.buildings,
     nodeRows: snapshot.routeSource.nodes,
-    edgeRows: snapshot.routeSource.edges
+    edgeRows: snapshot.routeSource.edges,
+    basemap: guideBasemapFromRelease(release)
   });
   const fingerprint = sha256Json(guide);
   const response = {

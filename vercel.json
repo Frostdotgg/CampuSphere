@@ -48,7 +48,7 @@
       ]
     },
     {
-      "source": "/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles",
+      "source": "/maps/cspc-campus-1f4ba05b5c69228e988f911a96a186bae52c52dda9be2127c0168512856ce44a.pmtiles",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }

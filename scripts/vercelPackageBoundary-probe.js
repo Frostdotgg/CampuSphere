@@ -76,9 +76,9 @@ const VERCEL_JSON_FILE = 'vercel.json';
    pin local to the standalone probe so a coordinated documentation or
    quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 186,
-  bytes: 7220073,
-  sha256: 'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621',
+  files: 188,
+  bytes: 7242664,
+  sha256: '59292177ec4d8d48cfdde24a21ef61bcc2476c14e385416447d7627eaca45eee',
 });
 
 /* M12.P1-R8 label correction.
@@ -222,7 +222,7 @@ const EXPECTED_VENDOR_RUNTIME_FILES = Object.freeze([
 const EXPECTED_VENDOR_MANIFEST_FILE = 'public/vendor/manifest.json';
 
 const EXPECTED_OFFLINE_MAP_RUNTIME_FILES = Object.freeze([
-  'public/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles',
+  'public/maps/cspc-campus-1f4ba05b5c69228e988f911a96a186bae52c52dda9be2127c0168512856ce44a.pmtiles',
   'public/maps/manifest.json',
 ]);
 
@@ -280,7 +280,7 @@ const EXPECTED_HEADER_RULES = Object.freeze([
     ],
   },
   {
-    source: '/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles',
+    source: '/maps/cspc-campus-1f4ba05b5c69228e988f911a96a186bae52c52dda9be2127c0168512856ce44a.pmtiles',
     headers: [
       NOSNIFF,
       { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

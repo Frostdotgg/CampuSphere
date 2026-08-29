@@ -6,6 +6,7 @@
   var STORE = 'packages';
   var ACTIVE_KEY = 'active';
   var GUIDE_SCHEMA = 'campusphere.offline-guide/1';
+  var MAX_BASEMAP_BYTES = 5 * 1024 * 1024;
   var CONTROL_CHANNEL = 'campusphere-offline-guide-control';
   var LOGOUT_STORAGE_KEY = 'campusphere-offline-guide-logout';
   var THEME_STORAGE_KEY = 'campussphere-theme';
@@ -143,11 +144,13 @@
     if (!Array.isArray(guide.buildings) || !Array.isArray(guide.routes) || !guide.basemap) {
       throw new Error('The offline guide is incomplete.');
     }
-    if (!isHexHash(guide.basemap.sha256) || !Number.isInteger(guide.basemap.bytes) || guide.basemap.bytes < 1) {
+    if (!isHexHash(guide.basemap.sha256) || !Number.isInteger(guide.basemap.bytes) ||
+        guide.basemap.bytes < 1 || guide.basemap.bytes > MAX_BASEMAP_BYTES) {
       throw new Error('The offline map identity is invalid.');
     }
     if (typeof guide.basemap.asset !== 'string' ||
-        !/^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/.test(guide.basemap.asset)) {
+        !/^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/.test(guide.basemap.asset) ||
+        guide.basemap.asset !== '/maps/cspc-campus-' + guide.basemap.sha256 + '.pmtiles') {
       throw new Error('The offline map location is invalid.');
     }
     return guide;
@@ -164,8 +167,16 @@
     document.querySelectorAll('[data-offline-guide-download]').forEach(function (button) {
       button.disabled = !!busy;
       var label = button.querySelector('[data-offline-guide-download-label]') || button;
-      label.textContent = busy ? 'Preparing…' : (activeRecord ? 'Update Guide' : 'Download Guide');
+      label.textContent = busy ? 'Preparing…' : (activeRecord ? 'Update Offline Map' : 'Download Offline Map');
     });
+  }
+
+  function mapSnapshotLabel(record) {
+    var snapshot = record && record.guide && record.guide.basemap && record.guide.basemap.osmSnapshotAt;
+    if (!snapshot || typeof snapshot !== 'string') return '';
+    var timestamp = Date.parse(snapshot);
+    if (!Number.isFinite(timestamp)) return '';
+    return ' · OSM snapshot ' + new Date(timestamp).toLocaleDateString();
   }
 
   function updatePackageSummary(record) {
@@ -180,7 +191,7 @@
     var buildings = record.guide && Array.isArray(record.guide.buildings) ? record.guide.buildings.length : 0;
     var routes = record.guide && Array.isArray(record.guide.routes) ? record.guide.routes.length : 0;
     summary.textContent = buildings + ' buildings · ' + routes + ' Main Gate routes · downloaded ' +
-      new Date(record.downloadedAt).toLocaleString();
+      new Date(record.downloadedAt).toLocaleString() + mapSnapshotLabel(record);
   }
 
   function downloadGuide() {
@@ -189,7 +200,7 @@
       return Promise.resolve(false);
     }
     setDownloadBusy(true);
-    setDownloadState('Preparing the current buildings and routes…', 'working');
+    setDownloadState('Checking for the latest offline map…', 'working');
     var startedAtLogoutVersion = logoutVersion;
     downloadController = 'AbortController' in window ? new AbortController() : null;
     var signal = downloadController ? downloadController.signal : undefined;
@@ -208,29 +219,41 @@
       var guide = validateGuideEnvelope(payload);
       return sha256Text(JSON.stringify(guide)).then(function (guideHash) {
         if (guideHash !== payload.fingerprint) throw new Error('The offline guide failed its integrity check.');
+        if (activeRecord && activeRecord.fingerprint === payload.fingerprint) {
+          return { record: activeRecord, unchanged: true };
+        }
         setDownloadState('Downloading the campus map…', 'working');
-        return fetch(guide.basemap.asset, { cache: 'no-store', credentials: 'omit', signal: signal }).then(function (response) {
-          if (!response.ok || response.redirected) throw new Error('The campus map could not be downloaded.');
-          return response.arrayBuffer();
-        }).then(function (mapBytes) {
-          if (mapBytes.byteLength !== guide.basemap.bytes) throw new Error('The campus map size did not match.');
-          return sha256Buffer(mapBytes).then(function (mapHash) {
-            if (mapHash !== guide.basemap.sha256) throw new Error('The campus map failed its integrity check.');
-            var record = {
-              key: ACTIVE_KEY,
-              schema: payload.schema,
-              fingerprint: payload.fingerprint,
-              generatedAt: payload.generatedAt,
-              downloadedAt: new Date().toISOString(),
-              guide: guide,
-              basemap: new Blob([mapBytes], { type: 'application/vnd.pmtiles' })
-            };
-            if (startedAtLogoutVersion !== logoutVersion) {
-              throw new Error('The download stopped because this device signed out.');
-            }
-            // One IndexedDB transaction replaces the active JSON + map Blob.
-            // Until it completes, the previously valid record remains active.
-            return writeActive(record);
+        var reusableMap = activeRecord && activeRecord.guide && activeRecord.guide.basemap &&
+          activeRecord.guide.basemap.sha256 === guide.basemap.sha256 &&
+          activeRecord.basemap instanceof Blob ? activeRecord.basemap : null;
+        var mapPromise = reusableMap ? Promise.resolve(reusableMap) :
+          fetch(guide.basemap.asset, { cache: 'no-store', credentials: 'omit', signal: signal }).then(function (response) {
+            if (!response.ok || response.redirected) throw new Error('The campus map could not be downloaded.');
+            return response.arrayBuffer();
+          }).then(function (mapBytes) {
+            if (mapBytes.byteLength !== guide.basemap.bytes) throw new Error('The campus map size did not match.');
+            return sha256Buffer(mapBytes).then(function (mapHash) {
+              if (mapHash !== guide.basemap.sha256) throw new Error('The campus map failed its integrity check.');
+              return new Blob([mapBytes], { type: 'application/vnd.pmtiles' });
+            });
+          });
+        return mapPromise.then(function (mapBlob) {
+          var record = {
+            key: ACTIVE_KEY,
+            schema: payload.schema,
+            fingerprint: payload.fingerprint,
+            generatedAt: payload.generatedAt,
+            downloadedAt: new Date().toISOString(),
+            guide: guide,
+            basemap: mapBlob
+          };
+          if (startedAtLogoutVersion !== logoutVersion) {
+            throw new Error('The download stopped because this device signed out.');
+          }
+          // One IndexedDB transaction replaces the active JSON + map Blob.
+          // Until it completes, the previously valid record remains active.
+          return writeActive(record).then(function (saved) {
+            return { record: saved, unchanged: false };
           });
         });
       });
@@ -239,11 +262,11 @@
       if (startedAtLogoutVersion !== logoutVersion) {
         throw new Error('The download stopped because this device signed out.');
       }
-      activeRecord = record;
-      setDownloadState('Offline guide ready on this device.', 'ready');
-      updatePackageSummary(record);
+      activeRecord = record.record;
+      setDownloadState(record.unchanged ? 'Offline map is already up to date.' : 'Offline map ready on this device.', 'ready');
+      updatePackageSummary(record.record);
       setDownloadBusy(false);
-      if (byId('offlineMap')) renderOfflineGuide(record);
+      if (!record.unchanged && byId('offlineMap')) renderOfflineGuide(record.record);
       return true;
     }).catch(function (error) {
       downloadController = null;

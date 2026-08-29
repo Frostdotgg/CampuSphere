@@ -12,7 +12,8 @@
     "qa:db": "node scripts/db-perf-gate.js",
     "qa:smoke": "node scripts/supabase-smoke.js",
     "qa:identity": "node scripts/verify-identity-constraints.js",
-    "qa:audit": "npm audit --omit=dev"
+    "qa:audit": "npm audit --omit=dev",
+    "qa:offline-map": "node scripts/offlineMapRelease-probe.js"
   },
   "keywords": [
     "cspc",

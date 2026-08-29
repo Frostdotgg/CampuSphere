@@ -1,10 +1,10 @@
 {
   "schema": "campusphere.offline-basemap/1",
-  "asset": "/maps/cspc-campus-ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd.pmtiles",
+  "asset": "/maps/cspc-campus-1f4ba05b5c69228e988f911a96a186bae52c52dda9be2127c0168512856ce44a.pmtiles",
   "bytes": 614046,
-  "sha256": "ee886bdcc73f7c677fc0b431ca55bc7536fc5307b05da52a252b19d385014bdd",
-  "bounds": [123.37, 13.4025, 123.38, 13.409],
-  "center": [123.375, 13.40575],
+  "sha256": "1f4ba05b5c69228e988f911a96a186bae52c52dda9be2127c0168512856ce44a",
+  "bounds": [123.373606, 13.404852, 123.378745, 13.406981],
+  "center": [123.375590, 13.405854],
   "minzoom": 0,
   "maxzoom": 15,
   "source": {
@@ -12,7 +12,7 @@
     "archive": "https://build.protomaps.com/20260812.pmtiles",
     "version": "4.15.2",
     "extractTool": "go-pmtiles 1.31.2",
-    "extractBbox": "123.3700,13.4025,123.3800,13.4090",
+    "extractBbox": "123.373606,13.404852,123.378745,13.406981",
     "extractMaxzoom": 15
   },
   "attribution": "Protomaps © OpenStreetMap contributors",

@@ -1583,8 +1583,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v32 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 32 &&
+    ok('sw.js is v33 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 33 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -1783,7 +1783,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
 /* Reviewed package-manifest bytes after the July 26 dependency-security
    remediation.  The package manifest pins EJS 6.0.1 and the lockfile removes
    the vulnerable jake/filelist/minimatch/brace-expansion production chain. */
-const REVIEWED_PACKAGE_JSON_SHA256 = '7bd8e67c000e7ef35677a0919be122ff5708f0b7a5f15cbb903ddc65b9733548';
+const REVIEWED_PACKAGE_JSON_SHA256 = 'b207496892501c30b514402b3afce3d748af8afbed147eadf0e27f814c5dea97';
 const REVIEWED_PACKAGE_LOCK_SHA256 = '59a77a5601af97692bd79b92bd3d268fe547dcaa513b775bab6fd27fb4a5a437';
 
 /** PURE: do the manifest's recorded versions equal the expected pinned set? */
@@ -6619,9 +6619,9 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    deferred profile-upload removal. Keep this live-worktree pin separate from
    accepted historical release evidence until a clean commit is reviewed. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 186,
-  bytes: '7,220,073',
-  sha256: 'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621',
+  files: 188,
+  bytes: '7,242,664',
+  sha256: '59292177ec4d8d48cfdde24a21ef61bcc2476c14e385416447d7627eaca45eee',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
