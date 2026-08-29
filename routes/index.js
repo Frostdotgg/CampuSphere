@@ -14,7 +14,7 @@ const { loadPublicSettings } = require('../services/siteSettingsService');
 router.get('/', loadPublicSettings, pageController.landing);
 
 // GET /home — Home dashboard
-router.get('/home', loadPublicSettings, pageController.home);
+router.get('/home', requireLogin, loadPublicSettings, pageController.home);
 
 // GET /privacy — Pilot privacy notice (M12.P1-R8). Intentionally anonymous:
 // a prospective participant must be able to read it BEFORE creating an account.

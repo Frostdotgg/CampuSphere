@@ -9,9 +9,9 @@
     const sessionUser = window.__SESSION_USER || null;
     const role = sessionUser && sessionUser.role ? sessionUser.role : 'anonymous';
 
-    // Campus content pages (/map, /buildings, /about, /events) are login-only.
-    // Anonymous visitors only get the landing/home/auth surface.
-    const PUBLIC_PAGES = ['/', '/home', '/auth'];
+    // Campus content pages (including /home) are login-only. Keep the
+    // client-side allowlist aligned with the server's public route surface.
+    const PUBLIC_PAGES = ['/', '/auth', '/privacy', '/faq'];
 
     /* ---- Which pages (routes) each role may visit ---- */
     const rolePageAccess = {
@@ -24,7 +24,7 @@
 
     /* ---- Which nav-tab IDs each role can see ---- */
     const roleNavAccess = {
-        'anonymous': ['tabHome', 'mobileLoginBtn'],
+        'anonymous': ['mobileLoginBtn'],
         'student-cspc': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
         'instructor': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
         'admin': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],

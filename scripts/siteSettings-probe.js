@@ -36,6 +36,7 @@ const adminClient = read('public/js/admin/admin-settings.js');
 const adminMain = read('public/js/admin/main.js');
 const styles = read('public/css/styles.css');
 const adminStyles = read('public/css/admin-styles.css');
+const navRole = read('public/js/nav-role.js');
 
 console.log('\n[site settings] source and pure projection contracts');
 
@@ -106,14 +107,20 @@ check('projection', 'malformed links/years and unknown keys fall back without le
   hostile.school_founded === DEFAULT_PUBLIC_SETTINGS.school_founded &&
   !Object.prototype.hasOwnProperty.call(hostile, 'internal_secret'));
 
-check('route', 'all five footer/About routes load public settings',
+check('route', 'public settings routes and protected page wiring stay explicit',
   routes.includes("router.get('/', loadPublicSettings, pageController.landing)") &&
-  routes.includes("router.get('/home', loadPublicSettings, pageController.home)") &&
+  routes.includes("router.get('/home', requireLogin, loadPublicSettings, pageController.home)") &&
   routes.includes("router.get('/privacy', loadPublicSettings, pageController.privacy)") &&
   routes.includes("router.get('/faq', loadPublicSettings, faqController.index)") &&
   routes.includes("router.get('/about', requireLogin, loadPublicSettings, pageController.about)"));
+check('route', 'Home keeps its signed-in requirement before settings loading',
+  /router\.get\('\/home',\s*requireLogin,\s*loadPublicSettings,\s*pageController\.home\)/.test(routes));
 check('route', 'About keeps its existing signed-in requirement before settings loading',
   /router\.get\('\/about',\s*requireLogin,\s*loadPublicSettings,\s*pageController\.about\)/.test(routes));
+check('client', 'anonymous navigation does not allow the protected home page',
+  navRole.includes("const PUBLIC_PAGES = ['/', '/auth', '/privacy', '/faq'];") &&
+  /'anonymous':\s*\['mobileLoginBtn'\]/.test(navRole) &&
+  !/const PUBLIC_PAGES\s*=\s*[^;]*['"]\/home['"]/.test(navRole));
 check('controller', 'About passes settings into the rendered view and metadata',
   controller.includes('const siteSettings = res.locals.siteSettings || {};') &&
   controller.includes('schoolDescriptionParts') &&

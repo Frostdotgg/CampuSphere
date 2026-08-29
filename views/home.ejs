@@ -285,8 +285,9 @@
                             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         }).addTo(map);
 
-                        // Add building markers from /api/buildings (login-only endpoint).
-                        // Anonymous visitors of /home see the base map without markers.
+                        // Add building markers from the login-only endpoint. Keep
+                        // the session check as a fail-closed defense if this view
+                        // is ever rendered without an authenticated session.
                         if (window.__SESSION_USER) {
                             fetch('/api/buildings')
                                 .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))

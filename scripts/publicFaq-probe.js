@@ -107,8 +107,8 @@ check('navigation', 'anonymous navbar and footer link to the real /faq route',
 check('navigation', 'signed-in navbar offers FAQ on desktop and in the mobile menu',
     (dashNav.match(/href="\/faq"/g) || []).length >= 2 &&
     dashNav.includes('id="tabFaq"') && dashNav.includes('id="tabFaqMobile"'));
-check('navigation', 'signed-in FAQ route and top links survive the role allowlist',
-    (navRole.match(/'\/faq'/g) || []).length === 4 &&
+check('navigation', 'FAQ route and top links survive every role allowlist',
+    (navRole.match(/'\/faq'/g) || []).length === 5 &&
     (navRole.match(/'tabFaq'/g) || []).length === 4 &&
     (navRole.match(/'tabFaqMobile'/g) || []).length === 4);
 check('admin', 'admin page explains save=publish and links to the public FAQ',

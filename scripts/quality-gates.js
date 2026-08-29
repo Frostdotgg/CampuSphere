@@ -244,10 +244,21 @@ async function runSuite(base, mode) {
       return list.some((c) => /(^|[\s;])(campusphere\.sid|__Host-campusphere\.sid)=/.test(c));
     };
 
-    const home = await fetch(base + '/home', { headers: { Accept: 'text/html' } });
+    const home = await fetch(base + '/home', { redirect: 'manual', headers: { Accept: 'text/html' } });
     const homeBody = await home.text();
-    ok('L3 anon GET /home -> 200 HTML', home.status === 200 && /<!DOCTYPE|<html/i.test(homeBody));
+    ok('L3 anon GET /home -> 302 /auth',
+      home.status === 302 && home.headers.get('location') === '/auth' && !/<!DOCTYPE|<html/i.test(homeBody));
     ok('L3 anon GET /home sets no session cookie', !setsSessionCookie(home));
+
+    const homeJson = await fetch(base + '/home', {
+      redirect: 'manual',
+      headers: { Accept: 'application/json' },
+    });
+    const homeJsonBody = await homeJson.text();
+    const homeJsonPayload = parseJson(homeJsonBody);
+    ok('L3 anon JSON GET /home -> 401 JSON',
+      homeJson.status === 401 && !!homeJsonPayload && homeJsonPayload.success === false);
+    ok('L3 anon JSON GET /home sets no session cookie', !setsSessionCookie(homeJson));
 
     /* Public FAQ is intentionally readable before sign-in. Keep this runtime
        check beside the other fresh no-cookie public surfaces: it proves the
@@ -467,6 +478,13 @@ async function runSuite(base, mode) {
   // L4: valid credentials still authenticate (the always-compare refactor must
   // not break the success path). Admin's valid login is asserted in section 9.
   ok('L4 valid login still authenticates (student)', student.ok && /\/dashboard/.test(student.loc));
+
+  const signedHome = await fetch(base + '/home', {
+    headers: { Accept: 'text/html', Cookie: student.jar.header() },
+  });
+  const signedHomeBody = await signedHome.text();
+  ok('L4 authenticated student GET /home -> 200 HTML',
+    signedHome.status === 200 && /<!DOCTYPE|<html/i.test(signedHomeBody));
 
   const signedFaq = await fetch(base + '/faq', {
     headers: { Accept: 'text/html', Cookie: student.jar.header() },
