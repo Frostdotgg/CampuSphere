@@ -73,6 +73,12 @@ services:
       VR_DATA_SOURCE: ${VR_DATA_SOURCE:-mysql}
       SCHEDULE_DATA_SOURCE: ${SCHEDULE_DATA_SOURCE:-mysql}
       MAP_RENDERER: ${MAP_RENDERER:-leaflet}
+      # ---- Offline map release runtime (public values only) ----
+      # Keep the default bundled baseline for local development until the
+      # public Drive manifest URL and Ed25519 verification key are configured.
+      OFFLINE_MAP_RELEASE_MODE: ${OFFLINE_MAP_RELEASE_MODE:-bundled}
+      OFFLINE_MAP_MANIFEST_URL: ${OFFLINE_MAP_MANIFEST_URL:-}
+      OFFLINE_MAP_SIGNING_PUBLIC_KEY: ${OFFLINE_MAP_SIGNING_PUBLIC_KEY:-}
       # ---- Optional Supabase (server-only; set to rehearse supabase mode) ----
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
