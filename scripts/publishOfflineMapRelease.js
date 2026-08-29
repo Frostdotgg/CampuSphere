@@ -39,6 +39,7 @@ const KEEP_RELEASES = 7;
 const BBOX = EXPECTED_BOUNDS.slice();
 const MAX_COMMAND_OUTPUT = 512 * 1024;
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
+const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const PMTILES_MAGIC = Buffer.from('PMTiles', 'ascii');
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
@@ -345,20 +346,27 @@ function createDriveClient(config) {
     if (!tokenPromise) tokenPromise = getAccessToken(config);
     return tokenPromise;
   }
-  async function request(apiPath, options = {}) {
+  async function requestAt(base, apiPath, options = {}) {
     const accessToken = await token();
     const headers = Object.assign({}, options.headers || {}, {
       Authorization: `Bearer ${accessToken}`
     });
-    const response = await fetchWithTimeout(`${DRIVE_API_BASE}${apiPath}`, Object.assign({}, options, { headers }), 30000);
+    const response = await fetchWithTimeout(`${base}${apiPath}`, Object.assign({}, options, { headers }), 30000);
     if (!response.ok) throw new PublisherError('The Google Drive request failed.', 'OFFLINE_MAP_DRIVE_REQUEST_FAILED', response.status);
     return response;
   }
-  return { request };
+  return {
+    request: (apiPath, options) => requestAt(DRIVE_API_BASE, apiPath, options),
+    uploadRequest: (apiPath, options) => requestAt(DRIVE_UPLOAD_BASE, apiPath, options)
+  };
 }
 
-async function driveJson(client, apiPath, options = {}) {
-  const response = await client.request(apiPath, options);
+async function driveJson(client, apiPath, options = {}, requestMethod = 'request') {
+  const request = client && client[requestMethod];
+  if (typeof request !== 'function') {
+    throw new PublisherError('The Google Drive request client is unavailable.', 'OFFLINE_MAP_DRIVE_REQUEST_FAILED');
+  }
+  const response = await request.call(client, apiPath, options);
   const body = await readResponseBytes(response, 512 * 1024);
   try { return JSON.parse(body.toString('utf8')); } catch (error) {
     throw new PublisherError('The Google Drive response was invalid.', 'OFFLINE_MAP_DRIVE_RESPONSE_INVALID');
@@ -398,7 +406,7 @@ async function uploadMultipart(client, metadata, bytes) {
     method: 'POST',
     headers: { 'Content-Type': multipart.contentType, Accept: 'application/json' },
     body: multipart.body
-  });
+  }, 'uploadRequest');
 }
 
 async function updateMedia(client, fileId, bytes, contentType) {
@@ -407,7 +415,7 @@ async function updateMedia(client, fileId, bytes, contentType) {
     method: 'PATCH',
     headers: { 'Content-Type': contentType, Accept: 'application/json' },
     body: bytes
-  });
+  }, 'uploadRequest');
 }
 
 async function makePublic(client, fileId) {

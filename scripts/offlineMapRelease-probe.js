@@ -176,25 +176,27 @@ async function main() {
     let patchCount = 0;
     const fileId = 'drive-file-' + 'd'.repeat(25);
     const name = `cspc-campus-${repairArchiveHash}.pmtiles`;
+    const request = async (apiPath, options = {}) => {
+      if (apiPath.startsWith('/files?')) {
+        return new Response(JSON.stringify({ files: [{
+          id: fileId,
+          name,
+          size: String(media.length),
+          appProperties: { campusphereOfflineMapRelease: '1' }
+        }] }), { status: 200 });
+      }
+      if (apiPath.includes('?alt=media')) return new Response(media, { status: 200 });
+      if (apiPath.includes('?uploadType=media')) {
+        patchCount += 1;
+        media = Buffer.from(replacementBytes);
+        return new Response(JSON.stringify({ id: fileId, name, size: String(media.length) }), { status: 200 });
+      }
+      throw new Error('unexpected fake Drive request');
+    };
     return {
       get patchCount() { return patchCount; },
-      request: async (apiPath, options = {}) => {
-        if (apiPath.startsWith('/files?')) {
-          return new Response(JSON.stringify({ files: [{
-            id: fileId,
-            name,
-            size: String(media.length),
-            appProperties: { campusphereOfflineMapRelease: '1' }
-          }] }), { status: 200 });
-        }
-        if (apiPath.includes('?alt=media')) return new Response(media, { status: 200 });
-        if (apiPath.includes('?uploadType=media')) {
-          patchCount += 1;
-          media = Buffer.from(replacementBytes);
-          return new Response(JSON.stringify({ id: fileId, name, size: String(media.length) }), { status: 200 });
-        }
-        throw new Error('unexpected fake Drive request');
-      }
+      request,
+      uploadRequest: request
     };
   }
   await checkAsync('matching Drive archive is reused without a write', async () => {
@@ -248,6 +250,12 @@ async function main() {
     const sessionIndex = source.indexOf("app.use(session({");
     assert.ok(staticIndex >= 0 && routeIndex > staticIndex && sessionIndex > routeIndex);
     assert.ok(controller.includes("'Cache-Control': 'public, max-age=31536000, immutable'"));
+  });
+  check('publisher uses the Drive upload endpoint for multipart and media writes', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'scripts', 'publishOfflineMapRelease.js'), 'utf8');
+    assert.ok(source.includes("const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';"));
+    assert.ok(source.includes('uploadRequest: (apiPath, options) => requestAt(DRIVE_UPLOAD_BASE, apiPath, options)'));
+    assert.strictEqual((source.match(/\}, 'uploadRequest'\);/g) || []).length, 2);
   });
   check('client compares the manifest fingerprint and reuses an unchanged map Blob', () => {
     const source = fs.readFileSync(path.join(ROOT, 'public', 'js', 'offline-guide-manager.js'), 'utf8');
