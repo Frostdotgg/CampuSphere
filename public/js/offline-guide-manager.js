@@ -13,6 +13,9 @@
   var MOBILE_MAP_MEDIA = '(max-width: 768px)';
   var PLACEHOLDER_IMAGE = '/img/Camarines-sur-polytechnic-colleges.png';
   var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';
+  // Initial camera target selected for the offline map (code order: [lng, lat]).
+  // This is intentionally independent of the release manifest center.
+  var OFFLINE_START_CENTER = Object.freeze([123.374590, 13.405872]);
   var OFFLINE_BUILDING_PIN_SCALE = 0.7;
   var OFFLINE_BUILDING_PIN_OFFSET = [0, -14 * OFFLINE_BUILDING_PIN_SCALE];
   var activeRecord = null;
@@ -715,9 +718,11 @@
       var nextMap = new maplibregl.Map({
         container: container,
         style: buildBasemapStyle('pmtiles://' + file.name),
-        center: record.guide.basemap.center,
+        center: OFFLINE_START_CENTER,
         zoom: 16.5,
-        minZoom: 14,
+        bearing: 0,
+        pitch: 0,
+        minZoom: 12,
         maxZoom: 19,
         maxBounds: [
           [record.guide.basemap.bounds[0], record.guide.basemap.bounds[1]],
