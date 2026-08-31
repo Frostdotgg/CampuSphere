@@ -2,15 +2,21 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-08-25)
+## Current migration status (2026-08-31)
 
-Migration sources are contiguous from `0001` through `0020`. Migrations
-`0001`-`0020` are owner-applied. `0020_room_schedule_documents.sql` is the
+Migration sources are contiguous from `0001` through `0021`. Migrations
+`0001`-`0021` are owner-applied. `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates
 `room_schedule_documents` and adds the nullable indexed
 `vr_hotspots.schedule_document_id` foreign key. It was applied by the owner
 before dual-backend runtime verification; application acceptance remains a
-separate evidence boundary.
+separate evidence boundary. Auth-only migration
+`0021_minimal_instructor_oauth_registration.sql` preserves the exact
+17-argument OAuth-profile RPC while removing the obsolete requirement for
+instructor position, department, and employee ID. The owner applied 0021 and
+supplied read-only postflight evidence; Codex did not apply it. Do not reapply
+either migration without fresh explicit database authorization. The historical
+route/data freeze remains scoped to `0001`-`0020` because 0021 is auth-only.
 
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their

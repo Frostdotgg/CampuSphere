@@ -1601,8 +1601,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v33 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 33 &&
+    ok('sw.js is v36 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 36 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -2535,6 +2535,555 @@ function runAdminVrScheduleUxGate() {
   return rec.failures;
 }
 
+/* ---------------- static admin search-icon layout gate ---------------- */
+function runAdminSearchIconLayoutGate() {
+  const rec = makeRecorder('admin-search-icon-layout');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const usersView = fs.readFileSync(path.join(root, 'views', 'admin', 'users.ejs'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'public', 'css', 'styles.css'), 'utf8');
+  const adminStyles = fs.readFileSync(path.join(root, 'public', 'css', 'admin-styles.css'), 'utf8');
+
+  ok('users search keeps the positioned Lucide icon and pl-9 input pairing',
+    /<i data-lucide="search"[\s\S]{0,260}<input id="user-search-input"[^>]*class="ui-input pl-9"/.test(usersView));
+  ok('admin search padding override is scoped and reserves the icon gutter',
+    /\.admin-shell \.ui-input\.pl-9,[\s\S]{0,80}\.admin-console \.ui-input\.pl-9\s*\{[\s\S]{0,120}padding-left:\s*2\.25rem;/.test(adminStyles) &&
+    !/(^|\n)\s*\.ui-input\.pl-9\s*\{/.test(adminStyles));
+  ok('admin search styles load after the shared ui-input defaults',
+    styles.indexOf('.ui-input {') >= 0 && adminStyles.indexOf('.admin-shell .ui-input.pl-9') >= 0 &&
+    usersView.indexOf('href="/css/styles.css"') >= 0 &&
+    usersView.indexOf('href="/css/admin-styles.css"') > usersView.indexOf('href="/css/styles.css"'));
+  ok('decorative admin search icons do not intercept input clicks',
+    /\.admin-shell \[data-lucide="search"\]\.absolute,[\s\S]{0,100}\.admin-console \[data-lucide="search"\]\.absolute\s*\{[\s\S]{0,120}pointer-events:\s*none;/.test(adminStyles));
+  return rec.failures;
+}
+
+/* ---------------- dashboard Navigate Buildings removal gate ---------------- */
+/**
+ * PURE: the dashboard-only Navigate Buildings feature must be absent from all
+ * of its coupled source surfaces, while the independent map/corridor paths
+ * remain available.
+ */
+function dashboardOmitsNavigateBuildings(dashboardView, publicData, modelData, styles) {
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  const client = typeof publicData === 'string' ? publicData : '';
+  const model = typeof modelData === 'string' ? modelData : '';
+  const css = typeof styles === 'string' ? styles : '';
+  if (!view || !client || !model || !css) return false;
+
+  const removed = [
+    /Navigate Buildings/i,
+    /Navigate Campus Buildings/i,
+    /data-section=["']buildings["']/i,
+    /tmpl-(?:student|instructor)-buildings/i,
+    /(?:render|show|close)(?:Student|Instructor)?Buildings/i,
+    /instructorBuildings/i,
+    /(?:student|instr)Building(?:Grid|Detail)/i,
+    /building-modal-(?:overlay|content|close)/i,
+    /building-floor-(?:nav|title)/i,
+    /building-room-grid/i,
+    /room-card(?:__|--|\b)/i,
+  ];
+  if (removed.some((pattern) => pattern.test(view)) ||
+      removed.some((pattern) => pattern.test(client)) ||
+      removed.some((pattern) => pattern.test(model)) ||
+      removed.some((pattern) => pattern.test(css))) return false;
+
+  return /href=["']\/map["']/i.test(view) &&
+    /Building Corridors/i.test(view) &&
+    /guestBuildings\s*:/i.test(client) &&
+    /\bbuildings\s*:/i.test(model);
+}
+
+function runDashboardNavigateBuildingsRemovalGate() {
+  const rec = makeRecorder('dashboard-navigation-removal');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
+  const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
+  const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'public', 'css', 'styles.css'), 'utf8');
+  const passes = (view, client, model, css) =>
+    dashboardOmitsNavigateBuildings(view, client, model, css);
+
+  ok('dashboard removes Navigate Buildings from all coupled source surfaces',
+    passes(dashboardView, publicData, modelData, styles));
+  ok('dashboard removal preserves Campus Map and guest Building Corridors',
+    /href="\/map"/.test(dashboardView) &&
+    /Building Corridors/.test(dashboardView) &&
+    /guestBuildings\s*:/.test(publicData) &&
+    /\bbuildings\s*:/.test(modelData));
+
+  ok('fixture: reintroduced dashboard entry points, templates, renderers, data, or CSS are rejected',
+    !passes(dashboardView + '\n<button data-section="buildings">Navigate Buildings</button>', publicData, modelData, styles) &&
+    !passes(dashboardView + '\n<script id="tmpl-student-buildings"></script>', publicData, modelData, styles) &&
+    !passes(dashboardView + '\nfunction renderStudentBuildings() {}', publicData, modelData, styles) &&
+    !passes(dashboardView, publicData + '\ninstructorBuildings: []', modelData, styles) &&
+    !passes(dashboardView, publicData, modelData, styles + '\n.room-card {}'));
+  ok('fixture: missing independent map/corridor/seed paths is rejected',
+    !passes(dashboardView.replace(/href="\/map"/g, ''), publicData, modelData, styles) &&
+    !passes(dashboardView.replace(/Building Corridors/gi, 'Campus Offices'), publicData, modelData, styles) &&
+    !passes(dashboardView, publicData.replace(/guestBuildings\s*:/, 'guestSites:'), modelData, styles) &&
+    !passes(dashboardView, publicData, modelData.replace(/\bbuildings\s*:/, 'campusSites:'), styles));
+  return rec.failures;
+}
+
+/* ---------------- guest dashboard navigation gate ---------------- */
+/**
+ * PURE: guest navigation exposes only Overview and the shared news destination.
+ * The requested scope is sidebar-only, so the existing guest section templates
+ * and their direct section mappings must remain available.
+ */
+function guestOverviewSummaryCardContract(dashboardView) {
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  if (!view) return false;
+
+  const guestOverview = /<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-overview">([\s\S]*?)<\/script>/i.exec(view);
+  const body = guestOverview ? guestOverview[1] : '';
+  if (!body) return false;
+
+  const labels = Array.from(
+    body.matchAll(/<div class="stat-card__label">\s*([^<]+?)\s*<\/div>/gi),
+    (match) => match[1].trim()
+  );
+  const expected = ['Buildings', 'News', 'Campus Map'];
+  return labels.length === expected.length &&
+    labels.every((label, index) => label === expected[index]) &&
+    !/achievements\.length/i.test(body);
+}
+
+function guestDashboardNavigationContract(publicData, modelData, dashboardView) {
+  const client = typeof publicData === 'string' ? publicData : '';
+  const model = typeof modelData === 'string' ? modelData : '';
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  if (!client || !model || !view) return false;
+
+  const extractGuestNav = (source) => {
+    const match = /['"]guest['"]\s*:\s*\[([\s\S]*?)\]\s*(?=\})/i.exec(source);
+    return match ? match[1] : '';
+  };
+  const expectedNav = (nav) => {
+    const ids = Array.from(nav.matchAll(/\bid:\s*['"]([^'"]+)['"]/g), (match) => match[1]);
+    return ids.length === 2 &&
+      ids[0] === 'overview' && ids[1] === 'news-events' &&
+      /id:\s*['"]overview['"][\s\S]*?label:\s*['"]Overview['"]/i.test(nav) &&
+      /id:\s*['"]news-events['"][\s\S]*?label:\s*['"]News & Announcements['"]/i.test(nav) &&
+      !/(?:Campus Offices|Admission Info|Building Corridors|Achievements|Campus Map|News & Events)/i.test(nav);
+  };
+
+  const guestOverview = /<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-overview">([\s\S]*?)<\/script>/i.exec(view);
+  const guestNews = /<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-news-events">([\s\S]*?)<\/script>/i.exec(view);
+  const guestTemplateMap = /['"]guest['"]\s*:\s*\{([\s\S]*?)\}\s*\}\s*;/i.exec(view);
+  const guestOverviewBody = guestOverview ? guestOverview[1] : '';
+  const guestNewsBody = guestNews ? guestNews[1] : '';
+  const guestTemplateMapBody = guestTemplateMap ? guestTemplateMap[1] : '';
+  const preservedGuestSections = [
+    /['"]offices['"]\s*:\s*['"]tmpl-student-non-cspc-offices['"]/i,
+    /['"]admission['"]\s*:\s*['"]tmpl-student-non-cspc-admission['"]/i,
+    /['"]corridors['"]\s*:\s*['"]tmpl-guest-corridors['"]/i,
+    /['"]news-events['"]\s*:\s*['"]tmpl-guest-news-events['"]/i,
+    /['"]achievements['"]\s*:\s*['"]tmpl-guest-achievements['"]/i,
+    /['"]map['"]\s*:\s*['"]tmpl-shared-map['"]/i,
+  ];
+
+  const guestClientNav = extractGuestNav(client);
+  const guestModelNav = extractGuestNav(model);
+  return expectedNav(guestClientNav) &&
+    expectedNav(guestModelNav) &&
+    guestOverviewSummaryCardContract(view) &&
+    /News & Announcements/i.test(guestOverviewBody) &&
+    /News & Events/i.test(guestNewsBody) === false &&
+    /News & Announcements/i.test(guestNewsBody) &&
+    preservedGuestSections.every((pattern) => pattern.test(guestTemplateMapBody)) &&
+    /['"]student-cspc['"]\s*:\s*\[[\s\S]*?id:\s*['"]profile['"]/i.test(client) &&
+    /['"]instructor['"]\s*:\s*\[[\s\S]*?id:\s*['"]announcements['"]/i.test(client) &&
+    /['"]admin['"]\s*:\s*\[[\s\S]*?id:\s*['"]users['"]/i.test(client);
+}
+
+function runGuestDashboardNavigationGate() {
+  const rec = makeRecorder('guest-dashboard-navigation');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
+  const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
+  const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
+  const passes = (client, model, view) =>
+    guestDashboardNavigationContract(client, model, view);
+  const guestNavPattern = /(['"]guest['"]\s*:\s*\[)([\s\S]*?)(\]\s*(?=\}))/i;
+  const mutateGuestNav = (source, transform) => source.replace(
+    guestNavPattern,
+    (_match, opening, body, closing) => opening + transform(body) + closing);
+  const guestNewsWithStaleHeading = dashboardView.replace(
+    /(["']tmpl-guest-news-events["'][\s\S]*?<h3 class="panel-card__title">)News & Announcements(<\/h3>)/i,
+    '$1News & Events$2');
+  const guestViewWithoutMap = dashboardView.replace(
+    /(["']guest["']\s*:\s*\{[\s\S]*?)(["']map["']\s*:\s*["']tmpl-shared-map["'],?)/i,
+    '$1');
+  const guestViewWithoutCorridors = dashboardView.replace(
+    /(["']guest["']\s*:\s*\{[\s\S]*?)(["']corridors["']\s*:\s*["']tmpl-guest-corridors["'],?)/i,
+    '$1');
+  const guestViewWithAchievementCard = dashboardView.replace(
+    /(<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-overview">)([\s\S]*?)(<\/script>)/i,
+    (_match, opening, body, closing) => opening + body.replace(
+      /<div class="stat-card"><div class="stat-card__icon stat-card__icon--red">[\s\S]*?<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D View<\/div><\/div>/i,
+      (campusMapCard) => '<div class="stat-card"><div class="stat-card__icon stat-card__icon--gold"></div><div class="stat-card__label">Achievements</div><div class="stat-card__value stat-card__value--sm"><%%= achievements.length %%></div></div>\n\n      ' + campusMapCard
+    ) + closing
+  );
+
+  ok('guest sidebar exposes only Overview and News & Announcements',
+    passes(publicData, modelData, dashboardView));
+  ok('guest news rename updates the overview and opened panel while preserving guest sections',
+    /News & Announcements/i.test(dashboardView) &&
+    !/News & Events/i.test((dashboardView.match(
+      /<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-news-events">([\s\S]*?)<\/script>/i) || [])[1] || '') &&
+    /'map': 'tmpl-shared-map'/i.test(dashboardView) &&
+    /'corridors': 'tmpl-guest-corridors'/i.test(dashboardView));
+  ok('fixture: restored guest links or stale News & Events labels are rejected',
+    !passes(
+      mutateGuestNav(publicData, (body) => body +
+        "\n      { id: 'map', icon: 'map', label: 'Campus Map' },"),
+      modelData,
+      dashboardView) &&
+    !passes(
+      mutateGuestNav(publicData, (body) => body.replace(
+        "label: 'News & Announcements'",
+        "label: 'News & Events'")),
+      modelData,
+      dashboardView) &&
+    !passes(
+      publicData,
+      mutateGuestNav(modelData, (body) => body.replace(
+        "label: 'News & Announcements'",
+        "label: 'News & Events'")),
+      dashboardView) &&
+    !passes(
+      publicData,
+      modelData,
+      guestNewsWithStaleHeading));
+  ok('fixture: removing a preserved guest section mapping or restoring Achievements is rejected',
+    !passes(publicData, modelData, guestViewWithoutMap) &&
+    !passes(publicData, modelData, guestViewWithoutCorridors) &&
+    guestViewWithAchievementCard !== dashboardView &&
+    !passes(publicData, modelData, guestViewWithAchievementCard));
+  ok('fixture: empty or malformed guest sources fail closed',
+    !guestDashboardNavigationContract('', modelData, dashboardView) &&
+    !guestDashboardNavigationContract(publicData, '', dashboardView) &&
+    !guestDashboardNavigationContract(publicData, modelData, ''));
+  return rec.failures;
+}
+
+/* ---------------- home quick-access gate ---------------- */
+/**
+ * PURE: the authenticated home dashboard exposes only the three working
+ * quick-access destinations. The former Offices card was a dead href="#"
+ * placeholder, so it must not remain as a clickable or searchable entry.
+ */
+function homeQuickAccessContract(homeView, styles) {
+  const view = typeof homeView === 'string' ? homeView : '';
+  const css = typeof styles === 'string' ? styles : '';
+  if (!view || !css) return false;
+
+  const quickBlock = /<div class="dash-quick" id="quickAccess">([\s\S]*?)<\/div>\s*<!-- Campus Map Preview -->/i.exec(view);
+  if (!quickBlock) return false;
+  const quick = quickBlock[1];
+  const cards = Array.from(
+    quick.matchAll(/<a\b[^>]*class=["']dash-quick__card["'][^>]*>[\s\S]*?<\/a>/gi),
+    (match) => match[0]);
+  const hasCard = (href, label, description) => cards.some((card) =>
+    new RegExp(`href=["']${href}["']`, 'i').test(card) &&
+    new RegExp(`<strong>\\s*${label}\\s*<\\/strong>`, 'i').test(card) &&
+    new RegExp(`<small>\\s*${description}\\s*<\\/small>`, 'i').test(card));
+
+  const desktopGrid = /\.dash-quick\s*\{[\s\S]{0,180}grid-template-columns:\s*repeat\(3,\s*1fr\)/i.test(css);
+  const tabletGrid = /@media\s*\(max-width:\s*1100px\)[\s\S]{0,240}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*repeat\(2,\s*1fr\)/i.test(css);
+  const mobileGrid = /@media\s*\(max-width:\s*480px\)[\s\S]{0,180}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*1fr/i.test(css);
+
+  return cards.length === 3 &&
+    hasCard('/map', 'Campus Map', 'Navigate Campus Location') &&
+    hasCard('/buildings', 'Buildings', 'View all campus facilities') &&
+    hasCard('/events', 'Events', 'Check out upcoming events') &&
+    !/Offices|Find administrative offices|href=["']#["']/i.test(quick) &&
+    /querySelectorAll\(['"]\.dash-quick__card['"]\)/.test(view) &&
+    desktopGrid && tabletGrid && mobileGrid &&
+    !/\.dash-quick__card-icon--office\b/i.test(css);
+}
+
+function runHomeQuickAccessGate() {
+  const rec = makeRecorder('home-quick-access');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const homeView = fs.readFileSync(path.join(root, 'views', 'home.ejs'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'public', 'css', 'styles.css'), 'utf8');
+  const passes = (view, css) => homeQuickAccessContract(view, css);
+  const staleOfficeLabel = homeView.replace(
+    '<strong>Events</strong>', '<strong>Events</strong><strong>Offices</strong>');
+  const deadPlaceholder = homeView.replace('href="/events"', 'href="#"');
+  const fourColumnGrid = styles.replace('repeat(3, 1fr)', 'repeat(4, 1fr)');
+
+  ok('home quick access exposes only Campus Map, Buildings, and Events',
+    passes(homeView, styles));
+  ok('home quick access keeps the search hook and responsive three/two/one-column layout',
+    /querySelectorAll\(['"]\.dash-quick__card['"]\)/.test(homeView) &&
+    /\.dash-quick\s*\{[\s\S]{0,180}grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(styles) &&
+    /@media\s*\(max-width:\s*1100px\)[\s\S]{0,240}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*repeat\(2,\s*1fr\)/.test(styles) &&
+    /@media\s*\(max-width:\s*480px\)[\s\S]{0,180}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*1fr/.test(styles));
+  ok('fixture: restored Offices text, dead placeholder, four-column grid, or office CSS is rejected',
+    !passes(staleOfficeLabel, styles) &&
+    !passes(deadPlaceholder, styles) &&
+    !passes(homeView, fourColumnGrid) &&
+    !passes(homeView, styles + '\n.dash-quick__card-icon--office {}'));
+  ok('fixture: missing home view or styles fails closed',
+    !passes('', styles) && !passes(homeView, ''));
+  return rec.failures;
+}
+
+/* ---------------- home current-data sidebar gate ---------------- */
+/**
+ * PURE: the home sidebar must render current runtime building/event rows and
+ * must not regress to the former hardcoded sample records.
+ */
+function homeCurrentDataContract(pageController, homeView, styles) {
+  const controller = typeof pageController === 'string' ? pageController : '';
+  const view = typeof homeView === 'string' ? homeView : '';
+  const css = typeof styles === 'string' ? styles : '';
+  if (!controller || !view || !css) return false;
+
+  const buildings =
+    /mapRuntime\.isBuildingSupabase\(\)/.test(controller) &&
+    /buildingRepository\.listFirstById\(HOME_FEATURED_BUILDING_LIMIT\)/.test(controller) &&
+    /normalizeBuildingRows\(rows\)/.test(controller) &&
+    /ORDER BY id ASC/.test(controller) &&
+    /HOME_FEATURED_BUILDING_LIMIT = 3/.test(controller);
+  const events =
+    /contentDataSource\.isSupabase\(\)/.test(controller) &&
+    /contentRepository\.listEvents\(\{[\s\S]{0,220}sortDirection:\s*'desc'/.test(controller) &&
+    /ORDER BY event_date DESC, id DESC/.test(controller) &&
+    /HOME_LATEST_EVENT_LIMIT = 2/.test(controller) &&
+    /toHomeEvent/.test(controller);
+  const failureStates =
+    /Promise\.allSettled\(\[/.test(controller) &&
+    /home\.featuredLocations/.test(controller) &&
+    /home\.latestEvents/.test(controller) &&
+    /featuredLocationsState/.test(controller) &&
+    /latestEventsState/.test(controller);
+  const dynamicView =
+    /homeFeaturedLocations\.forEach/.test(view) &&
+    /homeLatestEvents\.forEach/.test(view) &&
+    /<%=\s*location\.name\s*%>/.test(view) &&
+    /<%=\s*location\.category\s*%>/.test(view) &&
+    /<%=\s*event\.title\s*%>/.test(view) &&
+    /<%=\s*event\.time\s*%>/.test(view) &&
+    /<time\s+datetime="<%=\s*event\.date\s*%>"/.test(view) &&
+    /Latest Events/.test(view) &&
+    /home-sidebar-state/.test(view);
+
+  return buildings && events && failureStates && dynamicView &&
+    !/CSPC Foundation Week|IT Skills Competition|CCS Building|Engineering Building/.test(view) &&
+    !/<%-\s*(?:location|event)\./.test(view) &&
+    /\.home-sidebar-state\s*\{/.test(css);
+}
+
+function runHomeCurrentDataGate() {
+  const rec = makeRecorder('home-current-data');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const pageController = fs.readFileSync(path.join(root, 'controllers', 'pageController.js'), 'utf8');
+  const homeView = fs.readFileSync(path.join(root, 'views', 'home.ejs'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'public', 'css', 'styles.css'), 'utf8');
+  const passes = (controller, view, css) => homeCurrentDataContract(controller, view, css);
+  const hardcodedEvent = homeView.replace(
+    '<%= event.title %>', '<strong>CSPC Foundation Week</strong>');
+  const ascendingEvents = pageController.replace(
+    'ORDER BY event_date DESC, id DESC', 'ORDER BY event_date ASC, id ASC');
+  const unescapedTitle = homeView.replace('<%= event.title %>', '<%- event.title %>');
+  const noPartialFailure = pageController.replace('Promise.allSettled([', 'Promise.all([');
+
+  ok('home sidebar reads current buildings and events from both runtime sources',
+    passes(pageController, homeView, styles));
+  ok('home sidebar keeps bounded limits, deterministic ordering, and partial-failure states',
+    /HOME_FEATURED_BUILDING_LIMIT = 3/.test(pageController) &&
+    /buildingRepository\.listFirstById\(HOME_FEATURED_BUILDING_LIMIT\)/.test(pageController) &&
+    /HOME_LATEST_EVENT_LIMIT = 2/.test(pageController) &&
+    /ORDER BY id ASC/.test(pageController) &&
+    /ORDER BY event_date DESC, id DESC/.test(pageController) &&
+    /Promise\.allSettled\(\[/.test(pageController));
+  ok('fixture: hardcoded samples, ascending event order, unescaped output, or all-or-nothing loading is rejected',
+    !passes(pageController, hardcodedEvent, styles) &&
+    !passes(ascendingEvents, homeView, styles) &&
+    !passes(pageController, unescapedTitle, styles) &&
+    !passes(noPartialFailure, homeView, styles));
+  ok('fixture: missing controller, view, or styles fails closed',
+    !passes('', homeView, styles) &&
+    !passes(pageController, '', styles) &&
+    !passes(pageController, homeView, ''));
+  return rec.failures;
+}
+
+/* ---------------- instructor sidebar badge label gate ---------------- */
+/**
+ * PURE: the instructor's sidebar badge is a presentation-only override. The
+ * panel role description intentionally continues to use the existing badge
+ * descriptor so this fix changes only the label shown in the sidebar pill.
+ */
+function instructorSidebarBadgeContract(publicData, modelData, dashboardView) {
+  const client = typeof publicData === 'string' ? publicData : '';
+  const model = typeof modelData === 'string' ? modelData : '';
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  if (!client || !model || !view) return false;
+
+  const instructorRole = /['"]instructor['"]\s*:\s*\{[^}]*\bsidebarBadge\s*:\s*['"]Instructor['"][^}]*\bbadge\s*:\s*['"]Faculty['"][^}]*\}/i;
+  return instructorRole.test(client) &&
+    instructorRole.test(model) &&
+    /roleBadge\.textContent\s*=\s*roleInfo\.sidebarBadge\s*\|\|\s*roleInfo\.badge/.test(view) &&
+    /panelRoleLabel\.textContent\s*=\s*`\$\{roleInfo\.label\}\s+—\s+\$\{roleInfo\.badge\}`/.test(view) &&
+    /['"]instructor['"]\s*:\s*['"]Instructor\s+—\s+Faculty['"]/i.test(view);
+}
+
+function runInstructorSidebarBadgeGate() {
+  const rec = makeRecorder('instructor-sidebar-badge');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
+  const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
+  const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
+  const passes = (client, model, view) => instructorSidebarBadgeContract(client, model, view);
+
+  ok('instructor sidebar badge uses Instructor while the panel descriptor stays Faculty',
+    passes(publicData, modelData, dashboardView));
+  ok('fixture: missing or stale sidebar override is rejected',
+    !passes(publicData.replace(/,\s*sidebarBadge:\s*['"]Instructor['"]/, ''), modelData, dashboardView) &&
+    !passes(publicData.replace(/sidebarBadge:\s*['"]Instructor['"]/, "sidebarBadge: 'Faculty'"), modelData, dashboardView));
+  ok('fixture: shared badge or panel rendering is not used for the sidebar-only correction',
+    !passes(publicData, modelData, dashboardView.replace(
+      'roleBadge.textContent = roleInfo.sidebarBadge || roleInfo.badge',
+      'roleBadge.textContent = roleInfo.badge')) &&
+    !passes(publicData, modelData, dashboardView.replace(
+      'panelRoleLabel.textContent = `${roleInfo.label} — ${roleInfo.badge}`',
+      'panelRoleLabel.textContent = `${roleInfo.label} — ${roleInfo.sidebarBadge}`')));
+  return rec.failures;
+}
+
+/* ---------------- instructor dashboard navigation gate ---------------- */
+/**
+ * PURE: instructor navigation exposes the shared announcements destination,
+ * removes the redundant status destination, and retains status in the
+ * Overview/Profile content where instructors can still read it.
+ */
+function instructorDashboardNavigationContract(publicData, modelData, dashboardView) {
+  const client = typeof publicData === 'string' ? publicData : '';
+  const model = typeof modelData === 'string' ? modelData : '';
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  if (!client || !model || !view) return false;
+
+  const instructorNav = /['"]instructor['"]\s*:\s*\[([\s\S]*?)\]\s*,\s*['"]admin['"]\s*:/i;
+  const clientNav = instructorNav.exec(client);
+  const modelNav = instructorNav.exec(model);
+  if (!clientNav || !modelNav) return false;
+
+  const expectedNav = (nav) =>
+    /id:\s*['"]overview['"][\s\S]*label:\s*['"]Overview['"]/i.test(nav) &&
+    /id:\s*['"]profile['"][\s\S]*label:\s*['"]Profile['"]/i.test(nav) &&
+    /id:\s*['"]announcements['"][\s\S]*label:\s*['"]News & Announcements['"]/i.test(nav) &&
+    !/id:\s*['"]status['"]/i.test(nav) &&
+    !/Instructor News/i.test(nav);
+
+  const statusUses = view.match(/instructorProfile\.status/g) || [];
+  return expectedNav(clientNav[1]) &&
+    expectedNav(modelNav[1]) &&
+    /data-section=["']announcements["'][^>]*>[^<]*News &amp; Announcements/i.test(view) &&
+    /tmpl-instructor-announcements["'][^>]*>[\s\S]*?News &amp; Announcements/i.test(view) &&
+    !/Instructor News/i.test(view) &&
+    !/tmpl-instructor-status/i.test(view) &&
+    !/['"]status['"]\s*:\s*['"]tmpl-instructor-status['"]/i.test(view) &&
+    statusUses.length === 2;
+}
+
+function runInstructorDashboardNavigationGate() {
+  const rec = makeRecorder('instructor-dashboard-navigation');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
+  const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
+  const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
+  const passes = (client, model, view) =>
+    instructorDashboardNavigationContract(client, model, view);
+
+  ok('instructor navigation renames News and removes the Status destination while preserving profile/overview status',
+    passes(publicData, modelData, dashboardView));
+  ok('fixture: stale news labels or restored status navigation/template wiring are rejected',
+    !passes(publicData.replace(
+      "id: 'announcements', icon: 'megaphone', label: 'News & Announcements'",
+      "id: 'announcements', icon: 'megaphone', label: 'Instructor News'"), modelData, dashboardView) &&
+    !passes(publicData.replace(
+      "      { id: 'announcements', icon: 'megaphone', label: 'News & Announcements' },",
+      "      { id: 'announcements', icon: 'megaphone', label: 'News & Announcements' },\n      { id: 'status', icon: 'check', label: 'Status' },"), modelData, dashboardView) &&
+    !passes(publicData, modelData, dashboardView.replace(
+      'News &amp; Announcements</button>',
+      'Instructor News</button>')) &&
+    !passes(publicData, modelData, dashboardView.replace(
+      "'announcements': 'tmpl-instructor-announcements',",
+      "'announcements': 'tmpl-instructor-announcements',\n          'status': 'tmpl-instructor-status',")));
+  ok('fixture: removing retained Overview/Profile status data is rejected',
+    !passes(publicData, modelData, dashboardView.replace(/instructorProfile\.status/g, 'instructorProfile.availability')));
+  return rec.failures;
+}
+
+/* ---------------- public events date-ordering gate ---------------- */
+/**
+ * PURE: `/events` uses newest-to-oldest date ordering while the notification
+ * feed retains its separate nearest-upcoming ordering. The repository default
+ * remains ASC so callers must opt into the public page's DESC presentation.
+ */
+function publicEventsDateOrderingContract(repository, controller, notificationService) {
+  const repo = typeof repository === 'string' ? repository : '';
+  const ctrl = typeof controller === 'string' ? controller : '';
+  const notifications = typeof notificationService === 'string' ? notificationService : '';
+  if (!repo || !ctrl || !notifications) return false;
+
+  const repositoryContract =
+    /async function listEvents\(\{\s*from,\s*to,\s*limit,\s*sortDirection\s*=\s*['"]asc['"]\s*\}\s*=\s*\{\}\)/.test(repo) &&
+    /const descending = sortDirection === ['"]desc['"]/.test(repo) &&
+    /\.order\(['"]event_date['"],\s*\{\s*ascending:\s*!descending\s*\}\)\s*\.order\(['"]id['"],\s*\{\s*ascending:\s*!descending\s*\}\)/.test(repo);
+
+  const pageContract =
+    /contentRepository\.listEvents\(\{\s*sortDirection:\s*['"]desc['"]\s*\}\)/.test(ctrl) &&
+    /ORDER BY event_date DESC, id DESC/.test(ctrl);
+
+  const notificationContract =
+    /contentRepository\.listEvents\(\{ from: today, limit: EVENT_LIMIT \}\)/.test(notifications) &&
+    /ORDER BY event_date ASC, id ASC/.test(notifications);
+
+  return repositoryContract && pageContract && notificationContract;
+}
+
+function runPublicEventsDateOrderingGate() {
+  const rec = makeRecorder('public-events-date-ordering');
+  const { ok } = rec;
+  const root = path.join(__dirname, '..');
+  const repository = fs.readFileSync(path.join(root, 'repositories', 'contentRepository.js'), 'utf8');
+  const controller = fs.readFileSync(path.join(root, 'controllers', 'eventsController.js'), 'utf8');
+  const notificationService = fs.readFileSync(path.join(root, 'services', 'notificationFeedService.js'), 'utf8');
+  const passes = (repo, ctrl, notifications) =>
+    publicEventsDateOrderingContract(repo, ctrl, notifications);
+
+  ok('public /events requests newest-to-oldest dates with a deterministic tie-breaker',
+    passes(repository, controller, notificationService));
+  ok('notification feed keeps nearest-upcoming events ordered ascending',
+    /contentRepository\.listEvents\(\{ from: today, limit: EVENT_LIMIT \}\)/.test(notificationService) &&
+    /ORDER BY event_date ASC, id ASC/.test(notificationService));
+  ok('fixture: reverting the public page to ascending or dropping its tie-breaker is rejected',
+    !passes(repository, controller.replace("sortDirection: 'desc'", "sortDirection: 'asc'"), notificationService) &&
+    !passes(repository, controller.replace(', id DESC', ''), notificationService) &&
+    !passes(repository.replace(".order('id', { ascending: !descending })", ''), controller, notificationService));
+  ok('fixture: changing the notification feed to descending is rejected',
+    !passes(repository, controller, notificationService.replace(
+      'ORDER BY event_date ASC, id ASC', 'ORDER BY event_date DESC, id DESC')) &&
+    !passes(repository, controller, notificationService.replace(
+      'listEvents({ from: today, limit: EVENT_LIMIT })',
+      "listEvents({ from: today, limit: EVENT_LIMIT, sortDirection: 'desc' })")));
+  return rec.failures;
+}
+
 /* ---------------- static Cloudinary docs/env gate (no server) ---------------- */
 // Section 10.7: keep .env.example / README.md / docs/deployment.md aligned with
 // the live 10.4-10.6 Cloudinary implementation, free of stale "future-only"
@@ -2559,7 +3108,15 @@ function containsLikelyDocumentationSecret(value) {
       'Git commit SHA-1 `[recognized-git-commit]`')
     // Git tree objects are safe only with the same explicit SHA-1 binding.
     .replace(/\bGit[\r\n \t]+tree SHA-1(?:\s+is)?\s*(?:\r?\n[ \t]*)?`[0-9a-f]{40}`/gi,
-      'Git tree SHA-1 `[recognized-git-tree]`');
+      'Git tree SHA-1 `[recognized-git-tree]`')
+    // Continuity prose may identify the same non-secret Git objects as a
+    // product commit or as the parent of the named commit. Keep those labels
+    // explicit so the sanitizer accepts documented provenance without
+    // weakening the unlabeled long-hex rejection below.
+    .replace(/\b(?:pushed\s+)?product\s+commit\s*`[0-9a-f]{40}`/gi,
+      'product commit `[recognized-git-commit]`')
+    .replace(/\bwhose\s+parent\s+is\s*`[0-9a-f]{40}`/gi,
+      'parent Git commit `[recognized-git-commit]`');
 
   return /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|-----BEGIN [A-Z]|AKIA[0-9A-Z]{16}|[0-9a-f]{40,}/i.test(withoutLabeledNonSecrets);
 }
@@ -3948,6 +4505,19 @@ function landingStatesTruthfulRoleMapping(html) {
   return student && instructor && guest && refusal && !exclusive;
 }
 
+/** PURE: the landing statistic must report the canonical application roles. */
+function landingShowsTruthfulRoleCount(html) {
+  if (typeof html !== 'string' || html === '') return false;
+  const labels = html.match(
+    /<div(?=[^>]*\bclass="stat__label")[^>]*>\s*User Roles\s*<\/div>/g) || [];
+  if (labels.length !== 1) return false;
+  const matches = Array.from(html.matchAll(
+    /<div(?=[^>]*\bclass="stat")[^>]*>\s*<div(?=[^>]*\bclass="stat__number")(?=[^>]*\bdata-target="(\d+)")[^>]*>\s*(\d+)\s*<\/div>\s*<div(?=[^>]*\bclass="stat__label")[^>]*>\s*User Roles\s*<\/div>\s*<\/div>/g));
+  if (matches.length !== 1) return false;
+  const expected = EXPECTED_D6_ROLE_KEYS.length;
+  return Number(matches[0][1]) === expected && Number(matches[0][2]) === expected;
+}
+
 /** PURE: the anonymous hamburger button must expose the full ARIA contract. */
 function publicNavbarExposesAriaContract(navbarHtml) {
   if (typeof navbarHtml !== 'string' || navbarHtml === '') return false;
@@ -4430,6 +5000,8 @@ function runPilotReadinessGate() {
   // Finding 1 — truthful landing role mapping.
   ok('views/landing.ejs states the real three-domain Google sign-in mapping',
     landingStatesTruthfulRoleMapping(landingView));
+  ok('views/landing.ejs reports the canonical four user roles',
+    landingShowsTruthfulRoleCount(landingView));
   ok('views/landing.ejs no longer claims Google sign-in is restricted to @cspc.edu.ph',
     !/restricted to @cspc\.edu\.ph/i.test(landingView));
   /* The controller compares BARE domains (no leading '@'), so this asserts the
@@ -4506,6 +5078,12 @@ function runPilotReadinessGate() {
   ok('fixture: empty / non-string landing input fails the mapping check closed',
     !landingStatesTruthfulRoleMapping('') && !landingStatesTruthfulRoleMapping(null) &&
     !landingStatesTruthfulRoleMapping(['x']));
+  ok('fixture: stale, mismatched, duplicated, or missing landing role counts are rejected',
+    !landingShowsTruthfulRoleCount(landingView.replace('data-target="4">4', 'data-target="5">5')) &&
+    !landingShowsTruthfulRoleCount(landingView.replace('data-target="4">4', 'data-target="4">5')) &&
+    !landingShowsTruthfulRoleCount(landingView.replace('User Roles', 'Access Types')) &&
+    !landingShowsTruthfulRoleCount(landingView +
+      '\n<div class="stat"><div class="stat__number" data-target="4">4</div><div class="stat__label">User Roles</div></div>'));
 
   ok('fixture: a hamburger button missing aria-controls, aria-expanded, or the label is rejected',
     !publicNavbarExposesAriaContract(navbarPartial.replace(/aria-controls="navLinks"\s*/, '')) &&
@@ -5842,6 +6420,26 @@ const CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA =
   '0c906db0b33b93ff450b8de0b94a80a54c97d63a';
 const CURRENT_PRODUCT_PACKAGE_SHA256 =
   'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621';
+const CURRENT_OFFLINE_AUTHORITY_COMMIT_SHA =
+  '1ca40d431f8382c5843535165b87be945a4dd324';
+const CURRENT_OFFLINE_REFRESH_COMMIT_SHA =
+  '78fbc0ed65ee04ec29894b284e945756b8856e28';
+const CURRENT_OFFLINE_DRIVE_FIX_COMMIT_SHA =
+  '99f08d20104ca0b2df15a8f879604f6f5670662a';
+const CURRENT_OFFLINE_RUNTIME_COMMIT_SHA =
+  '4785b1b3b88d5db587506902939de791bea31a1e';
+const CURRENT_OFFLINE_CAMERA_COMMIT_SHA =
+  'c4de5ab30caadf963908f0b8cab2d49ee9678481';
+const CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256 =
+  '6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af';
+const CURRENT_HOME_AUTH_COMMIT_SHA =
+  '6849aecbc6ecc2ae75697e80b3ae201d902dd68c';
+const CURRENT_FEATURE_PRODUCT_COMMIT_SHA =
+  '12736ffb31cf54354212ef0ee13cf107e6d0846c';
+const CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA =
+  '06e15128db3027cd1c231b4919ddf440f54eb72b';
+const CURRENT_FEATURE_PACKAGE_SHA256 =
+  '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -5880,6 +6478,224 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   }
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  if (/\b12736ff\b/i.test(t) && !t.includes(CURRENT_FEATURE_PRODUCT_COMMIT_SHA)) {
+    problems.push('current feature product commit identity is abbreviated or missing');
+    return problems;
+  }
+
+  /* Current post-feature handoff. The older c4de5ab/offline assertions remain
+     required as historical evidence inside the same bounded block, while this
+     branch makes the live feature, migration, package, and authorization
+     boundaries independently fail closed. */
+  if (t.includes(CURRENT_FEATURE_PRODUCT_COMMIT_SHA)) {
+    if (!t.includes(CURRENT_HOME_AUTH_COMMIT_SHA) ||
+        !t.includes(CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_RUNTIME_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_DRIVE_FIX_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_REFRESH_COMMIT_SHA) ||
+        !/branch `?main`?/i.test(t) ||
+        !/origin\/main[^.]{0,120}remote `?main`?/i.test(t) ||
+        !/zero stashes/i.test(t)) {
+      problems.push('current feature Git identity, predecessor lineage, or stash truth is missing');
+    }
+
+    if (!/13 modified tracked paths/i.test(t) ||
+        !/11 authority documents/i.test(t) ||
+        !/docs\/offline-map-refresh\.md/i.test(t) ||
+        !/scripts\/quality-gates\.js/i.test(t) ||
+        !/(?:empty index|index (?:is|was) empty|nothing staged)/i.test(t) ||
+        !/(?:no untracked paths|nothing[^.]{0,60}untracked)/i.test(t)) {
+      problems.push('exact 13-path authority-sync start checkpoint is missing');
+    }
+
+    if (!/owner[^.]{0,100}authorized[^.]{0,100}commit and push/i.test(t) ||
+        !/Production (?:promotion|deployment)[^.]{0,100}not authorized/i.test(t) ||
+        !/fresh (?:Codex|Claude)[^.]{0,160}ground[^.]{0,100}wait/i.test(t)) {
+      problems.push('commit/push scope or next-session authorization boundary is missing');
+    }
+
+    if (!/\/home[^.]{0,140}(?:requireLogin|authenticated)/i.test(t) ||
+        !/admin search icon/i.test(t) ||
+        !/user roles[^.]{0,60}\b4\b/i.test(t) ||
+        !/Navigate Buildings/i.test(t) ||
+        !/News & Announcements/i.test(t) ||
+        !/events[^.]{0,160}(?:descending|newest)/i.test(t) ||
+        !/Featured Locations/i.test(t) ||
+        !/service worker[^.]{0,80}v36/i.test(t) ||
+        !/Guided-VR[^.]{0,160}(?:portal|hotspot)/i.test(t)) {
+      problems.push('current product-change summary is incomplete');
+    }
+
+    if (!/0021_minimal_instructor_oauth_registration\.sql/i.test(t) ||
+        !/17-argument/i.test(t) ||
+        !/SECURITY INVOKER/i.test(t) ||
+        !/PUBLIC[^.]{0,100}revoked/i.test(t) ||
+        !/service_role[^.]{0,100}EXECUTE/i.test(t) ||
+        !/owner-applied/i.test(t) ||
+        !/Do not reapply migration 0021/i.test(t) ||
+        !/no real CSPC instructor[^.]{0,120}end-to-end/i.test(t)) {
+      problems.push('migration 0021 application, privilege, or evidence boundary is missing');
+    }
+
+    if (!/npm test[^.]{0,160}QUALITY-GATES OK/i.test(t) ||
+        !/18\/18/i.test(t) ||
+        !/instructor[^.]{0,120}30\/30/i.test(t) ||
+        !/OFF\.2[^.]{0,100}145\/145/i.test(t) ||
+        !/package[^.]{0,100}74\/74/i.test(t) ||
+        !/189 files[^.]{0,80}7,221,465 bytes/i.test(t) ||
+        !t.includes(CURRENT_FEATURE_PACKAGE_SHA256) ||
+        !/localhost[^.]{0,180}no console errors/i.test(t)) {
+      problems.push('current source, package, or localhost evidence is incomplete');
+    }
+
+    if (!/123\.373606[\s\S]{0,80}13\.404852[\s\S]{0,80}123\.378745[\s\S]{0,80}13\.406981/i.test(t) ||
+        !/release(?:-manifest)? center[\s\S]{0,100}123\.375604[\s\S]{0,80}13\.405885/i.test(t) ||
+        !/opening camera[\s\S]{0,160}123\.374590[\s\S]{0,80}13\.405872/i.test(t) ||
+        !/strict polygon clipping is not a requirement/i.test(t) ||
+        !/No actual newly added OSM\s+building has yet been observed/i.test(t) ||
+        !/Do not repeat bootstrap or rollback without a new explicit\s+owner decision\./i.test(t) ||
+        !t.includes(CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256)) {
+      problems.push('retained offline-refresh evidence or accepted geometry boundary is missing');
+    }
+
+    if (!/not independent verification of\s+immutable\s+deployed bytes/i.test(t) ||
+        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+        !/Final Milestone 12[^.]{0,100}(?:external|not issued)/i.test(t)) {
+      problems.push('deployed-byte or final-milestone evidence boundary is missing');
+    }
+
+    return problems;
+  }
+
+  /* The short camera-release label and package pin are present throughout the
+     current block. If the exact full SHA is absent, fail closed instead of
+     falling through to an older historical authority analyzer. */
+  if ((/\bc4de5ab\b/i.test(t) || t.includes(CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256)) &&
+      !t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA)) {
+    problems.push('current offline-camera commit identity is missing');
+  }
+
+  /* Current post-offline-refresh authority. Earlier analyzers remain below so
+     historical fixtures stay testable without allowing them back into live
+     authority surfaces. */
+  if (t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA)) {
+    if (!t.includes(CURRENT_OFFLINE_AUTHORITY_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_REFRESH_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_DRIVE_FIX_COMMIT_SHA) ||
+        !t.includes(CURRENT_OFFLINE_RUNTIME_COMMIT_SHA) ||
+        !/HEAD[\s\S]{0,160}origin\/main[\s\S]{0,160}remote `?main`?[\s\S]{0,220}c4de5ab/i.test(t) ||
+        !/zero stashes/i.test(t)) {
+      problems.push('current offline-refresh Git identity or lineage is missing');
+    }
+
+    if (!/13 modified tracked paths/i.test(t) ||
+        !/11 authority documents/i.test(t) ||
+        !/docs\/offline-map-refresh\.md/i.test(t) ||
+        !/scripts\/quality-gates\.js/i.test(t) ||
+        !/(?:empty index|index (?:is|was) empty|nothing staged)/i.test(t) ||
+        !/(?:no untracked paths|nothing[^.]{0,60}untracked)/i.test(t) ||
+        !/(?:intentionally[^.]{0,100}(?:uncommitted|unstaged)|intentionally uncommitted\/unpushed)/i.test(t) ||
+        !/(?:uncommitted[^.]{0,80}unpushed|uncommitted\/unpushed)/i.test(t)) {
+      problems.push('exact intentionally dirty 13-path authority checkpoint is missing');
+    }
+
+    if (!/publisher[^.]{0,180}(?:workflow|GitHub Actions)/i.test(t) ||
+        !/publisher[\s\S]{0,500}(?:not a person|software)/i.test(t) ||
+        !/scripts\/publishOfflineMapRelease\.js/i.test(t) ||
+        !/30 18 \* \* \*/i.test(t) ||
+        !/bootstrap[^.]{0,120}rollback[^.]{0,160}(?:explicit owner|owner decision|do not)/i.test(t) ||
+        !/(?:daily )?Protomaps/i.test(t) ||
+        !/OpenStreetMap|\bOSM\b/i.test(t) ||
+        !/stable manifest/i.test(t) ||
+        !/content-addressed[^.]{0,100}(?:manifest|release)/i.test(t) ||
+        !/Google Drive|\bDrive\b/i.test(t)) {
+      problems.push('offline publisher, schedule, source, or Drive release model is missing');
+    }
+
+    if (!/123\.373606[\s\S]{0,80}13\.404852[\s\S]{0,80}123\.378745[\s\S]{0,80}13\.406981/i.test(t) ||
+        !/release(?:-manifest)? center[\s\S]{0,100}123\.375604[\s\S]{0,80}13\.405885/i.test(t) ||
+        !/(?:opening camera|camera target)[\s\S]{0,160}123\.374590[\s\S]{0,80}13\.405872/i.test(t) ||
+        !/zoom[\s\S]{0,40}16\.5[\s\S]{0,80}bearing[\s\S]{0,40}0[\s\S]{0,80}pitch[\s\S]{0,40}0/i.test(t) ||
+        !/southwest[\s\S]{0,80}13\.404852[\s\S]{0,40}123\.373606/i.test(t) ||
+        !/northeast[\s\S]{0,80}13\.406981[\s\S]{0,40}123\.378745/i.test(t)) {
+      problems.push('exact CSPC rectangle, release center, or opening camera is missing');
+    }
+
+    if (!/(?:whole|copies whole)[^.]{0,100}(?:edge|intersecting) tiles/i.test(t) ||
+        !/(?:outside-campus|outside campus|outside buildings|outside-campus buildings|outside test building)/i.test(t) ||
+        !/client accepts/i.test(t) ||
+        !/strict polygon clipping[^.]{0,100}not (?:a )?requirement/i.test(t)) {
+      problems.push('accepted whole-edge-tile behavior is missing');
+    }
+
+    if (!/Supabase(?:\/PostgreSQL)?[^.]{0,180}(?:real Production|Production CampuSphere|Production records)/i.test(t) ||
+        !/MySQL[^.]{0,120}(?:local|fallback|rehearsal)/i.test(t) ||
+        !/(?:does not create|do not create)[^.]{0,100}(?:app|Supabase|CampuSphere)[^.]{0,80}record/i.test(t)) {
+      problems.push('OSM basemap versus application-record ownership is missing');
+    }
+
+    if (!/(?:Download|Update) Offline Map/i.test(t) ||
+        !/IndexedDB/i.test(t) || !/MapLibre/i.test(t) || !/PMTiles/i.test(t) ||
+        !/(?:signature|signed manifest)/i.test(t) ||
+        !/(?:hash-check|archive hash|verifies the archive hash)/i.test(t) ||
+        !/service worker[^.]{0,180}does not implicitly cache/i.test(t)) {
+      problems.push('explicit verified IndexedDB download behavior is missing');
+    }
+
+    if (!/GitHub[^.]{0,80}secrets/i.test(t) ||
+        !/private[^.]{0,100}signing key/i.test(t) ||
+        !/OFFLINE_MAP_RELEASE_MODE=drive/i.test(t) ||
+        !/OFFLINE_MAP_PUBLIC_MANIFEST_URL/i.test(t) ||
+        !/OFFLINE_MAP_SIGNING_PUBLIC_KEY/i.test(t) ||
+        !/(?:never|do not)[^.]{0,140}(?:print|record|copy)[^.]{0,120}(?:value|PEM|identifier|URL)/i.test(t)) {
+      problems.push('private/public offline configuration boundary is missing');
+    }
+
+    if (!/(?:qa:offline-map|offline-map contract)[^.]*(?:passed )?21\/21/i.test(t) ||
+        !/(?:package boundary|package-boundary probe)[^.]*(?:passed )?74\/74/i.test(t) ||
+        !/188 files[\s\S]{0,80}7,242,957 bytes/i.test(t) ||
+        !t.includes(CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256)) {
+      problems.push('current focused offline/package evidence is missing');
+    }
+
+    if (!/owner-observed|owner has (?:also )?observed/i.test(t) ||
+        !/(?:bootstrap and (?:a later )?release succeeded|later bootstrap\/release succeeded|successful workflow release)/i.test(t) ||
+        !/Drive[^.]{0,180}(?:stable manifest|expected Drive files)/i.test(t) ||
+        !/Vercel[^.]{0,180}(?:Ready|marked Ready)/i.test(t) ||
+        !/(?:network emulation|network)[^.]{0,120}Offline/i.test(t) ||
+        !/(?:not independent|not establish|No independent)[^.]{0,140}(?:deployed-byte|immutable deployed)/i.test(t)) {
+      problems.push('owner-observed release/browser evidence or byte-proof boundary is missing');
+    }
+
+    if (!/(?:No actual newly added OSM building|no actual newly added OSM building)[^.]{0,120}(?:observed|end to end)/i.test(t) ||
+        !/(?:temporary|removed)[^.]{0,60}synthetic[^.]{0,160}(?:inside|retained)/i.test(t) ||
+        !/(?:not part of|is not part of)[^.]{0,80}21\/21/i.test(t)) {
+      problems.push('new-OSM-building limitation or synthetic-fixture boundary is missing');
+    }
+
+    if (!/Final Milestone 12[^.]{0,100}(?:external|remains external)/i.test(t) ||
+        !/offline boundary(?:\/refresh)?[^.]{0,120}no longer[^.]{0,80}(?:blocker|active blocker)/i.test(t) ||
+        !/(?:stop and wait|report, and wait|Then stop and wait)/i.test(t) ||
+        !/(?:separate explicit|separately authorized|No next)[^.]{0,140}(?:bug|addition|feature|authorization)/i.test(t)) {
+      problems.push('grounding-only wait and next-task authority boundary is missing');
+    }
+
+    const staleCurrentClaims = [
+      /offline(?:-map)? refresh[^.]{0,160}(?:not implemented|unimplemented)/i,
+      /strict polygon clipping[^.]{0,100}(?:is required|is a requirement)/i,
+      /(?:An|The) actual newly added OSM building[^.]{0,100}(?:was|has been) observed/i,
+      /independent immutable deployed-byte proof[^.]{0,80}was completed/i,
+      /current[^.]{0,100}(?:HEAD|origin\/main|remote main)[^.]{0,100}0c906db/i,
+      /current[^.]{0,100}(?:HEAD|origin\/main|remote main)[^.]{0,100}4785b1b/i,
+      /(?:release(?:-manifest)? center|opening camera)[^.]{0,120}123\.374459[^.]{0,80}13\.405801/i,
+    ];
+    if (staleCurrentClaims.some((rule) => rule.test(t))) {
+      problems.push('stale or false current offline-refresh authority remains');
+    }
+    return problems;
+  }
 
   /* Current post-FAQ/settings authority. Keep the earlier e481d03 analyzer
      below for explicitly historical fixtures, but require the complete pushed
@@ -6291,8 +7107,35 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
+    return /(?:fresh )?grounding-only session|\bGround only\b/i.test(t) &&
+      /\b6849aec\b/i.test(t) && /\b06e1512\b/i.test(t) && /\bc4de5ab\b/i.test(t) &&
+      /code-reviewer (?:skill|SKILL\.md)/i.test(t) &&
+      /(?:context-mode|large-file capability|bounded read-only facility)/i.test(t) &&
+      /docs\/offline-map-refresh\.md/i.test(t) &&
+      /0021_minimal_instructor_oauth_registration\.sql/i.test(t) &&
+      /Do not (?:read )?\.env|Never read \.env/i.test(t) &&
+      /(?:stop and wait|Then stop and wait)/i.test(t) &&
+      /Production (?:promotion or )?deployment is not authorized/i.test(t) &&
+      /Final Milestone 12[^.]{0,100}(?:external|remains external)/i.test(t) &&
+      !declaresStaleOrPrematureAuthority(t);
+  }
+
   const carriesPromotedReleaseAuthority =
     currentReleaseContinuityProblems(t, { requireMarkers: false }).length === 0;
+
+  if (t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA)) {
+    return carriesPromotedReleaseAuthority &&
+      /fresh context-only grounding session/i.test(t) &&
+      /code-reviewer skill/i.test(t) &&
+      /(?:context-mode|large-file capability)/i.test(t) &&
+      /docs\/offline-map-refresh\.md/i.test(t) &&
+      /scripts\/publishOfflineMapRelease\.js/i.test(t) &&
+      /Do not read \.env|Never read \.env/i.test(t) &&
+      /(?:stop and wait|Then stop and wait)/i.test(t) &&
+      /No next[^.]{0,100}(?:bug|addition|feature)[^.]{0,100}authorized/i.test(t) &&
+      /Final Milestone 12[^.]{0,100}external/i.test(t);
+  }
 
   if (t.includes(CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA)) {
     return carriesPromotedReleaseAuthority &&
@@ -6376,6 +7219,22 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh grounding-only session/i.test(t) &&
+      /Do not review code/i.test(t) &&
+      /No next feature[^.]{0,100}authorized/i.test(t) &&
+      /Then stop and wait/i.test(t);
+  }
+  if (t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh context-only grounding session/i.test(t) &&
+      /code-reviewer skill/i.test(t) &&
+      /Do not review/i.test(t) &&
+      /stop and wait/i.test(t) &&
+      /No next[^.]{0,100}(?:bug|addition|feature)[^.]{0,100}authorized/i.test(t) &&
+      reusablePromptHasExplicitWaitBoundary(t);
+  }
   return reusablePromptIsCurrent(t) &&
     /fresh context-only grounding session that does not authorize implementation or review/i.test(t) &&
     /load and follow the installed code-reviewer skill/i.test(t) &&
@@ -6388,6 +7247,22 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
+    return reusablePromptIsCurrent(t) &&
+      /\bGround only\b/i.test(t) &&
+      /Do not edit, review code, test/i.test(t) &&
+      /stop and wait for the owner/i.test(t) &&
+      /Do not plan or start another task/i.test(t);
+  }
+  if (t.includes(CURRENT_OFFLINE_CAMERA_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh context-only grounding session/i.test(t) &&
+      /code-reviewer skill/i.test(t) &&
+      /Do not review/i.test(t) &&
+      /Stop and wait/i.test(t) &&
+      /No next[^.]{0,100}(?:bug|addition|feature)[^.]{0,100}authorized/i.test(t) &&
+      reusablePromptHasExplicitWaitBoundary(t);
+  }
   return reusablePromptIsCurrent(t) &&
     /fresh context-only grounding session that does not authorize implementation/i.test(t) &&
     /load and follow the installed code-reviewer skill/i.test(t) &&
@@ -6623,23 +7498,21 @@ function analyzeProvenanceRemediationRow(md) {
    legitimate citation, while the same figure sitting in a STATUS cell is a
    current disposition. Only the latter is a defect. */
 
-  /* The committed implementation package, pinned HERE independently of the
-   probe and both evidence documents. The accepted local predecessor and
-   technical Production baseline remain historical authority and are not
-   silently relabelled by this implementation. */
+/* The current reviewed source package, pinned HERE independently of the probe
+   and evidence documents. Historical offline-camera, product, and technical
+   Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 186,
-  bytes: '7,220,073',
-  sha256: 'c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621',
+  files: 189,
+  bytes: '7,221,465',
+  sha256: '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4',
 });
 
-/* The deployable bytes now include the room-schedule image candidate and the
-   deferred profile-upload removal. Keep this live-worktree pin separate from
-   accepted historical release evidence until a clean commit is reviewed. */
+/* Keep the live working-tree pin separate so future source drift is detected
+   even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 188,
-  bytes: '7,242,664',
-  sha256: '59292177ec4d8d48cfdde24a21ef61bcc2476c14e385416447d7627eaca45eee',
+  files: 189,
+  bytes: '7,221,465',
+  sha256: '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -8070,6 +8943,7 @@ function runDocsCurrentGate() {
     'README.md': readIf('README.md'),
     '.env.example': readIf('.env.example'),
     'docs/deployment.md': readIf(path.join('docs', 'deployment.md')),
+    'docs/offline-map-refresh.md': readIf(path.join('docs', 'offline-map-refresh.md')),
     'docs/new-session-grounding-prompts.md': readIf(path.join('docs', 'new-session-grounding-prompts.md')),
     'docs/demo-script.md': readIf(path.join('docs', 'demo-script.md')),
     'docs/test-evidence.md': readIf(path.join('docs', 'test-evidence.md')),
@@ -8080,8 +8954,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-28';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-08-28';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-31';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-08-31';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -8120,17 +8994,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-08-28)',
-    'CLAUDE.md': '## Current Release Continuity (2026-08-28)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
-    'plan.md': '## Current Release Continuity (2026-08-28)',
-    'ROADMAP.md': '## Current Release Continuity (2026-08-28)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-28 (Asia/Manila)\n## Current Release Continuity (2026-08-28)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-08-28)',
-    'docs/deployment.md': '## Current Release Continuity (2026-08-28)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-08-28)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-08-28)',
+    'AGENTS.md': '## Current Release Continuity (2026-08-31)',
+    'CLAUDE.md': '## Current Release Continuity (2026-08-31)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
+    'plan.md': '## Current Release Continuity (2026-08-31)',
+    'ROADMAP.md': '## Current Release Continuity (2026-08-31)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-08-31)',
+    'docs/deployment.md': '## Current Release Continuity (2026-08-31)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-08-31)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-08-31)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -8140,6 +9014,77 @@ function runDocsCurrentGate() {
     currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
       'ROADMAP.md': '## Current Release Continuity (2026-08-10)',
     })).length > 0);
+
+  /** PURE: validate the public offline-refresh runbook without secret values. */
+  function currentOfflineRefreshRunbookProblems(value) {
+    const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    const problems = [];
+    if (!/offline-map-refresh\.yml/i.test(t) ||
+        !/scripts\/publishOfflineMapRelease\.js/i.test(t) ||
+        !/30 18 \* \* \*/i.test(t) ||
+        !/Protomaps/i.test(t)) {
+      problems.push('publisher identity, schedule, or source is missing');
+    }
+    if (!/123\.373606[\s\S]{0,80}13\.404852[\s\S]{0,80}123\.378745[\s\S]{0,80}13\.406981/i.test(t) ||
+        !/release(?:-manifest)? center[\s\S]{0,100}123\.375604[\s\S]{0,80}13\.405885/i.test(t) ||
+        !/opening camera[\s\S]{0,160}123\.374590[\s\S]{0,80}13\.405872/i.test(t)) {
+      problems.push('exact rectangle, release center, or opening camera is missing');
+    }
+    if (!/whole edge tiles/i.test(t) ||
+        !/outside-campus buildings/i.test(t) ||
+        !/strict polygon clipping[^.]{0,100}not a requirement/i.test(t)) {
+      problems.push('accepted edge-tile boundary is missing');
+    }
+    if (!/Supabase\/PostgreSQL[^.]{0,180}Production/i.test(t) ||
+        !/MySQL[^.]{0,120}(?:local-development|fallback|rehearsal)/i.test(t) ||
+        !/Protomaps\/OpenStreetMap[^.]{0,120}visual basemap/i.test(t)) {
+      problems.push('application-data and basemap ownership is missing');
+    }
+    if (!/21\/21/i.test(t) || !/74\/74/i.test(t) ||
+        !/188 files[\s\S]{0,80}7,242,957 bytes/i.test(t) ||
+        !t.includes(CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256)) {
+      problems.push('current focused evidence is missing');
+    }
+    if (!/owner has[^.]{0,180}observed/i.test(t) ||
+        !/No actual newly added OSM building[^.]{0,120}observed/i.test(t) ||
+        !/temporary helper was removed/i.test(t) ||
+        !/not part of the `?21\/21`? gate/i.test(t)) {
+      problems.push('owner-observed and synthetic-fixture evidence boundaries are missing');
+    }
+    if (!/Do not repeat bootstrap/i.test(t) ||
+        !/(?:Never place|must not be placed)[^.]{0,160}(?:URL|identifier|OAuth|PEM|secret)/i.test(t)) {
+      problems.push('bootstrap or secret-handling boundary is missing');
+    }
+    if (/until the owner completes this setup/i.test(t) ||
+        /strict polygon clipping is (?:a )?requirement/i.test(t) ||
+        /newly added OSM building[^.]{0,100}(?:was|has been) observed end to end/i.test(t)) {
+      problems.push('stale setup, strict-clipping, or false end-to-end claim remains');
+    }
+    return problems;
+  }
+
+  const offlineRunbookProblems =
+    currentOfflineRefreshRunbookProblems(docs['docs/offline-map-refresh.md']);
+  ok('offline-map refresh runbook records current publisher, bounds, evidence, and accepted edge-tile behavior',
+    offlineRunbookProblems.length === 0);
+  offlineRunbookProblems.forEach((problem) =>
+    console.error('    - offline-map-refresh runbook: ' + problem));
+
+  const OFFLINE_RUNBOOK_FIXTURE = docs['docs/offline-map-refresh.md'];
+  ok('fixture: current offline-refresh runbook is accepted while stale bounds, clipping, setup, and end-to-end claims are rejected',
+    currentOfflineRefreshRunbookProblems(OFFLINE_RUNBOOK_FIXTURE).length === 0 &&
+    currentOfflineRefreshRunbookProblems(
+      OFFLINE_RUNBOOK_FIXTURE.split('123.378745').join('123.380000')).length > 0 &&
+    currentOfflineRefreshRunbookProblems(
+      OFFLINE_RUNBOOK_FIXTURE.replace(
+        'strict polygon clipping is not a requirement',
+        'strict polygon clipping is a requirement')).length > 0 &&
+    currentOfflineRefreshRunbookProblems(
+      OFFLINE_RUNBOOK_FIXTURE + '\nThe bundled mode remains until the owner completes this setup.').length > 0 &&
+    currentOfflineRefreshRunbookProblems(
+      OFFLINE_RUNBOOK_FIXTURE.replace(
+        /No\s+actual\s+newly\s+added\s+OSM\s+building\s+has\s+yet\s+been\s+observed/,
+        'A newly added OSM building has been observed end to end')).length > 0);
 
   // L7: AGENTS.md + CLAUDE.md must not carry the stale claims and must document
   // the live test/auth/persistence/Cloudinary architecture.
@@ -8546,7 +9491,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records 0c906db continuity and the current verification/deployment boundary`,
+    ok(`${name} records c4de5ab offline-camera continuity and the current evidence/authorization boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -8559,44 +9504,32 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current post-0c906db continuity is accepted and stale/false variants fail closed',
+  ok('fixture: current post-feature continuity is accepted and identity, package, migration, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PRODUCT_AUTHORITY_COMMIT_SHA,
+      CURRENT_FEATURE_PRODUCT_COMMIT_SHA,
+      'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA,
       'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PRODUCT_COMMIT_SHA,
-      'dddddddddddddddddddddddddddddddddddddddd')).length > 0 &&
+      CURRENT_FEATURE_PACKAGE_SHA256,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PRODUCT_PACKAGE_SHA256,
-      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
+      '13 modified tracked paths',
+      '12 modified tracked paths')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /no owner-authorized promotion/i,
-      'owner-authorized promotion')).length > 0 &&
+      /0021_minimal_instructor_oauth_registration\.sql/i,
+      '0022_unreviewed.sql')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /unsupported Android\/Chrome platform compatibility observation/i,
-      'confirmed CampuSphere Android code bug')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /public, server-rendered `\/faq` page/i,
-      'private help surface')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /institutional\s+settings projection/i,
-      'omitted settings projection')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /That refresh pipeline is\s+not implemented/i,
-      'That refresh pipeline is complete and deployed')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /Do not reapply migration 0020 without a new explicit database\s+authorization\./,
-      'Reapply migration 0020 in every new session.')).length > 0 &&
+      /Production promotion or deployment is not authorized/i,
+      'Production promotion and deployment are authorized')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 
@@ -9920,13 +10853,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`; focused package gate `74/74`** | current product package evidence; accepted e481d03 package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`** | current product package evidence; accepted e481d03 package is historical: 180 files, 7,189,621 bytes, aggregate SHA-256 `c07e34f43f859f3f4055c9a00f90b0a5967d323ef85e243227d95c8023195216` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`** | current reviewed source/package evidence; pushed c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -11107,9 +12040,12 @@ async function runBoundedAnonymousDenialGate() {
         .filter((n) => n.endsWith('.sql')).sort();
     } catch (e) { /* empty list fails below */ }
     const numbers = migrations.map((n) => (n.match(/^(\d{4})/) || [])[1]).filter(Boolean);
-    ok('Supabase migration sources are contiguous through 0020 (R5 added no denial table)',
-      numbers.length === 20 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
-      migrations.includes('0020_room_schedule_documents.sql'));
+    const minimalInstructorMigration = readIf(path.join('database', 'supabase', '0021_minimal_instructor_oauth_registration.sql'));
+    ok('Supabase migration sources are contiguous through prepared 0021 (R5 added no denial table)',
+      numbers.length === 21 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+      migrations.includes('0020_room_schedule_documents.sql') &&
+      migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
+      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',
@@ -11385,16 +12321,17 @@ function runSwPrecacheGate() {
   const cacheVersion = cacheVersionMatch ? Number(cacheVersionMatch[1]) : 0;
   const stylesheetEntries = precache.match(/\/css\/styles\.css\?v=\d+/g) || [];
 
-  ok('sw.js cache version is v7 or higher for stale-shell eviction', cacheVersion >= 7);
-  ok('sw.js precache drops /css/styles.css?v=2', !/\/css\/styles\.css\?v=2/.test(precache));
+  ok('sw.js cache version is v35 or higher for stale-shell eviction', cacheVersion >= 35);
+  ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=7',
-    canonicalStylesheet === '/css/styles.css?v=7');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=8',
+    canonicalStylesheet === '/css/styles.css?v=8');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.
   const stale = [];
+  const staleCacheKey = [];
   const stylesheetConsumers = [];
   const walk = (dir) => {
     for (const name of fs.readdirSync(dir)) {
@@ -11403,6 +12340,7 @@ function runSwPrecacheGate() {
       else if (name.endsWith('.ejs')) {
         const source = fs.readFileSync(p, 'utf8');
         if (/\/css\/styles\.css\?v=2/.test(source)) stale.push(name);
+        if (/\/css\/styles\.css\?v=7/.test(source)) staleCacheKey.push(name);
         const refs = source.match(/\/css\/styles\.css\?v=\d+/g) || [];
         if (refs.length > 0) stylesheetConsumers.push({ name, refs });
       }
@@ -11411,8 +12349,10 @@ function runSwPrecacheGate() {
   walk(path.join(root, 'views'));
   ok('no EJS view references /css/styles.css?v=2', stale.length === 0);
   const offlineSource = fs.readFileSync(path.join(root, 'public', 'offline.html'), 'utf8');
+  if (/\/css\/styles\.css\?v=7/.test(offlineSource)) staleCacheKey.push('public/offline.html');
   const offlineRefs = offlineSource.match(/\/css\/styles\.css\?v=\d+/g) || [];
   stylesheetConsumers.push({ name: 'public/offline.html', refs: offlineRefs });
+  ok('no shared stylesheet consumer references stale /css/styles.css?v=7', staleCacheKey.length === 0);
   ok('all versioned shared stylesheet consumers match the service-worker precache key',
     stylesheetConsumers.length > 0 && stylesheetConsumers.every(({ refs }) =>
       refs.length === 1 && refs[0] === canonicalStylesheet));
@@ -12540,6 +13480,38 @@ async function main() {
   allFailures.push(...runAdminVrScheduleUxGate().map((f) => 'admin-vr-ux :: ' + f));
   console.log('');
 
+  console.log('[Admin search icon layout] (static users.ejs/shared/admin CSS analysis)');
+  allFailures.push(...runAdminSearchIconLayoutGate().map((f) => 'admin-search-icon-layout :: ' + f));
+  console.log('');
+
+  console.log('[Dashboard Navigate Buildings removal] (static dashboard source/data/CSS analysis)');
+  allFailures.push(...runDashboardNavigateBuildingsRemovalGate().map((f) => 'dashboard-navigation-removal :: ' + f));
+  console.log('');
+
+  console.log('[Guest dashboard navigation] (static guest sidebar/source analysis)');
+  allFailures.push(...runGuestDashboardNavigationGate().map((f) => 'guest-dashboard-navigation :: ' + f));
+  console.log('');
+
+  console.log('[Home quick access] (static home view/CSS analysis)');
+  allFailures.push(...runHomeQuickAccessGate().map((f) => 'home-quick-access :: ' + f));
+  console.log('');
+
+  console.log('[Home current data] (static page-controller/view/CSS analysis)');
+  allFailures.push(...runHomeCurrentDataGate().map((f) => 'home-current-data :: ' + f));
+  console.log('');
+
+  console.log('[Instructor sidebar badge] (static role metadata/dashboard source analysis)');
+  allFailures.push(...runInstructorSidebarBadgeGate().map((f) => 'instructor-sidebar-badge :: ' + f));
+  console.log('');
+
+  console.log('[Instructor dashboard navigation] (static instructor role/source analysis)');
+  allFailures.push(...runInstructorDashboardNavigationGate().map((f) => 'instructor-dashboard-navigation :: ' + f));
+  console.log('');
+
+  console.log('[Public events date ordering] (static event/repository/notification analysis)');
+  allFailures.push(...runPublicEventsDateOrderingGate().map((f) => 'public-events-date-ordering :: ' + f));
+  console.log('');
+
   console.log('[Cloudinary docs/env] (static docs analysis)');
   allFailures.push(...runCloudinaryDocsGate().map((f) => 'cloudinary-docs :: ' + f));
   console.log('');
@@ -12682,8 +13654,28 @@ if (require.main === module) {
 // Export selected database-free analyzers so a migration-source candidate can
 // verify its static gate changes without starting the server or touching a DB.
 module.exports = {
+  currentReleaseContinuityProblems,
+  dashboardOmitsNavigateBuildings,
+  extractReusablePrompts,
+  guestOverviewSummaryCardContract,
+  guestDashboardNavigationContract,
+  homeCurrentDataContract,
+  homeQuickAccessContract,
+  landingShowsTruthfulRoleCount,
+  runAdminSearchIconLayoutGate,
   runAdminVrScheduleUxGate,
   runBuildingDeleteTxGate,
+  runDashboardNavigateBuildingsRemovalGate,
+  runGuestDashboardNavigationGate,
+  runHomeCurrentDataGate,
+  runHomeQuickAccessGate,
+  runInstructorDashboardNavigationGate,
+  runInstructorSidebarBadgeGate,
+  publicEventsDateOrderingContract,
+  reusableClaudePromptHasWaitBoundary,
+  reusableCodexPromptHasWaitBoundary,
+  reusablePromptIsCurrent,
+  runPublicEventsDateOrderingGate,
   runDocsCurrentGate,
   runScheduleDocsGate,
 };
