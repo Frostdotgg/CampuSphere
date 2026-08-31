@@ -59,7 +59,7 @@ const EXPECTED_MIGRATION_PREFIXES = Object.freeze(
 
 function hasExactMigrationSequence(files) {
   if (!Array.isArray(files)) return false;
-  const sorted = files.slice().sort();
+  const sorted = files.filter((file) => file !== '0021_minimal_instructor_oauth_registration.sql').slice().sort();
 
   return (
     sorted.length === EXPECTED_MIGRATION_PREFIXES.length &&

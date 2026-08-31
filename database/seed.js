@@ -608,6 +608,14 @@ async function seed() {
             'Engineering Building'
         ];
 
+        // The expanded Guided-VR catalog identifies the legacy `ccs` route
+        // node as Academic Building IV. Keep the minimal 13-building seed
+        // usable by falling back to the original CCS row when that optional
+        // expanded-catalog building is absent, but fail closed if the
+        // optional natural identity is duplicated.
+        const EXPANDED_CCS_BUILDING_NAME = 'Academic Building IV';
+        const expandedCcsRows = bldgRowsByName.get(EXPANDED_CCS_BUILDING_NAME) || [];
+
         // Preflight the WHOLE canonical set so one run reports every problem,
         // rather than aborting on the first missing name and hiding the rest.
         const missingNames = [];
@@ -617,6 +625,7 @@ async function seed() {
             if (n === 0) missingNames.push(name);
             else if (n > 1) duplicateNames.push(name);
         }
+        if (expandedCcsRows.length > 1) duplicateNames.push(EXPANDED_CCS_BUILDING_NAME);
         if (missingNames.length > 0 || duplicateNames.length > 0) {
             const parts = [];
             if (missingNames.length > 0) {
@@ -648,7 +657,9 @@ async function seed() {
         }
 
         const adminBldg    = requireBuilding('Administration Building');
-        const ccsBldg      = requireBuilding('College of Computer Studies (CCS)');
+        const ccsBldg      = expandedCcsRows.length === 1
+            ? expandedCcsRows[0]
+            : requireBuilding('College of Computer Studies (CCS)');
         const libraryBldg  = requireBuilding('Library Building');
         const gymBldg      = requireBuilding('Gymnasium');
         const casBldg      = requireBuilding('College of Arts and Sciences');

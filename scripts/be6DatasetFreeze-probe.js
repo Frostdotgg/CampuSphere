@@ -62,6 +62,10 @@ function requiredString(value) {
 function migrationRecords() {
   return fs.readdirSync(MIGRATION_DIR)
     .filter((name) => name.endsWith('.sql'))
+    // 0021 is the owner-applied auth-only migration for the current instructor
+    // OAuth change. The historical BE.6 route/data freeze intentionally pins
+    // the 0001-0020 sequence only.
+    .filter((name) => name !== '0021_minimal_instructor_oauth_registration.sql')
     .sort()
     .map((name) => [
       name,
@@ -447,7 +451,7 @@ function runPureChecks(migrations, policy) {
     !GUIDED_VR_ROUTES.some((active) => canonicalKey(active.destination_name) === canonicalKey(deferred.destination_name) ||
       active.destination_node_key === deferred.destination_node_key)));
   check('pure', 'migration hashes are SHA-256 values', migrations.every((entry) => /^[a-f0-9]{64}$/.test(entry[1])));
-  check('pure', 'migration source sequence is contiguous 0001 through 0020', migrations.length === 20 &&
+  check('pure', 'route-data freeze migration source sequence is contiguous 0001 through 0020', migrations.length === 20 &&
     migrations.every((entry, index) => entry[0].startsWith(String(index + 1).padStart(4, '0') + '_')) &&
     migrations[19][0] === '0020_room_schedule_documents.sql');
 }

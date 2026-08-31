@@ -664,6 +664,7 @@ function historicalSelectedCasParity(mysql, supabase) {
     say('\nstatic migration checks (this probe applies NO SQL):');
     const dir = path.join(__dirname, '..', 'database', 'supabase');
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+    const ownerSqlFiles = sqlFiles.filter((f) => f !== '0021_minimal_instructor_oauth_registration.sql');
     const m17Path = path.join(dir, '0017_route_topology_guard_house.sql');
     const m17Exists = fs.existsSync(m17Path);
     check('static', '0017_route_topology_guard_house.sql exists', m17Exists);
@@ -673,10 +674,10 @@ function historicalSelectedCasParity(mysql, supabase) {
       sqlFiles.some((f) => f === '0018_cas_building_baseline.sql'));
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('static', `migration source list is contiguous 0001-0020 (20 files, found ${sqlFiles.length})`,
-      sqlFiles.length === 20 &&
-      sqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
-      sqlFiles[19] === '0020_room_schedule_documents.sql');
+    check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
+      ownerSqlFiles.length === 20 &&
+      ownerSqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
+      ownerSqlFiles[19] === '0020_room_schedule_documents.sql');
 
     if (m17Exists) {
       const sql = fs.readFileSync(m17Path, 'utf8');

@@ -429,11 +429,12 @@ function runMigrationTests() {
   const migrationName = '0019_be5_selected_demo_parity.sql';
   const migrationPath = path.join(dir, migrationName);
   const files = fs.readdirSync(dir).filter((file) => file.endsWith('.sql')).sort();
-  check(section, 'migration source list is contiguous 0001-0020',
-    files.length === 20 &&
-    files[0].startsWith('0001_') &&
-    files[18] === migrationName &&
-    files[19] === '0020_room_schedule_documents.sql');
+  const freezeFiles = files.filter((file) => file !== '0021_minimal_instructor_oauth_registration.sql');
+  check(section, 'route-data freeze migration source list remains contiguous 0001-0020',
+    freezeFiles.length === 20 &&
+    freezeFiles[0].startsWith('0001_') &&
+    freezeFiles[18] === migrationName &&
+    freezeFiles[19] === '0020_room_schedule_documents.sql');
 
   const sql = fs.readFileSync(migrationPath, 'utf8');
   const body = sql.replace(/--[^\n]*/g, '');

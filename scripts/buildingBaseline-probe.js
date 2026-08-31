@@ -355,6 +355,11 @@ function verifyBackend(scope, buildings, nodes, edges) {
       /missingNames/.test(seedBody) && /duplicateNames/.test(seedBody) &&
       /throw new Error\(/.test(seedBody));
     check('seed', 'seed lists CAS among the canonical names', seedBody.includes(CAS_NAME));
+    check('seed', 'expanded seed prefers Academic Building IV for the ccs node with a minimal-CCS fallback',
+      /EXPANDED_CCS_BUILDING_NAME/.test(seedBody) &&
+      /expandedCcsRows/.test(seedBody) &&
+      /expandedCcsRows\.length\s*===\s*1/.test(seedBody) &&
+      /requireBuilding\(['"]College of Computer Studies \(CCS\)['"]\)/.test(seedBody));
 
     /* ---------------- live MySQL ---------------- */
     say('\nmysql live baseline:');
@@ -404,16 +409,17 @@ function verifyBackend(scope, buildings, nodes, edges) {
     say('\nstatic migration checks (this probe applies NO SQL):');
     const dir = path.join(__dirname, '..', 'database', 'supabase');
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+    const ownerSqlFiles = sqlFiles.filter((f) => f !== '0021_minimal_instructor_oauth_registration.sql');
     const m18 = '0018_cas_building_baseline.sql';
     const m18Path = path.join(dir, m18);
     const m18Exists = fs.existsSync(m18Path);
     check('static', `${m18} exists`, m18Exists);
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('static', `migration source list is contiguous 0001-0020 (20 files, found ${sqlFiles.length})`,
-      sqlFiles.length === 20 &&
-      sqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
-      sqlFiles[19] === '0020_room_schedule_documents.sql');
+    check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
+      ownerSqlFiles.length === 20 &&
+      ownerSqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&
+      ownerSqlFiles[19] === '0020_room_schedule_documents.sql');
 
     if (m18Exists) {
       const sql = fs.readFileSync(m18Path, 'utf8');
