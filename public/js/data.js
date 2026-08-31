@@ -20,14 +20,11 @@ const CampuSphereData = {
       { id: 'overview', icon: 'home', label: 'Overview' },
       { id: 'profile', icon: 'user', label: 'Personal Info' },
       { id: 'news', icon: 'bell', label: 'News & Announcements' },
-      { id: 'buildings', icon: 'door', label: 'Navigate Buildings' },
     ],
     'instructor': [
       { id: 'overview', icon: 'home', label: 'Overview' },
       { id: 'profile', icon: 'user', label: 'Profile' },
-      { id: 'buildings', icon: 'door', label: 'Navigate Buildings' },
-      { id: 'announcements', icon: 'megaphone', label: 'Instructor News' },
-      { id: 'status', icon: 'check', label: 'Status' },
+      { id: 'announcements', icon: 'megaphone', label: 'News & Announcements' },
     ],
     'admin': [
       { id: 'overview', icon: 'home', label: 'Overview' },
@@ -38,19 +35,14 @@ const CampuSphereData = {
     ],
     'guest': [
       { id: 'overview', icon: 'home', label: 'Overview' },
-      { id: 'offices', icon: 'door', label: 'Campus Offices' },
-      { id: 'admission', icon: 'book', label: 'Admission Info' },
-      { id: 'corridors', icon: 'door', label: 'Building Corridors' },
-      { id: 'news-events', icon: 'bell', label: 'News & Events' },
-      { id: 'achievements', icon: 'check', label: 'Achievements' },
-      { id: 'map', icon: 'map', label: 'Campus Map' },
+      { id: 'news-events', icon: 'bell', label: 'News & Announcements' },
     ]
   },
 
   // ---- Role display info ----
   roles: {
     'student-cspc': { label: 'Student (CSPC)', color: '#2563a8', badge: 'CSPC Verified' },
-    'instructor': { label: 'Instructor', color: '#d4a843', badge: 'Faculty' },
+    'instructor': { label: 'Instructor', color: '#d4a843', sidebarBadge: 'Instructor', badge: 'Faculty' },
     'admin': { label: 'Administrator', color: '#dc2626', badge: 'Full Access' },
     'guest': { label: 'Guest', color: '#6b7280', badge: 'View Only' }
   },
@@ -67,10 +59,7 @@ const CampuSphereData = {
   // ---- Instructor profile ----
   instructorProfile: {
     name: 'Dr. Maria Santos',
-    employeeId: 'CSPC-FAC-0087',
     email: 'maria.santos@cspc.edu.ph',
-    department: 'College of Computer Studies',
-    position: 'Associate Professor',
     status: 'Active'
   },
 
@@ -142,67 +131,6 @@ const CampuSphereData = {
     { title: 'National IT Skills Competition — Champion', year: '2025', detail: 'CSPC students won 1st place in the national collegiate IT skills competition.' },
     { title: 'ISO 9001:2015 Certified', year: '2024', detail: 'CSPC earned ISO certification for quality management systems.' },
     { title: 'Best State College in Bicol Region', year: '2024', detail: 'Recognized by CHED as the top-performing state college in the region.' }
-  ],
-
-  // ---- Instructor Buildings (for Navigate Buildings) ----
-  instructorBuildings: [
-    {
-      id: 1, name: 'College of Computer Studies (CCS)', category: 'Academic', floors: 3,
-      desc: 'Houses IT and CS programs with modern computer laboratories.',
-      floorData: [
-        { label: 'Ground Floor', rooms: [{ num: 'Room 101', use: 'Lecture Room', capacity: 45 }, { num: 'Room 102', use: 'Lecture Room', capacity: 45 }, { num: 'CompLab 1', use: 'Computer Lab', capacity: 40 }, { num: 'CompLab 2', use: 'Computer Lab', capacity: 40 }, { num: 'Faculty Room', use: 'Faculty Office', capacity: 10 }] },
-        { label: '2nd Floor', rooms: [{ num: 'Room 201', use: 'Lecture Room', capacity: 45 }, { num: 'Room 202', use: 'Lecture Room', capacity: 45 }, { num: 'CompLab 3', use: 'Computer Lab', capacity: 40 }, { num: 'Server Room', use: 'IT Infra', capacity: 5 }] },
-        { label: '3rd Floor', rooms: [{ num: 'Room 301', use: 'Lecture Room', capacity: 45 }, { num: 'Room 302', use: 'Research Lab', capacity: 30 }, { num: 'Capstone Lab', use: 'Project Lab', capacity: 30 }, { num: 'Dean\'s Office', use: 'Admin', capacity: 5 }] }
-      ]
-    },
-    {
-      id: 2, name: 'Main Academic Building', category: 'Academic', floors: 3,
-      desc: 'Central academic hub with general education departments and registrar.',
-      floorData: [
-        { label: 'Ground Floor', rooms: [{ num: 'Room 101', use: 'Lecture Room', capacity: 50 }, { num: 'Room 102', use: 'Lecture Room', capacity: 50 }, { num: 'Registrar', use: 'Administrative', capacity: 15 }, { num: 'Cashier', use: 'Finance', capacity: 10 }, { num: 'OSAS Office', use: 'Student Affairs', capacity: 10 }] },
-        { label: '2nd Floor', rooms: [{ num: 'Room 201', use: 'Lecture Room', capacity: 40 }, { num: 'Room 202', use: 'Lecture Room', capacity: 40 }, { num: 'Room 203', use: 'Lecture Room', capacity: 40 }, { num: 'Room 205', use: 'Lecture Room', capacity: 40 }, { num: 'Faculty Lounge', use: 'Faculty', capacity: 20 }] },
-        { label: '3rd Floor', rooms: [{ num: 'Room 301', use: 'Lecture Room', capacity: 50 }, { num: 'Room 302', use: 'Lecture Room', capacity: 50 }, { num: 'Function Hall', use: 'Events', capacity: 200 }] }
-      ]
-    },
-    {
-      id: 3, name: 'Engineering Building', category: 'Academic', floors: 2,
-      desc: 'Engineering programs with workshops and laboratories.',
-      floorData: [
-        { label: 'Ground Floor', rooms: [{ num: 'Workshop A', use: 'Mechanical Lab', capacity: 30 }, { num: 'Workshop B', use: 'Civil Lab', capacity: 30 }, { num: 'Drawing Room 1', use: 'AutoCAD Room', capacity: 35 }, { num: 'Tool Room', use: 'Equipment Storage', capacity: 5 }] },
-        { label: '2nd Floor', rooms: [{ num: 'ENG-101', use: 'Lecture Room', capacity: 45 }, { num: 'ENG-102', use: 'Lecture Room', capacity: 45 }, { num: 'Electrical Lab', use: 'Electrical Eng.', capacity: 30 }, { num: 'Faculty Office', use: 'Faculty', capacity: 8 }] }
-      ]
-    },
-    {
-      id: 4, name: 'Administration Building', category: 'Administrative', floors: 2,
-      desc: 'Central admin HQ with executive offices and HR.',
-      floorData: [
-        { label: 'Ground Floor', rooms: [{ num: 'Reception', use: 'Front Desk', capacity: 5 }, { num: 'HR Office', use: 'Human Resources', capacity: 10 }, { num: 'Finance Office', use: 'Accounting', capacity: 10 }] },
-        { label: '2nd Floor', rooms: [{ num: 'President\'s Office', use: 'Executive', capacity: 5 }, { num: 'VP Academic', use: 'VP Office', capacity: 5 }, { num: 'VP Admin', use: 'VP Office', capacity: 5 }, { num: 'Board Room', use: 'Conference', capacity: 25 }] }
-      ]
-    },
-    {
-      id: 5, name: 'Library Building', category: 'Facilities', floors: 2,
-      desc: 'Academic library with books, journals, and digital resources.',
-      floorData: [
-        { label: 'Ground Floor', rooms: [{ num: 'Circulation Desk', use: 'Check-in/out', capacity: 5 }, { num: 'Filipiniana', use: 'Filipino Books', capacity: 30 }, { num: 'General Ref.', use: 'Reference', capacity: 30 }, { num: 'Periodicals', use: 'Journals', capacity: 20 }] },
-        { label: '2nd Floor', rooms: [{ num: 'Study Area A', use: 'Quiet Zone', capacity: 40 }, { num: 'Study Area B', use: 'Group Study', capacity: 30 }, { num: 'Digital Library', use: 'Computer Terminals', capacity: 25 }, { num: 'Archives', use: 'Special Collections', capacity: 10 }] }
-      ]
-    },
-    {
-      id: 6, name: 'Gymnasium', category: 'Facilities', floors: 1,
-      desc: 'Multi-purpose gym for sports and institutional events.',
-      floorData: [
-        { label: 'Main Court', rooms: [{ num: 'Basketball Court', use: 'Main Court', capacity: 500 }, { num: 'Bleachers', use: 'Seating', capacity: 1000 }, { num: 'Stage Area', use: 'Events Stage', capacity: 50 }, { num: 'Equipment Room', use: 'Storage', capacity: 10 }] }
-      ]
-    },
-    {
-      id: 7, name: 'Auditorium', category: 'Facilities', floors: 2,
-      desc: 'Large venue for seminars, conferences, and graduation ceremonies.',
-      floorData: [
-        { label: 'Main Hall', rooms: [{ num: 'Stage', use: 'Performance Area', capacity: 30 }, { num: 'Audience Seating', use: 'Main Seating', capacity: 500 }, { num: 'Sound Booth', use: 'Audio/Visual', capacity: 3 }, { num: 'Lobby', use: 'Reception', capacity: 80 }] },
-        { label: 'Balcony', rooms: [{ num: 'Upper Seating', use: 'Balcony Seats', capacity: 200 }, { num: 'Lighting Booth', use: 'Lighting Control', capacity: 3 }, { num: 'Projection Room', use: 'AV Equipment', capacity: 3 }] }
-      ]
-    }
   ],
 
   // ---- Map Buildings ----
@@ -283,9 +211,14 @@ if (typeof localStorage !== 'undefined') {
 
   const savedInstructor = localStorage.getItem('campusphere-instructor');
   if (savedInstructor) {
+    const savedInstructorData = JSON.parse(savedInstructor) || {};
     CampuSphereData.instructorProfile = {
       ...CampuSphereData.instructorProfile,
-      ...JSON.parse(savedInstructor)
+      name: savedInstructorData.name || CampuSphereData.instructorProfile.name,
+      email: savedInstructorData.email || CampuSphereData.instructorProfile.email,
+      profileImage: savedInstructorData.profileImage || '',
+      profileImageSource: savedInstructorData.profileImageSource || '',
+      status: savedInstructorData.status || CampuSphereData.instructorProfile.status
     };
   }
 }

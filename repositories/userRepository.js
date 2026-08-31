@@ -389,8 +389,10 @@ async function createLocalUser(payload) {
  *   - Refuses role='admin' (the SQL function refuses it too; the JS-side
  *     check fails earlier with the same error code).
  *   - Performs role-specific required-field validation matching the
- *     existing controller error codes (MISSING_STUDENT / MISSING_INSTRUCTOR
- *     / MISSING_GUEST / MISSING_NAME / MISSING_OAUTH_SUBJECT).
+ *     existing controller error codes (MISSING_STUDENT / MISSING_GUEST /
+ *     MISSING_NAME / MISSING_OAUTH_SUBJECT). Instructor OAuth identity is
+ *     complete from the verified Google claims; its legacy profile fields are
+ *     deliberately ignored.
  *
  * Returns the inserted users.id (number). On failure, throws a plain Error
  * with one of the documented codes as `.message` (and `.code`) for the
@@ -445,13 +447,6 @@ async function createOAuthUserWithProfile(pending, body) {
       err.code = 'MISSING_STUDENT';
       throw err;
     }
-  } else if (role === 'instructor') {
-    const eid = typeof b.employeeId === 'string' ? b.employeeId.trim() : '';
-    if (!eid) {
-      const err = new Error('MISSING_INSTRUCTOR');
-      err.code = 'MISSING_INSTRUCTOR';
-      throw err;
-    }
   } else if (role === 'guest') {
     const addr = typeof b.address === 'string' ? b.address.trim() : '';
     const ph = typeof b.phone === 'string' ? b.phone.trim() : '';
@@ -485,9 +480,12 @@ async function createOAuthUserWithProfile(pending, body) {
     p_course: trimOrNull(b.course),
     p_year_level: trimOrNull(b.yearLevel),
     p_semester: trimOrNull(b.semester),
-    p_employee_id: trimOrNull(b.employeeId),
-    p_department: trimOrNull(b.department),
-    p_position: trimOrNull(b.position),
+    // These instructor fields are retired from self-registration. Keep the
+    // RPC signature stable for already-deployed clients, but never forward
+    // request values from this OAuth path.
+    p_employee_id: role === 'instructor' ? null : trimOrNull(b.employeeId),
+    p_department: role === 'instructor' ? null : trimOrNull(b.department),
+    p_position: role === 'instructor' ? null : trimOrNull(b.position),
     p_address: trimOrNull(b.address),
     p_phone_number: trimOrNull(b.phone)
   };

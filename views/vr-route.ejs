@@ -38,7 +38,7 @@
             } catch (_) { /* theme preference is best effort */ }
         })();
     </script>
-    <link rel="stylesheet" href="/css/styles.css?v=7">
+    <link rel="stylesheet" href="/css/styles.css?v=8">
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -67,6 +67,7 @@
       only — no panorama mirroring or bundling.
     -->
     <link rel="stylesheet" href="/vendor/pannellum/pannellum.css">
+    <%- include('partials/vr-scene-hotspot-styles') %>
     <script src="/vendor/pannellum/pannellum.js"></script>
 
     <style nonce="<%= cspNonce %>">
@@ -820,13 +821,11 @@
             // M12.P1-D3: each scene hotspot consumes ONLY its exact
             // server-derived nav_url (guided Previous/Next step or, on the
             // truthful arrival scene, a Free Roam interior explore URL)
-            // through the shared vr-hotspot-navigation helper, which applies
-            // Pannellum's NATIVE scene-hotspot arrow + link contract (type:
-            // 'scene', URL + attributes { target: '_self' }) — no custom
-            // window-location callback and no schedule-helper fallback
-            // coupling. A rejected or missing target stays a non-navigating
-            // info point. info/exit hotspots keep their label tooltip;
-            // schedule hotspots open the shared image viewer via
+            // through the shared vr-hotspot-navigation helper. The helper
+            // keeps Pannellum's native URL anchor and assigns the compact
+            // portal-ring CSS marker. A rejected or missing target stays a
+            // non-navigating info point. info/exit hotspots keep their label
+            // tooltip; schedule hotspots open the shared image viewer via
             // vr-schedule.js.
             function buildHotspots() {
                 var list = Array.isArray(data.hotspots) ? data.hotspots : [];

@@ -98,20 +98,16 @@ exports.index = async (req, res) => {
       if (ip) {
         instructorProfile = {
           name: [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unknown',
-          employeeId: fallback(ip.employee_id),
           email: user.email,
-          department: fallback(ip.department),
-          position: fallback(ip.position),
+          profileImage: user.profile_image_url || '',
           status: fallback(ip.status, 'Active')
         };
       } else {
         // No profile row exists yet — show empty-state defaults
         instructorProfile = {
           name: [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unknown',
-          employeeId: 'Not yet set',
           email: user.email,
-          department: 'Not yet set',
-          position: 'Not yet set',
+          profileImage: user.profile_image_url || '',
           status: 'Active'
         };
       }

@@ -20,14 +20,11 @@ const CampuSphereData = {
       { id: 'overview', icon: 'home', label: 'Overview' },
       { id: 'profile', icon: 'user', label: 'Personal Info' },
       { id: 'news', icon: 'bell', label: 'News & Announcements' },
-      { id: 'buildings', icon: 'door', label: 'Navigate Buildings' },
     ],
     'instructor': [
       { id: 'overview', icon: 'home', label: 'Overview' },
       { id: 'profile', icon: 'user', label: 'Profile' },
-      { id: 'buildings', icon: 'door', label: 'Navigate Buildings' },
-      { id: 'announcements', icon: 'megaphone', label: 'Instructor News' },
-      { id: 'status', icon: 'check', label: 'Status' },
+      { id: 'announcements', icon: 'megaphone', label: 'News & Announcements' },
     ],
     'admin': [
       { id: 'overview', icon: 'home', label: 'Overview' },
@@ -38,19 +35,14 @@ const CampuSphereData = {
     ],
     'guest': [
       { id: 'overview', icon: 'home', label: 'Overview' },
-      { id: 'offices', icon: 'door', label: 'Campus Offices' },
-      { id: 'admission', icon: 'book', label: 'Admission Info' },
-      { id: 'corridors', icon: 'door', label: 'Building Corridors' },
-      { id: 'news-events', icon: 'bell', label: 'News & Events' },
-      { id: 'achievements', icon: 'check', label: 'Achievements' },
-      { id: 'map', icon: 'map', label: 'Campus Map' },
+      { id: 'news-events', icon: 'bell', label: 'News & Announcements' },
     ]
   },
 
   // ---- Role display info ----
   roles: {
     'student-cspc': { label: 'Student (CSPC)', color: '#2563a8', badge: 'CSPC Verified' },
-    'instructor': { label: 'Instructor', color: '#d4a843', badge: 'Faculty' },
+    'instructor': { label: 'Instructor', color: '#d4a843', sidebarBadge: 'Instructor', badge: 'Faculty' },
     'admin': { label: 'Administrator', color: '#dc2626', badge: 'Full Access' },
     'guest': { label: 'Guest', color: '#6b7280', badge: 'View Only' }
   },

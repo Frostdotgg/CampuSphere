@@ -72,13 +72,13 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the current reviewed package. Keep this
-   pin local to the standalone probe so a coordinated documentation or
-   quality-gate edit cannot silently bless changed deployable bytes. */
+/* Independent exact-byte authority for the current implementation candidate.
+   Keep this pin local to the standalone probe so a coordinated documentation
+   or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 188,
-  bytes: 7242957,
-  sha256: '6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af',
+  files: 189,
+  bytes: 7221465,
+  sha256: '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4',
 });
 
 /* M12.P1-R8 label correction.

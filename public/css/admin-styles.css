@@ -222,6 +222,20 @@ html[data-theme="dark"] body {
     border-radius: 8px !important;
 }
 
+/* Search icons sit inside inputs that also carry the shared `.ui-input`
+   defaults. The base rule is declared after the `.pl-9` utility, so this
+   admin-scoped selector must restore the reserved icon gutter. The icon is
+   decorative and must never block clicks or focus on the input beneath it. */
+.admin-shell .ui-input.pl-9,
+.admin-console .ui-input.pl-9 {
+    padding-left: 2.25rem;
+}
+
+.admin-shell [data-lucide="search"].absolute,
+.admin-console [data-lucide="search"].absolute {
+    pointer-events: none;
+}
+
 .admin-shell .dropdown-menu-content,
 .admin-console .dropdown-menu-content {
     border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);

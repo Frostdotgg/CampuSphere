@@ -1,7 +1,27 @@
 <% var currentTab = typeof activeTab !== 'undefined' ? activeTab : ''; %>
 <!-- Server-injected session data (available to all client-side scripts) -->
 <script id="sessionData" type="application/json" nonce="<%= cspNonce %>">
-  <%- safeJson(user || null) %>
+  <%# Keep the browser projection to fields used by shared navigation/profile
+      code. Instructor legacy employee/department/position values stay server-
+      side (and remain preserved in the database for compatibility) rather than
+      being serialized into every authenticated page. %>
+  <%- safeJson(user ? {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    profile_image_url: user.profile_image_url,
+    profile_image_source: user.profile_image_source,
+    student_id_number: user.student_id_number,
+    course: user.course,
+    year_level: user.year_level,
+    enrollment_status: user.enrollment_status,
+    semester: user.semester,
+    address: user.address,
+    phone_number: user.phone_number
+  } : null) %>
 </script>
 <script nonce="<%= cspNonce %>">
   window.__SESSION_USER = JSON.parse(document.getElementById('sessionData').textContent);

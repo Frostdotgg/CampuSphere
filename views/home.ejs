@@ -117,19 +117,6 @@
                                 <small>Check out upcoming events</small>
                             </div>
                         </a>
-                        <a href="#" class="dash-quick__card">
-                            <div class="dash-quick__card-icon dash-quick__card-icon--office">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                                    <polyline points="9 22 9 12 15 12 15 22" />
-                                </svg>
-                            </div>
-                            <div class="dash-quick__card-info">
-                                <strong>Offices</strong>
-                                <small>Find administrative offices</small>
-                            </div>
-                        </a>
                     </div>
 
                     <!-- Campus Map Preview -->
@@ -146,6 +133,16 @@
                 </div>
 
                 <!-- RIGHT COLUMN (Sidebar) -->
+                <%
+                    const homeFeaturedLocations = typeof featuredLocations !== 'undefined' && Array.isArray(featuredLocations)
+                        ? featuredLocations : [];
+                    const homeFeaturedLocationsState = typeof featuredLocationsState !== 'undefined'
+                        ? featuredLocationsState : (homeFeaturedLocations.length ? 'ready' : 'empty');
+                    const homeLatestEvents = typeof latestEvents !== 'undefined' && Array.isArray(latestEvents)
+                        ? latestEvents : [];
+                    const homeLatestEventsState = typeof latestEventsState !== 'undefined'
+                        ? latestEventsState : (homeLatestEvents.length ? 'ready' : 'empty');
+                %>
                 <div class="dash-main__right">
                     <!-- Featured Locations -->
                     <div class="dash-sidebar-card" id="featuredLocations">
@@ -154,78 +151,58 @@
                             <a href="/buildings" class="dash-sidebar-card__link">View All</a>
                         </div>
                         <div class="dash-sidebar-card__body">
-                            <div class="location-item">
-                                <div class="location-item__img">
-                                    <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="CCS Building">
-                                </div>
-                                <div class="location-item__info">
-                                    <strong class="location-item__name">CCS Building</strong>
-                                    <small class="text-xs text-muted-foreground"
-                                        style="display:block; margin-bottom:6px;">College of Computer Studies</small>
-                                    <div class="location-item__actions">
-                                        <a href="/map" class="btn--tag btn--tag-primary">View on Map</a>
-                                        <a href="/buildings" class="btn--tag btn--tag-outline">Details</a>
+                            <% if (homeFeaturedLocationsState === 'unavailable') { %>
+                                <p class="home-sidebar-state" role="status">Featured locations are temporarily unavailable.</p>
+                            <% } else if (homeFeaturedLocations.length === 0) { %>
+                                <p class="home-sidebar-state" role="status">No featured locations are available yet.</p>
+                            <% } else { %>
+                                <% homeFeaturedLocations.forEach((location) => { %>
+                                    <div class="location-item">
+                                        <div class="location-item__img">
+                                            <img src="<%= location.img %>" alt="<%= location.name %>">
+                                        </div>
+                                        <div class="location-item__info">
+                                            <strong class="location-item__name"><%= location.name %></strong>
+                                            <small class="text-xs text-muted-foreground"
+                                                style="display:block; margin-bottom:6px;"><%= location.category %></small>
+                                            <div class="location-item__actions">
+                                                <a href="/map" class="btn--tag btn--tag-primary">View on Map</a>
+                                                <a href="/buildings" class="btn--tag btn--tag-outline">Details</a>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="location-item">
-                                <div class="location-item__img">
-                                    <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="Library Building">
-                                </div>
-                                <div class="location-item__info">
-                                    <strong class="location-item__name">Library Building</strong>
-                                    <small class="text-xs text-muted-foreground"
-                                        style="display:block; margin-bottom:6px;">Campus Academic Resources</small>
-                                    <div class="location-item__actions">
-                                        <a href="/map" class="btn--tag btn--tag-primary">View on Map</a>
-                                        <a href="/buildings" class="btn--tag btn--tag-outline">Details</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="location-item">
-                                <div class="location-item__img">
-                                    <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="Engineering Building">
-                                </div>
-                                <div class="location-item__info">
-                                    <strong class="location-item__name">Engineering Building</strong>
-                                    <small class="text-xs text-muted-foreground"
-                                        style="display:block; margin-bottom:6px;">Laboratories & Drawing Rooms</small>
-                                    <div class="location-item__actions">
-                                        <a href="/map" class="btn--tag btn--tag-primary">View on Map</a>
-                                        <a href="/buildings" class="btn--tag btn--tag-outline">Details</a>
-                                    </div>
-                                </div>
-                            </div>
+                                <% }); %>
+                            <% } %>
                         </div>
                     </div>
 
-                    <!-- Upcoming Events -->
+                    <!-- Latest Events -->
                     <div class="dash-sidebar-card" id="upcomingEvents">
                         <div class="dash-sidebar-card__header">
-                            <h3 class="dash-sidebar-card__title">Upcoming Events</h3>
+                            <h3 class="dash-sidebar-card__title">Latest Events</h3>
                             <a href="/events" class="dash-sidebar-card__link">View All</a>
                         </div>
                         <div class="dash-sidebar-card__body">
-                            <div class="event-item">
-                                <div class="event-item__date">
-                                    <span class="event-item__day">25</span>
-                                    <span class="event-item__month">March 25</span>
-                                </div>
-                                <div class="event-item__info">
-                                    <strong class="event-item__name">CSPC Foundation Week</strong>
-                                    <small class="event-item__time">8:00 AM - 5:00 PM</small>
-                                </div>
-                            </div>
-                            <div class="event-item">
-                                <div class="event-item__date">
-                                    <span class="event-item__day">05</span>
-                                    <span class="event-item__month">April 05</span>
-                                </div>
-                                <div class="event-item__info">
-                                    <strong class="event-item__name">IT Skills Competition</strong>
-                                    <small class="event-item__time">9:00 AM - 3:00 PM</small>
-                                </div>
-                            </div>
+                            <% if (homeLatestEventsState === 'unavailable') { %>
+                                <p class="home-sidebar-state" role="status">Latest events are temporarily unavailable.</p>
+                            <% } else if (homeLatestEvents.length === 0) { %>
+                                <p class="home-sidebar-state" role="status">No events are available yet.</p>
+                            <% } else { %>
+                                <% homeLatestEvents.forEach((event) => { %>
+                                    <div class="event-item">
+                                        <div class="event-item__date">
+                                            <time datetime="<%= event.date %>" aria-label="<%= event.dateLabel %>">
+                                                <span class="event-item__day"><%= event.day %></span>
+                                                <span class="event-item__month"><%= event.monthLabel %> <%= event.year %></span>
+                                            </time>
+                                        </div>
+                                        <div class="event-item__info">
+                                            <strong class="event-item__name"><%= event.title %></strong>
+                                            <small class="event-item__time"><%= event.time %></small>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } %>
                         </div>
                     </div>
                 </div>

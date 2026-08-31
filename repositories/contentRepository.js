@@ -34,7 +34,8 @@
                                       clamped 1..50). Intentionally
                                       includes drafts (admin panel).
        listAllAnnouncementsForAdmin : created_at DESC.
-       listEvents                   : event_date ASC.
+       listEvents                   : event_date ASC by default; callers may
+                                      request DESC for the public events page.
        listEventsForAdmin           : event_date DESC.
    - Supabase failures are rethrown as plain Error objects prefixed
      with `contentRepository.<method>:`, carrying only a redacted
@@ -204,17 +205,22 @@ async function listAllAnnouncements() {
 // ----- Events ----------------------------------------------------------------
 
 /**
- * Events ordered by event_date ASC (public /events page). The optional
- * { from, to } window matches the boundary contract (s7); both bounds
- * are inclusive and compared against event_date. eventsController still
- * reshapes rows into its EJS view shape.
+ * Events ordered by event_date ASC by default. The optional { from, to }
+ * window matches the boundary contract (s7); both bounds are inclusive and
+ * compared against event_date. Callers may pass sortDirection: 'desc' for
+ * newest-to-oldest presentation. The id tie-breaker keeps equal-date rows
+ * deterministic in either direction. eventsController still reshapes rows
+ * into its EJS view shape.
  */
-async function listEvents({ from, to, limit } = {}) {
+async function listEvents({ from, to, limit, sortDirection = 'asc' } = {}) {
   const sb = getSupabaseClient();
   let query = sb.from('events').select(EVENT_COLUMNS);
   if (from != null) query = query.gte('event_date', from);
   if (to != null) query = query.lte('event_date', to);
-  query = query.order('event_date', { ascending: true });
+  const descending = sortDirection === 'desc';
+  query = query
+    .order('event_date', { ascending: !descending })
+    .order('id', { ascending: !descending });
   const parsedLimit = Number(limit);
   if (limit != null) {
     query = query.limit(Number.isFinite(parsedLimit)

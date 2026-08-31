@@ -934,14 +934,14 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advanced for the single-profile-photo multipart correction (v32)', SW.cacheVersion(swSource) === 32);
+  ok('cache version advanced for the minimal instructor profile surfaces (v36)', SW.cacheVersion(swSource) === 36);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
 
   const urls = SW.precacheUrls(swSource);
   const INTEGRATED_SHELL = [
-    '/offline.html', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=7',
+    '/offline.html', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=8',
     '/js/pwa.js', '/js/offline-guide-manager.js', '/js/nav-role.js', '/js/profile-script.js',
     '/vendor/maplibre/maplibre-gl.css', '/vendor/maplibre/maplibre-gl.js',
     '/vendor/pmtiles/pmtiles.js', '/img/cspc-logo.png', '/img/Camarines-sur-polytechnic-colleges.png',
@@ -1015,10 +1015,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The immediately preceding v31 shell must not mask the corrected upload client.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v32'", "CACHE_VERSION = 'v31'");
-  ok('REJECTS an un-advanced (stale v31) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 32);
+  // The immediately preceding v35 shell must not mask the corrected profile surfaces.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v36'", "CACHE_VERSION = 'v35'");
+  ok('REJECTS an un-advanced (stale v35) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 36);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1161,7 +1161,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v32');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v36');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1281,13 +1281,19 @@ async function checkVersionedCleanup(swSource) {
     // API/external cache name is adversarial and must still be pruned.
     'campusphere-pwa-shell-v30', 'campusphere-pwa-static-v30',
     'campusphere-pwa-api-v30', 'campusphere-pwa-external-v30',
-    // immediately preceding v31 caches - all are stale and must be pruned.
-    'campusphere-pwa-shell-v31', 'campusphere-pwa-static-v31',
-    'campusphere-pwa-api-v31', 'campusphere-pwa-external-v31',
-    // current v32 caches - shell and static ONLY. Any v32 API/external cache
-    // name is adversarial and must still be pruned.
-    'campusphere-pwa-shell-v32', 'campusphere-pwa-static-v32',
-    'campusphere-pwa-api-v32', 'campusphere-pwa-external-v32',
+     // immediately preceding v31 caches - all are stale and must be pruned.
+     'campusphere-pwa-shell-v31', 'campusphere-pwa-static-v31',
+     'campusphere-pwa-api-v31', 'campusphere-pwa-external-v31',
+     // immediately preceding v34 caches - all are stale and must be pruned.
+     'campusphere-pwa-shell-v34', 'campusphere-pwa-static-v34',
+     'campusphere-pwa-api-v34', 'campusphere-pwa-external-v34',
+     // immediately preceding v35 caches - all are stale and must be pruned.
+     'campusphere-pwa-shell-v35', 'campusphere-pwa-static-v35',
+     'campusphere-pwa-api-v35', 'campusphere-pwa-external-v35',
+     // current v36 caches - shell and static ONLY. Any v36 API/external cache
+     // name is adversarial and must still be pruned.
+     'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
+     'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
     // unrelated Cache Storage entries that MUST survive
     'some-other-app-v1', 'workbox-precache-v2', 'campusphere-other-tool'
   ];
@@ -1298,15 +1304,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v32 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v36 caches (shell + static only)',
     settled.length === 1 && settled[0].status === 'fulfilled' &&
-    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v32`)));
+    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v36`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v31 set, older API/external/page generations, and any v32-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v35 set, older API/external/page generations, and any v36-suffixed API or external cache',
     !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v32`)) &&
+      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v36`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
@@ -1351,8 +1357,12 @@ async function checkVersionedCleanup(swSource) {
     !remaining.includes('campusphere-pwa-external-v27') &&
     !remaining.includes('campusphere-pwa-api-v31') &&
     !remaining.includes('campusphere-pwa-external-v31') &&
-    !remaining.includes('campusphere-pwa-api-v32') &&
-    !remaining.includes('campusphere-pwa-external-v32') &&
+     !remaining.includes('campusphere-pwa-api-v34') &&
+     !remaining.includes('campusphere-pwa-external-v34') &&
+     !remaining.includes('campusphere-pwa-api-v35') &&
+     !remaining.includes('campusphere-pwa-external-v35') &&
+     !remaining.includes('campusphere-pwa-api-v36') &&
+     !remaining.includes('campusphere-pwa-external-v36') &&
     !remaining.includes('campusphere-pwa-api-v12') &&
     !remaining.includes('campusphere-pwa-page-v6'));
   // Combined: unrelated entries and a similarly named non-prefixed cache survive.
@@ -1507,7 +1517,7 @@ async function checkFetchBoundaries(swSource) {
     ['/img/vr/main%20gate%20panorama.jpg', { mode: 'no-cors' }],         // percent-encoded local panorama
     ['/js/admin-users.js', { mode: 'cors' }],                            // non-shell same-origin script
     ['/css/admin.css', { mode: 'cors' }],                                // non-shell same-origin stylesheet
-    ['/css/styles.css?v=8', { mode: 'cors' }]                            // shell path, UNREVIEWED query
+    ['/css/styles.css?v=9', { mode: 'cors' }]                            // shell path, UNREVIEWED query
   ];
   let nonShellIntercepted = 0;
   for (const [p, init] of sameOriginNonShell) {
@@ -1700,7 +1710,7 @@ async function checkOfflineShell(base) {
       html.replace('</body>', '<div data-session="__SESSION_USER"></div></body>'),
       html.replace('</head>', '<meta name="csrf-token" content="abc"></head>'),
       html.replace('</body>', '<input name="email"></body>'),
-      html.replace('<span class="dash-nav__username" data-offline-guide-download-label>Offline</span>',
+      html.replace('<span class="dash-nav__username" data-offline-guide-download-label>Update Offline Map</span>',
         '<span class="dash-nav__username" data-offline-guide-download-label>Signed in as student@my.cspc.edu.ph</span>')
     ];
     return leaks.every((mutated) => mutated !== html) &&

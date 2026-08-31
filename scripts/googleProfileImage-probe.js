@@ -64,9 +64,15 @@ check('auth validates stored session image URLs',
   auth.includes("normalizeGoogleProfileImageUrl(userRow && userRow.profile_image_url)") &&
   auth.includes("normalizeMediaUrl(userRow && userRow.profile_image_url)"));
 check('Google login refreshes the picture before session hydration',
-  auth.includes('await syncGoogleProfileImage(user, profile.picture, useSupabase);') &&
-  auth.indexOf('await syncGoogleProfileImage(user, profile.picture, useSupabase);') <
-  auth.indexOf('await hydrateSessionUser(req, user);'));
+  (() => {
+    // The registration helper also hydrates a newly-created user. Scope this
+    // ordering assertion to the Google login branch so that adding a shared
+    // registration helper cannot make the check compare unrelated call sites.
+    const loginBranch = auth.slice(auth.indexOf("if (intent === 'login') {"));
+    const refresh = loginBranch.indexOf('await syncGoogleProfileImage(user, profile.picture, useSupabase);');
+    const hydrate = loginBranch.indexOf('await hydrateSessionUser(req, user);');
+    return refresh >= 0 && hydrate > refresh;
+  })());
 check('new OAuth registration stores only a validated picture',
   auth.includes('picture: normalizeGoogleProfileImageUrl(profile.picture) || \'\'') &&
   auth.includes('const picture = normalizeGoogleProfileImageUrl(pending.picture) || null;'));
@@ -100,7 +106,7 @@ check('CSP allows Google only as an image origin',
 check('privacy notice names the Google profile picture URL',
   /Google Account profile picture URL/i.test(privacy) && /profile picture URL/i.test(privacy));
 check('service worker cache advances and still precaches profile-script.js',
-  /CACHE_VERSION\s*=\s*'v32'/.test(serviceWorker) &&
+  /CACHE_VERSION\s*=\s*'v36'/.test(serviceWorker) &&
   serviceWorker.includes("'/js/profile-script.js'"));
 
 console.log(`\n${failures.length ? 'GOOGLE PROFILE IMAGE PROBE FAILED' : 'GOOGLE PROFILE IMAGE PROBE PASSED'} (${checks - failures.length}/${checks})`);

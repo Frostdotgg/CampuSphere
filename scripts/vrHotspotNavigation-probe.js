@@ -11,9 +11,10 @@
        window.CampuSphereVrHotspotNavigation global;
      - exact guided Previous/Next/CAS-interior-Explore nav_url passthrough
        and validated Free Roam '/vr/<key>' construction;
-     - native Pannellum scene-arrow decoration (type: 'scene', URL +
-       attributes { target: '_self' }), never a scene-navigation
-       clickHandlerFunc, with no input or base-object mutation;
+     - native Pannellum scene-link decoration (type: 'scene', URL +
+       attributes { target: '_self', aria-label }, plus the dedicated compact
+       portal-ring CSS class; never a scene-navigation clickHandlerFunc; with
+       no input or base-object mutation;
      - every malformed/external/traversal/query/fragment/wrong-type/
        wrong-mode/non-object case fails closed without throwing;
      - both VR views include the helper exactly once BEFORE viewer init,
@@ -49,7 +50,7 @@ let helper = null;
   const globalsBefore = new Set(Object.keys(global));
   helper = require(path.join(ROOT, HELPER_REL));
   const leaked = Object.keys(global).filter((k) => !globalsBefore.has(k));
-  check('load', 'CommonJS export provides the three functions',
+  check('load', 'CommonJS export provides navigation and decoration functions',
     !!helper &&
     typeof helper.resolveGuidedUrl === 'function' &&
     typeof helper.resolveFreeRoamUrl === 'function' &&
@@ -75,7 +76,11 @@ let helper = null;
     !/innerHTML|insertAdjacentHTML|document\.write/.test(src));
 }
 
-const { resolveGuidedUrl, resolveFreeRoamUrl, decoratePannellumHotspot } = helper;
+const {
+  resolveGuidedUrl,
+  resolveFreeRoamUrl,
+  decoratePannellumHotspot,
+} = helper;
 const LOC = { href: 'http://127.0.0.1/vr/to/1?step=24', origin: 'http://127.0.0.1' };
 const guided = (nav_url) => ({ hotspot_type: 'scene', nav_url });
 const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key });
@@ -106,7 +111,7 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
 /* ---------------- 3. native Pannellum decoration ---------------- */
 {
   const base = Object.freeze({ pitch: 3, yaw: -12, type: 'info', text: 'Enter CAS' });
-  const hs = Object.freeze(guided('/vr/scene-cas-1st-floor-2'));
+  const hs = Object.freeze({ ...guided('/vr/scene-cas-1st-floor-2'), label: 'Enter CAS' });
   const baseSnapshot = JSON.stringify(base);
   const hsSnapshot = JSON.stringify(hs);
   const run = quiet(() => decoratePannellumHotspot(base, hs, 'guided', LOC));
@@ -114,13 +119,14 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   check('pannellum', 'decoration succeeds without throwing on frozen inputs', run.threw === false && !!cfg);
   check('pannellum', 'decorated config uses the native URL contract',
     !!cfg && cfg.URL === '/vr/scene-cas-1st-floor-2');
-  check('pannellum', 'decorated config carries attributes { target: "_self" }',
+  check('pannellum', 'decorated config carries same-tab and accessible-link attributes',
     !!cfg && !!cfg.attributes && cfg.attributes.target === '_self' &&
-    Object.keys(cfg.attributes).length === 1);
+    cfg.attributes['aria-label'] === 'Enter CAS' &&
+    Object.keys(cfg.attributes).length === 2);
   check('pannellum', 'no scene-navigation clickHandlerFunc is installed',
     !!cfg && !('clickHandlerFunc' in cfg) && !('clickHandlerArgs' in cfg));
-  check('pannellum', 'validated navigation promotes the copy to the native scene-arrow type',
-    !!cfg && cfg.type === 'scene');
+  check('pannellum', 'validated navigation uses the dedicated compact scene-hotspot class',
+    !!cfg && cfg.type === 'scene' && cfg.cssClass === 'campusphere-vr-scene-hotspot');
   check('pannellum', 'base tooltip fields are preserved on the copy',
     !!cfg && cfg.pitch === 3 && cfg.yaw === -12 && cfg.text === 'Enter CAS');
   check('pannellum', 'the returned config is a NEW object (no base mutation)',
@@ -131,12 +137,15 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   check('pannellum', 'free-roam mode decorates through the validated key',
     !!roamCfg && roamCfg.type === 'scene' &&
     roamCfg.URL === '/vr/scene-cas-1st-floor-2' &&
-    !!roamCfg.attributes && roamCfg.attributes.target === '_self');
+    roamCfg.cssClass === 'campusphere-vr-scene-hotspot' &&
+    !!roamCfg.attributes && roamCfg.attributes.target === '_self' &&
+    roamCfg.attributes['aria-label'] === 'Open 360 view');
 
   // Defense: navigation-capable keys on a hostile base never survive a
   // rejected decoration.
   const hostile = {
     type: 'info',
+    cssClass: 'campusphere-vr-scene-hotspot',
     URL: 'https://evil.example/',
     attributes: { target: '_blank' },
     clickHandlerFunc: function () {},
@@ -145,6 +154,7 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   const rejected = decoratePannellumHotspot(hostile, guided('https://evil.example/vr/x'), 'guided', LOC);
   check('pannellum', 'a rejected decoration strips URL/attributes/clickHandlerFunc from the copy',
     !!rejected && !('URL' in rejected) && !('attributes' in rejected) &&
+    !('cssClass' in rejected) &&
     !('clickHandlerFunc' in rejected) && !('clickHandlerArgs' in rejected) && rejected.type === 'info');
   check('pannellum', 'non-object baseConfig fails closed to null without throwing',
     quiet(() => decoratePannellumHotspot(null, hs, 'guided', LOC)).value === null &&
@@ -262,7 +272,7 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
     const r = quiet(() => decoratePannellumHotspot({ type: 'info' }, guided('/vr/scene-a'), mode, LOC));
     check('fail-closed', `unsupported mode ${JSON.stringify(String(mode))} yields a non-navigating copy`,
       r.threw === false && !!r.value && r.value.type === 'info' &&
-      !('URL' in r.value) && !('clickHandlerFunc' in r.value));
+      !('URL' in r.value) && !('cssClass' in r.value) && !('clickHandlerFunc' in r.value));
   }
 }
 
@@ -285,6 +295,10 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
       !src.includes('clickHandlerFunc'));
     check('views', `${rel} decorates scene hotspots in '${mode}' mode`,
       src.includes(`decoratePannellumHotspot(hs, h, '${mode}', window.location)`));
+    check('views', `${rel} does not install directional-arrow runtime machinery`,
+      !src.includes('bindDirectionalHotspotArrows') && !src.includes('directionalHotspotCleanup'));
+    check('views', `${rel} includes the shared nonce-protected scene marker styles`,
+      (src.match(/include\('partials\/vr-scene-hotspot-styles'\)/g) || []).length === 1);
     check('views', `${rel} keeps the schedule integration separate (single-argument call)`,
       src.includes('scheduleUi.makePannellumHotspot(h)') &&
       !/makePannellumHotspot\(h,/.test(src));
@@ -301,6 +315,23 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
     schedule.includes('function makePannellumHotspot(hotspot)') &&
     !schedule.includes('fallbackClickHandler') &&
     !schedule.includes('CampuSphereVrHotspotNavigation'));
+  const sceneStyles = read('views/partials/vr-scene-hotspot-styles.ejs');
+  check('views', 'scene styles keep a 44px target with a compact 24px portal ring and center dot',
+    sceneStyles.includes('width: 44px') &&
+    sceneStyles.includes('height: 44px') &&
+    sceneStyles.includes('width: 24px') &&
+    sceneStyles.includes('height: 24px') &&
+    sceneStyles.includes('width: 6px') &&
+    sceneStyles.includes('height: 6px') &&
+    sceneStyles.includes('background: transparent'));
+  check('views', 'scene styles provide focus, motion, and no arrow or external icon asset',
+    sceneStyles.includes(':focus-visible') &&
+    sceneStyles.includes('prefers-reduced-motion') &&
+    !sceneStyles.includes('--campusphere-vr-arrow-angle') &&
+    !/border-top\s*:|border-right\s*:/i.test(sceneStyles) &&
+    !/transform\s*:\s*rotate/i.test(sceneStyles) &&
+    !/url\s*\(/i.test(sceneStyles) &&
+    !/data:image|iconify|emoji/i.test(sceneStyles));
 }
 
 /* ---------------- 6. controller normalization contract ---------------- */

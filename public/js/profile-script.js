@@ -185,13 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         } else if (savedRole === 'instructor') {
             storageKey = 'campusphere-instructor';
-            profileData = JSON.parse(localStorage.getItem(storageKey)) || {
-                name: 'Dr. Maria Santos',
-                employeeId: 'CSPC-FAC-0087',
-                email: 'maria.santos@cspc.edu.ph',
-                department: 'College of Computer Studies',
-                position: 'Associate Professor',
-                status: 'Active'
+            const savedInstructor = JSON.parse(localStorage.getItem(storageKey) || 'null') || {};
+            profileData = {
+                name: savedInstructor.name || 'Dr. Maria Santos',
+                email: savedInstructor.email || 'maria.santos@cspc.edu.ph',
+                profileImage: savedInstructor.profileImage || '',
+                profileImageSource: savedInstructor.profileImageSource || '',
+                status: savedInstructor.status || 'Active'
             };
         } else if (savedRole === 'admin') {
             storageKey = 'campusphere-admin';
@@ -393,20 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label" for="editId">Employee ID</label>
-                    <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.employeeId)}">
-                </div>
-                <div class="edit-form-group">
                     <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
-                </div>
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editDept">Department</label>
-                    <input type="text" id="editDept" class="edit-form-input" value="${escapeHtml(profileData.department)}">
-                </div>
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editPos">Position</label>
-                    <input type="text" id="editPos" class="edit-form-input" value="${escapeHtml(profileData.position)}">
                 </div>
             `;
         } else if (savedRole === 'guest') {
@@ -670,12 +658,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.CampuSphereData.studentProfile = { ...window.CampuSphereData.studentProfile, ...newData };
                 }
             } else if (savedRole === 'instructor') {
-                const idEl = document.getElementById('editId');
-                const deptEl = document.getElementById('editDept');
-                const posEl = document.getElementById('editPos');
-                if (idEl) newData.employeeId = idEl.value;
-                if (deptEl) newData.department = deptEl.value;
-                if (posEl) newData.position = posEl.value;
                 if (window.CampuSphereData) {
                     window.CampuSphereData.instructorProfile = { ...window.CampuSphereData.instructorProfile, ...newData };
                 }
@@ -708,10 +690,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         payload.studentId = newData.studentId;
                         payload.course = newData.course;
                         payload.yearLevel = newData.yearLevel;
-                    } else if (savedRole === 'instructor') {
-                        payload.employeeId = newData.employeeId;
-                        payload.department = newData.department;
-                        payload.position = newData.position;
                     } else if (savedRole === 'guest') {
                         payload.address = newData.address;
                         payload.phone = newData.phone;

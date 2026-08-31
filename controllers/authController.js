@@ -357,17 +357,13 @@ async function createOAuthUserWithProfile(pending, body) {
         ]
       );
     } else if (role === 'instructor') {
-      const employeeId = String(body.employeeId || '').trim();
-      if (!employeeId) throw new Error('MISSING_INSTRUCTOR');
+      // Instructor identity is supplied by the verified Google account. Keep
+      // the role-profile row for its system-owned status, but do not collect
+      // or persist the retired employee/department/position fields.
       await conn.query(
         `INSERT INTO instructor_profiles (user_id, employee_id, department, position, status)
          VALUES (?, ?, ?, ?, 'Active')`,
-        [
-          userId,
-          employeeId,
-          String(body.department || '').trim() || '',
-          String(body.position || '').trim() || ''
-        ]
+        [userId, '', '', '']
       );
     } else if (role === 'guest') {
       const address = String(body.address || '').trim();
@@ -387,6 +383,47 @@ async function createOAuthUserWithProfile(pending, body) {
   } finally {
     conn.release();
   }
+}
+
+// Complete a pending OAuth registration and establish the authenticated
+// session. Keeping this in one helper makes the direct instructor callback
+// path and the legacy completion POST use identical duplicate checks,
+// persistence, session rotation, and role hydration.
+async function completeOAuthRegistration(req, res, pending, body) {
+  const useSupabase = authDataSource.isSupabase();
+  const email = normalizeEmail(pending && pending.email);
+  const existing = useSupabase
+    ? await userRepository.findUserByEmail(email)
+    : await findUserByEmail(email);
+
+  if (existing) {
+    delete req.session.pendingOAuthRegistration;
+    await saveSession(req);
+    return { status: 'account_exists' };
+  }
+
+  const userId = useSupabase
+    ? await userRepository.createOAuthUserWithProfile(pending, body || {})
+    : await createOAuthUserWithProfile(pending, body || {});
+
+  let user;
+  if (useSupabase) {
+    user = await userRepository.findUserById(userId);
+  } else {
+    const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+    user = users[0];
+  }
+  if (!user) throw new Error('OAUTH_USER_NOT_FOUND');
+
+  await establishAuthenticatedSession(req, res, async () => {
+    await hydrateSessionUser(req, user);
+    if (useSupabase) {
+      await loadRoleProfileIntoSessionFromSupabase(req.session.user);
+    } else {
+      await loadRoleProfileIntoSession(req.session.user);
+    }
+  });
+  return { status: 'created' };
 }
 
 /**
@@ -1166,7 +1203,7 @@ exports.googleCallback = async (req, res) => {
     }
 
     const { first, last } = splitGoogleName(profile);
-    req.session.pendingOAuthRegistration = {
+    const pending = {
       email,
       role: domainRole,
       googleSub: profile.sub || '',
@@ -1175,6 +1212,20 @@ exports.googleCallback = async (req, res) => {
       fullName: profile.name || '',
       picture: normalizeGoogleProfileImageUrl(profile.picture) || ''
     };
+
+    // Verified CSPC instructors no longer complete a role-specific form.
+    // Create the account from the Google identity immediately, then use the
+    // same fixation-safe session establishment as the existing completion
+    // endpoint. Students and guests retain their current completion flow.
+    if (domainRole === 'instructor') {
+      const result = await completeOAuthRegistration(req, res, pending, {});
+      if (result.status === 'account_exists') {
+        return res.redirect('/auth?error=account_exists');
+      }
+      return res.redirect('/dashboard');
+    }
+
+    req.session.pendingOAuthRegistration = pending;
     await saveSession(req);
     return res.redirect('/auth/complete-registration');
   } catch (err) {
@@ -1232,55 +1283,14 @@ exports.completeRegistrationPost = async (req, res) => {
   }
 
   try {
-    // ===== Supabase branch (AUTH_DATA_SOURCE=supabase) =====
-    if (authDataSource.isSupabase()) {
-      const sbStillThere = await userRepository.findUserByEmail(pending.email);
-      if (sbStillThere) {
-        delete req.session.pendingOAuthRegistration;
-        await saveSession(req);
-        return res.redirect('/auth?error=account_exists');
-      }
-
-      const sbUserId = await userRepository.createOAuthUserWithProfile(pending, req.body);
-      const sbUser = await userRepository.findUserById(sbUserId);
-      if (!sbUser) {
-        return res.redirect('/auth?error=oauth_failed');
-      }
-
-      // R3 (+ follow-up): the pending OAuth registration produced a real
-      // account; regenerate to a fresh session ID (discarding the old session
-      // and its pendingOAuthRegistration), hydrate identity + role profile, and
-      // save atomically.
-      await establishAuthenticatedSession(req, res, async () => {
-        await hydrateSessionUser(req, sbUser);
-        await loadRoleProfileIntoSessionFromSupabase(req.session.user);
-      });
-      return res.redirect('/dashboard');
-    }
-
-    // ===== MySQL branch (default, unchanged) =====
-    const stillThere = await findUserByEmail(pending.email);
-    if (stillThere) {
-      delete req.session.pendingOAuthRegistration;
-      await saveSession(req);
+    // Instructors are normally completed in the Google callback. This branch
+    // remains for already-open legacy completion pages and intentionally
+    // ignores any retired instructor form fields.
+    const body = pending.role === 'instructor' ? {} : req.body;
+    const result = await completeOAuthRegistration(req, res, pending, body);
+    if (result.status === 'account_exists') {
       return res.redirect('/auth?error=account_exists');
     }
-
-    const userId = await createOAuthUserWithProfile(pending, req.body);
-    const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-    const user = users[0];
-    if (!user) {
-      return res.redirect('/auth?error=oauth_failed');
-    }
-
-    // R3 (+ follow-up): the pending OAuth registration produced a real account;
-    // regenerate to a fresh session ID (discarding the old session and its
-    // pendingOAuthRegistration), hydrate identity + role profile, and save
-    // atomically.
-    await establishAuthenticatedSession(req, res, async () => {
-      await hydrateSessionUser(req, user);
-      await loadRoleProfileIntoSession(req.session.user);
-    });
     return res.redirect('/dashboard');
   } catch (err) {
     const code = err && err.message;
@@ -1290,7 +1300,6 @@ exports.completeRegistrationPost = async (req, res) => {
     const KNOWN_VALIDATION_CODES = new Set([
       'MISSING_NAME',
       'MISSING_STUDENT',
-      'MISSING_INSTRUCTOR',
       'MISSING_GUEST',
       'MISSING_OAUTH_SUBJECT',
       'INVALID_ROLE',
@@ -1304,7 +1313,6 @@ exports.completeRegistrationPost = async (req, res) => {
     let msg = 'Something went wrong. Please try again.';
     if (code === 'MISSING_NAME') msg = 'Please enter your full name.';
     if (code === 'MISSING_STUDENT') msg = 'Student ID is required.';
-    if (code === 'MISSING_INSTRUCTOR') msg = 'Employee ID is required.';
     if (code === 'MISSING_GUEST') msg = 'Address and phone number are required.';
 
     return res.render('complete-registration', {

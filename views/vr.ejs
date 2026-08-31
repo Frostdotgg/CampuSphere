@@ -16,7 +16,7 @@
             } catch (_) { /* theme preference is best effort */ }
         })();
     </script>
-    <link rel="stylesheet" href="/css/styles.css?v=7">
+    <link rel="stylesheet" href="/css/styles.css?v=8">
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -45,6 +45,7 @@
       only — no panorama mirroring or bundling.
     -->
     <link rel="stylesheet" href="/vendor/pannellum/pannellum.css">
+    <%- include('partials/vr-scene-hotspot-styles') %>
     <script src="/vendor/pannellum/pannellum.js"></script>
 
     <style nonce="<%= cspNonce %>">
@@ -284,15 +285,13 @@
 
             // M12.P1-D3: Free Roam scene hotspots navigate through the shared
             // vr-hotspot-navigation helper, which validates target_scene_key
-            // against the server scene-key contract and applies Pannellum's
-            // NATIVE scene-hotspot arrow + link contract (type: 'scene', URL +
-            // attributes { target: '_self' }) — no custom window-location
-            // callback and no schedule-helper fallback coupling. A rejected
-            // or missing target stays a non-navigating info point. info/exit
-            // hotspots keep their label tooltip; schedule hotspots open the
-            // shared image viewer via vr-schedule.js. The server-rendered
-            // list below remains the accessible fallback if Pannellum is
-            // unavailable.
+            // against the server scene-key contract, keeps Pannellum's native
+            // URL anchor and assigns the compact portal-ring CSS marker. A
+            // rejected or missing target stays a non-navigating info point.
+            // info/exit hotspots keep their label tooltip; schedule hotspots
+            // open the shared image viewer via vr-schedule.js. The
+            // server-rendered list below remains the accessible fallback if
+            // Pannellum is unavailable.
             function buildHotspots() {
                 var list = Array.isArray(data.hotspots) ? data.hotspots : [];
                 var out = [];

@@ -144,6 +144,25 @@ async function listAll() {
 }
 
 /**
+ * First buildings by canonical id order, with an exact bounded limit.
+ * Used by small dashboard projections that must not fetch the full catalog.
+ */
+async function listFirstById(limit) {
+  const parsedLimit = Number(limit);
+  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > MAX_SEARCH_LIMIT) {
+    throw new Error('buildingRepository.listFirstById: limit must be an integer from 1 to 100.');
+  }
+  const sb = getSupabaseClient();
+  const { data, error } = await sb
+    .from('buildings')
+    .select(BUILDING_COLUMNS)
+    .order('id', { ascending: true })
+    .limit(parsedLimit);
+  if (error) throw fail('listFirstById', error);
+  return data || [];
+}
+
+/**
  * Single building by id, or null when absent / id is not a positive
  * integer. Controllers still validate ids; this is a safe guard.
  */
@@ -294,6 +313,7 @@ async function deleteBuilding(id) {
 
 module.exports = {
   listAll,
+  listFirstById,
   findById,
   create,
   update,

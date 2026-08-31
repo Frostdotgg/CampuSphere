@@ -217,7 +217,7 @@ Migration notes:
 | Item | Value |
 | ---- | ----- |
 | Proposed file | `repositories/contentRepository.js` |
-| Current callers | `controllers/dashboardController.js` (audience-filtered announcements), `controllers/eventsController.js` (index - public `/events` page; orders by `event_date ASC` and reshapes rows into `{id, title, category, dateObj, desc, location, time}` for the EJS template), `controllers/adminContentController.js` (CRUD for news + events), `controllers/adminController.js` (index - recent news `LIMIT 4` ordered by `published_date DESC` + `COUNT(*)` total news on the admin dashboard; news page - full articles list ordered by `created_at DESC`, full events list ordered by `event_date DESC`, plus totalArticles / published / drafts / totalEvents stats). |
+| Current callers | `controllers/dashboardController.js` (audience-filtered announcements), `controllers/eventsController.js` (index - public `/events` page; requests `event_date DESC`, then `id DESC`, and reshapes rows into `{id, title, category, dateObj, desc, location, time}` for the EJS template), `controllers/pageController.js` (bounded latest-event projection for `/home`), `controllers/adminContentController.js` (CRUD for news + events), `controllers/adminController.js` (index - recent news `LIMIT 4` ordered by `published_date DESC` + `COUNT(*)` total news on the admin dashboard; news page - full articles list ordered by `created_at DESC`, full events list ordered by `event_date DESC`, plus totalArticles / published / drafts / totalEvents stats). |
 | MySQL tables | `news_announcements`, `events` |
 | Supabase tables | `news_announcements` (with `audience` CHECK), `events` (defined in `0001_initial_schema.sql` section B.2) |
 | Role/security | Read of announcements respects `audience` ('all' or session role). Drafts (`published_date IS NULL`) are never returned to dashboards. Writes are admin-only at the route layer; category/audience allowlists in `adminContentController.js` stay in the controller. |
@@ -230,10 +230,11 @@ Method responsibilities:
 - `listAllAnnouncements()` -> for admin listing pages.
 - `createAnnouncement(payload)`, `updateAnnouncement(id, payload)`,
   `deleteAnnouncement(id)`.
-- `listEvents({ from, to } = {})` -> events ordered by
-  `event_date ASC`; default returns the full set. Backs
-  `controllers/eventsController.js` (public `/events` page); that
-  controller continues to reshape rows for its EJS template
+- `listEvents({ from, to, limit, sortDirection } = {})` -> events ordered by
+  `event_date ASC`, then `id ASC`, by default; `sortDirection: 'desc'`
+  reverses both keys, and `limit` bounds small projections. Backs
+  `controllers/eventsController.js` and `controllers/pageController.js`; the
+  events controller continues to reshape rows for its EJS template
   (`dateObj`/`desc`/`time`), so the repository returns DB row
   shapes unchanged.
 - `createEvent(payload)`, `updateEvent(id, payload)`, `deleteEvent(id)`.

@@ -20,13 +20,13 @@
          exactly '/vr/<validated-key>'.
      - decoratePannellumHotspot(baseConfig, hotspot, mode, locationLike)
          Returns a NEW config (inputs are never mutated) using Pannellum's
-         NATIVE scene-hotspot arrow + link contract for validated navigation:
-         type: 'scene', URL: <validatedUrl>, plus attributes:
-         { target: '_self' }. No clickHandlerFunc is ever installed for scene
-         navigation. When nothing validates, the copy carries no
-         URL/attributes/clickHandlerFunc at all, so a rejected target stays a
-         non-navigating info point. mode is 'guided' or 'free-roam'; anything
-         else fails closed.
+         NATIVE scene-hotspot link contract for validated navigation:
+         type: 'scene', URL: <validatedUrl>, attributes { target: '_self' },
+         and the dedicated scene-hotspot CSS class. No
+         clickHandlerFunc is ever installed for scene navigation. When nothing
+         validates, the copy carries no URL/attributes/cssClass/clickHandlerFunc
+         at all, so a rejected target stays a non-navigating info point. mode
+         is 'guided' or 'free-roam'; anything else fails closed.
 
    Accepted same-origin URL forms (entire string, nothing else):
      /vr/to/<positive-id>?step=<positive-step>
@@ -62,6 +62,7 @@
     var SCENE_KEY_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
     var GUIDED_STEP_RE = /^\/vr\/(?:to|routes)\/[1-9][0-9]*\?step=[1-9][0-9]*$/;
     var SCENE_PATH_RE = /^\/vr\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;
+    var SCENE_HOTSPOT_CLASS = 'campusphere-vr-scene-hotspot';
 
     function isObjectLike(value) {
         return value !== null && typeof value === 'object';
@@ -122,6 +123,16 @@
         return '/vr/' + hotspot.target_scene_key;
     }
 
+    function hotspotAccessibleLabel(hotspot, fallbackText) {
+        var label = isObjectLike(hotspot) && typeof hotspot.label === 'string'
+            ? hotspot.label.trim()
+            : '';
+        if (!label && typeof fallbackText === 'string') label = fallbackText.trim();
+        if (!label) label = 'Open 360 view';
+        if (label.length > 120) label = label.slice(0, 117) + '...';
+        return label;
+    }
+
     function decoratePannellumHotspot(baseConfig, hotspot, mode, locationLike) {
         if (!isObjectLike(baseConfig)) return null;
         // Fresh copy: inputs are never mutated, and any navigation-capable
@@ -136,6 +147,7 @@
             if (Object.prototype.hasOwnProperty.call(baseConfig, key) &&
                 key !== 'URL' && key !== 'attributes' &&
                 key !== 'clickHandlerFunc' && key !== 'clickHandlerArgs' &&
+                key !== 'cssClass' &&
                 key !== '__proto__' && key !== 'constructor' && key !== 'prototype') {
                 config[key] = baseConfig[key];
             }
@@ -147,15 +159,19 @@
             url = resolveFreeRoamUrl(hotspot, locationLike);
         }
         // Unsupported mode or rejected target: the copy stays a non-navigating
-        // info point. Only a validated destination receives the native
-        // Pannellum scene-arrow type.
+        // info point. Only a validated destination receives the dedicated
+        // scene-hotspot class and Pannellum's native URL anchor.
         if (url !== null) {
             config.type = 'scene';
-            // Pannellum wraps URL hotspots in a real same-tab anchor. The
-            // scene type supplies the built-in arrow sprite while preserving
-            // the existing validated URL contract.
+            config.cssClass = SCENE_HOTSPOT_CLASS;
+            // Pannellum wraps URL hotspots in a real same-tab anchor. Keep the
+            // existing validated URL contract and expose the label to keyboard
+            // and assistive-technology users.
             config.URL = url;
-            config.attributes = { target: '_self' };
+            config.attributes = {
+                target: '_self',
+                'aria-label': hotspotAccessibleLabel(hotspot, config.text)
+            };
         }
         return config;
     }

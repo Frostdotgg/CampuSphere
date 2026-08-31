@@ -13,13 +13,14 @@ const { logServerError } = require('../utils/serverLog');
  */
 exports.index = async (req, res) => {
     try {
-        // Supabase repository returns events ordered by event_date ASC,
-        // matching the existing MySQL query; the reshape below is unchanged.
+        // The public events page presents the newest calendar date first.
+        // Keep this direction explicit so the notification feed can continue
+        // using listEvents' default nearest-upcoming ASC order.
         let rows;
         if (contentDataSource.isSupabase()) {
-            rows = await contentRepository.listEvents();
+            rows = await contentRepository.listEvents({ sortDirection: 'desc' });
         } else {
-            [rows] = await db.query('SELECT * FROM events ORDER BY event_date ASC');
+            [rows] = await db.query('SELECT * FROM events ORDER BY event_date DESC, id DESC');
         }
 
         // Map rows to match the expected format

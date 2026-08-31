@@ -2448,7 +2448,7 @@ iconify-icon {
 /* ---- Quick Access Cards ---- */
 .dash-quick {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-md);
 }
 
@@ -2493,11 +2493,6 @@ iconify-icon {
 .dash-quick__card-icon--event {
     background: rgba(212, 168, 67, 0.1);
     color: var(--gold);
-}
-
-.dash-quick__card-icon--office {
-    background: rgba(220, 38, 38, 0.1);
-    color: var(--red-accent);
 }
 
 .dash-quick__card-info strong {
@@ -2576,6 +2571,14 @@ iconify-icon {
 
 .dash-sidebar-card__body {
     padding: var(--space-md) var(--space-lg);
+}
+
+.home-sidebar-state {
+    margin: 0;
+    padding: var(--space-sm) 0;
+    color: var(--gray-500);
+    font-size: 0.82rem;
+    line-height: 1.45;
 }
 
 /* Location Items */
@@ -3389,6 +3392,36 @@ iconify-icon {
     color: var(--navy-600);
 }
 
+/* Instructor overview keeps the system-owned account state visible without
+   leaving empty Position/Department cards after those self-service fields
+   were retired. */
+.instructor-status-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+}
+
+.instructor-status-summary__label {
+    color: var(--gray-600);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 576px) {
+    .instructor-status-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
 /* News List */
 .news-item {
     padding: var(--space-md) 0;
@@ -3548,17 +3581,6 @@ iconify-icon {
     margin-top: 4px;
 }
 
-/* Instructor building card */
-.instr-bldg-card {
-    transition: all .25s ease;
-}
-
-.instr-bldg-card:hover {
-    border-color: var(--navy-400);
-    box-shadow: var(--shadow-lg);
-}
-
-/* ========================================
    DARK MODE - Dashboard
    ======================================== */
 [data-theme="dark"] .sidebar {
@@ -9025,180 +9047,6 @@ details[open] .accordion-icon {
     }
 }
 
-/* Premium Building Detail Modal */
-.building-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(15, 23, 42, 0.7); /* Deep dark glass */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    padding: var(--space-md);
-}
-
-.building-modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.building-modal-content {
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    background: var(--card, #ffffff);
-    border-radius: 16px;
-    border: 2px solid var(--blue-accent);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transform: scale(0.95);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.building-modal-overlay.active .building-modal-content {
-    transform: scale(1);
-}
-
-.building-modal-content .panel-card {
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 90vh; /* Ensuring content scrolls */
-}
-
-.building-modal-content .panel-card__header {
-    flex-shrink: 0;
-    padding: var(--space-lg);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: transparent;
-}
-
-.building-modal-content .panel-card__body {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: var(--space-lg);
-}
-
-.building-modal-close {
-    background: var(--gray-100);
-    border: 1px solid var(--border);
-    color: var(--gray-600);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.building-modal-close:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border-color: rgba(239, 68, 68, 0.3);
-    transform: rotate(90deg);
-}
-
-/* Floor Navigation */
-.building-floor-nav {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: var(--space-lg);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: var(--space-md);
-}
-
-.building-floor-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 0 0 var(--space-md);
-    color: var(--text-color, #1e293b);
-}
-
-/* Room Grid */
-.building-room-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-}
-
-/* Room Card - Premium Minimal */
-.room-card {
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: var(--surface-light, #ffffff);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    color: var(--text-color, #1e293b);
-}
-
-.room-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-color: rgba(148, 163, 184, 0.4);
-}
-
-.room-card__title {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--text-color, #0f172a);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.room-card__use {
-    font-size: 0.8rem;
-    color: var(--text-muted, #64748b);
-    margin-top: 4px;
-}
-
-.room-card__cap {
-    font-size: 0.75rem;
-    color: var(--text-muted, #94a3b8);
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed rgba(148, 163, 184, 0.2);
-}
-
-/* Highlighted Assigned/Scheduled Room */
-.room-card--active {
-    border: 2px solid #3b82f6;
-    background-color: #eff6ff; /* Solid light blue to guarantee opacity */
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-.room-card--active .room-card__title {
-    color: #2563eb;
-}
-
-.room-card--active .room-card__star {
-    color: #3b82f6;
-    font-size: 0.8rem;
-}
-
-/* =====================================================
    MAP - Route Planner widget (sidebar)
    ===================================================== */
 .map-route-planner {

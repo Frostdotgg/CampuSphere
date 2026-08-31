@@ -300,7 +300,7 @@ pool still exists.
   - `controllers/dashboardController.js` (audience-filtered
     announcements)
   - `controllers/eventsController.js` (`/events` index;
-    ascending `event_date`)
+    descending `event_date`, then `id`)
   - `controllers/adminContentController.js` (news + events
     CRUD)
   - `controllers/adminController.js` (recent news + totalNews on

@@ -102,30 +102,6 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                <% } else if (pending.role === 'instructor') { %>
-                    <div class="auth-row">
-                        <div class="auth-form-group">
-                            <label for="oauthEmployeeId">Employee ID</label>
-                            <input class="auth-input" type="text" id="oauthEmployeeId" name="employeeId"
-                                placeholder="CSPC-EMP-001" required>
-                        </div>
-                        <div class="auth-form-group">
-                            <label for="oauthDepartment">Department</label>
-                            <select class="auth-select" id="oauthDepartment" name="department">
-                                <option value="CCS">CCS (College of Computer Studies)</option>
-                                <option value="COE">COE (College of Engineering)</option>
-                                <option value="CBM">CBM (College of Business Management)</option>
-                                <option value="CHS">CHS (College of Health Sciences)</option>
-                                <option value="CAS">CAS (College of Arts and Sciences)</option>
-                                <option value="CTET">CTET (College of Technical Vocational Education)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="oauthPosition">Position</label>
-                        <input class="auth-input" type="text" id="oauthPosition" name="position"
-                            placeholder="e.g. Associate Professor" required>
-                    </div>
                 <% } else if (pending.role === 'guest') { %>
                     <div class="auth-form-group">
                         <label for="oauthAddress">Address</label>
@@ -142,9 +118,8 @@
                 <button class="btn-submit oauth-complete-mt" type="submit">Create account</button>
             </form>
 
-            <%# M12.P1-R8: this is the step that actually collects the role-specific
-                profile fields (student ID, employee ID, or address + phone), so the
-                privacy notice is linked directly here. %>
+            <%# Student and guest completion still collect their role-specific
+                fields. Instructor identity is completed directly from Google. %>
             <script nonce="<%= cspNonce %>">
                 document.addEventListener('DOMContentLoaded', function () {
                     var search = document.getElementById('oauthCourseSearch');

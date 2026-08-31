@@ -1,0 +1,68 @@
+<style nonce="<%= cspNonce %>">
+    /* Scene-navigation hotspots keep a 44px interactive area for touch and
+       keyboard users, while the visible marker stays a quiet 24px portal ring.
+       Pannellum owns the parent transform; the pseudo-elements only draw the
+       marker, so panning never changes the hotspot's hitbox or position. */
+    .pnlm-hotspot-base.campusphere-vr-scene-hotspot {
+        box-sizing: border-box;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+
+    .pnlm-hotspot-base.campusphere-vr-scene-hotspot::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 24px;
+        height: 24px;
+        margin: -12px 0 0 -12px;
+        box-sizing: border-box;
+        border: 2px solid rgba(255, 255, 255, .98);
+        border-radius: 50%;
+        background: rgba(15, 34, 64, .62);
+        box-shadow: 0 0 0 1px rgba(15, 34, 64, .78), 0 2px 8px rgba(0, 0, 0, .42);
+        transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease;
+        pointer-events: none;
+    }
+
+    .pnlm-hotspot-base.campusphere-vr-scene-hotspot::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        margin: -3px 0 0 -3px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+        pointer-events: none;
+    }
+
+    .pnlm-hotspot-base.campusphere-vr-scene-hotspot:hover::before,
+    .pnlm-hotspot-base.campusphere-vr-scene-hotspot:focus::before {
+        background: rgba(42, 111, 199, .94);
+        transform: scale(1.08);
+        box-shadow: 0 0 0 1px rgba(15, 34, 64, .85), 0 3px 10px rgba(0, 0, 0, .5);
+    }
+
+    .pnlm-ui a:focus-visible > .pnlm-hotspot-base.campusphere-vr-scene-hotspot::before,
+    .pnlm-ui a:focus > .pnlm-hotspot-base.campusphere-vr-scene-hotspot::before {
+        box-shadow: 0 0 0 3px #ffd34d, 0 0 0 4px rgba(15, 34, 64, .78), 0 3px 10px rgba(0, 0, 0, .5);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pnlm-hotspot-base.campusphere-vr-scene-hotspot::before {
+            transition: none;
+        }
+    }
+</style>

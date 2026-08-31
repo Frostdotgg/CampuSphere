@@ -13,9 +13,6 @@ const MAX_NAME_LENGTH = 100;
 const MAX_STUDENT_ID_LENGTH = 50;
 const MAX_COURSE_LENGTH = 100;
 const MAX_YEAR_LEVEL_LENGTH = 50;
-const MAX_EMPLOYEE_ID_LENGTH = 50;
-const MAX_DEPARTMENT_LENGTH = 100;
-const MAX_POSITION_LENGTH = 100;
 const MAX_ADDRESS_LENGTH = 255;
 const MAX_PHONE_LENGTH = 50;
 
@@ -219,90 +216,6 @@ exports.updateProfile = async (req, res) => {
         pendingSession.student_id_number = studentId;
         pendingSession.course = course || '';
         pendingSession.year_level = yearLevel || '';
-      }
-    } else if (role === 'instructor') {
-      const hasEmployeeId = Object.prototype.hasOwnProperty.call(req.body, 'employeeId');
-      const hasDepartment = Object.prototype.hasOwnProperty.call(req.body, 'department');
-      const hasPosition = Object.prototype.hasOwnProperty.call(req.body, 'position');
-
-      const employeeId = hasEmployeeId ? trimString(req.body.employeeId) : null;
-      const department = hasDepartment ? trimString(req.body.department) : null;
-      const position = hasPosition ? trimString(req.body.position) : null;
-
-      if (hasEmployeeId && employeeId.length > MAX_EMPLOYEE_ID_LENGTH) {
-        return fail(res, 400, `Employee ID must be ${MAX_EMPLOYEE_ID_LENGTH} characters or fewer.`);
-      }
-      if (hasDepartment && department.length > MAX_DEPARTMENT_LENGTH) {
-        return fail(res, 400, `Department must be ${MAX_DEPARTMENT_LENGTH} characters or fewer.`);
-      }
-      if (hasPosition && position.length > MAX_POSITION_LENGTH) {
-        return fail(res, 400, `Position must be ${MAX_POSITION_LENGTH} characters or fewer.`);
-      }
-
-      let existing;
-      if (useSupabase) {
-        existing = await userRepository.loadRoleProfile(userId, 'instructor');
-      } else {
-        const [profiles] = await db.query(
-          'SELECT * FROM instructor_profiles WHERE user_id = ?',
-          [userId]
-        );
-        existing = profiles.length > 0 ? profiles[0] : null;
-      }
-
-      if (existing) {
-        const updatedEmployeeId = hasEmployeeId ? employeeId : existing.employee_id;
-        const updatedDepartment = hasDepartment ? department : existing.department;
-        const updatedPosition = hasPosition ? position : existing.position;
-
-        if (hasEmployeeId && !updatedEmployeeId) {
-          return fail(res, 400, 'Employee ID cannot be blank.');
-        }
-
-        writeOps.push((conn) =>
-          conn.query(
-            `UPDATE instructor_profiles
-               SET employee_id = ?, department = ?, position = ?
-             WHERE user_id = ?`,
-            [updatedEmployeeId, updatedDepartment, updatedPosition, userId]
-          )
-        );
-        sbPlan.updateProfile = true;
-        sbPlan.role = 'instructor';
-        sbPlan.profile = {
-          employee_id: hasEmployeeId ? employeeId : null,
-          department: hasDepartment ? department : null,
-          position: hasPosition ? position : null
-        };
-
-        pendingSession.employee_id = updatedEmployeeId;
-        pendingSession.department = updatedDepartment;
-        pendingSession.position = updatedPosition;
-      } else {
-        if (!employeeId) {
-          return fail(res, 400, 'Employee ID is required.');
-        }
-
-        writeOps.push((conn) =>
-          conn.query(
-            `INSERT INTO instructor_profiles
-               (user_id, employee_id, department, position, status)
-             VALUES (?, ?, ?, ?, 'Active')`,
-            [userId, employeeId, department || '', position || '']
-          )
-        );
-        sbPlan.updateProfile = true;
-        sbPlan.role = 'instructor';
-        sbPlan.profile = {
-          employee_id: employeeId,
-          department: department || '',
-          position: position || '',
-          status: 'Active'
-        };
-
-        pendingSession.employee_id = employeeId;
-        pendingSession.department = department || '';
-        pendingSession.position = position || '';
       }
     } else if (role === 'guest') {
       const hasAddress = Object.prototype.hasOwnProperty.call(req.body, 'address');
