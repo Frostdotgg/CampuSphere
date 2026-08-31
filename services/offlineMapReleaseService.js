@@ -29,6 +29,11 @@ const GUIDE_ASSET_PATTERN = /^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/;
 const PMTILES_MAGIC = 'PMTiles';
 const EXPECTED_BOUNDS = Object.freeze([123.373606, 13.404852, 123.378745, 13.406981]);
 const EXPECTED_CENTER = Object.freeze([123.375604, 13.405885]);
+// The first Drive release was signed with this earlier center before the
+// release metadata was aligned with the checked-in baseline. It is accepted
+// only by the publisher's one-time pointer migration path; runtime downloads
+// remain strict and accept EXPECTED_CENTER only.
+const LEGACY_RELEASE_CENTER = Object.freeze([123.37559, 13.405854]);
 const EXPECTED_MIN_ZOOM = 0;
 const EXPECTED_MAX_ZOOM = 15;
 const REQUIRED_LAYERS = Object.freeze(['earth', 'landuse', 'water', 'roads', 'buildings']);
@@ -109,6 +114,11 @@ function exactNumberArray(value, length) {
 
 function sameNumbers(actual, expected) {
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+function isAcceptedCenter(value, allowLegacyCenter) {
+  if (sameNumbers(value, EXPECTED_CENTER)) return true;
+  return allowLegacyCenter === true && sameNumbers(value, LEGACY_RELEASE_CENTER);
 }
 
 function parseTimestamp(value, field, now) {
@@ -202,7 +212,7 @@ function validateReleaseManifest(input, options = {}) {
   const lastCheckedAt = parseTimestamp(input.lastCheckedAt, 'lastCheckedAt', now);
   const osmSnapshotAt = parseTimestamp(input.osmSnapshotAt, 'osmSnapshotAt', now);
   if (!exactNumberArray(map.bounds, 4) || !sameNumbers(map.bounds, EXPECTED_BOUNDS) ||
-      !exactNumberArray(map.center, 2) || !sameNumbers(map.center, EXPECTED_CENTER) ||
+      !exactNumberArray(map.center, 2) || !isAcceptedCenter(map.center, options.allowLegacyCenter) ||
       map.minzoom !== EXPECTED_MIN_ZOOM || map.maxzoom !== EXPECTED_MAX_ZOOM ||
       typeof map.attribution !== 'string' || !/OpenStreetMap/i.test(map.attribution) ||
       typeof map.license !== 'string' || !/ODbL/i.test(map.license) ||
@@ -458,6 +468,7 @@ module.exports = {
   REQUIRED_LAYERS,
   EXPECTED_BOUNDS,
   EXPECTED_CENTER,
+  LEGACY_RELEASE_CENTER,
   OfflineMapReleaseError,
   canonicalSigningPayload,
   validateReleaseManifest,

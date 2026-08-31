@@ -511,7 +511,10 @@ async function readCurrentManifest(client, config, publicKeyPem) {
     throw new PublisherError('The current Drive manifest is invalid.', 'OFFLINE_MAP_MANIFEST_INVALID');
   }
   let manifest;
-  try { manifest = validateReleaseManifest(parsed, { publicKeyPem }); } catch (error) {
+  // Permit the one known, signed pre-alignment pointer to be read so this
+  // publish can replace it with a manifest using the current center. The
+  // application path does not pass this migration option and stays strict.
+  try { manifest = validateReleaseManifest(parsed, { publicKeyPem, allowLegacyCenter: true }); } catch (error) {
     throw new PublisherError('The current Drive manifest is invalid.', 'OFFLINE_MAP_MANIFEST_INVALID');
   }
   return { bytes, manifest };
