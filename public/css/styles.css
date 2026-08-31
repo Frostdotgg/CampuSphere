@@ -2408,43 +2408,6 @@ iconify-icon {
     gap: var(--space-xl);
 }
 
-/* ---- Search Bar ---- */
-.dash-search__bar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: 0.7rem 1rem;
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-fast);
-}
-
-.dash-search__bar:focus-within {
-    border-color: var(--navy-400);
-    box-shadow: 0 0 0 3px rgba(30, 77, 140, 0.1);
-}
-
-.dash-search__icon {
-    color: var(--gray-400);
-    flex-shrink: 0;
-}
-
-.dash-search__input {
-    width: 100%;
-    border: none;
-    outline: none;
-    font-family: var(--font-body);
-    font-size: 0.92rem;
-    color: var(--gray-800);
-    background: transparent;
-}
-
-.dash-search__input::placeholder {
-    color: var(--gray-400);
-}
-
 /* ---- Quick Access Cards ---- */
 .dash-quick {
     display: grid;
@@ -2960,10 +2923,6 @@ iconify-icon {
 
 [data-theme="dark"] .dash-hero__title {
     color: #fff;
-}
-
-[data-theme="dark"] .dash-search__input {
-    color: #e5e7eb;
 }
 
 [data-theme="dark"] .btn--white {

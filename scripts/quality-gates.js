@@ -2776,7 +2776,8 @@ function runGuestDashboardNavigationGate() {
 /**
  * PURE: the authenticated home dashboard exposes only the three working
  * quick-access destinations. The former Offices card was a dead href="#"
- * placeholder, so it must not remain as a clickable or searchable entry.
+ * placeholder, and the home search surface was removed, so neither may
+ * remain in the home implementation.
  */
 function homeQuickAccessContract(homeView, styles) {
   const view = typeof homeView === 'string' ? homeView : '';
@@ -2797,13 +2798,15 @@ function homeQuickAccessContract(homeView, styles) {
   const desktopGrid = /\.dash-quick\s*\{[\s\S]{0,180}grid-template-columns:\s*repeat\(3,\s*1fr\)/i.test(css);
   const tabletGrid = /@media\s*\(max-width:\s*1100px\)[\s\S]{0,240}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*repeat\(2,\s*1fr\)/i.test(css);
   const mobileGrid = /@media\s*\(max-width:\s*480px\)[\s\S]{0,180}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*1fr/i.test(css);
+  const noHomeSearch = !/dash-search|searchSection|searchInput|Search Campus|querySelectorAll\(['"]\.dash-quick__card['"]\)/i.test(view) &&
+    !/dash-search__/i.test(css);
 
   return cards.length === 3 &&
     hasCard('/map', 'Campus Map', 'Navigate Campus Location') &&
     hasCard('/buildings', 'Buildings', 'View all campus facilities') &&
     hasCard('/events', 'Events', 'Check out upcoming events') &&
     !/Offices|Find administrative offices|href=["']#["']/i.test(quick) &&
-    /querySelectorAll\(['"]\.dash-quick__card['"]\)/.test(view) &&
+    noHomeSearch &&
     desktopGrid && tabletGrid && mobileGrid &&
     !/\.dash-quick__card-icon--office\b/i.test(css);
 }
@@ -2822,8 +2825,9 @@ function runHomeQuickAccessGate() {
 
   ok('home quick access exposes only Campus Map, Buildings, and Events',
     passes(homeView, styles));
-  ok('home quick access keeps the search hook and responsive three/two/one-column layout',
-    /querySelectorAll\(['"]\.dash-quick__card['"]\)/.test(homeView) &&
+  ok('home quick access removes the search surface and keeps the responsive three/two/one-column layout',
+    !/dash-search|searchSection|searchInput|Search Campus|querySelectorAll\(['"]\.dash-quick__card['"]\)/i.test(homeView) &&
+    !/dash-search__/i.test(styles) &&
     /\.dash-quick\s*\{[\s\S]{0,180}grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(styles) &&
     /@media\s*\(max-width:\s*1100px\)[\s\S]{0,240}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*repeat\(2,\s*1fr\)/.test(styles) &&
     /@media\s*\(max-width:\s*480px\)[\s\S]{0,180}\.dash-quick\s*\{[\s\S]{0,120}grid-template-columns:\s*1fr/.test(styles));
@@ -2832,6 +2836,10 @@ function runHomeQuickAccessGate() {
     !passes(deadPlaceholder, styles) &&
     !passes(homeView, fourColumnGrid) &&
     !passes(homeView, styles + '\n.dash-quick__card-icon--office {}'));
+  ok('fixture: restored home search markup, handler, or CSS is rejected',
+    !passes(homeView.replace('<!-- Quick Access Cards -->', '<div class="dash-search" id="searchSection"><input id="searchInput" placeholder="Search Campus"></div>\n                    <!-- Quick Access Cards -->'), styles) &&
+    !passes(homeView.replace('</script>', "const searchInput = document.getElementById('searchInput');\n                searchInput.addEventListener('input', () => {});\n            </script>"), styles) &&
+    !passes(homeView, styles + '\n.dash-search__input {}'));
   ok('fixture: missing home view or styles fails closed',
     !passes('', styles) && !passes(homeView, ''));
   return rec.failures;
@@ -4776,6 +4784,14 @@ function sourceMutationIsRejected(source, pattern, replacement, analyzer) {
   return mutated !== source && analyzer(mutated) === false;
 }
 
+/* PURE: the login tab uses the intentionally provider-neutral label. */
+function authEmailLabelContract(viewHtml) {
+  const view = typeof viewHtml === 'string' ? viewHtml : '';
+  return view !== '' &&
+    (view.match(/Sign in using Email/g) || []).length === 1 &&
+    !/Sign in using CSPC Email/i.test(view);
+}
+
 function runPilotReadinessGate() {
   const rec = makeRecorder('pilot-readiness');
   const { ok } = rec;
@@ -4996,6 +5012,15 @@ function runPilotReadinessGate() {
   const siteCss = read('public/css/styles.css');
   const profileJs = read('public/js/profile-script.js');
   const sampleData = read('public/js/data.js');
+
+  ok('views/auth.ejs uses the provider-neutral email sign-in label exactly once',
+    authEmailLabelContract(authView));
+  ok('fixture: the former CSPC-specific sign-in label is rejected',
+    sourceMutationIsRejected(
+      authView,
+      /Sign in using Email/,
+      'Sign in using CSPC Email',
+      authEmailLabelContract));
 
   // Finding 1 — truthful landing role mapping.
   ok('views/landing.ejs states the real three-domain Google sign-in mapping',
@@ -7511,8 +7536,8 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 189,
-  bytes: '7,221,465',
-  sha256: '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4',
+  bytes: '7,219,814',
+  sha256: 'fe54fabe2e7d63442a7600093666a927ea2b6b1a94aabbdbb3fe6c71423abd27',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
