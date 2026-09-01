@@ -68,6 +68,7 @@ const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
 const routeRepository = require('../repositories/routeRepository');
 const buildingRepository = require('../repositories/buildingRepository');
+const { createSingleFlight } = require('../utils/singleFlight');
 const { findShortestPath } = require('../utils/pathfinding');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const {
@@ -114,10 +115,19 @@ function unavailable(reason) {
 --------------------------------------------------------------------------- */
 async function loadRouteSource() {
   if (mapRuntime.isRouteSupabase()) {
+    // When both graph and building data use Supabase, share the active
+    // building-roster read with loadBuildingSourceRoster(). Mixed-source
+    // deployments keep the route backend's own roster independent.
+    const routeBuildings = mapRuntime.isBuildingSupabase()
+      ? buildingRepository.listAll().then((rows) => (rows || []).map((b) => ({
+        id: toNumOrNull(b.id),
+        name: b.name
+      })))
+      : routeRepository.listRouteSourceBuildings();
     const [nodes, edges, buildings, vrByBuildingId] = await Promise.all([
       routeRepository.listAllNodes(),
       routeRepository.listAllEdgesWithGeometry(),
-      routeRepository.listRouteSourceBuildings(),
+      routeBuildings,
       routeRepository.listVrRouteIdByBuilding()
     ]);
     return { nodes, edges, buildings, vrByBuildingId };
@@ -435,6 +445,19 @@ async function buildAvailabilityIndex(preloaded) {
   return { ok: true, byName };
 }
 
+// Share only an active availability-index build across concurrent map,
+// building, and search requests. The completed value is discarded as soon as
+// the promise settles; every later call starts a fresh read of both sources.
+const availabilityIndexFlight = createSingleFlight(() => buildAvailabilityIndex());
+
+function invalidateAvailabilityRead() {
+  availabilityIndexFlight.invalidate();
+}
+
+async function getAvailabilityIndex() {
+  return availabilityIndexFlight();
+}
+
 /* ---------------------------------------------------------------------------
    Decorate building rows (from BUILDING_DATA_SOURCE) with the additive contract.
 
@@ -451,7 +474,7 @@ async function decorateBuildings(buildings, options) {
   const opts = (options && typeof options === 'object') ? options : null;
   // An already-built index (from this request's single snapshot) is reused as-is;
   // omitting it preserves the existing read-per-call behaviour exactly.
-  const index = (opts && opts.index) ? opts.index : await buildAvailabilityIndex();
+  const index = (opts && opts.index) ? opts.index : await getAvailabilityIndex();
 
   if (!index.ok) {
     for (const b of list) Object.assign(b, unavailable(REASON.ROUTE_DATA_UNAVAILABLE));
@@ -509,6 +532,7 @@ module.exports = {
   loadBuildingSourceRoster,
   canonicalNameCollides,
   buildAvailabilityIndex,
+  invalidateAvailabilityRead,
   decorateBuildings,
   decorateBuilding
 };

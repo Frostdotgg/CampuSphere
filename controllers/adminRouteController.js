@@ -25,6 +25,7 @@
 const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
 const routeRepository = require('../repositories/routeRepository');
+const routeAvailability = require('../services/routeAvailability');
 const auditService = require('../services/auditService');
 const {
   validatePathGeometry,
@@ -171,6 +172,19 @@ function auditMut(req, action, targetType, targetId, message) {
     target_id: targetId,
     message
   }).catch(() => {});
+}
+
+// A successful graph mutation changes the snapshot consumed by public map,
+// search, and route-playback reads. Detach only active single-flight reads so
+// callers already waiting finish on their original snapshot while later calls
+// load the new source data. No completed result is retained.
+function invalidateRouteReadFlights() {
+  if (typeof routeAvailability.invalidateAvailabilityRead === 'function') {
+    routeAvailability.invalidateAvailabilityRead();
+  }
+  if (typeof routeRepository.invalidateSearchRead === 'function') {
+    routeRepository.invalidateSearchRead();
+  }
 }
 
 /* ---------- shared value parsing ---------- */
@@ -374,6 +388,7 @@ exports.createRoute = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route.create', 'route', route && route.id, 'Admin created a campus route.');
     return res.status(201).json({ success: true, message: 'Route created successfully.', route });
   } catch (e) { return handleErr(res, e, 'createRoute'); }
@@ -408,6 +423,7 @@ exports.updateRoute = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route.update', 'route', id, 'Admin updated a campus route.');
     return res.status(200).json({ success: true, message: 'Route updated successfully.', route });
   } catch (e) { return handleErr(res, e, 'updateRoute'); }
@@ -428,6 +444,7 @@ exports.deleteRoute = async (req, res) => {
         await conn.query('DELETE FROM campus_routes WHERE id = ?', [id]); // FK cascades steps
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route.delete', 'route', id, 'Admin deleted a campus route.');
     return res.status(200).json({ success: true, message: 'Route deleted successfully.' });
   } catch (e) { return handleErr(res, e, 'deleteRoute'); }
@@ -479,6 +496,7 @@ exports.replaceSteps = async (req, res) => {
         return rows;
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route.steps.update', 'route_steps', routeId, 'Admin updated route steps.');
     return res.status(200).json({ success: true, message: 'Route steps updated successfully.', steps });
   } catch (e) { return handleErr(res, e, 'replaceSteps'); }
@@ -534,6 +552,7 @@ exports.createNode = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_node.create', 'route_node', node && node.id, 'Admin created a route node.');
     return res.status(201).json({ success: true, message: 'Node created successfully.', node });
   } catch (e) { return handleErr(res, e, 'createNode'); }
@@ -585,6 +604,7 @@ exports.updateNode = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_node.update', 'route_node', id, 'Admin updated a route node.');
     return res.status(200).json({ success: true, message: 'Node updated successfully.', node });
   } catch (e) { return handleErr(res, e, 'updateNode'); }
@@ -612,6 +632,7 @@ exports.deleteNode = async (req, res) => {
         await conn.query('DELETE FROM route_nodes WHERE id = ?', [id]);
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_node.delete', 'route_node', id, 'Admin deleted a route node.');
     return res.status(200).json({ success: true, message: 'Node deleted successfully.' });
   } catch (e) { return handleErr(res, e, 'deleteNode'); }
@@ -713,6 +734,7 @@ exports.updateEdgeGeometry = async (req, res) => {
         await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [reverseJson, revId]);
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, clearing ? 'admin.route_edge.geometry.clear' : 'admin.route_edge.geometry.update',
       'route_edge', id, clearing ? 'Admin cleared route edge geometry.' : 'Admin updated route edge geometry.');
     return res.status(200).json({ success: true, message: clearing ? 'Edge geometry cleared.' : 'Edge geometry saved.' });
@@ -745,6 +767,7 @@ exports.createEdge = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_edge.create', 'route_edge', edge && edge.id, 'Admin created a route edge.');
     return res.status(201).json({ success: true, message: 'Edge created successfully.', edge });
   } catch (e) { return handleErr(res, e, 'createEdge'); }
@@ -786,6 +809,7 @@ exports.updateEdge = async (req, res) => {
         return rows[0];
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_edge.update', 'route_edge', id, 'Admin updated a route edge.');
     return res.status(200).json({ success: true, message: 'Edge updated successfully.', edge });
   } catch (e) { return handleErr(res, e, 'updateEdge'); }
@@ -805,6 +829,7 @@ exports.deleteEdge = async (req, res) => {
         await conn.query('DELETE FROM route_edges WHERE id = ?', [id]);
       });
     }
+    invalidateRouteReadFlights();
     auditMut(req, 'admin.route_edge.delete', 'route_edge', id, 'Admin deleted a route edge.');
     return res.status(200).json({ success: true, message: 'Edge deleted successfully.' });
   } catch (e) { return handleErr(res, e, 'deleteEdge'); }

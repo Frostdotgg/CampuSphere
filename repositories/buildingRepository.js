@@ -48,6 +48,7 @@
 
 const { getSupabaseClient } = require('../config/supabase');
 const routeRepository = require('./routeRepository');
+const { createSingleFlight } = require('../utils/singleFlight');
 
 // Explicit column list: everything a controller could use, minus the
 // PostGIS `location` geography blob (the UI reads lat/lng directly).
@@ -71,6 +72,52 @@ function clampLimit(limit) {
 function fail(method, error) {
   const msg = error && error.message ? error.message : 'Supabase request failed.';
   return new Error('buildingRepository.' + method + ': ' + msg);
+}
+
+// Supabase returns plain objects, but callers decorate/normalise their own
+// copies. Return an isolated copy after sharing an active read so one request
+// can never mutate another request's result. This is not a completed-result
+// cache: the flight is cleared as soon as the underlying request settles.
+function cloneRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const out = { ...row };
+  if (row.details && typeof row.details === 'object') {
+    out.details = typeof structuredClone === 'function'
+      ? structuredClone(row.details)
+      : JSON.parse(JSON.stringify(row.details));
+  }
+  return out;
+}
+
+function cloneRows(rows) {
+  return (rows || []).map(cloneRow);
+}
+
+async function fetchAllRows() {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb
+    .from('buildings')
+    .select(BUILDING_COLUMNS)
+    .order('id', { ascending: true });
+  if (error) throw fail('listAll', error);
+  return data || [];
+}
+
+const listAllFlight = createSingleFlight(fetchAllRows);
+
+function filterSearchRows(rows, term, limit) {
+  const needle = String(term == null ? '' : term).trim().toLowerCase();
+  if (needle === '') return [];
+  const max = clampLimit(limit);
+  const matches = (rows || []).filter((row) => {
+    const detailsText = row.details != null ? JSON.stringify(row.details) : '';
+    const haystacks = [row.name, row.category, row.description, detailsText];
+    return haystacks.some((value) =>
+      String(value == null ? '' : value).toLowerCase().includes(needle)
+    );
+  });
+  matches.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  return matches.slice(0, max);
 }
 
 // Coerce a `details` value (the controller passes a validated JSON string, an
@@ -134,13 +181,20 @@ async function persistBuildingMedia(sb, id, image_url, cloudinary_public_id) {
  * /map MySQL `ORDER BY id ASC`).
  */
 async function listAll() {
-  const sb = getSupabaseClient();
-  const { data, error } = await sb
-    .from('buildings')
-    .select(BUILDING_COLUMNS)
-    .order('id', { ascending: true });
-  if (error) throw fail('listAll', error);
-  return data || [];
+  return cloneRows(await listAllFlight());
+}
+
+/**
+ * Read the building roster once for a search, returning both the filtered
+ * matches and the complete roster needed to remap route hits. The underlying
+ * Supabase read is shared only while active; subsequent calls read again.
+ */
+async function searchWithRoster(term, { limit } = {}) {
+  const rows = await listAll();
+  return {
+    matches: filterSearchRows(rows, term, limit),
+    roster: rows
+  };
 }
 
 /**
@@ -193,24 +247,8 @@ async function findById(id) {
  * - `limit` defaults to 25 and is clamped to a 100 ceiling.
  */
 async function search(term, { limit } = {}) {
-  const needle = String(term == null ? '' : term).trim().toLowerCase();
-  if (needle === '') return [];
-  const max = clampLimit(limit);
-
-  const sb = getSupabaseClient();
-  const { data, error } = await sb
-    .from('buildings')
-    .select(BUILDING_COLUMNS)
-    .order('name', { ascending: true });
-  if (error) throw fail('search', error);
-
-  const matches = (data || []).filter((row) => {
-    const detailsText = row.details != null ? JSON.stringify(row.details) : '';
-    const haystacks = [row.name, row.category, row.description, detailsText];
-    return haystacks.some((v) => String(v == null ? '' : v).toLowerCase().includes(needle));
-  });
-
-  return matches.slice(0, max);
+  const result = await searchWithRoster(term, { limit });
+  return result.matches;
 }
 
 /**
@@ -229,13 +267,14 @@ async function countAll() {
  * All buildings ordered by name ASC (admin campus-map page list).
  */
 async function listAllOrderedByName() {
-  const sb = getSupabaseClient();
-  const { data, error } = await sb
-    .from('buildings')
-    .select(BUILDING_COLUMNS)
-    .order('name', { ascending: true });
-  if (error) throw fail('listAllOrderedByName', error);
-  return data || [];
+  const rows = await listAll();
+  return rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+// Used by mutation controllers to detach a read that began before a successful
+// write. No completed data is retained, so ordinary reads need no invalidation.
+function invalidateReadFlight() {
+  listAllFlight.invalidate();
 }
 
 /**
@@ -272,7 +311,12 @@ async function create({ name, category, description, lat, lng, details, image_ur
   if (!row) return null;
   // Persist the media metadata the RPC does not handle, then reselect the row.
   const full = await persistBuildingMedia(sb, row.id, image_url, cloudinary_public_id);
-  return shapeWriteRow(full || row);
+  const shaped = shapeWriteRow(full || row);
+  invalidateReadFlight();
+  if (typeof routeRepository.invalidateSearchRead === 'function') {
+    routeRepository.invalidateSearchRead();
+  }
+  return shaped;
 }
 
 /**
@@ -296,7 +340,12 @@ async function update(id, { name, category, description, lat, lng, details, imag
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return null;
   const full = await persistBuildingMedia(sb, Number(id), image_url, cloudinary_public_id);
-  return shapeWriteRow(full || row);
+  const shaped = shapeWriteRow(full || row);
+  invalidateReadFlight();
+  if (typeof routeRepository.invalidateSearchRead === 'function') {
+    routeRepository.invalidateSearchRead();
+  }
+  return shaped;
 }
 
 /**
@@ -308,7 +357,12 @@ async function deleteBuilding(id) {
   const sb = getSupabaseClient();
   const { data, error } = await sb.rpc('app_delete_building', { p_id: Number(id) });
   if (error) throw fail('delete', error);
-  return data == null ? null : data;
+  if (data == null) return null;
+  invalidateReadFlight();
+  if (typeof routeRepository.invalidateSearchRead === 'function') {
+    routeRepository.invalidateSearchRead();
+  }
+  return data;
 }
 
 module.exports = {
@@ -319,7 +373,9 @@ module.exports = {
   update,
   delete: deleteBuilding,
   search,
+  searchWithRoster,
   listVrRouteIdByBuilding,
   countAll,
   listAllOrderedByName,
+  invalidateReadFlight,
 };

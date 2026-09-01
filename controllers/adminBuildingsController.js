@@ -44,6 +44,22 @@ function auditAdminMutation(req, action, targetType, targetId, message) {
   }).catch(() => {});
 }
 
+// A successful building mutation changes the active roster used by availability
+// joins and (when routes also use Supabase) the route-search destination data.
+// Detach only in-flight snapshots; callers already waiting finish on their
+// original read, while later calls fetch the new source state.
+function invalidateBuildingReadFlights() {
+  if (typeof routeAvailability.invalidateAvailabilityRead === 'function') {
+    routeAvailability.invalidateAvailabilityRead();
+  }
+  if (typeof buildingRepository.invalidateReadFlight === 'function') {
+    buildingRepository.invalidateReadFlight();
+  }
+  if (typeof routeRepository.invalidateSearchRead === 'function') {
+    routeRepository.invalidateSearchRead();
+  }
+}
+
 // Run a MySQL mutation inside a transaction: begin -> fn(conn) -> commit, with
 // rollback on any throw and a guaranteed release. Mirrors the helper in
 // controllers/adminVrController.js. Never logs a raw error, SQL, payload,
@@ -194,6 +210,8 @@ exports.createBuilding = async (req, res) => {
       building = row;
     }
 
+    invalidateBuildingReadFlights();
+
     // BE.3: the client replaces its local row with THIS response, so the created
     // row must already carry the availability fields — otherwise a freshly
     // created (and necessarily unrouted) building would render as if it were
@@ -272,6 +290,8 @@ exports.updateBuilding = async (req, res) => {
       );
       building = row;
     }
+
+    invalidateBuildingReadFlights();
 
     // BE.3: decorate for the same reason as create — and because a RENAME can
     // change availability (the route-source join is by canonical name), so the
@@ -393,6 +413,7 @@ exports.deleteBuilding = async (req, res) => {
       }
     }
 
+    invalidateBuildingReadFlights();
     auditAdminMutation(req, 'admin.building.delete', 'building', id, 'Admin deleted a building.');
     return res.json({ success: true, message: 'Building deleted.' });
   } catch (error) {

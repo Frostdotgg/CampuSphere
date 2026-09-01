@@ -202,9 +202,17 @@ exports.apiSearch = async (req, res) => {
     // building hits were read from the route backend and their ids — which are
     // backend-local — were emitted as `building.id`. The browser then opened a
     // panel for whatever building happened to own that id in the OTHER backend.
-    const buildingRows = mapRuntime.isBuildingSupabase()
-      ? await buildingRepository.search(raw, { limit: MAX_RESULTS })
-      : (await db.query(
+    let rosterRows = null;
+    let buildingRows;
+    if (mapRuntime.isBuildingSupabase()) {
+      // The Supabase building search is an in-memory filter over the same
+      // roster needed below to remap route hits. Reuse that one active read
+      // instead of fetching the full building list twice per search request.
+      const buildingSearch = await buildingRepository.searchWithRoster(raw, { limit: MAX_RESULTS });
+      buildingRows = buildingSearch.matches;
+      rosterRows = buildingSearch.roster;
+    } else {
+      buildingRows = (await db.query(
         `SELECT *
            FROM buildings
           WHERE name LIKE ?
@@ -215,6 +223,7 @@ exports.apiSearch = async (req, res) => {
           LIMIT ?`,
         [term, term, term, term, MAX_RESULTS]
       ))[0];
+    }
 
     const routeRows = mapRuntime.isRouteSupabase()
       ? await routeRepository.searchRoutes(raw, { limit: MAX_RESULTS })
@@ -248,9 +257,9 @@ exports.apiSearch = async (req, res) => {
     // A route hit's joined building row belongs to the ROUTE source. To hand the
     // browser an actionable result we must re-resolve it to the ONE building-source
     // row with the same canonical name. Load the active building-source roster once.
-    const rosterRows = mapRuntime.isBuildingSupabase()
-      ? await buildingRepository.listAll()
-      : (await db.query('SELECT * FROM buildings'))[0];
+    if (rosterRows === null) {
+      rosterRows = (await db.query('SELECT * FROM buildings'))[0];
+    }
     const rosterByCanonical = new Map();
     for (const r of (rosterRows || [])) {
       const k = routeAvailability.canonicalKey(r.name);

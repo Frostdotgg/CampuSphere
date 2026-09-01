@@ -34,6 +34,7 @@
    ======================================== */
 
 const { getSupabaseClient } = require('../config/supabase');
+const { createSingleFlight } = require('../utils/singleFlight');
 
 // Column lists kept explicit so a schema addition can never silently widen a
 // response. The PostGIS `location` geography is deliberately excluded (the UI
@@ -144,6 +145,46 @@ async function loadStepsByRoute(sb, routeIds, columns, method) {
     byRoute.get(rid).push(s);
   }
   return byRoute;
+}
+
+// The search corpus is small but expensive to assemble over the remote
+// PostgREST connection: routes, destination buildings, and ordered steps are
+// three reads. Share only the active corpus load across concurrent search
+// terms; the source is discarded immediately after it settles, so later calls
+// always read fresh data.
+async function loadSearchSource() {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb
+    .from('campus_routes')
+    .select(ROUTE_COLUMNS)
+    .order('title', { ascending: true });
+  if (error) throw fail('searchRoutes', error);
+
+  const routes = data || [];
+  if (routes.length === 0) {
+    return {
+      routes,
+      buildingById: new Map(),
+      stepsByRoute: new Map()
+    };
+  }
+
+  const destIds = [...new Set(
+    routes.map((r) => toIdOrNull(r.destination_building_id)).filter((v) => v != null)
+  )];
+  const routeIds = routes.map((r) => toIdOrNull(r.id)).filter((v) => v != null);
+  const [buildingById, stepsByRoute] = await Promise.all([
+    loadBuildingsByIds(sb, destIds, SEARCH_BUILDING_COLUMNS, 'searchRoutes'),
+    loadStepsByRoute(sb, routeIds, 'route_id, landmark, instruction', 'searchRoutes')
+  ]);
+
+  return { routes, buildingById, stepsByRoute };
+}
+
+const searchSourceFlight = createSingleFlight(loadSearchSource);
+
+function invalidateSearchRead() {
+  searchSourceFlight.invalidate();
 }
 
 // Shape one campus_routes row + its destination building into the summary
@@ -369,27 +410,7 @@ async function searchRoutes(term, { limit } = {}) {
   if (needle === '') return [];
   const max = clampLimit(limit);
 
-  const sb = getSupabaseClient();
-  const { data, error } = await sb
-    .from('campus_routes')
-    .select(ROUTE_COLUMNS)
-    .order('title', { ascending: true });
-  if (error) throw fail('searchRoutes', error);
-
-  const routes = data || [];
-  if (routes.length === 0) return [];
-
-  const destIds = [...new Set(
-    routes.map((r) => toIdOrNull(r.destination_building_id)).filter((v) => v != null)
-  )];
-  const routeIds = routes.map((r) => toIdOrNull(r.id)).filter((v) => v != null);
-
-  const buildingById = await loadBuildingsByIds(
-    sb, destIds, SEARCH_BUILDING_COLUMNS, 'searchRoutes'
-  );
-  const stepsByRoute = await loadStepsByRoute(
-    sb, routeIds, 'route_id, landmark, instruction', 'searchRoutes'
-  );
+  const { routes, buildingById, stepsByRoute } = await searchSourceFlight();
 
   const out = [];
   for (const r of routes) {
@@ -889,6 +910,7 @@ module.exports = {
   findRouteSourceBuildingById,
   searchRoutes,
   listVrRouteIdByBuilding,
+  invalidateSearchRead,
   // admin route/graph (Section 7.9)
   adminBuildingExists,
   adminRouteExists,
