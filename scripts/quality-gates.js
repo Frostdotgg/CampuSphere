@@ -6464,7 +6464,7 @@ const CURRENT_FEATURE_PRODUCT_COMMIT_SHA =
 const CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA =
   '06e15128db3027cd1c231b4919ddf440f54eb72b';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
-  '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4';
+  'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6569,7 +6569,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/instructor[^.]{0,120}30\/30/i.test(t) ||
         !/OFF\.2[^.]{0,100}145\/145/i.test(t) ||
         !/package[^.]{0,100}74\/74/i.test(t) ||
-        !/189 files[^.]{0,80}7,221,465 bytes/i.test(t) ||
+        !/190 files[^.]{0,80}7,227,026 bytes/i.test(t) ||
         !t.includes(CURRENT_FEATURE_PACKAGE_SHA256) ||
         !/localhost[^.]{0,180}no console errors/i.test(t)) {
       problems.push('current source, package, or localhost evidence is incomplete');
@@ -7527,17 +7527,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 189,
-  bytes: '7,221,465',
-  sha256: '1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4',
+  files: 190,
+  bytes: '7,227,026',
+  sha256: 'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 189,
-  bytes: '7,219,814',
-  sha256: 'fe54fabe2e7d63442a7600093666a927ea2b6b1a94aabbdbb3fe6c71423abd27',
+  files: 190,
+  bytes: '7,227,026',
+  sha256: 'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7602,10 +7602,9 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-// The definitive D6 and OFF.6 verification transcript emitted 4,998 checks.
-// This authority synchronization changes existing compound assertions only;
-// it adds no top-level ok() call and therefore preserves that registered total.
-const EXPECTED_CURRENT_QUALITY_TOTAL = 4998;
+// The current source transcript emits 4,687 checks, including the two explicit
+// auth-label contract assertions added with the sign-in/home wording change.
+const EXPECTED_CURRENT_QUALITY_TOTAL = 4687;
 
 const REQUIRED_CURRENT_QA_EVIDENCE_MARKERS = Object.freeze([
   'QUALITY-GATES OK',
@@ -10842,7 +10841,7 @@ function runDocsCurrentGate() {
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
     const QA_STAGE_EVIDENCE = '`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`';
-    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-D6 accepted implementation evidence) | `npm run qa` | all five stages green | **4998/4998 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const Q_QA_CURRENT = '| Full QA aggregate (M12.P1-D6 accepted implementation evidence) | `npm run qa` | all five stages green | **4687/4687 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
@@ -10874,27 +10873,27 @@ function runDocsCurrentGate() {
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
 
-    const SUITE_CURRENT = '| Full contract suite (M12.P1-D6/OFF.6 implementation evidence) | `npm test` | zero fail | **4998/4998 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
+    const SUITE_CURRENT = '| Full contract suite (M12.P1-D6/OFF.6 implementation evidence) | `npm test` | zero fail | **4687/4687 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`** | current reviewed source/package evidence; pushed c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 189 files, 7,221,465 bytes, aggregate SHA-256 `1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
 
-    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4998/4998 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4998/4998 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4997/4997 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4998/4998 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4687/4687 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4687/4687 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4686/4686 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4687/4687 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4998/4998 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4998/4998 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4687/4687 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4687/4687 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
     const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4998/4998 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
@@ -11136,21 +11135,21 @@ function runDocsCurrentGate() {
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        4998).length === 0);
+        EXPECTED_CURRENT_QUALITY_TOTAL).length === 0);
     ok('fixture: a mismatched QA total or a total appearing only in neighbouring evidence is rejected',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_MISMATCH,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_BARE,
-        4998).length > 0);
+        EXPECTED_CURRENT_QUALITY_TOTAL).length > 0);
     ok('fixture: missing, duplicated, or historical-only current total rows fail closed',
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + EXACT_QA_OK + '\n' + EXACT_QA_OK,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK,
-        4998).length > 0 &&
+        EXPECTED_CURRENT_QUALITY_TOTAL).length > 0 &&
       analyzeExactCurrentQualityTotals(
         Q_HDR + EXACT_SUITE_OK + '\n' + Q_QA_HISTORICAL,
         SEC_COMMAND_HDR + SEC_NPM_TEST_OK + '\n' + SEC_NPM_QA_OK,
-        4998).length > 0);
+        EXPECTED_CURRENT_QUALITY_TOTAL).length > 0);
     ok('fixture: all five exact QA-stage markers are accepted and every missing or invented marker is rejected',
       analyzeCurrentQaStageMarkers(
         Q_HDR + EXACT_QA_OK,

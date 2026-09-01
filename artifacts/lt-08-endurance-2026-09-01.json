@@ -1,0 +1,254 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "Endurance map returned valid building data": {
+                    "name": "Endurance map returned valid building data",
+                    "path": "::Endurance map returned valid building data",
+                    "id": "2a38794f1500a4d5dceba3a55e4eb6e2",
+                    "passes": 9945,
+                    "fails": 0
+                },
+                "Endurance Buildings page returned the catalog": {
+                    "name": "Endurance Buildings page returned the catalog",
+                    "path": "::Endurance Buildings page returned the catalog",
+                    "id": "c2b89fe84192a9c58c23fbb86998ef54",
+                    "passes": 9945,
+                    "fails": 0
+                },
+                "Endurance directory returned valid markers": {
+                    "fails": 0,
+                    "name": "Endurance directory returned valid markers",
+                    "path": "::Endurance directory returned valid markers",
+                    "id": "515bf97b71cdefe03a72afc68924a4be",
+                    "passes": 9945
+                },
+                "Endurance search returned JSON": {
+                    "name": "Endurance search returned JSON",
+                    "path": "::Endurance search returned JSON",
+                    "id": "766bdc3f3adf606860d58c8c425afb60",
+                    "passes": 9945,
+                    "fails": 0
+                },
+                "Endurance search matched the requested building": {
+                    "name": "Endurance search matched the requested building",
+                    "path": "::Endurance search matched the requested building",
+                    "id": "8f8bb35cf7a1242949e5b4da87bc778e",
+                    "passes": 9945,
+                    "fails": 0
+                },
+                "Endurance route API returned a complete route": {
+                    "name": "Endurance route API returned a complete route",
+                    "path": "::Endurance route API returned a complete route",
+                    "id": "8e92ef515b59ef92e31cff470a9899b2",
+                    "passes": 9945,
+                    "fails": 0
+                },
+                "Endurance route page returned the first scene": {
+                    "id": "50688bafb3047851728cfdb0bf0583b2",
+                    "passes": 9945,
+                    "fails": 0,
+                    "name": "Endurance route page returned the first scene",
+                    "path": "::Endurance route page returned the first scene"
+                },
+                "Endurance iteration completed": {
+                    "path": "::Endurance iteration completed",
+                    "id": "531c5d8a2ae367edb24b6c2ccc83dc1a",
+                    "passes": 9945,
+                    "fails": 0,
+                    "name": "Endurance iteration completed"
+                }
+            },
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "checks": {
+            "passes": 79560,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_reqs": {
+            "count": 59670,
+            "rate": 99.17097019468544
+        },
+        "http_req_duration": {
+            "p(95)": 858.9937149999998,
+            "avg": 594.7459987078918,
+            "min": 33.8519,
+            "med": 571.0360499999999,
+            "max": 12048.7992,
+            "p(90)": 770.06817
+        },
+        "http_req_waiting": {
+            "p(95)": 824.8093,
+            "avg": 537.2043704307029,
+            "min": 30.1246,
+            "med": 529.02055,
+            "max": 12047.2348,
+            "p(90)": 738.9068299999999
+        },
+        "endurance_iteration_duration": {
+            "p(95)": 2316,
+            "avg": 2021.276219205631,
+            "min": 1287,
+            "med": 1992,
+            "max": 13473,
+            "p(90)": 2225.6000000000004
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "endurance_iteration_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "vus": {
+            "value": 20,
+            "min": 20,
+            "max": 50
+        },
+        "endurance_route_page_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "endurance_buildings_page_ok": {
+            "fails": 0,
+            "passes": 9945,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_connecting": {
+            "max": 7.7434,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.003879731858555389,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_sending": {
+            "med": 0,
+            "max": 46.0218,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.03299357298474947,
+            "min": 0
+        },
+        "http_req_receiving": {
+            "avg": 57.508634704205974,
+            "min": 0,
+            "med": 56.0955,
+            "max": 265.3534,
+            "p(90)": 126.9812,
+            "p(95)": 142.77211499999996
+        },
+        "iteration_duration": {
+            "max": 14473.0239,
+            "p(90)": 3226.00406,
+            "p(95)": 3316.48152,
+            "avg": 3021.6760273906393,
+            "min": 2286.4828,
+            "med": 2992.7484
+        },
+        "endurance_directory_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 59670,
+            "thresholds": {
+                "rate==0.0": false
+            },
+            "value": 0
+        },
+        "http_req_blocked": {
+            "p(95)": 0,
+            "avg": 0.0410246807440925,
+            "min": 0,
+            "med": 0,
+            "max": 18.1955,
+            "p(90)": 0
+        },
+        "vus_max": {
+            "min": 50,
+            "max": 50,
+            "value": 50
+        },
+        "endurance_route_api_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "endurance_search_match_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "data_sent": {
+            "count": 11571230,
+            "rate": 19231.273763128036
+        },
+        "endurance_map_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "endurance_search_ok": {
+            "passes": 9945,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "data_received": {
+            "count": 4203203051,
+            "rate": 6985683.33321488
+        },
+        "iterations": {
+            "count": 9945,
+            "rate": 16.528495032447573
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(90)": 770.06817,
+            "p(95)": 858.9937149999998,
+            "avg": 594.7459987078918,
+            "min": 33.8519,
+            "med": 571.0360499999999,
+            "max": 12048.7992
+        }
+    }
+}

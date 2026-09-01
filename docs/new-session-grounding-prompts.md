@@ -79,6 +79,10 @@ sort by date/id descending (newest first); `/home` removes Offices and loads
 bounded current Featured Locations and Latest Events; refresh layout remains
 gap-free; the service worker is v36; and Guided-VR scene-navigation hotspots use
 a compact directional portal marker while info hotspots remain distinct.
+The follow-up product commit `c1ca1b4` changes the auth tab to the
+provider-neutral `Sign in using Email` label and removes the `/home` campus
+search surface while retaining its three quick links. Documentation wording is
+recorded separately in `9de526e`.
 
 Instructor OAuth registration and profile display/editing now require only the
 Google-provided name, email, and picture; position, department, and employee ID
@@ -102,10 +106,22 @@ Current source evidence is not Production evidence. `npm test` exited 0 with
 `npm run qa` also exited 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
 `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
 vulnerabilities.
+The green suite figures above are accepted 2026-08-31 source evidence, not a
+claim about the fresh run. Fresh local verification on 2026-09-01 passed LT-05
+(4,000/4,000 checks), LT-06 (3,200/3,200 checks), LT-08 (79,560/79,560
+checks), the read-coalescing probe (6/6), DB-PERF-GATE, Supabase smoke,
+identity constraints, npm audit (0 vulnerabilities), and the 18/18 residue
+gate. The fresh `npm test` and first stage of `npm run qa` are RED only because
+the live Supabase freeze assertions find 26 buildings versus the frozen 25;
+the standalone pilot-credential probe also has three pre-existing Supabase
+data findings. No Supabase content was changed; canonical session revocation
+was limited to the explicitly authorized stale regression sessions. Docker
+remained running with restart count 0/OOM false. Load-test artifacts are under
+`artifacts/`; this remains local/source evidence, not Production proof.
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
-current source package is 189 files, 7,221,465 bytes, aggregate SHA-256
-`1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`.
+current source package is 190 files, 7,227,026 bytes, aggregate SHA-256
+`b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found
@@ -639,6 +655,8 @@ Recorded Git boundary to recompute:
 
 Current decisions/progress:
 - /home requires authentication; # is only a client fragment.
+- The auth sign-in tab uses the provider-neutral label `Sign in using Email`.
+- /home no longer renders its campus search bar; the three quick links remain.
 - Admin search icon spacing is fixed; landing user roles says 4.
 - Student/instructor Navigate Buildings is removed. Instructor copy uses
   Instructor and News & Announcements. Guest sidebar retains only Overview and
@@ -653,14 +671,14 @@ Current decisions/progress:
   path, PUBLIC revoke, and service_role EXECUTE. The owner applied it and
   supplied postflight evidence. Do not reapply it. No real CSPC instructor
   account exists for end-to-end OAuth acceptance.
-- Service worker is v36. The current source package is 189 files, 7,221,465
+- Service worker is v36. The current source package is 190 files, 7,227,026
   bytes, aggregate SHA-256
-  1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4.
+  b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f.
 - The offline publisher/camera/bounds/Drive decisions in the authority docs
   remain unchanged. Do not repeat bootstrap or rollback.
 
 Evidence boundaries:
-- Current source: npm test exit 0 with QUALITY-GATES OK; session residue 18/18;
+- Current source: npm test exit 0 with 4687/4687 and QUALITY-GATES OK; session residue 18/18;
   instructor 30/30; OFF.2 145/145; VR hotspot green; package 74/74.
 - Current full QA exited 0 with QUALITY-GATES OK, DB-PERF-GATE OK,
   [supabase-smoke] PASS, IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities.
@@ -727,7 +745,8 @@ added to align migration 0021 status; the real .env was never read. Recompute
 whether the commit and push completed; never normalize a mismatch. The safety ref is expected at
 d387c9151f1582cc4a8fc80002be52e11956335f.
 
-Current product truth: /home requires login; admin search spacing and role
+Current product truth: /home requires login and no longer includes its search
+bar; the auth tab says `Sign in using Email`; admin search spacing and role
 count 4 are fixed; role-specific dashboard removals/labels are implemented;
 events sort newest first; home uses bounded current building/event data and no
 Offices card; Guided-VR uses the compact portal marker; instructor OAuth/profile
@@ -742,8 +761,8 @@ Current evidence is source/package/local only: npm test and full npm run qa
 exited 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS,
 IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities; session residue
 18/18; instructor 30/30; OFF.2 145/145; VR hotspot green;
-package 74/74 at 189 files, 7,221,465 bytes, SHA-256
-1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4;
+package 74/74 at 190 files, 7,227,026 bytes, SHA-256
+b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f;
 rebuilt Docker localhost acceptance with no console errors. Keep this separate
 from owner-observed migration/Production facts, accepted historical evidence,
 missing real-instructor and immutable deployed-byte proof. Final Milestone 12

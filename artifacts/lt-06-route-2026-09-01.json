@@ -1,0 +1,195 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "VR route API returned a complete route": {
+                    "fails": 0,
+                    "name": "VR route API returned a complete route",
+                    "path": "::VR route API returned a complete route",
+                    "id": "fa6f8599ee8560101f99ec7ff0ec8b47",
+                    "passes": 150
+                },
+                "VR route scene page contains the expected scene": {
+                    "name": "VR route scene page contains the expected scene",
+                    "path": "::VR route scene page contains the expected scene",
+                    "id": "345e3b4c6dda1b51d8d6853690dbdecf",
+                    "passes": 2900,
+                    "fails": 0
+                },
+                "VR route playback completed": {
+                    "path": "::VR route playback completed",
+                    "id": "8840a6a5d0e0a8dfea0307ecc1dcb925",
+                    "passes": 150,
+                    "fails": 0,
+                    "name": "VR route playback completed"
+                }
+            }
+    },
+    "metrics": {
+        "http_req_duration{expected_response:true}": {
+            "avg": 579.56454432787,
+            "min": 462.8519,
+            "med": 545.76585,
+            "max": 2341.5665,
+            "p(90)": 611.9168500000001,
+            "p(95)": 685.36885
+        },
+        "checks": {
+            "passes": 3200,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "vus": {
+            "value": 48,
+            "min": 48,
+            "max": 50
+        },
+        "http_req_receiving": {
+            "p(95)": 6.7362549999999874,
+            "avg": 3.3314388196721283,
+            "min": 0,
+            "med": 2.63725,
+            "max": 33.6914,
+            "p(90)": 5.28093
+        },
+        "route_scene_ok": {
+            "passes": 150,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_waiting": {
+            "avg": 576.2154807868856,
+            "min": 459.7337,
+            "med": 542.4574,
+            "max": 2338.4027,
+            "p(90)": 608.21414,
+            "p(95)": 678.8047899999997
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 1.4253,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.013514032786885245,
+            "min": 0
+        },
+        "route_playback_ok": {
+            "passes": 150,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "data_received": {
+            "count": 184356900,
+            "rate": 4739642.45506419
+        },
+        "vus_max": {
+            "min": 50,
+            "max": 50,
+            "value": 50
+        },
+        "data_sent": {
+            "count": 608200,
+            "rate": 15636.24980225877
+        },
+        "http_req_duration": {
+            "avg": 579.56454432787,
+            "min": 462.8519,
+            "med": 545.76585,
+            "max": 2341.5665,
+            "p(90)": 611.9168500000001,
+            "p(95)": 685.36885
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3050,
+            "thresholds": {
+                "rate==0.0": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "count": 3050,
+            "rate": 78.41263054404678
+        },
+        "iteration_duration": {
+            "med": 15751.948349999999,
+            "max": 16526.4896,
+            "p(90)": 16153.4847,
+            "p(95)": 16221.127295,
+            "avg": 12791.880641333328,
+            "min": 6216.1836
+        },
+        "route_api_ok": {
+            "fails": 0,
+            "passes": 150,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "route_playback_duration": {
+            "max": 15526,
+            "p(90)": 15153.2,
+            "p(95)": 15220.55,
+            "avg": 11791.433333333332,
+            "min": 5216,
+            "med": 14752
+        },
+        "http_req_sending": {
+            "avg": 0.017624721311475418,
+            "min": 0,
+            "med": 0,
+            "max": 2.0896,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "route_page_ok": {
+            "passes": 2900,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_blocked": {
+            "med": 0,
+            "max": 7.6379,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.11922800000000001,
+            "min": 0
+        },
+        "route_scene_count": {
+            "min": 6,
+            "med": 26,
+            "max": 26,
+            "p(90)": 26,
+            "p(95)": 26,
+            "avg": 19.333333333333332
+        },
+        "iterations": {
+            "count": 150,
+            "rate": 3.8563588792154153
+        }
+    }
+}

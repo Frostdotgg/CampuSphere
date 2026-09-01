@@ -34,6 +34,10 @@ sort by date/id descending (newest first); `/home` removes Offices and loads
 bounded current Featured Locations and Latest Events; refresh layout remains
 gap-free; the service worker is v36; and Guided-VR scene-navigation hotspots use
 a compact directional portal marker while info hotspots remain distinct.
+The follow-up product commit `c1ca1b4` changes the auth tab to the
+provider-neutral `Sign in using Email` label and removes the `/home` campus
+search surface while retaining its three quick links. Documentation wording is
+recorded separately in `9de526e`.
 
 Instructor OAuth registration and profile display/editing now require only the
 Google-provided name, email, and picture; position, department, and employee ID
@@ -53,14 +57,26 @@ repair utility, and keeps the historical route/data freeze scoped to migrations
 the repair utility with `--apply`, apply SQL, or mutate either database.
 
 Current source evidence is not Production evidence. `npm test` exited 0 with
-`QUALITY-GATES OK`; the final canonical session-residue check passed `18/18`.
+`4687/4687` and `QUALITY-GATES OK`; the final canonical session-residue check passed `18/18`.
 `npm run qa` also exited 0 with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
 `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
 vulnerabilities.
+The green suite figures above are accepted 2026-08-31 source evidence, not a
+claim about the fresh run. Fresh local verification on 2026-09-01 passed LT-05
+(4,000/4,000 checks), LT-06 (3,200/3,200 checks), LT-08 (79,560/79,560
+checks), the read-coalescing probe (6/6), DB-PERF-GATE, Supabase smoke,
+identity constraints, npm audit (0 vulnerabilities), and the 18/18 residue
+gate. The fresh `npm test` and first stage of `npm run qa` are RED only because
+the live Supabase freeze assertions find 26 buildings versus the frozen 25;
+the standalone pilot-credential probe also has three pre-existing Supabase
+data findings. No Supabase content was changed; canonical session revocation
+was limited to the explicitly authorized stale regression sessions. Docker
+remained running with restart count 0/OOM false. Load-test artifacts are under
+`artifacts/`; this remains local/source evidence, not Production proof.
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
-current source package is 189 files, 7,221,465 bytes, aggregate SHA-256
-`1c0678ac91987c56d6f6aaeb88a15062d9d95e5bfdc48137dd7113472a3bcfc4`.
+current source package is 190 files, 7,227,026 bytes, aggregate SHA-256
+`b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found

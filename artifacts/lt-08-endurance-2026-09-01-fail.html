@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LT-08 k6 endurance result — 2026-09-01</title>
+  <style>
+    html, body { margin: 0; background: #080b10; color: #e6edf3; }
+    body { padding: 28px 34px; font: 17px/1.34 Consolas, "Cascadia Mono", monospace; }
+    pre { margin: 0; white-space: pre-wrap; tab-size: 2; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    .pass { color: #55d187; }
+    .muted { color: #9aa7b4; }
+  </style>
+</head>
+<body>
+<pre>LT-08 — ENDURANCE TEST — COMPLETE K6 RESULTS
+Target: local Docker http://localhost:3000
+Workload: 50 constant VUs for 10 minutes
+Result: <span class="fail">FAIL — strict zero-error threshold crossed</span>
+
+The run completed its scheduled 10 minutes. A short timeout burst occurred at
+about 7 minutes 37 seconds. 28 HTTP requests failed (0.14%): 27 search
+requests and one Buildings-page request. The temporary local test session was
+logged out and the former cookie replay was denied.
+
+THRESHOLDS
+  checks                         rate=99.68%  <span class="fail">FAIL</span>
+  endurance_buildings_page_ok   rate=99.96%  <span class="fail">FAIL</span>
+  endurance_directory_ok        rate=100.00% <span class="pass">PASS</span>
+  endurance_iteration_ok        rate=99.18%  <span class="fail">FAIL</span>
+  endurance_map_ok               rate=100.00% <span class="pass">PASS</span>
+  endurance_route_api_ok         rate=100.00% <span class="pass">PASS</span>
+  endurance_route_page_ok       rate=100.00% <span class="pass">PASS</span>
+  endurance_search_match_ok     rate=99.18%  <span class="fail">FAIL</span>
+  endurance_search_ok           rate=99.18%  <span class="fail">FAIL</span>
+  http_req_failed                rate=0.14%   <span class="fail">FAIL</span>
+
+TOTAL RESULTS
+  checks_total.......: 26408  43.78412/s
+  checks_succeeded...: 99.68% 26326 out of 26408
+  checks_failed......: 0.31%  82 out of 26408
+
+CHECKS
+  ✓ Endurance map returned valid building data                 3301 / 3301
+  ✗ Endurance Buildings page returned the catalog              3300 / 3301
+  ✓ Endurance directory returned valid markers                  3301 / 3301
+  ✗ Endurance search returned JSON                              3274 / 3301
+  ✗ Endurance search matched the requested building             3274 / 3301
+  ✓ Endurance route API returned a complete route               3301 / 3301
+  ✓ Endurance route page returned the first scene               3301 / 3301
+  ✗ Endurance iteration completed                               3274 / 3301
+
+CUSTOM
+  endurance_buildings_page_ok....: 99.96%  3300 out of 3301
+  endurance_directory_ok.........: 100.00% 3301 out of 3301
+  endurance_iteration_duration...: avg=8129.171766 min=3906 med=5862 max=36758 p(90)=14495 p(95)=15537 ms
+  endurance_iteration_ok.........: 99.18%  3274 out of 3301
+  endurance_map_ok...............: 100.00% 3301 out of 3301
+  endurance_route_api_ok.........: 100.00% 3301 out of 3301
+  endurance_route_page_ok........: 100.00% 3301 out of 3301
+  endurance_search_match_ok......: 99.18%  3274 out of 3301
+  endurance_search_ok............: 99.18%  3274 out of 3301
+
+HTTP
+  http_req_duration..............: avg=3.47s min=363.12ms med=2.49s max=30s p(90)=7.94s p(95)=11.64s
+  { expected_response:true }.....: avg=3.44s min=363.12ms med=2.49s max=29.92s p(90)=7.88s p(95)=11.55s
+  http_req_failed................: 0.14%  28 out of 19806
+  http_reqs......................: 19806  32.83809/s
+
+EXECUTION
+  iteration_duration.............: avg=9.12s min=4.9s med=6.86s max=37.75s p(90)=15.49s p(95)=16.53s
+  iterations.....................: 3301   5.473015/s
+  vus............................: 4      min=4 max=50
+  vus_max........................: 50     min=50 max=50
+
+NETWORK
+  data_received..................: 1.4 GB  2.3 MB/s
+  data_sent......................: 3.8 MB  6.4 kB/s
+
+Docker endpoint samples (app memory fluctuated around 588–619 MiB after warm-up;
+MySQL stayed around 406–409 MiB; no container restart/OOM was observed):
+  app end:   4.12% CPU, 607.5 MiB
+  mysql end: 0.47% CPU, 408.8 MiB
+
+<span class="muted">Evidence scope: local Docker only; this does not establish Production capacity.</span></pre>
+</body>
+</html>

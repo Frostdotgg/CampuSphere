@@ -1,0 +1,209 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "Buildings page returned the catalog": {
+                    "passes": 800,
+                    "fails": 0,
+                    "name": "Buildings page returned the catalog",
+                    "path": "::Buildings page returned the catalog",
+                    "id": "33d6f3f1cf2e12cb6aca254e100db490"
+                },
+                "Map page returned 200": {
+                    "path": "::Map page returned 200",
+                    "id": "7d7ef339f812b930dd7fda4e04c4be12",
+                    "passes": 800,
+                    "fails": 0,
+                    "name": "Map page returned 200"
+                },
+                "Directory returned valid building markers": {
+                    "id": "fa757bc03ca0c5774c8d775fb1e94b29",
+                    "passes": 800,
+                    "fails": 0,
+                    "name": "Directory returned valid building markers",
+                    "path": "::Directory returned valid building markers"
+                },
+                "Map search returned 200": {
+                    "id": "2a75132732b57dd16b5bd20013f159d9",
+                    "passes": 800,
+                    "fails": 0,
+                    "name": "Map search returned 200",
+                    "path": "::Map search returned 200"
+                },
+                "Map search returned the requested building": {
+                    "path": "::Map search returned the requested building",
+                    "id": "5b434573fcb21953aacc8671c85410f5",
+                    "passes": 800,
+                    "fails": 0,
+                    "name": "Map search returned the requested building"
+                }
+            }
+    },
+    "metrics": {
+        "vus": {
+            "value": 39,
+            "min": 39,
+            "max": 50
+        },
+        "http_reqs": {
+            "count": 3200,
+            "rate": 99.88118851710047
+        },
+        "data_sent": {
+            "count": 614200,
+            "rate": 19170.945621000974
+        },
+        "iterations": {
+            "rate": 24.970297129275117,
+            "count": 800
+        },
+        "http_req_waiting": {
+            "p(90)": 934.3952,
+            "p(95)": 2084.774875,
+            "avg": 725.1971649062511,
+            "min": 460.981,
+            "med": 602.43285,
+            "max": 2326.5472
+        },
+        "http_req_duration": {
+            "avg": 820.7006409687492,
+            "min": 547.5196,
+            "med": 720.1284,
+            "max": 2448.3105,
+            "p(90)": 965.06855,
+            "p(95)": 2183.691135
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(90)": 965.06855,
+            "p(95)": 2183.691135,
+            "avg": 820.7006409687492,
+            "min": 547.5196,
+            "med": 720.1284,
+            "max": 2448.3105
+        },
+        "http_req_sending": {
+            "avg": 0.05044646875000002,
+            "min": 0,
+            "med": 0,
+            "max": 5.2691,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "search_ok": {
+            "passes": 800,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_tls_handshaking": {
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0
+        },
+        "search_duration": {
+            "avg": 934.4492191249986,
+            "min": 699.5933,
+            "med": 819.0761,
+            "max": 2448.3105,
+            "p(90)": 987.9181299999999,
+            "p(95)": 2333.50661
+        },
+        "http_req_receiving": {
+            "max": 206.5055,
+            "p(90)": 149.17406,
+            "p(95)": 158.0522,
+            "avg": 95.45302959375016,
+            "min": 3.1361,
+            "med": 98.8169
+        },
+        "iteration_duration": {
+            "min": 1735.649,
+            "med": 1890.43745,
+            "max": 3498.36,
+            "p(90)": 2063.59947,
+            "p(95)": 3407.6722649999997,
+            "avg": 1999.938638625002
+        },
+        "buildings_page_ok": {
+            "passes": 800,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "directory_ok": {
+            "passes": 800,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "search_match_ok": {
+            "passes": 800,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "vus_max": {
+            "value": 50,
+            "min": 50,
+            "max": 50
+        },
+        "http_req_blocked": {
+            "avg": 0.7363295,
+            "min": 0,
+            "med": 0,
+            "max": 18.3256,
+            "p(90)": 0,
+            "p(95)": 9.5856
+        },
+        "checks": {
+            "fails": 0,
+            "passes": 4000,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "map_page_ok": {
+            "passes": 800,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "http_req_connecting": {
+            "p(95)": 0.4708,
+            "avg": 0.08520371875000002,
+            "min": 0,
+            "med": 0,
+            "max": 4.711,
+            "p(90)": 0
+        },
+        "data_received": {
+            "count": 286333400,
+            "rate": 8937287.59504448
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3200,
+            "thresholds": {
+                "rate==0.0": false
+            },
+            "value": 0
+        }
+    }
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LT-08 k6 endurance - PASS - 2026-09-01</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; background: #080b10; color: #e6edf3; }
+    body { padding: 38px 48px; font: 20px/1.42 Consolas, "Cascadia Mono", monospace; }
+    h1 { margin: 0 0 8px; color: #55d187; font-size: 28px; }
+    h2 { margin: 28px 0 8px; color: #e6edf3; font-size: 22px; }
+    .muted { color: #9aa7b4; }
+    .pass { color: #55d187; font-weight: 700; }
+    .value { color: #55b7ff; }
+    pre { margin: 0; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+<h1>LT-08 - ENDURANCE TEST - COMPLETE K6 RESULTS</h1>
+<div>Run date: <span class="value">2026-09-01</span></div>
+<div>Target: local Docker <span class="value">http://localhost:3000</span> (not Production)</div>
+<div>Workload: <span class="value">50 constant VUs for 10 minutes</span></div>
+<div>Result: <span class="pass">PASS - all strict thresholds satisfied</span></div>
+
+<h2>THRESHOLDS</h2>
+<pre class="pass">checks                         rate=100.00% PASS
+endurance_buildings_page_ok   rate=100.00% PASS
+endurance_directory_ok        rate=100.00% PASS
+endurance_iteration_ok        rate=100.00% PASS
+endurance_map_ok               rate=100.00% PASS
+endurance_route_api_ok         rate=100.00% PASS
+endurance_route_page_ok       rate=100.00% PASS
+endurance_search_match_ok      rate=100.00% PASS
+endurance_search_ok            rate=100.00% PASS
+http_req_failed                rate=0.00%   PASS</pre>
+
+<h2>TOTAL RESULTS</h2>
+<pre>checks_total..................: <span class="value">79,560</span>
+checks_succeeded..............: <span class="pass">100.00%  79,560 out of 79,560</span>
+checks_failed.................: <span class="pass">0.00%    0 out of 79,560</span>
+iterations....................: <span class="value">9,945 completed</span>
+http_reqs.....................: <span class="value">59,670</span>
+http_req_failed...............: <span class="pass">0.00%    0 out of 59,670</span></pre>
+
+<h2>HTTP</h2>
+<pre>http_req_duration.............: avg=<span class="value">594.74ms</span>  p95=<span class="value">858.99ms</span>  max=<span class="value">12.04s</span>
+{ expected_response:true }....: avg=<span class="value">594.74ms</span>  p95=<span class="value">858.99ms</span>  max=<span class="value">12.04s</span></pre>
+
+<h2>EXECUTION</h2>
+<pre>iteration_duration............: avg=<span class="value">3.02s</span>  p95=<span class="value">3.31s</span>  max=<span class="value">14.47s</span>
+vus...........................: <span class="value">50 max</span>
+vus_max.......................: <span class="value">50</span></pre>
+
+<h2>DOCKER OBSERVATIONS</h2>
+<pre>app memory sampled............: <span class="value">438.0-582.5 MiB</span>
+app final sample..............: <span class="value">516.4 MiB</span>
+MySQL memory sampled..........: <span class="value">420.3-423.3 MiB</span>
+MySQL final sample............: <span class="value">422.8 MiB</span>
+container restarts............: <span class="pass">0</span>
+OOM-killed....................: <span class="pass">false</span></pre>
+
+<p class="muted">Evidence scope: local Docker only; this does not establish Production capacity. The full quality suite remains blocked by live Supabase freeze drift, documented separately.</p>
+</body>
+</html>
