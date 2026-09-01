@@ -18,7 +18,7 @@ function deepFreeze(value) {
 
 const SELECTED_DEMO_FREEZE = deepFreeze({
   schema_version: 2,
-  frozen_on: '2026-08-25',
+  frozen_on: '2026-09-02',
   migrations: [
     ['0001_initial_schema.sql', '4a3b751758caaf47795d35ff479ffbba5127b248e950d78db0afcdd811840e3e'],
     ['0002_seed_data.sql', '90b7635cd22cf011b018c6ae63e5c11877d5565cdea37886808cf369761bd9a0'],
@@ -140,7 +140,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         exact_reverse_geometries: 25,
         routable_destinations: 25,
         total_vr_scenes: 664,
-        total_vr_hotspots: 1373,
+        total_vr_hotspots: 1374,
         selected_vr_scenes: 101,
         selected_source_hotspots: 280,
         selected_schedule_hotspots: 0,
@@ -160,7 +160,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         'Technohub Building', 'Villafuerte Hall'
       ],
       fingerprints: {
-        building_route: '727605aa08c648ea645148087e937ea8f9723ca2fc201c3ece7f7c0229424625',
+        building_route: '36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688',
         selected_vr: '1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c',
         guided_catalog: 'ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6'
       }
@@ -169,7 +169,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
   fingerprints: {
     migrations: '904978d7acf081c6e2757ff78bbc8c27e71decfedc948326e34fb76ede614de7',
     guided_policy: '41935fcfcdbf4b653e9983d71208c481ab7fc510034df66b18a2f3a43035d81c',
-    manifest: '17959fa6efa1194afcc3709b7334f7752616bc84fc47528f77b53c8aebaad969'
+    manifest: '85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c'
   }
 });
 

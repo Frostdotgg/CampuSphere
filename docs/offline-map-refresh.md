@@ -5,7 +5,7 @@ center, opening camera, Drive workflow, and user-controlled update model remain
 unchanged. The later product batch advances the service-worker shell to `v36`;
 that cache revision does not change the PMTiles release rectangle or publisher.
 The current full source package is 190 files, 7,227,026 bytes, aggregate
-SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`
+SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`
 with package boundary `74/74`. Keep this current full-package evidence separate
 from the historical offline-specific `c4de5ab` package evidence below.
 

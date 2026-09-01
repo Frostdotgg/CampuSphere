@@ -121,7 +121,7 @@ remained running with restart count 0/OOM false. Load-test artifacts are under
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
 current source package is 190 files, 7,227,026 bytes, aggregate SHA-256
-`b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`.
+`64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found
@@ -673,7 +673,7 @@ Current decisions/progress:
   account exists for end-to-end OAuth acceptance.
 - Service worker is v36. The current source package is 190 files, 7,227,026
   bytes, aggregate SHA-256
-  b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f.
+  64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71.
 - The offline publisher/camera/bounds/Drive decisions in the authority docs
   remain unchanged. Do not repeat bootstrap or rollback.
 
@@ -762,7 +762,7 @@ exited 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS,
 IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities; session residue
 18/18; instructor 30/30; OFF.2 145/145; VR hotspot green;
 package 74/74 at 190 files, 7,227,026 bytes, SHA-256
-b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f;
+64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71;
 rebuilt Docker localhost acceptance with no console errors. Keep this separate
 from owner-observed migration/Production facts, accepted historical evidence,
 missing real-instructor and immutable deployed-byte proof. Final Milestone 12

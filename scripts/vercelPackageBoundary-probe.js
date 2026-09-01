@@ -78,7 +78,7 @@ const VERCEL_JSON_FILE = 'vercel.json';
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
   files: 190,
   bytes: 7227026,
-  sha256: 'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f',
+  sha256: '64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71',
 });
 
 /* M12.P1-R8 label correction.

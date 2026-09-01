@@ -6464,7 +6464,7 @@ const CURRENT_FEATURE_PRODUCT_COMMIT_SHA =
 const CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA =
   '06e15128db3027cd1c231b4919ddf440f54eb72b';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
-  'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f';
+  '64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -7529,7 +7529,7 @@ function analyzeProvenanceRemediationRow(md) {
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   files: 190,
   bytes: '7,227,026',
-  sha256: 'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f',
+  sha256: '64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
@@ -7537,7 +7537,7 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 190,
   bytes: '7,227,026',
-  sha256: 'b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f',
+  sha256: '64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -10877,13 +10877,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **190 files, 7,227,026 bytes, aggregate SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 190 files, 7,227,026 bytes, aggregate SHA-256 `b55720bc5bac1717358eac91218179eada5a0919fae4cb23662f0a890164416f`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 190 files, 7,227,026 bytes, aggregate SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
