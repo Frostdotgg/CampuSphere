@@ -1,13 +1,17 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-08-31): the offline publisher, bounds, release
-center, opening camera, Drive workflow, and user-controlled update model remain
-unchanged. The later product batch advances the service-worker shell to `v36`;
-that cache revision does not change the PMTiles release rectangle or publisher.
+Current handoff note (2026-09-02): the read-coalescing, load-evidence, and
+freeze-refresh commits do not change the offline publisher, bounds, release
+center, opening camera, Drive workflow, IndexedDB activation, or
+user-controlled update model. The service-worker shell remains `v36`; that
+cache revision does not change the PMTiles release rectangle or publisher.
 The current full source package is 190 files, 7,227,026 bytes, aggregate
 SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`
 with package boundary `74/74`. Keep this current full-package evidence separate
-from the historical offline-specific `c4de5ab` package evidence below.
+from the historical offline-specific `c4de5ab` package evidence below. GitHub
+`main` contained `7f4bfce` before the September 2 authority synchronization,
+but Vercel deployment/Ready state, promotion, Production smoke, and immutable
+deployed bytes for that commit remain unverified.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

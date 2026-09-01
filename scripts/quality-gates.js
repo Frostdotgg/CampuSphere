@@ -6463,6 +6463,24 @@ const CURRENT_FEATURE_PRODUCT_COMMIT_SHA =
   '12736ffb31cf54354212ef0ee13cf107e6d0846c';
 const CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA =
   '06e15128db3027cd1c231b4919ddf440f54eb72b';
+const CURRENT_GROUNDING_ROLE_COMMIT_SHA =
+  '9de526ec260d065a0c1fe967d7fac0ae715ea2d6';
+const CURRENT_AUTH_UI_COMMIT_SHA =
+  'c1ca1b441e3ef4577de278f531fab8f41e1f03fa';
+const CURRENT_READ_COALESCING_COMMIT_SHA =
+  'b8da21ef79b29e672737730ef4d35e38c1ca1b59';
+const CURRENT_PERFORMANCE_EVIDENCE_COMMIT_SHA =
+  '0491c5d8be4b9b82ac0a84aa155eb46f4ec7947a';
+const CURRENT_FREEZE_REFRESH_COMMIT_SHA =
+  '7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79';
+const CURRENT_REJECTED_NPM_TEST_SHA256 =
+  '5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd';
+const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
+  'd16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d';
+const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
+  '36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688';
+const CURRENT_FREEZE_MANIFEST_SHA256 =
+  '85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
   '64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
@@ -6502,7 +6520,157 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     scope = raw.slice(start + CURRENT_RELEASE_CONTINUITY_START.length, end);
   }
 
+  // Only the first current section is operative. Older snapshots remain in the
+  // bounded continuity block for auditability but must never satisfy or
+  // contradict the live-section contract.
+  const historicalAt = scope.indexOf('## Historical Release Continuity');
+  if (historicalAt >= 0) scope = scope.slice(0, historicalAt);
+
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  /* Current September 2 handoff. This branch is deliberately first so the
+     historical 12736ff/c4de5ab material cannot route a current document into
+     an older validator. */
+  if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
+    const requiredCommits = [
+      CURRENT_GROUNDING_ROLE_COMMIT_SHA,
+      CURRENT_AUTH_UI_COMMIT_SHA,
+      CURRENT_READ_COALESCING_COMMIT_SHA,
+      CURRENT_PERFORMANCE_EVIDENCE_COMMIT_SHA,
+      CURRENT_HOME_AUTH_COMMIT_SHA,
+      CURRENT_FEATURE_PRODUCT_COMMIT_SHA,
+      CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA,
+      CURRENT_OFFLINE_CAMERA_COMMIT_SHA,
+    ];
+    if (requiredCommits.some((sha) => !t.includes(sha)) ||
+        !/HEAD[^.]{0,180}origin\/main[^.]{0,180}remote `?main`?[^.]{0,180}7f4bfce/i.test(t) ||
+        !/index was empty/i.test(t) ||
+        !/no tracked paths were modified/i.test(t) ||
+        !/exactly two untracked paths/i.test(t) ||
+        !/npm-test-2026-09-02\.txt/i.test(t) ||
+        !/npm-test-2026-09-02-final\.txt/i.test(t) ||
+        !/zero stashes/i.test(t) ||
+        !/backup-pre-trailer-strip/i.test(t)) {
+      problems.push('September 2 Git start truth, lineage, or transcript inventory is incomplete');
+    }
+
+    if (!/owner[^.]{0,120}authorized[^.]{0,220}11 authority documents/i.test(t) ||
+        !/docs\/offline-map-refresh\.md/i.test(t) ||
+        !/scripts\/quality-gates\.js/i.test(t) ||
+        !/commit both transcripts/i.test(t) ||
+        !/push `?main`?/i.test(t) ||
+        !/did not inspect or record `?\.env`? contents/i.test(t) ||
+        !/probes may load configured environment values/i.test(t)) {
+      problems.push('bounded authority-sync scope or secret-handling boundary is missing');
+    }
+
+    if (!/\/home[^.]{0,100}requireLogin/i.test(t) ||
+        !/Sign in using Email/i.test(t) ||
+        !/\/home[^.]{0,120}campus search is removed/i.test(t) ||
+        !/three quick links remain/i.test(t) ||
+        !/service worker v36/i.test(t) ||
+        !/Guided-VR portal-marker/i.test(t)) {
+      problems.push('current product behavior summary is incomplete');
+    }
+
+    if (!/singleFlight\.js/i.test(t) ||
+        !/shares only an active read promise/i.test(t) ||
+        !/not a completed-result cache/i.test(t) ||
+        !/discarded when the read settles/i.test(t) ||
+        !/building rows are cloned/i.test(t) ||
+        !/mutations invalidate the relevant active read/i.test(t)) {
+      problems.push('read-coalescing behavior or invalidation boundary is incomplete');
+    }
+
+    if (!/owner removed the unintended 26th Supabase building/i.test(t) ||
+        !/Codex did not mutate the database/i.test(t) ||
+        !/Academic Building IV Mac Laboratory/i.test(t) ||
+        !/intentional and retained/i.test(t) ||
+        !/freeze is dated 2026-09-02/i.test(t) ||
+        !/MySQL at 34 buildings[^.]{0,200}44 route nodes[^.]{0,200}100 directed/i.test(t) ||
+        !/671 scenes[^.]{0,120}1,397 hotspots[^.]{0,120}one selected schedule hotspot/i.test(t) ||
+        !/Supabase at 25 buildings[^.]{0,200}26 route nodes[^.]{0,200}50 directed/i.test(t) ||
+        !/664 scenes[^.]{0,120}1,374 hotspots[^.]{0,120}zero selected schedule hotspots/i.test(t) ||
+        !/25 active Guided-VR destinations[^.]{0,120}472 configured steps[^.]{0,120}99 unique/i.test(t) ||
+        !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
+        !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
+        !/Do not change a count or fingerprint merely to make a gate green/i.test(t)) {
+      problems.push('intended dataset, hotspot, freeze, or fingerprint truth is incomplete');
+    }
+
+    if (!t.includes(CURRENT_REJECTED_NPM_TEST_SHA256) ||
+        !/4,683 PASS lines[^.]{0,120}four FAIL lines/i.test(t) ||
+        !/BE6-DATASET-FREEZE-PROBE FAILED: 3/i.test(t) ||
+        !/QUALITY-GATES FAILED: 1/i.test(t) ||
+        !t.includes(CURRENT_ACCEPTED_NPM_TEST_SHA256) ||
+        !/4,687 PASS lines[^.]{0,100}zero FAIL lines/i.test(t) ||
+        !/BE\.6 `?46\/46`?/i.test(t) ||
+        !/session residue `?18\/18`?/i.test(t) ||
+        !/QUALITY-GATES OK/i.test(t)) {
+      problems.push('accepted and rejected September 2 transcript evidence is incomplete');
+    }
+
+    if (!/LT-05 passed 4,000\/4,000/i.test(t) ||
+        !/LT-06 passed 3,200\/3,200/i.test(t) ||
+        !/LT-08 passed 79,560\/79,560/i.test(t) ||
+        !/54\.55% CPU/i.test(t) ||
+        !/582\.5 MiB/i.test(t) ||
+        !/21\.94% CPU/i.test(t) ||
+        !/zero restarts and no OOM/i.test(t) ||
+        !/read-coalescing probe passed `?6\/6`?/i.test(t) ||
+        !/LT-04[^.]{0,180}5 VUs for 30/i.test(t) ||
+        !/50\/50 checks[^.]{0,120}zero request failures/i.test(t) ||
+        !/Cloudinary asset delivery[^.]{0,100}not an upload path/i.test(t) ||
+        !/not Production-capacity evidence/i.test(t)) {
+      problems.push('local load, Docker, or LT-04 evidence boundary is incomplete');
+    }
+
+    if (!/read-coalescing `?6\/6`?/i.test(t) ||
+        !/package boundary `?74\/74`?/i.test(t) ||
+        !/npm run qa/i.test(t) ||
+        !/DB-PERF-GATE OK/i.test(t) ||
+        !/\[supabase-smoke\] PASS/i.test(t) ||
+        !/IDENTITY-CONSTRAINTS OK/i.test(t) ||
+        !/zero audit vulnerabilities/i.test(t) ||
+        !/git diff --check/i.test(t) ||
+        !/190 files[^.]{0,80}7,227,026 bytes/i.test(t) ||
+        !t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
+      problems.push('synchronization verification plan or package identity is incomplete');
+    }
+
+    if (!/0020_room_schedule_documents\.sql/i.test(t) ||
+        !/0021_minimal_instructor_oauth_registration\.sql/i.test(t) ||
+        !/17-argument/i.test(t) ||
+        !/SECURITY INVOKER/i.test(t) ||
+        !/(?:PUBLIC[^.]{0,100}revoked|revoked[^.]{0,100}PUBLIC)/i.test(t) ||
+        !/service_role[^.]{0,100}EXECUTE/i.test(t) ||
+        !/Do not reapply migration 0020 or 0021/i.test(t)) {
+      problems.push('owner-applied migration or no-reapply boundary is incomplete');
+    }
+
+    if (!/scripts\/publishOfflineMapRelease\.js/i.test(t) ||
+        !/30 18 \* \* \*/i.test(t) ||
+        !/Do not repeat bootstrap or rollback/i.test(t) ||
+        !/123\.373606[^.]{0,160}13\.404852[^.]{0,160}123\.378745[^.]{0,160}13\.406981/i.test(t) ||
+        !/release-manifest center[^.]{0,120}123\.375604[^.]{0,100}13\.405885/i.test(t) ||
+        !/opening camera[^.]{0,120}123\.374590[^.]{0,100}13\.405872/i.test(t) ||
+        !/strict polygon clipping is not a requirement/i.test(t) ||
+        !/no actual newly added OSM building has yet been observed/i.test(t) ||
+        !t.includes(CURRENT_OFFLINE_CAMERA_PACKAGE_SHA256)) {
+      problems.push('unchanged offline-map authority or historical package evidence is incomplete');
+    }
+
+    if (!/Pushing `?7f4bfce`? to GitHub `?main`? is confirmed/i.test(t) ||
+        !/no post-push Vercel deployment[^.]{0,200}deployed-byte identity/i.test(t) ||
+        !/neither proves a failed deployment nor proves[^.]{0,80}deployed/i.test(t) ||
+        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+        !/grounding prompt authorizes no review, tests, edits/i.test(t) ||
+        !/Final Milestone 12 disposition remains external/i.test(t)) {
+      problems.push('Vercel/deployed-byte evidence or next-session boundary is incomplete');
+    }
+
+    return problems;
+  }
 
   if (/\b12736ff\b/i.test(t) && !t.includes(CURRENT_FEATURE_PRODUCT_COMMIT_SHA)) {
     problems.push('current feature product commit identity is abbreviated or missing');
@@ -7132,6 +7300,44 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
+    return /fresh grounding-only CampuSphere session/i.test(t) &&
+      /inventory the tools, MCP servers\/connectors, and skills/i.test(t) &&
+      /campusphere-readonly-grounding/i.test(t) &&
+      /Do not install or invent it if absent|do not install or invent it/i.test(t) &&
+      /context-mode|bounded read-only facility/i.test(t) &&
+      /Reserve (?:the )?`?code-reviewer`? (?:skill )?for a later explicitly authorized review/i.test(t) &&
+      /chrome:control-chrome/i.test(t) &&
+      /Never read `?\.env`?/i.test(t) &&
+      /AGENTS\.md[\s\S]{0,300}CLAUDE\.md[\s\S]{0,300}CODEX_HANDOFF\.md[\s\S]{0,300}CLAUDE_HANDOFF\.md/i.test(t) &&
+      /docs\/offline-map-refresh\.md/i.test(t) &&
+      /config\/selectedDemoFreeze\.js/i.test(t) &&
+      /utils\/singleFlight\.js/i.test(t) &&
+      /scripts\/readCoalescing-probe\.js/i.test(t) &&
+      /scripts\/be6DatasetFreeze-probe\.js/i.test(t) &&
+      /scripts\/vercelPackageBoundary-probe\.js/i.test(t) &&
+      /scripts\/quality-gates\.js/i.test(t) &&
+      /scripts\/probeSessionResidue-probe\.js/i.test(t) &&
+      /0020_room_schedule_documents\.sql/i.test(t) &&
+      /0021_minimal_instructor_oauth_registration\.sql/i.test(t) &&
+      /Never apply either migration|never apply them|must not be reapplied/i.test(t) &&
+      t.includes(CURRENT_REJECTED_NPM_TEST_SHA256) &&
+      t.includes(CURRENT_ACCEPTED_NPM_TEST_SHA256) &&
+      /git ls-remote/i.test(t) &&
+      /no fetch\/pull|without fetch\/pull/i.test(t) &&
+      /unintended 26th Supabase building/i.test(t) &&
+      /Academic Building IV Mac Laboratory/i.test(t) &&
+      /not a (?:completed-result|durable) cache/i.test(t) &&
+      /190 files[^.]{0,80}7,227,026 bytes/i.test(t) &&
+      t.includes(CURRENT_FEATURE_PACKAGE_SHA256) &&
+      /Vercel[^.]{0,240}(?:remain unverified|has been observed)/i.test(t) &&
+      t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
+      /Final Milestone 12[^.]{0,100}(?:external|remains external)/i.test(t) &&
+      /stop and wait for the owner/i.test(t) &&
+      /Production promotion or deployment is not authorized/i.test(t) &&
+      !declaresStaleOrPrematureAuthority(t);
+  }
+
   if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
     return /(?:fresh )?grounding-only session|\bGround only\b/i.test(t) &&
       /\b6849aec\b/i.test(t) && /\b06e1512\b/i.test(t) && /\bc4de5ab\b/i.test(t) &&
@@ -7244,6 +7450,14 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh grounding-only CampuSphere session/i.test(t) &&
+      /Do not review code or run anything/i.test(t) &&
+      /Then stop and wait for the owner/i.test(t) &&
+      /No next feature is authorized/i.test(t) &&
+      /prompt authorizes no code review, tests, probes/i.test(t);
+  }
   if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
     return reusablePromptIsCurrent(t) &&
       /fresh grounding-only session/i.test(t) &&
@@ -7272,6 +7486,13 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh grounding-only CampuSphere session/i.test(t) &&
+      /Do not edit, review code, test/i.test(t) &&
+      /After the grounding report, stop and wait for the owner/i.test(t) &&
+      /Do not plan or start another task/i.test(t);
+  }
   if (/\b12736ff\b/i.test(t) && t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
     return reusablePromptIsCurrent(t) &&
       /\bGround only\b/i.test(t) &&
@@ -8978,8 +9199,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-08-31';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-08-31';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-02';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-02';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -9018,17 +9239,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-08-31)',
-    'CLAUDE.md': '## Current Release Continuity (2026-08-31)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
-    'plan.md': '## Current Release Continuity (2026-08-31)',
-    'ROADMAP.md': '## Current Release Continuity (2026-08-31)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-08-31 (Asia/Manila)\n## Current Release Continuity (2026-08-31)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-08-31)',
-    'docs/deployment.md': '## Current Release Continuity (2026-08-31)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-08-31)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-08-31)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-02)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-02)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
+    'plan.md': '## Current Release Continuity (2026-09-02)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-02)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-02)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-02)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-02)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-02)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -9515,7 +9736,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records c4de5ab offline-camera continuity and the current evidence/authorization boundary`,
+    ok(`${name} records the September 2 freeze/performance continuity and current evidence boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -9528,15 +9749,15 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current post-feature continuity is accepted and identity, package, migration, scope, and marker drift fail closed',
+  ok('fixture: current September 2 continuity is accepted and identity, freeze, transcript, package, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_FEATURE_PRODUCT_COMMIT_SHA,
+      CURRENT_FREEZE_REFRESH_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_ROUTE_MAINTENANCE_COMMIT_SHA,
+      CURRENT_READ_COALESCING_COMMIT_SHA,
       'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -9544,16 +9765,24 @@ function runDocsCurrentGate() {
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      '13 modified tracked paths',
-      '12 modified tracked paths')).length > 0 &&
+      CURRENT_SUPABASE_BUILDING_ROUTE_SHA256,
+      'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_ACCEPTED_NPM_TEST_SHA256,
+      'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      'exactly two untracked paths',
+      'exactly three untracked paths')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       /0021_minimal_instructor_oauth_registration\.sql/i,
       '0022_unreviewed.sql')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /Production promotion or deployment is not authorized/i,
-      'Production promotion and deployment are authorized')).length > 0 &&
+      /no post-push Vercel\s+deployment/i,
+      'a confirmed post-push Vercel deployment')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 

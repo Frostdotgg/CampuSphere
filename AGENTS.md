@@ -50,7 +50,147 @@ the registered list, but proves source patterns only.
 The same contract suite also runs the road-routing probes for topology, stored geometry, API assembly, public Leaflet/MapLibre rendering, admin geometry editing, map-to-guided-VR flow, Free Roam, VR schedule hotspots, and the BE.6 expanded Guided-VR freeze. BE.6 and OFF.1 are complete and Codex GO. The current candidate freezes MySQL at 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid geometries; and the shared Guided-VR catalog at 25 active destinations, 472 configured steps, and 99 unique scene keys. The 13-building `models/data.js` roster is the reproducible seed baseline, not the complete campus; admin edits and later additions remain supported but invalidate freeze evidence until it is deliberately refreshed.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-08-31)
+## Current Release Continuity (2026-09-02)
+
+At the start of this authority synchronization, Git branch `main` had local
+`HEAD`, `origin/main`, and remote `main` all at pushed freeze/package-evidence
+Git commit SHA-1 `7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79` (`7f4bfce`). The
+index was empty, no tracked paths were modified, exactly two untracked paths
+existed (`artifacts/npm-test-2026-09-02.txt` and
+`artifacts/npm-test-2026-09-02-final.txt`), and there were zero stashes. The
+retained safety branch `backup-pre-trailer-strip` still pointed to Git commit
+SHA-1 `d387c9151f1582cc4a8fc80002be52e11956335f`. The owner explicitly authorized
+this bounded synchronization to update the 11 authority documents,
+`docs/offline-map-refresh.md`, and `scripts/quality-gates.js`, commit both
+transcripts, commit the exact candidate, and push `main`. Recompute live Git
+truth in every later session; this start snapshot never authorizes
+normalizing a difference. Codex did not inspect or record `.env` contents;
+authorized probes may load configured environment values through the normal
+application startup path.
+
+The current pushed product/evidence lineage after the 2026-08-31 authority
+work is grounding-role wording Git commit SHA-1
+`9de526ec260d065a0c1fe967d7fac0ae715ea2d6`, auth/home UI Git commit SHA-1
+`c1ca1b441e3ef4577de278f531fab8f41e1f03fa`, read-coalescing Git commit SHA-1
+`b8da21ef79b29e672737730ef4d35e38c1ca1b59`, endurance/release-evidence Git
+commit SHA-1 `0491c5d8be4b9b82ac0a84aa155eb46f4ec7947a`, and freeze/package-refresh Git
+commit SHA-1 `7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79`. Earlier relevant commits remain
+home-authentication Git commit SHA-1
+`6849aecbc6ecc2ae75697e80b3ae201d902dd68c`, reviewed-feature Git commit SHA-1
+`12736ffb31cf54354212ef0ee13cf107e6d0846c`, route-maintenance Git commit
+SHA-1 `06e15128db3027cd1c231b4919ddf440f54eb72b`, and offline-camera Git commit
+SHA-1 `c4de5ab30caadf963908f0b8cab2d49ee9678481`.
+
+Current product behavior remains: `/home` requires `requireLogin`; the auth tab
+says `Sign in using Email`; the `/home` campus search is removed while its
+three quick links remain; and the prior dashboard, event ordering, service
+worker v36, and Guided-VR portal-marker changes remain accepted. Migration
+`0020_room_schedule_documents.sql` and migration
+`0021_minimal_instructor_oauth_registration.sql` are owner-applied in Supabase.
+Migration 0021 preserves the 17-argument RPC, `SECURITY INVOKER`, fixed search
+path, revoked `PUBLIC` EXECUTE, and granted `service_role` EXECUTE. Do not
+reapply migration 0020 or 0021 without a new explicit database authorization.
+There is still no real CSPC instructor Gmail end-to-end OAuth observation.
+
+The search/building performance correction is deliberately narrow. The
+`utils/singleFlight.js` helper shares only an active read promise among
+concurrent callers; it is not a completed-result cache. The active entry is
+discarded when the read settles, building rows are cloned before return, and
+successful building or route mutations invalidate the relevant active read.
+The repositories and `services/routeAvailability.js` therefore stop repeating
+the same expensive building/route work during a burst without serving a stale
+stored answer afterward.
+
+The owner removed the unintended 26th Supabase building; Codex did not mutate
+the database. The real Academic Building IV Mac Laboratory room
+plotting/schedule hotspot is intentional and retained. The selected freeze is
+dated 2026-09-02. It pins MySQL at 34 buildings, 44 route nodes, 100 directed
+edges, 50 exact reverse pairs, 100 valid geometries, 671 scenes, 1,397
+hotspots, and one selected schedule hotspot. It pins Supabase at 25 buildings,
+26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries,
+664 scenes, 1,374 hotspots, and zero selected schedule hotspots. Both backends
+retain 25 active Guided-VR destinations, 472 configured steps, and 99 unique
+scene keys. The MySQL building/route fingerprint SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
+the Supabase building/route fingerprint SHA-256
+`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+the selected VR fingerprint SHA-256
+`1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
+the shared Guided-VR catalog fingerprint SHA-256
+`ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
+and the freeze manifest fingerprint SHA-256
+`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+Do not change a count or fingerprint merely to make a gate green; investigate
+and deliberately refresh the freeze only when the live content is intended.
+
+The first September 2 `npm test` transcript is historical/rejected evidence:
+`artifacts/npm-test-2026-09-02.txt` has SHA-256
+`5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd`,
+4,683 PASS lines, four FAIL lines (three BE.6 data-freeze assertions plus the
+parent probe-exit assertion), `BE6-DATASET-FREEZE-PROBE FAILED: 3`, final
+session residue `18/18`, and `QUALITY-GATES FAILED: 1`. The final accepted
+transcript `artifacts/npm-test-2026-09-02-final.txt` has SHA-256
+`d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d`,
+4,687 PASS lines, zero FAIL lines, BE.6 `46/46`, final session residue
+`18/18`, and `QUALITY-GATES OK`.
+
+Local performance evidence remains separate from Production capacity proof.
+Tracked LT-05 passed 4,000/4,000 checks over 3,200 requests with zero failures
+(average 820.7 ms, p95 2.18 s, maximum 2.44 s); LT-06 passed 3,200/3,200 over
+3,050 requests with zero failures (average 579.56 ms, p95 685.36 ms, maximum
+2.34 s); and LT-08 passed 79,560/79,560 over 59,670 requests with zero failures
+(average 594.74 ms, p95 858.99 ms, maximum 12.04 s). During those runs the app
+container peaked at 54.55% CPU and 582.5 MiB memory (observed memory range
+438-582.5 MiB); MySQL peaked at 21.94% CPU and 423.3 MiB (420.3-423.3 MiB),
+with zero restarts and no OOM. The focused read-coalescing probe passed `6/6`.
+The owner-observed, screenshot-only LT-04 localhost run used 5 VUs for 30
+seconds and passed 50/50 checks with zero request failures (average 15.35 s,
+p95 16.55 s, maximum 16.6 s); it exercises Cloudinary asset delivery, not an
+upload path, and is not Production-capacity evidence.
+
+This synchronization's final validation is required to include focused
+read-coalescing `6/6`, BE.6 `46/46`, package boundary `74/74`, a fresh
+`npm test` with `QUALITY-GATES OK`, all five `npm run qa` stages
+(`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities), final canonical
+session residue `18/18`, and `git diff --check`. The current Vercel source
+package remains 190 files and 7,227,026 bytes with aggregate SHA-256
+`64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`;
+authority documents, scripts, and the two transcripts are outside that package.
+
+Retain the offline-map authority unchanged. Its abbreviated lineage is
+`78fbc0e` -> `99f08d2` -> `4785b1b` -> `c4de5ab`. The publisher is software:
+`.github/workflows/offline-map-refresh.yml` runs
+`scripts/publishOfflineMapRelease.js` at `30 18 * * *` or by explicit manual
+dispatch. Do not repeat bootstrap or rollback without a new explicit owner
+decision. The fixed rectangle is `[123.373606, 13.404852, 123.378745,
+13.406981]`; release-manifest center is `[123.375604, 13.405885]`; opening
+camera is `[123.374590, 13.405872]` at zoom 16.5. Whole intersecting edge tiles
+remain accepted, strict polygon clipping is not a requirement, and no actual
+newly added OSM building has yet been observed end to end. Historical
+offline-camera package evidence remains 188 files, 7,242,957 bytes, aggregate
+SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`.
+
+Pushing `7f4bfce` to GitHub `main` is confirmed, but no post-push Vercel
+deployment, Ready state, promotion, Production smoke, or immutable
+deployed-byte identity for that commit has been observed. An earlier owner
+screenshot showed `371540f`; it neither proves a failed deployment nor proves
+that the later commit was deployed. Technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified baseline. Source, localhost, owner-observed vendor
+state, and immutable deployed-byte proof must remain separate evidence classes.
+
+After this bounded authority commit and push, a fresh Codex or Claude Code
+session must inventory its available MCP/tools/skills, read the current
+authority and implementation surfaces, recompute Git truth with read-only
+commands, report discrepancies and the unverified Vercel boundary, then stop
+and wait. That grounding prompt authorizes no review, tests, edits, database or
+session access, browser/vendor work, Git mutation, deployment, promotion,
+Production smoke, or GO/NO-GO. A later owner instruction may separately
+authorize Chrome inspection of the existing signed-in Vercel dashboard. Final
+Milestone 12 disposition remains external.
+
+## Historical Release Continuity (2026-08-31; superseded)
 
 At the start of this authorized authority synchronization, Git branch `main`
 had local `HEAD` at route-maintenance Git commit SHA-1
