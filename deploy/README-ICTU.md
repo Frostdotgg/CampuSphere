@@ -6,6 +6,11 @@ CSS, JavaScript, map, PWA, and VR frontend. Supabase remains the external
 PostgreSQL application-data and persistent-session service; no MySQL container
 is part of this production profile.
 
+The repository-root `docker-compose.yml` is the ICTU production definition and
+is therefore selected by the normal `docker compose` command. Local app + MySQL
+testing must explicitly select `docker-compose.testing.yml`; ICTU must not use
+that testing definition for production.
+
 ## ICTU-provided infrastructure
 
 - Public hostname: `campusphere.cspc.edu.ph`.
@@ -45,9 +50,9 @@ print the rendered Compose configuration while it contains real values.
 
 ```bash
 ENV_FILE=/secure/path/campusphere-ictu.env
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml config --quiet
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml build --pull app
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml up -d app
+docker compose --env-file "$ENV_FILE" config --quiet
+docker compose --env-file "$ENV_FILE" build --pull app
+docker compose --env-file "$ENV_FILE" up -d app
 docker inspect --format '{{.State.Health.Status}}' campusphere-app
 ```
 
@@ -60,13 +65,13 @@ sanitized `503` response if the persistent session store is unavailable.
 
 ```bash
 # Current state
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml ps
+docker compose --env-file "$ENV_FILE" ps
 
 # Sanitized application logs (keep access restricted)
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml logs --tail 200 app
+docker compose --env-file "$ENV_FILE" logs --tail 200 app
 
 # Stop without deleting images or any external data
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml down
+docker compose --env-file "$ENV_FILE" down
 ```
 
 Container logs go to standard output/error; ICTU should apply its normal log
@@ -83,7 +88,7 @@ To roll back application code, set `IMAGE_TAG` back to the retained previous
 image, then run:
 
 ```bash
-docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml up -d --no-build app
+docker compose --env-file "$ENV_FILE" up -d --no-build app
 ```
 
 Application rollback does not authorize a database migration or data rollback.

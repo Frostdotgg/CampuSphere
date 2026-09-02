@@ -5473,6 +5473,7 @@ function runVercelPackageBoundaryGate() {
     ignoreRejected(withLine('!layout bug.png')) === true &&
     ignoreRejected(withLine('!Dockerfile')) === true &&
     ignoreRejected(withLine('!docker-compose.yml')) === true &&
+    ignoreRejected(withLine('!docker-compose.testing.yml')) === true &&
     ignoreRejected(withLine('!.claude')) === true &&
     ignoreRejected(withLine('!.playwright-mcp')) === true &&
     ignoreRejected(withLine('!node_modules')) === true &&
@@ -5581,7 +5582,8 @@ function runVercelPackageBoundaryGate() {
       'database/supabase/0019_be5_selected_demo_parity.sql',
       'layout bug.png', 'MANUSCRIPT_TEAMDUTCHESS.pdf',
       'CampuSphere_Presentation_Script.html', 'Dockerfile', '.dockerignore',
-      'docker-compose.yml', '.claude/settings.json', '.codex/notes.md',
+      'docker-compose.yml', 'docker-compose.testing.yml',
+      '.claude/settings.json', '.codex/notes.md',
       '.playwright-mcp/trace.zip', 'node_modules/express/index.js',
       'logs/app.log', 'tmp/scratch.tmp', '.gitignore', '.git/config',
       'public/img/sample 360/panorama.jpg',

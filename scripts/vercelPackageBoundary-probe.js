@@ -168,7 +168,7 @@ const FORBIDDEN_PATH_CLASSES = Object.freeze([
   ['root presentation/report HTML',
     (p) => /^[^/]+\.html?$/i.test(p)],
   ['Docker packaging',
-    (p) => /^(Dockerfile|\.dockerignore|docker-compose\.ya?ml)$/i.test(p)],
+    (p) => /^(Dockerfile|\.dockerignore|docker-compose(?:\.[a-z0-9_-]+)?\.ya?ml)$/i.test(p)],
   ['local agent, editor, and tooling metadata',
     (p) => /^\.(agents|claude|codex|playwright-mcp|vscode|idea|vercel|edge-profile)(\/|$)/i.test(p)],
   ['installed dependencies',

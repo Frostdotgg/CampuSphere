@@ -179,9 +179,10 @@ Supabase SQL apply order (`0001`–`0021`; `0020` and `0021` are owner-applied
 and must not be reapplied without fresh authorization), MySQL fallback seed steps, production
 session/cookie/proxy policy, CSRF/rate-limit/Helmet/PWA boundaries, OAuth
 redirect-URI variants, the QA gates, and troubleshooting. Container packaging is
-provided by `Dockerfile`, `.dockerignore`, and a local-rehearsal
-`docker-compose.yml` (app + MySQL); secrets are supplied at **runtime only** and
-are never baked into the image.
+provided by `Dockerfile`, `.dockerignore`, the ICTU production
+`docker-compose.yml` (app + external Supabase), and the opt-in local
+`docker-compose.testing.yml` (app + MySQL); secrets are supplied at **runtime
+only** and are never baked into the image.
 
 Defense/test artifacts live in `docs/`: [test evidence checklist](docs/test-evidence.md),
 [demo script](docs/demo-script.md), [security checklist](docs/security-checklist.md),

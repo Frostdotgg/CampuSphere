@@ -1960,7 +1960,7 @@ Concrete tasks:
 - Prepare a demo script using default accounts from `database/seed.js`.
 - Document environment setup, Supabase SQL apply order, MySQL fallback seed steps, OAuth limitations, and fallback local-login demo path.
 - Add Docker packaging for the Express/EJS app: `Dockerfile`, `.dockerignore`, documented build/run commands, and a runtime-env-only secret model.
-- Add an optional `docker-compose.yml` only if it helps local defense rehearsal, for example pairing the app with a MySQL fallback service. Supabase remains an external cloud service and should not be replaced by an in-container database.
+- Keep `docker-compose.yml` as the one-container ICTU production definition backed by external Supabase, and use the opt-in `docker-compose.testing.yml` for local defense rehearsal with the MySQL fallback. Supabase remains an external cloud service and should not be replaced by an in-container database.
 - Verify the container can run the final Supabase mode with runtime environment variables: `AUTH_DATA_SOURCE=supabase`, `BUILDING_DATA_SOURCE=supabase`, `ROUTE_DATA_SOURCE=supabase`, `CONTENT_DATA_SOURCE=supabase`, later `VR_DATA_SOURCE=supabase`, and `MAP_RENDERER=maplibre`.
 - If MySQL fallback is demonstrated through Docker, document that `DB_HOST` must point to the compose service name, not `localhost` inside the app container.
 - Confirm `.env`, Supabase service-role keys, OAuth secrets, DB passwords, screenshots, local database dumps, and `node_modules` are not copied into the Docker image.

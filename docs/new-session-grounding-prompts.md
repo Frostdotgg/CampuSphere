@@ -1167,7 +1167,8 @@ Read completely and in this order:
    services/offlineGuideService.js,
    public/js/offline-guide-manager.js, public/offline.html,
    public/css/offline.css, public/js/pwa.js, and public/sw.js
-9. .env.example, docker-compose.yml, vercel.json, .vercelignore, package.json,
+9. .env.example, docker-compose.yml, docker-compose.testing.yml, vercel.json,
+   .vercelignore, package.json,
    package-lock.json, scripts/vercelPackageBoundary-probe.js, and related
    source-only offline/package assertions. Do not read .env.
 10. FAQ/settings, room-schedule, notification, admin-filter,
@@ -1338,6 +1339,7 @@ Read completely and in this order:
 7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
    docs/demo-script.md, and docs/new-session-grounding-prompts.md
 8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   docker-compose.testing.yml,
    .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
    and deployment-boundary probes
 9. controllers/scheduleController.js, controllers/adminScheduleController.js,
@@ -1510,7 +1512,8 @@ Read completely and in this order:
    services/offlineGuideService.js,
    public/js/offline-guide-manager.js, public/offline.html,
    public/css/offline.css, public/js/pwa.js, and public/sw.js
-7. .env.example, docker-compose.yml, vercel.json, .vercelignore, package.json,
+7. .env.example, docker-compose.yml, docker-compose.testing.yml, vercel.json,
+   .vercelignore, package.json,
    package-lock.json, scripts/vercelPackageBoundary-probe.js, and related
    source-only offline/package assertions. Never read .env.
 8. The FAQ/settings, room-schedule, notification, admin-filter,
@@ -1658,6 +1661,7 @@ Read completely and in this order:
 5. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
    docs/demo-script.md, and docs/new-session-grounding-prompts.md
 6. package.json, package-lock.json, .env.example, docker-compose.yml,
+   docker-compose.testing.yml,
    .vercelignore, vercel.json, config/selectedDemoFreeze.js, and package/
    deployment-boundary probes
 7. the room-schedule controllers/repository, both 0020 migration sources,
@@ -1782,6 +1786,7 @@ Read completely and in this order:
 7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
    docs/demo-script.md, and docs/new-session-grounding-prompts.md
 8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   docker-compose.testing.yml,
    .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
    and deployment-boundary probes
 9. controllers/authController.js, controllers/profileController.js,
@@ -1999,6 +2004,7 @@ Read completely and in this order:
 7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
    docs/demo-script.md, and docs/new-session-grounding-prompts.md
 8. package.json, package-lock.json, .env.example, docker-compose.yml,
+   docker-compose.testing.yml,
    .vercelignore, vercel.json, config/selectedDemoFreeze.js, and the package
    and deployment-boundary probes
 9. controllers/authController.js, controllers/profileController.js,

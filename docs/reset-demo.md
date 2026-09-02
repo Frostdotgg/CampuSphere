@@ -97,14 +97,14 @@ machine (Milestone 9.8 is the Supabase session-store end-to-end GO/NO-GO):
 ```bash
 docker build -t campusphere:m9 .
 docker run --rm campusphere:m9 node --check server.js
-docker compose config
+docker compose -f docker-compose.testing.yml config
 ```
 
 If using compose for local MySQL fallback rehearsal:
 
 ```bash
-docker compose up --build
-docker compose run --rm app node database/seed.js
+docker compose -f docker-compose.testing.yml up --build
+docker compose -f docker-compose.testing.yml run --rm app node database/seed.js
 ```
 
 Inside the app container, `DB_HOST` must be the compose service name `mysql`,

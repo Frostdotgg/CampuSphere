@@ -3,8 +3,9 @@
 /*
  * CampuSphere ICTU Docker deployment contract probe.
  *
- * Database-free and secret-free. Static checks bind the production Compose,
- * environment template, runbook, Docker boundary, and server wiring together.
+ * Database-free and secret-free. Static checks bind the default production
+ * Compose, opt-in testing Compose, environment template, runbook, Docker
+ * boundary, and server wiring together.
  * The runtime check imports the app in development/memory-session mode and
  * exercises only anonymous GET /healthz on an ephemeral local listener.
  */
@@ -35,9 +36,27 @@ function hasRequiredInterpolation(source, name) {
   return new RegExp(`${escaped}:\\s*["']?\\$\\{${escaped}:\\?[^}]+\\}["']?`).test(source);
 }
 
+function readComposeServiceNames(source) {
+  const names = [];
+  let inServices = false;
+
+  for (const line of source.split(/\r?\n/)) {
+    if (!inServices) {
+      inServices = line === 'services:';
+      continue;
+    }
+    if (/^[^\s#][^:]*:\s*$/.test(line)) break;
+    const match = line.match(/^  ([a-z][a-z0-9_-]*):\s*$/);
+    if (match) names.push(match[1]);
+  }
+
+  return names;
+}
+
 function staticContracts() {
   const server = read('server.js');
-  const compose = read('docker-compose.production.yml');
+  const compose = read('docker-compose.yml');
+  const testingCompose = read('docker-compose.testing.yml');
   const envTemplate = read('deploy/ictu.env.example');
   const runbook = read('deploy/README-ICTU.md');
   const dockerignore = read('.dockerignore');
@@ -61,15 +80,20 @@ function staticContracts() {
     !/app\.get\('\/healthz'[\s\S]{0,700}(?:supabase|mysql|credential|service[_ -]?role|version)/i.test(server));
 
   console.log('\n[ICTU Docker] production Compose contracts');
-  const serviceNames = Array.from(compose.matchAll(/^  ([a-z][a-z0-9_-]*):\s*$/gm), (match) => match[1]);
-  check('compose', 'exactly one app service is defined',
-    serviceNames.length === 1 && serviceNames[0] === 'app');
+  const serviceNames = readComposeServiceNames(compose);
+  const testingServiceNames = readComposeServiceNames(testingCompose);
+  check('compose', 'default file is one app service and testing file is app plus MySQL',
+    serviceNames.length === 1 && serviceNames[0] === 'app' &&
+    testingServiceNames.length === 2 && testingServiceNames.includes('app') &&
+    testingServiceNames.includes('mysql'));
   check('compose', 'logical container and image are CampuSphere-specific',
     /container_name:\s*campusphere-app/.test(compose) && /image:\s*campusphere:\$\{IMAGE_TAG:-ictu\}/.test(compose));
   check('compose', 'the reviewed production Dockerfile builds the app',
     /build:\s*[\s\S]{0,120}context:\s*\.[\s\S]{0,120}dockerfile:\s*Dockerfile/.test(compose));
-  check('compose', 'no MySQL service or DB connection variable is present',
-    !/^  mysql:\s*$/m.test(compose) && !/\bDB_(?:HOST|USER|PASS|NAME)\b/.test(compose));
+  check('compose', 'production excludes MySQL while testing keeps the local fallback',
+    !/^  mysql:\s*$/m.test(compose) && !/\bDB_(?:HOST|USER|PASS|NAME)\b/.test(compose) &&
+    /^  mysql:\s*$/m.test(testingCompose) && /DB_HOST:\s*mysql/.test(testingCompose) &&
+    /NODE_ENV:\s*\$\{NODE_ENV:-development\}/.test(testingCompose));
   check('compose', 'runtime is fixed to production and trusted one-hop proxy',
     /NODE_ENV:\s*production/.test(compose) && /TRUST_PROXY:\s*["']1["']/.test(compose));
   check('compose', 'session store is fixed to Supabase', /SESSION_STORE:\s*supabase/.test(compose));
@@ -119,7 +143,10 @@ function staticContracts() {
     !/sb_secret_[A-Za-z0-9_-]{20,}/.test(envTemplate) &&
     !/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(envTemplate));
   check('runbook', 'one-container external-Supabase architecture is explicit',
-    /one Docker application container/i.test(runbook) && /Supabase remains the external[\s\S]{0,100}PostgreSQL/i.test(runbook));
+    /one Docker application container/i.test(runbook) &&
+    /Supabase remains the external[\s\S]{0,100}PostgreSQL/i.test(runbook) &&
+    /docker-compose\.yml[\s\S]{0,180}production/i.test(runbook) &&
+    /docker-compose\.testing\.yml[\s\S]{0,180}testing/i.test(runbook));
   check('runbook', 'ICTU hostname, TLS, proxy target, and forwarded HTTPS are explicit',
     runbook.includes('campusphere.cspc.edu.ph') && /TLS termination/i.test(runbook) &&
     runbook.includes('http://127.0.0.1:3000') && runbook.includes('X-Forwarded-Proto: https'));

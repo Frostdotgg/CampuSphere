@@ -22,7 +22,7 @@
 #   database/                         — schema, seed, and Supabase migrations
 #   *.png, *.jpg, *.jpeg, *.pdf, *.docx, *.html at root
 #                                     — screenshots, evidence, and defense media
-#   Dockerfile, .dockerignore, docker-compose.yml
+#   Dockerfile, .dockerignore, docker-compose*.yml
 #                                     — the separate Milestone 13 container path
 #   .agents/, .claude/, .codex/, .playwright-mcp/
 #                                     — local agent/tooling metadata

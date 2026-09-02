@@ -2360,19 +2360,22 @@ registered inside `npm test` yet.
 
 ### Compose rehearsal (local, MySQL fallback)
 
-`docker-compose.yml` pairs the app with a MySQL service for **local rehearsal
-only** (plain HTTP on `localhost`, so it defaults to `NODE_ENV=development` and a
-non-Secure cookie; it still exercises `SESSION_STORE=mysql`). Secrets come from
-your shell/`.env` via interpolation; required values use `${VAR:?...}`.
+`docker-compose.testing.yml` pairs the app with a MySQL service for **local
+rehearsal only** (plain HTTP on `localhost`, so it defaults to
+`NODE_ENV=development` and a non-Secure cookie; it still exercises
+`SESSION_STORE=mysql`). The default `docker-compose.yml` is reserved for the
+one-container ICTU production deployment backed by external Supabase. Secrets
+come from your shell/`.env` via interpolation; required values use
+`${VAR:?...}`.
 
 ```bash
 # 1. Provide secrets (shell or untracked .env): DB_PASS, SESSION_SECRET (+ optional Supabase/OAuth).
 # 2. Start MySQL + app:
-docker compose up --build
+docker compose -f docker-compose.testing.yml up --build
 # 3. Seed ONCE (not auto-run on app startup):
-docker compose run --rm app node database/seed.js
+docker compose -f docker-compose.testing.yml run --rm app node database/seed.js
 # 4. Validate the compose file without starting it:
-docker compose config
+docker compose -f docker-compose.testing.yml config
 ```
 
 `DB_HOST` is set to the compose service name `mysql` — **not** `localhost` —
