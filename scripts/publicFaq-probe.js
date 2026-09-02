@@ -62,10 +62,13 @@ check('controller', 'FAQ read is one bounded ordered query with normalization an
 check('controller', 'public controller fails closed with a no-store 503 state',
     controller.includes('listFaqContent()') && controller.includes("res.set('Cache-Control', 'no-store')") &&
     /status\(503\)\.render\('faq'/.test(controller) && controller.includes('logServerError'));
-check('view', 'view includes shared head, authenticated/public chrome, and network-only FAQ assets',
+check('view', 'view includes shared head, authenticated/public chrome, profile client, and network-only FAQ assets',
     /include\('partials\/head'\)/.test(view) &&
     /include\('partials\/dash-navbar'/.test(view) && /include\('partials\/navbar'/.test(view) &&
-    view.includes('/css/faq.css?v=2') && view.includes('/js/public-faq.js'));
+    view.includes('/css/faq.css?v=2') &&
+    view.includes('/js/profile-script.js') &&
+    view.includes('/js/public-faq.js') &&
+    view.indexOf('/js/profile-script.js') < view.indexOf('/js/public-faq.js'));
 check('view', 'server-rendered native details remain usable without JavaScript',
     view.includes('<details class="faq-item"') && view.includes('<summary class="faq-summary">') &&
     view.includes('data-faq-controls aria-label="FAQ filters" hidden'));

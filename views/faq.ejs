@@ -94,6 +94,9 @@
     <% } %>
 
     <%- include('partials/theme-toggle') %>
+    <% if (typeof user !== 'undefined' && user) { %>
+        <script src="/js/profile-script.js"></script>
+    <% } %>
     <script src="/js/public-faq.js" defer></script>
 </body>
 
