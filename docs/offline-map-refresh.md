@@ -5,8 +5,8 @@ freeze-refresh commits do not change the offline publisher, bounds, release
 center, opening camera, Drive workflow, IndexedDB activation, or
 user-controlled update model. The service-worker shell remains `v36`; that
 cache revision does not change the PMTiles release rectangle or publisher.
-The current full source package is 190 files, 7,227,026 bytes, aggregate
-SHA-256 `64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`
+The current full source package is 190 files, 7,227,736 bytes, aggregate
+SHA-256 `8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`
 with package boundary `74/74`. Keep this current full-package evidence separate
 from the historical offline-specific `c4de5ab` package evidence below. GitHub
 `main` contained `7f4bfce` before the September 2 authority synchronization,

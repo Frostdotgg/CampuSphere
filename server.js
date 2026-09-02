@@ -151,6 +151,18 @@ app.use(pilotNoIndex);
    against a half-ready runtime. */
 app.use(sessionReadiness.middleware);
 
+/* ---- Container health endpoint ----
+   Anonymous and intentionally mounted after the persistent-session readiness
+   gate but before rate limiting, parsers, static files, and express-session.
+   A healthy response therefore proves startup/session-store readiness without
+   creating a session or disclosing backend, host, version, or credential data.
+   When readiness fails, the shared gate above retains ownership of the fixed,
+   sanitized 503 response. */
+app.get('/healthz', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  return res.status(200).json({ status: 'ok' });
+});
+
 /* ---- Pre-body-parser rate limiting (Milestone 8, Section 8.3) ----
    Mounted BEFORE the body parsers so abuse of sensitive auth/OAuth/admin/profile
    endpoints (including malformed-body floods that would make express.json throw)

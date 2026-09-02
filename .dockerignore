@@ -79,4 +79,5 @@ db-dumps
 # ---- Docker files themselves ----
 Dockerfile
 .dockerignore
-docker-compose.yml
+docker-compose*.yml
+/deploy/

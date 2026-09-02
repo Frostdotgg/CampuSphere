@@ -117,8 +117,8 @@ read-coalescing `6/6`, BE.6 `46/46`, package boundary `74/74`, a fresh
 (`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities), final canonical
 session residue `18/18`, and `git diff --check`. The current Vercel source
-package remains 190 files and 7,227,026 bytes with aggregate SHA-256
-`64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`;
+package remains 190 files and 7,227,736 bytes with aggregate SHA-256
+`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`;
 authority documents, scripts, and the two transcripts are outside that package.
 
 Retain the offline-map authority unchanged. Its abbreviated lineage is

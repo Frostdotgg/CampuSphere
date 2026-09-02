@@ -153,8 +153,8 @@ read-coalescing `6/6`, BE.6 `46/46`, package boundary `74/74`, a fresh
 (`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities), final canonical
 session residue `18/18`, and `git diff --check`. The current Vercel source
-package remains 190 files and 7,227,026 bytes with aggregate SHA-256
-`64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`;
+package remains 190 files and 7,227,736 bytes with aggregate SHA-256
+`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`;
 authority documents, scripts, and the two transcripts are outside that package.
 
 Retain the offline-map authority unchanged. Its abbreviated lineage is
@@ -260,8 +260,8 @@ remained running with restart count 0/OOM false. Load-test artifacts are under
 `artifacts/`; this remains local/source evidence, not Production proof.
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
-current source package is 190 files, 7,227,026 bytes, aggregate SHA-256
-`64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71`.
+current source package is 190 files, 7,227,736 bytes, aggregate SHA-256
+`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found
@@ -798,8 +798,8 @@ Current facts to verify, not blindly repeat:
   79,560/79,560; read-coalescing 6/6. The owner-observed screenshot-only LT-04
   was 50/50 with zero failures at 5 VUs for 30 seconds and exercises Cloudinary
   delivery, not upload. These are localhost/source facts, not Production proof.
-- The source package pin is 190 files, 7,227,026 bytes, aggregate SHA-256
-  64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71.
+- The source package pin is 190 files, 7,227,736 bytes, aggregate SHA-256
+  8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e.
 - Migrations 0020 and 0021 are owner-applied. Do not reapply or mutate data.
 - Offline publisher, Drive/IndexedDB design, bounds, release center, opening
   camera, and whole-edge-tile decision are unchanged. Do not bootstrap or
@@ -887,8 +887,8 @@ Verify these facts against source and current authority:
 - Local performance: LT-05 4,000/4,000, LT-06 3,200/3,200, LT-08
   79,560/79,560, coalescing 6/6. Owner-observed screenshot-only LT-04 is 50/50
   at 5 VUs for 30 seconds, Cloudinary delivery only. None is Production proof.
-- Current source package: 190 files, 7,227,026 bytes, SHA-256
-  64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71.
+- Current source package: 190 files, 7,227,736 bytes, SHA-256
+  8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e.
 - Migrations 0020/0021 are owner-applied and must not be reapplied. Offline
   publisher/bounds/camera/Drive/IndexedDB decisions are unchanged; do not
   bootstrap or rollback; no real new OSM building has been observed end to end.
@@ -1006,9 +1006,9 @@ Current decisions/progress:
   path, PUBLIC revoke, and service_role EXECUTE. The owner applied it and
   supplied postflight evidence. Do not reapply it. No real CSPC instructor
   account exists for end-to-end OAuth acceptance.
-- Service worker is v36. The current source package is 190 files, 7,227,026
+- Service worker is v36. The current source package is 190 files, 7,227,736
   bytes, aggregate SHA-256
-  64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71.
+  8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e.
 - The offline publisher/camera/bounds/Drive decisions in the authority docs
   remain unchanged. Do not repeat bootstrap or rollback.
 
@@ -1096,8 +1096,8 @@ Current evidence is source/package/local only: npm test and full npm run qa
 exited 0 with QUALITY-GATES OK, DB-PERF-GATE OK, [supabase-smoke] PASS,
 IDENTITY-CONSTRAINTS OK, and zero audit vulnerabilities; session residue
 18/18; instructor 30/30; OFF.2 145/145; VR hotspot green;
-package 74/74 at 190 files, 7,227,026 bytes, SHA-256
-64ecc147335f1393afbb872f1ae87ccab7e29177c2b33dad4e0bcb3e71b2ba71;
+package 74/74 at 190 files, 7,227,736 bytes, SHA-256
+8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e;
 rebuilt Docker localhost acceptance with no console errors. Keep this separate
 from owner-observed migration/Production facts, accepted historical evidence,
 missing real-instructor and immutable deployed-byte proof. Final Milestone 12
