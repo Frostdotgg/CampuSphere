@@ -22,6 +22,14 @@
     --red-accent: #dc2626;
     --green-accent: #16a34a;
 
+    /* Primary action colors stay semantic so normal and interactive button
+       states remain readable in both light and dark themes. */
+    --primary-action-foreground: #ffffff;
+    --primary-action-bg-start: #0f2240;
+    --primary-action-bg-end: #1a3a6b;
+    --primary-action-hover-start: #142d54;
+    --primary-action-hover-end: #1e4d8c;
+
     /* Typography */
     --font-heading: 'Poppins', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -418,25 +426,37 @@ h6 {
 }
 
 .btn--primary {
-    color: var(--white);
-    background: linear-gradient(135deg, var(--navy-800), var(--navy-600));
+    color: var(--primary-action-foreground);
+    background: linear-gradient(135deg, var(--primary-action-bg-start), var(--primary-action-bg-end));
     box-shadow: 0 4px 16px rgba(10, 22, 40, 0.35);
 }
 
 [data-theme="dark"] .btn--primary {
-    background: linear-gradient(135deg, #1e4d8c, #3b82c4);
-    color: #ffffff;
+    background: linear-gradient(135deg, var(--primary-action-bg-start), var(--primary-action-bg-end));
+    color: var(--primary-action-foreground);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .btn--primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(10, 22, 40, 0.45);
-    background: linear-gradient(135deg, var(--navy-700), var(--navy-500));
+    background: linear-gradient(135deg, var(--primary-action-hover-start), var(--primary-action-hover-end));
 }
 
 .btn--primary:active {
     transform: translateY(0);
+}
+
+.btn--primary:focus-visible {
+    outline: 3px solid var(--ring, var(--navy-400));
+    outline-offset: 2px;
+}
+
+.btn--primary:disabled,
+.btn--primary[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.8;
+    transform: none;
 }
 
 .btn--outline {
@@ -1319,6 +1339,13 @@ html[data-theme="dark"] {
     --navy-500: #60a5fa;
     --navy-400: #93c5fd;
     --navy-300: #bfdbfe;
+
+    /* Keep white primary-action text above the AA contrast threshold on
+       every dark-theme button state. */
+    --primary-action-bg-start: #1e4d8c;
+    --primary-action-bg-end: #2a6fc7;
+    --primary-action-hover-start: #1a3a6b;
+    --primary-action-hover-end: #2563a8;
 }
 
 [data-theme="dark"] body {
@@ -1684,6 +1711,31 @@ html[data-theme="dark"] {
     box-shadow: 0 0 0 3px rgba(30, 77, 140, 0.1);
 }
 
+/* Account identity fields are selectable for copying but are not editable.
+   Keep the distinction visual and semantic (readonly, not disabled) so users
+   can still select the value and keyboard users can reach the helper text. */
+.edit-form-input--readonly,
+.edit-form-input--readonly:focus {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+    color: var(--gray-800);
+    cursor: default;
+    box-shadow: none;
+}
+
+.edit-form-input--readonly:focus-visible {
+    outline: 3px solid var(--navy-300);
+    outline-offset: 2px;
+}
+
+.edit-form-help {
+    display: block;
+    margin-top: var(--space-xs);
+    color: var(--gray-600);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
 select.edit-form-input {
     min-height: 44px;
     appearance: none;
@@ -1843,6 +1895,22 @@ select.edit-form-input {
 
 [data-theme="dark"] .edit-form-input:focus {
     border-color: var(--navy-500);
+}
+
+[data-theme="dark"] .edit-form-input--readonly,
+[data-theme="dark"] .edit-form-input--readonly:focus {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f3f4f6;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .edit-form-input--readonly:focus-visible {
+    outline-color: #93c5fd;
+}
+
+[data-theme="dark"] .edit-form-help {
+    color: #d1d5db;
 }
 
 /* ========================================
@@ -4373,12 +4441,24 @@ a.btn-google {
 
 .auth-input-readonly {
     opacity: 0.85;
-    cursor: not-allowed;
+    cursor: text;
     background: var(--gray-100) !important;
+}
+
+.auth-input-help {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--gray-600);
+    font-size: 0.78rem;
+    line-height: 1.45;
 }
 
 [data-theme="dark"] .auth-input-readonly {
     background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"] .auth-input-help {
+    color: #d1d5db;
 }
 
 .oauth-complete-mt {
@@ -7556,10 +7636,10 @@ textarea {
     padding: 0;
 }
 
-button,
-[type='button'],
-[type='reset'],
-[type='submit'] {
+button:not(.btn),
+[type='button']:not(.btn),
+[type='reset']:not(.btn),
+[type='submit']:not(.btn) {
     -webkit-appearance: button;
     appearance: button;
     background-color: transparent;

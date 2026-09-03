@@ -26,6 +26,7 @@ require('dotenv').config();
 
 const authController = require('../controllers/authController');
 const { getSupabaseClient } = require('../config/supabase');
+const { resolveAccountIdentityName } = require('../utils/accountIdentityName');
 
 const PROBE_PREFIX = 'probe-2.7-';
 const runId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
@@ -142,7 +143,7 @@ function out(label, value) {
       }
     }
 
-    // ----- 2. MISSING_NAME path -----
+    // ----- 2. Name fallback path -----
     const pending2 = {
       email: noNameEmail,
       role: 'guest',
@@ -153,26 +154,36 @@ function out(label, value) {
       picture: ''
     };
     const body2 = { fullName: '', address: 'x', phone: 'y' };
+    const fallbackIdentity = resolveAccountIdentityName({ email: noNameEmail });
     const r2 = makeFakeReqRes(body2, pending2);
     await authController.completeRegistrationPost(r2.req, r2.res);
-    out('2. rendered view', r2.res.rendered ? r2.res.rendered.view : '(none)');
-    out('2. rendered error message', r2.res.rendered && r2.res.rendered.args ? r2.res.rendered.args.error : '(none)');
-    if (!(r2.res.rendered &&
-          r2.res.rendered.view === 'complete-registration' &&
-          r2.res.rendered.args &&
-          r2.res.rendered.args.error === 'Please enter your full name.')) {
-      fail('2. expected complete-registration render with "Please enter your full name."');
+    out('2. redirected to', r2.res.redirected || '(none)');
+    if (r2.res.redirected !== '/dashboard' || !r2.req.session.user) {
+      fail('2. expected email-prefix fallback registration and dashboard redirect');
+    } else {
+      createdIds.push(r2.req.session.user.id);
+      if (r2.req.session.user.first_name !== fallbackIdentity.firstName ||
+          r2.req.session.user.last_name !== fallbackIdentity.lastName) {
+        fail('2. email-prefix fallback name was not normalized as expected');
+      }
     }
-    // Verify no row was created for that email
+    // Verify the fallback row carries the derived identity, not the submitted
+    // (blank/tampered) form value.
     const { data: nameRows } = await sb
       .from('users')
-      .select('id,email')
+      .select('id,email,first_name,last_name')
       .eq('email', noNameEmail);
-    if (nameRows && nameRows.length > 0) {
-      fail('2. unexpected row created for noNameEmail', nameRows.length);
-      createdIds.push(...nameRows.map(r => r.id));
+    if (!nameRows || nameRows.length !== 1) {
+      fail('2. expected one row for email-prefix fallback', nameRows ? nameRows.length : 0);
     } else {
-      out('2. no row created for MISSING_NAME case', true);
+      out('2. fallback identity (redacted)', {
+        first_name: nameRows[0].first_name,
+        last_name: nameRows[0].last_name
+      });
+      if (nameRows[0].first_name !== fallbackIdentity.firstName ||
+          nameRows[0].last_name !== fallbackIdentity.lastName) {
+        fail('2. stored fallback identity mismatch');
+      }
     }
 
     // ----- 3. registration_expired path (no pending in session) -----

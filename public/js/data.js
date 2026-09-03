@@ -203,9 +203,14 @@ const CampuSphereData = {
 if (typeof localStorage !== 'undefined') {
   const savedStudent = localStorage.getItem('campusphere-student');
   if (savedStudent) {
+    const savedStudentData = JSON.parse(savedStudent) || {};
+    // The server/session is the only identity source for participant names.
+    // Preserve the legacy storage key for editable fields, but never let a
+    // hand-edited `name` value replace the account identity.
+    if (savedStudentData && typeof savedStudentData === 'object') delete savedStudentData.name;
     CampuSphereData.studentProfile = {
       ...CampuSphereData.studentProfile,
-      ...JSON.parse(savedStudent)
+      ...savedStudentData
     };
   }
 
@@ -214,7 +219,6 @@ if (typeof localStorage !== 'undefined') {
     const savedInstructorData = JSON.parse(savedInstructor) || {};
     CampuSphereData.instructorProfile = {
       ...CampuSphereData.instructorProfile,
-      name: savedInstructorData.name || CampuSphereData.instructorProfile.name,
       email: savedInstructorData.email || CampuSphereData.instructorProfile.email,
       profileImage: savedInstructorData.profileImage || '',
       profileImageSource: savedInstructorData.profileImageSource || '',

@@ -56,13 +56,20 @@ SHA-1 `c4de5ab30caadf963908f0b8cab2d49ee9678481`.
 Current product behavior remains: `/home` requires `requireLogin`; the auth tab
 says `Sign in using Email`; the `/home` campus search is removed while its
 three quick links remain; and the prior dashboard, event ordering, service
-worker v36, and Guided-VR portal-marker changes remain accepted. Migration
+worker v38, and Guided-VR portal-marker changes remain accepted. Migration
 `0020_room_schedule_documents.sql` and migration
 `0021_minimal_instructor_oauth_registration.sql` are owner-applied in Supabase.
 Migration 0021 preserves the 17-argument RPC, `SECURITY INVOKER`, fixed search
 path, revoked `PUBLIC` EXECUTE, and granted `service_role` EXECUTE. Do not
 reapply migration 0020 or 0021 without a new explicit database authorization.
 There is still no real CSPC instructor Gmail end-to-end OAuth observation.
+
+The current identity-lock candidate makes student, guest, and instructor names
+server-controlled: verified Google given/family claims take precedence, then the
+Google full name, then a normalized email prefix. Completion and profile fields
+are read-only for those roles, tampered names are rejected or ignored, and
+Google-login resynchronization is best-effort. This candidate is not a database
+backfill or a deployment claim.
 
 The search/building performance correction is deliberately narrow. The
 `utils/singleFlight.js` helper shares only an active read promise among
@@ -126,8 +133,8 @@ read-coalescing `6/6`, BE.6 `46/46`, package boundary `74/74`, a fresh
 (`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities), final canonical
 session residue `18/18`, and `git diff --check`. The current Vercel source
-package remains 190 files and 7,227,736 bytes with aggregate SHA-256
-`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`;
+package remains 191 files and 7,239,253 bytes with aggregate SHA-256
+`8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`;
 authority documents, scripts, and the two transcripts are outside that package.
 
 Retain the offline-map authority unchanged. Its abbreviated lineage is
@@ -190,7 +197,7 @@ labels use Instructor and News & Announcements; the guest sidebar is limited to
 Overview and News & Announcements and its Achievements card is removed; events
 sort by date/id descending (newest first); `/home` removes Offices and loads
 bounded current Featured Locations and Latest Events; refresh layout remains
-gap-free; the service worker is v36; and Guided-VR scene-navigation hotspots use
+gap-free; the service worker is v38; and Guided-VR scene-navigation hotspots use
 a compact directional portal marker while info hotspots remain distinct.
 The follow-up product commit `c1ca1b4` changes the auth tab to the
 provider-neutral `Sign in using Email` label and removes the `/home` campus

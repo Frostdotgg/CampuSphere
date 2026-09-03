@@ -58,6 +58,7 @@ const bcrypt = require('bcrypt');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { normalizeMediaUrl } = require('../utils/mediaUrl');
 const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
+const { resolveAccountIdentityName } = require('../utils/accountIdentityName');
 
 const SALT_ROUNDS = 10;
 const USERS = 'users';
@@ -380,9 +381,9 @@ async function createLocalUser(payload) {
  * so Section 2.7 can swap the call site with no shape change.
  *
  * Behavior:
- *   - Resolves full name from body.fullName, falling back to
- *     pending.givenName + pending.familyName, then pending.fullName.
- *   - Splits name into first_name / last_name.
+ *   - Resolves first_name / last_name from the pending verified Google
+ *     identity, falling back to the normalized email prefix. Request
+ *     body.fullName is deliberately ignored.
  *   - Derives username from the email local part (max 50 chars).
  *   - Computes a bcrypt placeholder hash from 32 random bytes. NO real
  *     Google password is ever stored.
@@ -390,9 +391,10 @@ async function createLocalUser(payload) {
  *     check fails earlier with the same error code).
  *   - Performs role-specific required-field validation matching the
  *     existing controller error codes (MISSING_STUDENT / MISSING_GUEST /
- *     MISSING_NAME / MISSING_OAUTH_SUBJECT). Instructor OAuth identity is
- *     complete from the verified Google claims; its legacy profile fields are
- *     deliberately ignored.
+ *     MISSING_OAUTH_SUBJECT). Instructor OAuth identity is complete from the
+ *     verified Google claims; its legacy profile fields are deliberately
+ *     ignored. The resolver supplies a safe non-empty name before the SQL
+ *     function is called, so a submitted fullName can never affect identity.
  *
  * Returns the inserted users.id (number). On failure, throws a plain Error
  * with one of the documented codes as `.message` (and `.code`) for the
@@ -401,31 +403,19 @@ async function createLocalUser(payload) {
 async function createOAuthUserWithProfile(pending, body) {
   const p = pending || {};
   const b = body || {};
-
-  let fullName = typeof b.fullName === 'string' ? b.fullName.trim() : '';
-  if (!fullName) {
-    const given = typeof p.givenName === 'string' ? p.givenName.trim() : '';
-    const family = typeof p.familyName === 'string' ? p.familyName.trim() : '';
-    if (given || family) {
-      fullName = [given, family].filter(Boolean).join(' ').trim();
-    } else if (typeof p.fullName === 'string') {
-      fullName = p.fullName.trim();
-    }
-  }
-  if (!fullName) {
-    const err = new Error('MISSING_NAME');
-    err.code = 'MISSING_NAME';
-    throw err;
-  }
-
-  const nameParts = fullName.split(/\s+/);
-  const first_name = nameParts[0] || '';
-  const last_name = nameParts.slice(1).join(' ') || '';
-
-  const email = typeof p.email === 'string' ? p.email.trim() : '';
+  const email = typeof p.email === 'string' ? p.email.trim().toLowerCase() : '';
   if (!email) {
     throw new Error('userRepository.createOAuthUserWithProfile: pending.email is required');
   }
+
+  const identity = resolveAccountIdentityName({
+    givenName: p.givenName,
+    familyName: p.familyName,
+    fullName: p.fullName,
+    email
+  });
+  const first_name = identity.firstName;
+  const last_name = identity.lastName;
 
   const role = typeof p.role === 'string' ? p.role.trim() : '';
   if (!role) {

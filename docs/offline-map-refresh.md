@@ -3,10 +3,11 @@
 Current handoff note (2026-09-02): the read-coalescing, load-evidence, and
 freeze-refresh commits do not change the offline publisher, bounds, release
 center, opening camera, Drive workflow, IndexedDB activation, or
-user-controlled update model. The service-worker shell remains `v36`; that
-cache revision does not change the PMTiles release rectangle or publisher.
-The current full source package is 190 files, 7,227,736 bytes, aggregate
-SHA-256 `8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`
+user-controlled update model. The service-worker shell is now `v38` for the
+server-controlled account-name and authenticated profile CSS corrections; that cache revision does not change the
+PMTiles release rectangle or publisher. The current full source package is
+191 files, 7,239,253 bytes, aggregate SHA-256
+`8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`
 with package boundary `74/74`. Keep this current full-package evidence separate
 from the historical offline-specific `c4de5ab` package evidence below. GitHub
 `main` contained `7f4bfce` before the September 2 authority synchronization,

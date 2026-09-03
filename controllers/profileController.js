@@ -17,6 +17,7 @@ const MAX_ADDRESS_LENGTH = 255;
 const MAX_PHONE_LENGTH = 50;
 
 const IMMUTABLE_FIELDS = ['role', 'email', 'id', 'password'];
+const IDENTITY_MANAGED_ROLES = new Set(['student-cspc', 'guest', 'instructor']);
 
 function fail(res, status, message) {
   return res.status(status).json({ success: false, message });
@@ -76,15 +77,23 @@ exports.updateProfile = async (req, res) => {
     return fail(res, 401, 'Not logged in.');
   }
 
-  // 1. Reject identity-tampering fields outright.
+  // 1. The server controls names for Google-linked participant roles. Reject
+  // an explicit name field rather than silently accepting a client-side
+  // tampering attempt; administrator name editing remains supported below.
+  const role = sessionUser.role;
+  if (IDENTITY_MANAGED_ROLES.has(role) &&
+      Object.prototype.hasOwnProperty.call(req.body, 'name')) {
+    return fail(res, 400, 'Full name is managed by your account identity and cannot be changed.');
+  }
+
+  // 2. Reject other identity-tampering fields outright.
   for (const field of IMMUTABLE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(req.body, field)) {
       return fail(res, 400, `Field "${field}" cannot be changed through this endpoint.`);
     }
   }
 
-  // 2. Authoritative role comes from the session, never the request body.
-  const role = sessionUser.role;
+  // 3. Authoritative role comes from the session, never the request body.
   const useSupabase = authDataSource.isSupabase();
   const userId = sessionUser.id;
 
@@ -101,7 +110,9 @@ exports.updateProfile = async (req, res) => {
     // issue a single call so users-name + role-profile commit/roll back together.
     const sbPlan = { updateName: false, first_name: null, last_name: null, updateProfile: false, role: null, profile: {} };
 
-    // 3. Validate name if explicitly provided; stage its write + session change.
+    // 4. Validate an administrator name if explicitly provided; stage its
+    // write + session change. Locked participant roles returned above before
+    // reaching this branch.
     if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
       const rawName = trimString(req.body.name);
       if (!rawName) {
@@ -128,7 +139,7 @@ exports.updateProfile = async (req, res) => {
       pendingSession.last_name = last_name;
     }
 
-    // 4. Role-specific profile updates — branch on the session role only.
+    // 5. Role-specific profile updates — branch on the session role only.
     if (role === 'student-cspc') {
       const hasStudentId = Object.prototype.hasOwnProperty.call(req.body, 'studentId');
       const hasCourse = Object.prototype.hasOwnProperty.call(req.body, 'course');
@@ -294,7 +305,7 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    // 5. Execute the writes. MySQL: one transaction over the staged ops.
+    // 6. Execute the writes. MySQL: one transaction over the staged ops.
     //    Supabase: a single atomic RPC (name + role profile commit together).
     if (useSupabase) {
       if (sbPlan.updateName || sbPlan.updateProfile) {
@@ -304,7 +315,7 @@ exports.updateProfile = async (req, res) => {
       await runMysqlProfileTx(writeOps);
     }
 
-    // 6. Only NOW, after the DB write has committed, mutate the session.
+    // 7. Only NOW, after the DB write has committed, mutate the session.
     Object.assign(sessionUser, pendingSession);
 
     req.session.save((err) => {

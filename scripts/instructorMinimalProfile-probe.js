@@ -51,18 +51,23 @@ const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 
 
 console.log('\n[instructor identity] OAuth creation contract');
 
-const callback = section(auth, 'const { first, last } = splitGoogleName(profile);', '  } catch (err) {');
+const callback = section(auth, 'const email = normalizeEmail(profile.email);', '  } catch (err) {');
 const localOAuth = section(auth, 'async function createOAuthUserWithProfile(pending, body)', '// Complete a pending OAuth registration');
 const registrationPost = section(auth, 'exports.completeRegistrationPost = async', '\n\n\n');
 check('auth', 'instructor callback creates directly from verified Google claims',
   /if \(domainRole === 'instructor'\) \{[\s\S]*?completeOAuthRegistration\(req, res, pending, \{\}\);[\s\S]*?return res\.redirect\('\/dashboard'\);/.test(callback));
 check('auth', 'Google picture is normalized before pending registration state',
   callback.includes("picture: normalizeGoogleProfileImageUrl(profile.picture) || ''"));
+check('auth', 'pending registration name comes from the shared identity resolver',
+  callback.includes('givenName: identity.firstName') &&
+  callback.includes('familyName: identity.lastName') &&
+  callback.includes('fullName: identity.fullName'));
 check('auth', 'student/guest completion remains the fallback branch',
   callback.includes('req.session.pendingOAuthRegistration = pending;') &&
   callback.includes("return res.redirect('/auth/complete-registration');"));
 check('auth', 'legacy instructor completion POST ignores retired form fields',
-  registrationPost.includes("const body = pending.role === 'instructor' ? {} : req.body;") &&
+  registrationPost.includes('const allowedFields = pending.role ===') &&
+  registrationPost.includes('fullName is intentionally discarded') &&
   registrationPost.includes('completeOAuthRegistration(req, res, pending, body)'));
 check('auth', 'local instructor OAuth profile is created with blank compatibility fields',
   /else if \(role === 'instructor'\) \{[\s\S]*?INSERT INTO instructor_profiles[\s\S]*?\[userId, '', '', ''\][\s\S]*?\}/.test(localOAuth) &&
@@ -124,13 +129,16 @@ const browserProjection = section(navbar, '<%- safeJson(user ?', ': null) %>');
 check('completion view', 'instructor completion has no employee/department/position controls',
   !/oauth(?:EmployeeId|Department|Position)/.test(completionView) &&
   !/<label[^>]*>\s*(?:Employee ID|Department|Position)\s*<\/label>/i.test(completionView));
-check('profile controller', 'instructors can update name only',
-  !/role\s*===\s*['"]instructor['"]/.test(profileController) &&
-  !/(?:employee|department|position)/i.test(profileController) &&
+check('profile controller', 'instructor names are server-managed while other profile logic remains',
+  profileController.includes("new Set(['student-cspc', 'guest', 'instructor'])") &&
+  profileController.includes('Full name is managed by your account identity') &&
   profileController.includes('sbPlan.updateName') &&
   profileController.includes('UPDATE users SET first_name'));
 check('profile script', 'instructor edit modal contains only name, email, and photo state',
-  instructorModal.includes('for="editName"') && instructorModal.includes('for="editEmail"') &&
+  instructorModal.includes('${fullNameField}') && instructorModal.includes('for="editEmail"') &&
+  profileScript.includes('const fullNameField = identityManagedName') &&
+  profileScript.includes('edit-form-input--readonly') &&
+  profileScript.includes('aria-readonly="true"') &&
   !/(?:editId|editDept|editPos|employeeId|department|position)/i.test(instructorModal));
 check('profile script', 'instructor local fallback strips legacy metadata',
   instructorFallback.includes('profileImage') && instructorFallback.includes("status: savedInstructor.status || 'Active'") &&
@@ -163,7 +171,7 @@ check('navbar', 'browser session projection excludes instructor legacy metadata'
 check('privacy', 'privacy notice explains preserved legacy values are hidden',
   /Legacy employee ID, position, and department values may remain stored[\s\S]*no longer collected or shown/i.test(privacy));
 check('delivery', 'service-worker cache advances for the changed profile surfaces',
-  /CACHE_VERSION\s*=\s*'v36'/.test(serviceWorker));
+  /CACHE_VERSION\s*=\s*'v38'/.test(serviceWorker));
 
 // Negative UI fixtures catch accidental reintroduction of one of the removed
 // labels or controls even when the surrounding template remains unchanged.

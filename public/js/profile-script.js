@@ -174,20 +174,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fallback to localStorage
         if (savedRole === 'student-cspc') {
             storageKey = 'campusphere-student';
-            profileData = JSON.parse(localStorage.getItem(storageKey)) || {
+            const savedStudent = JSON.parse(localStorage.getItem(storageKey) || 'null') || {};
+            // A legacy local mirror may contain a hand-edited name. It is not
+            // an identity source, so ignore that property even on the
+            // session-free fallback path.
+            if (savedStudent && typeof savedStudent === 'object') delete savedStudent.name;
+            profileData = {
                 name: 'Aaron V. Lasprillas',
                 studentId: 'CSPC-2024-001234',
                 email: 'aaron.lasprillas@cspc.edu.ph',
                 course: 'Bachelor of Science in Information Technology',
                 yearLevel: '3rd Year',
                 enrollmentStatus: 'Enrolled',
-                semester: '2nd Semester, A.Y. 2025-2026'
+                semester: '2nd Semester, A.Y. 2025-2026',
+                ...(savedStudent && typeof savedStudent === 'object' ? savedStudent : {})
             };
         } else if (savedRole === 'instructor') {
             storageKey = 'campusphere-instructor';
             const savedInstructor = JSON.parse(localStorage.getItem(storageKey) || 'null') || {};
             profileData = {
-                name: savedInstructor.name || 'Dr. Maria Santos',
+                // Instructor names are account-managed; old local mirrors may
+                // not override the safe demo fallback.
+                name: 'Dr. Maria Santos',
                 email: savedInstructor.email || 'maria.santos@cspc.edu.ph',
                 profileImage: savedInstructor.profileImage || '',
                 profileImageSource: savedInstructor.profileImageSource || '',
@@ -283,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // the Edit Profile button. All real roles (including guest) can edit; the
     // per-role modal branch below decides which fields are shown.
     const canEdit = Boolean(sessionUser);
+    const identityManagedName = ['student-cspc', 'guest', 'instructor'].includes(savedRole);
     let dropdownHTML = '';
 
     if (canEdit) {
@@ -341,6 +350,25 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
+        const fullNameField = identityManagedName
+            ? `
+                <div class="edit-form-group">
+                    <label class="edit-form-label" for="editName">Full Name</label>
+                    <input type="text" id="editName" class="edit-form-input edit-form-input--readonly"
+                        value="${escapeHtml(profileData.name)}" readonly aria-readonly="true"
+                        aria-describedby="editNameHelp" title="Managed by your account identity">
+                    <span class="edit-form-help" id="editNameHelp">
+                        This name is managed by your account identity and cannot be changed here.
+                    </span>
+                </div>
+            `
+            : `
+                <div class="edit-form-group">
+                    <label class="edit-form-label" for="editName">Full Name</label>
+                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
+                </div>
+            `;
+
         if (savedRole === 'student-cspc') {
             const currentCourse = String(profileData.course || '').trim();
             const courseOptions = currentCourse && !CSPC_STUDENT_COURSES.includes(currentCourse)
@@ -359,10 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ).join('');
 
             modalFields = profilePhotoArea + `
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editName">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
-                </div>
+                ${fullNameField}
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editId">Student ID</label>
                     <input type="text" id="editId" class="edit-form-input" value="${escapeHtml(profileData.studentId)}">
@@ -388,10 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         } else if (savedRole === 'instructor') {
             modalFields = profilePhotoArea + `
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editName">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
-                </div>
+                ${fullNameField}
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
@@ -399,10 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         } else if (savedRole === 'guest') {
             modalFields = profilePhotoArea + `
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editName">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
-                </div>
+                ${fullNameField}
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
@@ -419,10 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // admin — simple name + email + read-only profile photo
             modalFields = profilePhotoArea + `
-                <div class="edit-form-group">
-                    <label class="edit-form-label" for="editName">Full Name</label>
-                    <input type="text" id="editName" class="edit-form-input" value="${escapeHtml(profileData.name)}">
-                </div>
+                ${fullNameField}
                 <div class="edit-form-group">
                     <label class="edit-form-label" for="editEmail">Email</label>
                     <input type="email" id="editEmail" class="edit-form-input" value="${escapeHtml(profileData.email)}" readonly disabled title="Email cannot be changed">
@@ -643,7 +659,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // immutable identity field. The server rejects it if sent.
             let newData = { ...profileData };
             const nameEl = document.getElementById('editName');
-            if (nameEl) newData.name = nameEl.value;
+            if (identityManagedName) {
+                // Keep the Google-managed name in the rendered field, but do
+                // not copy it into any client update payload or local mirror.
+                delete newData.name;
+            } else if (nameEl) {
+                newData.name = nameEl.value;
+            }
 
             if (savedRole === 'student-cspc') {
                 const idEl = document.getElementById('editId');
@@ -668,15 +690,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (phoneEl) newData.phone = phoneEl.value;
             }
 
-            // Save to localStorage using the role's key (for backward compat)
+            // Save editable fields to localStorage using the role's key (for
+            // backward compatibility). Locked roles never write a name mirror.
             if (storageKey) {
                 localStorage.setItem(storageKey, JSON.stringify(newData));
             }
 
-            // Immediately apply the new name to the avatar label
-            const newName = document.getElementById('editName').value;
-            if (navUsername) navUsername.textContent = newName.split(' ')[0];
-            if (sidebarName) sidebarName.textContent = newName;
+            // Administrators may edit their name. Participant navigation keeps
+            // the server-provided identity and is never changed from a form.
+            if (!identityManagedName) {
+                const newName = nameEl ? nameEl.value : newData.name;
+                if (navUsername) navUsername.textContent = newName.split(' ')[0];
+                if (sidebarName) sidebarName.textContent = newName;
+            }
 
             // POST to server to persist changes to the database
             if (sessionUser) {
@@ -684,8 +710,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveBtn.disabled = true;
                     saveBtn.textContent = 'Saving...';
                     // Do NOT send role or email — both are immutable and the server
-                    // will reject the request outright if either is present.
-                    const payload = { name: newData.name };
+                    // will reject the request outright if either is present. A
+                    // participant name is also server-managed and omitted.
+                    const payload = {};
+                    if (!identityManagedName) payload.name = newData.name;
                     if (savedRole === 'student-cspc') {
                         payload.studentId = newData.studentId;
                         payload.course = newData.course;

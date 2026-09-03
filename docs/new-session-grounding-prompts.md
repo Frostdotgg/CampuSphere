@@ -83,13 +83,20 @@ SHA-1 `c4de5ab30caadf963908f0b8cab2d49ee9678481`.
 Current product behavior remains: `/home` requires `requireLogin`; the auth tab
 says `Sign in using Email`; the `/home` campus search is removed while its
 three quick links remain; and the prior dashboard, event ordering, service
-worker v36, and Guided-VR portal-marker changes remain accepted. Migration
+worker v38, and Guided-VR portal-marker changes remain accepted. Migration
 `0020_room_schedule_documents.sql` and migration
 `0021_minimal_instructor_oauth_registration.sql` are owner-applied in Supabase.
 Migration 0021 preserves the 17-argument RPC, `SECURITY INVOKER`, fixed search
 path, revoked `PUBLIC` EXECUTE, and granted `service_role` EXECUTE. Do not
 reapply migration 0020 or 0021 without a new explicit database authorization.
 There is still no real CSPC instructor Gmail end-to-end OAuth observation.
+
+The current identity-lock candidate makes student, guest, and instructor names
+server-controlled: verified Google given/family claims take precedence, then the
+Google full name, then a normalized email prefix. Completion and profile fields
+are read-only for those roles, tampered names are rejected or ignored, and
+Google-login resynchronization is best-effort. This candidate is not a database
+backfill or a deployment claim.
 
 The search/building performance correction is deliberately narrow. The
 `utils/singleFlight.js` helper shares only an active read promise among
@@ -153,8 +160,8 @@ read-coalescing `6/6`, BE.6 `46/46`, package boundary `74/74`, a fresh
 (`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities), final canonical
 session residue `18/18`, and `git diff --check`. The current Vercel source
-package remains 190 files and 7,227,736 bytes with aggregate SHA-256
-`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`;
+package remains 191 files and 7,239,253 bytes with aggregate SHA-256
+`8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`;
 authority documents, scripts, and the two transcripts are outside that package.
 
 Retain the offline-map authority unchanged. Its abbreviated lineage is
@@ -217,7 +224,7 @@ labels use Instructor and News & Announcements; the guest sidebar is limited to
 Overview and News & Announcements and its Achievements card is removed; events
 sort by date/id descending (newest first); `/home` removes Offices and loads
 bounded current Featured Locations and Latest Events; refresh layout remains
-gap-free; the service worker is v36; and Guided-VR scene-navigation hotspots use
+gap-free; the service worker is v38; and Guided-VR scene-navigation hotspots use
 a compact directional portal marker while info hotspots remain distinct.
 The follow-up product commit `c1ca1b4` changes the auth tab to the
 provider-neutral `Sign in using Email` label and removes the `/home` campus
@@ -260,8 +267,8 @@ remained running with restart count 0/OOM false. Load-test artifacts are under
 `artifacts/`; this remains local/source evidence, not Production proof.
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
-current source package is 190 files, 7,227,736 bytes, aggregate SHA-256
-`8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`.
+current source package is 190 files, 7,228,842 bytes, aggregate SHA-256
+`864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found
@@ -798,8 +805,8 @@ Current facts to verify, not blindly repeat:
   79,560/79,560; read-coalescing 6/6. The owner-observed screenshot-only LT-04
   was 50/50 with zero failures at 5 VUs for 30 seconds and exercises Cloudinary
   delivery, not upload. These are localhost/source facts, not Production proof.
-- The source package pin is 190 files, 7,227,736 bytes, aggregate SHA-256
-  8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e.
+- The source package pin is 190 files, 7,228,842 bytes, aggregate SHA-256
+  864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079.
 - Migrations 0020 and 0021 are owner-applied. Do not reapply or mutate data.
 - Offline publisher, Drive/IndexedDB design, bounds, release center, opening
   camera, and whole-edge-tile decision are unchanged. Do not bootstrap or
@@ -887,8 +894,8 @@ Verify these facts against source and current authority:
 - Local performance: LT-05 4,000/4,000, LT-06 3,200/3,200, LT-08
   79,560/79,560, coalescing 6/6. Owner-observed screenshot-only LT-04 is 50/50
   at 5 VUs for 30 seconds, Cloudinary delivery only. None is Production proof.
-- Current source package: 190 files, 7,227,736 bytes, SHA-256
-  8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e.
+- Current source package: 190 files, 7,228,842 bytes, SHA-256
+  864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079.
 - Migrations 0020/0021 are owner-applied and must not be reapplied. Offline
   publisher/bounds/camera/Drive/IndexedDB decisions are unchanged; do not
   bootstrap or rollback; no real new OSM building has been observed end to end.

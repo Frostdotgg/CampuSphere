@@ -1601,8 +1601,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v36 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 36 &&
+    ok('sw.js is v38 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 38 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -4669,6 +4669,99 @@ function profileModalCssIsAccessible(css) {
     /min-height:\s*0/.test(body) && /overflow-y:\s*auto/.test(body) && Boolean(reduced);
 }
 
+/** PURE: primary button colors must survive the late CSS reset and retain AA
+ * contrast for normal/hover text in both themes. */
+function profileModalPrimaryActionIsAccessible(css) {
+  if (typeof css !== 'string' || css === '') return false;
+
+  const blockAt = (marker) => {
+    const start = css.indexOf(marker);
+    if (start < 0) return '';
+    const end = css.indexOf('}', start);
+    return end > start ? css.slice(start, end + 1) : '';
+  };
+  const variablesIn = (block) => {
+    const vars = Object.create(null);
+    const re = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi;
+    let match;
+    while ((match = re.exec(block))) vars[match[1]] = match[2].trim();
+    return vars;
+  };
+  const root = blockAt(':root {');
+  const darkStarts = [];
+  let cursor = 0;
+  const darkMarker = 'html[data-theme="dark"] {';
+  while ((cursor = css.indexOf(darkMarker, cursor)) >= 0) {
+    darkStarts.push(cursor);
+    cursor += darkMarker.length;
+  }
+  const dark = darkStarts.map((start) => {
+    const end = css.indexOf('}', start);
+    return end > start ? css.slice(start, end + 1) : '';
+  }).find((block) => block.includes('--primary-action-bg-start')) || '';
+  const lightVars = variablesIn(root);
+  const darkVars = { ...lightVars, ...variablesIn(dark) };
+  const readHex = (vars, name) => {
+    const value = vars['--' + name] || '';
+    return /^#[0-9a-f]{6}$/i.test(value) ? value : null;
+  };
+  const relativeLuminance = (hex) => {
+    const channels = hex.slice(1).match(/../g).map((channel) => parseInt(channel, 16) / 255);
+    const linear = channels.map((channel) => channel <= 0.04045
+      ? channel / 12.92
+      : Math.pow((channel + 0.055) / 1.055, 2.4));
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const contrastRatio = (foreground, background) => {
+    if (!foreground || !background) return 0;
+    const a = relativeLuminance(foreground);
+    const b = relativeLuminance(background);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+  const themeContrastIsAa = (vars) => {
+    const foreground = readHex(vars, 'primary-action-foreground');
+    const backgrounds = [
+      readHex(vars, 'primary-action-bg-start'),
+      readHex(vars, 'primary-action-bg-end'),
+      readHex(vars, 'primary-action-hover-start'),
+      readHex(vars, 'primary-action-hover-end')
+    ];
+    return Boolean(foreground) && backgrounds.every((background) =>
+      contrastRatio(foreground, background) >= 4.5);
+  };
+
+  const primary = blockAt('.btn--primary {');
+  const darkPrimary = blockAt('[data-theme="dark"] .btn--primary {');
+  const hover = blockAt('.btn--primary:hover {');
+  const focus = blockAt('.btn--primary:focus-visible {');
+  const disabled = blockAt('.btn--primary:disabled,');
+  const resetStart = css.indexOf('button:not(.btn),');
+  const resetEnd = resetStart >= 0 ? css.indexOf('}', resetStart) : -1;
+  const reset = resetStart >= 0 && resetEnd > resetStart
+    ? css.slice(resetStart, resetEnd + 1)
+    : '';
+
+  return themeContrastIsAa(lightVars) && themeContrastIsAa(darkVars) &&
+    /color:\s*var\(--primary-action-foreground\)/.test(primary) &&
+    primary.includes('background: linear-gradient') &&
+    primary.includes('var(--primary-action-bg-start)') &&
+    primary.includes('var(--primary-action-bg-end)') &&
+    /color:\s*var\(--primary-action-foreground\)/.test(darkPrimary) &&
+    darkPrimary.includes('background: linear-gradient') &&
+    darkPrimary.includes('var(--primary-action-bg-start)') &&
+    darkPrimary.includes('var(--primary-action-bg-end)') &&
+    hover.includes('background: linear-gradient') &&
+    hover.includes('var(--primary-action-hover-start)') &&
+    hover.includes('var(--primary-action-hover-end)') &&
+    /outline:\s*3px\s+solid\s+var\(--ring/.test(focus) &&
+    /cursor:\s*not-allowed/.test(disabled) && /opacity:\s*0\.8/.test(disabled) &&
+    /transform:\s*none/.test(disabled) &&
+    /\[type='button'\]:not\(\.btn\)/.test(reset) &&
+    /\[type='reset'\]:not\(\.btn\)/.test(reset) &&
+    /\[type='submit'\]:not\(\.btn\)/.test(reset) &&
+    !/\bbutton\s*,/.test(reset) && !/\[type='button'\]\s*,/.test(reset);
+}
+
 /** PURE: modal markup, state, keyboard, focus, and backdrop behaviour must all
  * be owned by the single setEditModalOpen state transition. */
 function profileModalClientIsAccessible(js) {
@@ -4739,10 +4832,19 @@ function profileModalClientIsAccessible(js) {
   const backdropOnly = /overlay\.addEventListener\('click',[\s\S]{0,140}?e\.target\s*===\s*overlay/.test(js);
   const explicitButtons = ['closeEditModal', 'cancelEditBtn', 'saveEditBtn']
     .every((id) => new RegExp('<button type="button"[^>]*id="' + id + '"').test(js));
+  const primarySaveButton = /<button type="button" class="btn btn--primary btn--sm" id="saveEditBtn">Save Changes<\/button>/.test(js);
+  const identityNameLock = /const identityManagedName = \['student-cspc',\s*'guest',\s*'instructor'\]\.includes\(savedRole\)/.test(js) &&
+    /const fullNameField = identityManagedName\s*\?/.test(js) &&
+    /edit-form-input--readonly/.test(js) &&
+    /aria-readonly="true"/.test(js) &&
+    /This name is managed by your account identity/.test(js);
+  const identityNameNotSubmitted = /if \(identityManagedName\) \{[\s\S]{0,180}?delete newData\.name/.test(js) &&
+    /if \(!identityManagedName\) payload\.name = newData\.name/.test(js) &&
+    /if \(!identityManagedName\) \{[\s\S]{0,180}?navUsername/.test(js);
   return labelledFields && dialogMarkup && oneStateOwner && stateIsComplete &&
     focusContract && documentCaptureTrap && outsideDialogRecapture &&
     verifiedOpenFocus && restoreFocusFallback && backdropOnly && explicitButtons &&
-    !/\sonclick=/.test(js);
+    primarySaveButton && identityNameLock && identityNameNotSubmitted && !/\sonclick=/.test(js);
 }
 
 /** PURE: the deployment guide must constrain isolated browser evidence so a
@@ -5059,6 +5161,7 @@ function runPilotReadinessGate() {
   ok('auth theme CSS and the edit-profile modal preserve accessible interaction state',
     authScopedThemeToggleCssIsCorrect(siteCss) &&
     profileModalCssIsAccessible(siteCss) &&
+    profileModalPrimaryActionIsAccessible(siteCss) &&
     profileModalClientIsAccessible(profileJs));
 
   /* ---- owner-supplied searchable course catalog ---- */
@@ -5152,6 +5255,11 @@ function runPilotReadinessGate() {
     sourceMutationIsRejected(siteCss,
       /(\.edit-modal-overlay\.show\s*\{[^}]*?)pointer-events:\s*auto/, '$1pointer-events: none',
       profileModalCssIsAccessible));
+  ok('fixture: primary-action reset collisions, low-contrast theme tokens, and missing focus state are rejected',
+    !profileModalPrimaryActionIsAccessible(siteCss.replace('button:not(.btn),', 'button,')) &&
+    !profileModalPrimaryActionIsAccessible(siteCss.replace('--primary-action-bg-end: #1a3a6b;', '--primary-action-bg-end: #ffffff;')) &&
+    !profileModalPrimaryActionIsAccessible(siteCss.replace('--primary-action-bg-end: #2a6fc7;', '--primary-action-bg-end: #3b82c4;')) &&
+    !profileModalPrimaryActionIsAccessible(siteCss.replace('.btn--primary:focus-visible', '.btn--primary:focus')));
   ok('fixture: dropping containing blocks or modal accessibility state is rejected',
     !authScopedThemeToggleCssIsCorrect(siteCss.replace(/(body\.auth-body \.auth-card \{[^}]*?)position:\s*relative/, '$1position: static')) &&
     !authScopedThemeToggleCssIsCorrect(siteCss.replace(/body\.auth-body \.auth-card \.theme-toggle \{[^}]*\}/, '')) &&
@@ -6484,7 +6592,9 @@ const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
 const CURRENT_FREEZE_MANIFEST_SHA256 =
   '85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
-  '8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e';
+  '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
+const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
+  '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6570,7 +6680,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/Sign in using Email/i.test(t) ||
         !/\/home[^.]{0,120}campus search is removed/i.test(t) ||
         !/three quick links remain/i.test(t) ||
-        !/service worker v36/i.test(t) ||
+        !/service worker v38/i.test(t) ||
         !/Guided-VR portal-marker/i.test(t)) {
       problems.push('current product behavior summary is incomplete');
     }
@@ -6635,8 +6745,8 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/IDENTITY-CONSTRAINTS OK/i.test(t) ||
         !/zero audit vulnerabilities/i.test(t) ||
         !/git diff --check/i.test(t) ||
-        !/190 files[^.]{0,80}7,227,736 bytes/i.test(t) ||
-        !t.includes(CURRENT_FEATURE_PACKAGE_SHA256)) {
+        !/191 files[^.]{0,80}7,239,253 bytes/i.test(t) ||
+        !t.includes(CURRENT_IDENTITY_LOCK_PACKAGE_SHA256)) {
       problems.push('synchronization verification plan or package identity is incomplete');
     }
 
@@ -6739,8 +6849,8 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/instructor[^.]{0,120}30\/30/i.test(t) ||
         !/OFF\.2[^.]{0,100}145\/145/i.test(t) ||
         !/package[^.]{0,100}74\/74/i.test(t) ||
-        !/190 files[^.]{0,80}7,227,736 bytes/i.test(t) ||
-        !t.includes(CURRENT_FEATURE_PACKAGE_SHA256) ||
+        !/191 files[^.]{0,80}7,239,253 bytes/i.test(t) ||
+        !t.includes(CURRENT_IDENTITY_LOCK_PACKAGE_SHA256) ||
         !/localhost[^.]{0,180}no console errors/i.test(t)) {
       problems.push('current source, package, or localhost evidence is incomplete');
     }
@@ -7330,8 +7440,8 @@ function reusablePromptIsCurrent(body) {
       /unintended 26th Supabase building/i.test(t) &&
       /Academic Building IV Mac Laboratory/i.test(t) &&
       /not a (?:completed-result|durable) cache/i.test(t) &&
-      /190 files[^.]{0,80}7,227,736 bytes/i.test(t) &&
-      t.includes(CURRENT_FEATURE_PACKAGE_SHA256) &&
+      /191 files[^.]{0,80}7,239,253 bytes/i.test(t) &&
+      t.includes(CURRENT_IDENTITY_LOCK_PACKAGE_SHA256) &&
       /Vercel[^.]{0,240}(?:remain unverified|has been observed)/i.test(t) &&
       t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /Final Milestone 12[^.]{0,100}(?:external|remains external)/i.test(t) &&
@@ -7750,17 +7860,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 190,
-  bytes: '7,227,736',
-  sha256: '8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e',
+  files: 191,
+  bytes: '7,239,253',
+  sha256: '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 190,
-  bytes: '7,227,736',
-  sha256: '8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e',
+  files: 191,
+  bytes: '7,239,253',
+  sha256: '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -11108,13 +11218,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **190 files, 7,227,736 bytes, aggregate SHA-256 `8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **190 files, 7,227,736 bytes, aggregate SHA-256 `8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 190 files, 7,227,736 bytes, aggregate SHA-256 `8099a1a323c7cef0175dd85294c5ff38f654b6245f9cd09380e12af1549a2f3e`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -12580,8 +12690,8 @@ function runSwPrecacheGate() {
   ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=8',
-    canonicalStylesheet === '/css/styles.css?v=8');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=10',
+    canonicalStylesheet === '/css/styles.css?v=10');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.

@@ -73,6 +73,10 @@ check('Google login refreshes the picture before session hydration',
     const hydrate = loginBranch.indexOf('await hydrateSessionUser(req, user);');
     return refresh >= 0 && hydrate > refresh;
   })());
+check('Google login also attempts a non-blocking verified-name refresh',
+  auth.includes('async function syncGoogleIdentityName') &&
+  auth.includes('await syncGoogleIdentityName(user, profile, useSupabase);') &&
+  auth.includes("console.warn('Google account name refresh skipped.')"));
 check('new OAuth registration stores only a validated picture',
   auth.includes('picture: normalizeGoogleProfileImageUrl(profile.picture) || \'\'') &&
   auth.includes('const picture = normalizeGoogleProfileImageUrl(pending.picture) || null;'));
@@ -106,7 +110,7 @@ check('CSP allows Google only as an image origin',
 check('privacy notice names the Google profile picture URL',
   /Google Account profile picture URL/i.test(privacy) && /profile picture URL/i.test(privacy));
 check('service worker cache advances and still precaches profile-script.js',
-  /CACHE_VERSION\s*=\s*'v36'/.test(serviceWorker) &&
+  /CACHE_VERSION\s*=\s*'v38'/.test(serviceWorker) &&
   serviceWorker.includes("'/js/profile-script.js'"));
 
 console.log(`\n${failures.length ? 'GOOGLE PROFILE IMAGE PROBE FAILED' : 'GOOGLE PROFILE IMAGE PROBE PASSED'} (${checks - failures.length}/${checks})`);

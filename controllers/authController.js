@@ -21,6 +21,7 @@ const { clearSessionCookie } = require('../config/sessionConfig');
 const { validateEmail, validatePassword } = require('../utils/adminValidation');
 const { normalizeMediaUrl } = require('../utils/mediaUrl');
 const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
+const { resolveAccountIdentityName, normalizeWhitespace } = require('../utils/accountIdentityName');
 
 const SALT_ROUNDS = 10;
 
@@ -67,17 +68,13 @@ function getRoleFromEmail(email) {
 }
 
 function splitGoogleName(profile) {
-  const given = (profile && profile.given_name) || '';
-  const family = (profile && profile.family_name) || '';
-  if (given || family) {
-    return { first: given.trim(), last: family.trim() };
-  }
-  const name = (profile && profile.name) || '';
-  const parts = String(name).trim().split(/\s+/);
-  return {
-    first: parts[0] || '',
-    last: parts.slice(1).join(' ') || ''
-  };
+  const identity = resolveAccountIdentityName({
+    givenName: profile && profile.given_name,
+    familyName: profile && profile.family_name,
+    fullName: profile && profile.name,
+    email: profile && profile.email
+  });
+  return { first: identity.firstName, last: identity.lastName };
 }
 
 async function findUserByEmail(email) {
@@ -304,29 +301,64 @@ async function syncGoogleProfileImage(userRow, rawPicture, useSupabase) {
   }
 }
 
+/*
+ * Google identity names are non-essential to authentication, but they are the
+ * authoritative name for student, guest, and instructor accounts. Refresh the
+ * stored value only when it differs, and never turn a provider/database write
+ * failure into a login failure. The caller hydrates the session after this
+ * best-effort sync, so a successful update is visible immediately.
+ */
+async function syncGoogleIdentityName(userRow, profile, useSupabase) {
+  const lockedRoles = new Set(['student-cspc', 'guest', 'instructor']);
+  if (!userRow || !lockedRoles.has(userRow.role)) return;
+
+  const identity = resolveAccountIdentityName({
+    givenName: profile && profile.given_name,
+    familyName: profile && profile.family_name,
+    fullName: profile && profile.name,
+    email: profile && profile.email
+  });
+  const storedFirst = normalizeWhitespace(userRow.first_name);
+  const storedLast = normalizeWhitespace(userRow.last_name);
+  if (storedFirst === identity.firstName && storedLast === identity.lastName) return;
+
+  try {
+    if (useSupabase) {
+      await userRepository.updateUserName(userRow.id, {
+        first_name: identity.firstName,
+        last_name: identity.lastName
+      });
+    } else {
+      await db.query(
+        'UPDATE users SET first_name = ?, last_name = ? WHERE id = ?',
+        [identity.firstName, identity.lastName, userRow.id]
+      );
+    }
+    userRow.first_name = identity.firstName;
+    userRow.last_name = identity.lastName;
+  } catch (err) {
+    // Deliberately generic: never log the provider payload, account id, email,
+    // database error, or any other identifier. The next Google login retries.
+    console.warn('Google account name refresh skipped.');
+  }
+}
+
 async function createOAuthUserWithProfile(pending, body) {
-  let fullName = String(body.fullName || '').trim();
-  if (!fullName) {
-    const g = splitGoogleName({
-      given_name: pending.givenName,
-      family_name: pending.familyName,
-      name: pending.fullName
-    });
-    fullName = [g.first, g.last].filter(Boolean).join(' ').trim();
-  }
-  if (!fullName) {
-    throw new Error('MISSING_NAME');
-  }
+  const fields = body && typeof body === 'object' ? body : {};
+  const identity = resolveAccountIdentityName({
+    givenName: pending && pending.givenName,
+    familyName: pending && pending.familyName,
+    fullName: pending && pending.fullName,
+    email: pending && pending.email
+  });
+  const first_name = identity.firstName;
+  const last_name = identity.lastName;
 
-  const nameParts = fullName.split(/\s+/);
-  const first_name = nameParts[0] || '';
-  const last_name = nameParts.slice(1).join(' ') || '';
-
-  const email = pending.email;
+  const email = normalizeEmail(pending && pending.email);
   const rawUser = email.split('@')[0] || 'user';
   const username = rawUser.slice(0, 50);
   const placeholder = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
-  const role = pending.role;
+  const role = pending && pending.role;
 
   const picture = normalizeGoogleProfileImageUrl(pending.picture) || null;
   const googleSub = pending.googleSub || null;
@@ -343,7 +375,7 @@ async function createOAuthUserWithProfile(pending, body) {
     const userId = result.insertId;
 
     if (role === 'student-cspc') {
-      const studentId = String(body.studentId || '').trim();
+      const studentId = String(fields.studentId || '').trim();
       if (!studentId) throw new Error('MISSING_STUDENT');
       await conn.query(
         `INSERT INTO student_profiles (user_id, student_id_number, course, year_level, enrollment_status, semester)
@@ -351,9 +383,9 @@ async function createOAuthUserWithProfile(pending, body) {
         [
           userId,
           studentId,
-          String(body.course || '').trim() || '',
-          String(body.yearLevel || '').trim() || '1st Year',
-          String(body.semester || '1st Semester 2026-2027').trim() || '1st Semester 2026-2027'
+          String(fields.course || '').trim() || '',
+          String(fields.yearLevel || '').trim() || '1st Year',
+          String(fields.semester || '1st Semester 2026-2027').trim() || '1st Semester 2026-2027'
         ]
       );
     } else if (role === 'instructor') {
@@ -366,8 +398,8 @@ async function createOAuthUserWithProfile(pending, body) {
         [userId, '', '', '']
       );
     } else if (role === 'guest') {
-      const address = String(body.address || '').trim();
-      const phone = String(body.phone || '').trim();
+      const address = String(fields.address || '').trim();
+      const phone = String(fields.phone || '').trim();
       if (!address || !phone) throw new Error('MISSING_GUEST');
       await conn.query(
         'INSERT INTO guest_profiles (user_id, address, phone_number) VALUES (?, ?, ?)',
@@ -466,11 +498,12 @@ exports.registerPost = async (req, res) => {
   // Type-safe presence guard (M2). A JSON body may carry non-string values
   // (e.g. email: { ... }), so NEVER call .trim() on a value not yet known to be
   // a string — that would throw and surface as a 500 instead of a clean 400-ish
-  // rejection. fullName has no dedicated validator and is split into first/last
-  // below, so it must be a non-blank STRING here (a non-string fullName is
-  // treated as missing). email/password are intentionally allowed through when
-  // present-but-non-string so they reach validateEmail/validatePassword (which
-  // reject non-strings with a fixed message) rather than crashing.
+  // rejection. Keep the legacy full-name presence check for the old form's
+  // validation contract, but never use that submitted value as identity data;
+  // the name written below is derived from the normalized email prefix.
+  // email/password are intentionally allowed through when present-but-
+  // non-string so they reach validateEmail/validatePassword (which reject
+  // non-strings with a fixed message) rather than crashing.
   const hasFullName = typeof fullName === 'string' && fullName.trim() !== '';
   const hasEmail = email !== undefined && email !== null
     && !(typeof email === 'string' && email.trim() === '');
@@ -513,6 +546,7 @@ exports.registerPost = async (req, res) => {
   }
   const normalizedEmail = emailCheck.value;
   const validPassword = passwordCheck.value;
+  const registrationIdentity = resolveAccountIdentityName({ email: normalizedEmail });
 
   try {
     // ===== Supabase branch (AUTH_DATA_SOURCE=supabase) =====
@@ -547,9 +581,10 @@ exports.registerPost = async (req, res) => {
       }
       const sbUserRole = 'guest';
 
-      const sbNameParts = (fullName || '').trim().split(/\s+/);
-      const sbFirstName = sbNameParts[0] || '';
-      const sbLastName = sbNameParts.slice(1).join(' ') || '';
+      // Public legacy registration is guest-only. The submitted fullName is
+      // deliberately ignored; derive the account identity from the email.
+      const sbFirstName = registrationIdentity.firstName;
+      const sbLastName = registrationIdentity.lastName;
       const sbHashedPassword = await bcrypt.hash(validPassword, SALT_ROUNDS);
       const sbUsername = normalizedEmail.split('@')[0];
 
@@ -647,9 +682,10 @@ exports.registerPost = async (req, res) => {
       });
     }
 
-    const nameParts = (fullName || '').trim().split(/\s+/);
-    const first_name = nameParts[0] || '';
-    const last_name = nameParts.slice(1).join(' ') || '';
+    // Public legacy registration is guest-only. The submitted fullName is
+    // deliberately ignored; derive the account identity from the email.
+    const first_name = registrationIdentity.firstName;
+    const last_name = registrationIdentity.lastName;
 
     const hashedPassword = await bcrypt.hash(validPassword, SALT_ROUNDS);
 
@@ -1174,6 +1210,10 @@ exports.googleCallback = async (req, res) => {
         }).catch(() => {});
         return res.redirect('/auth?error=account_not_found');
       }
+      // Identity-managed roles resync their verified Google name on each
+      // successful login. Both identity and optional picture refreshes are
+      // best-effort and never block authentication.
+      await syncGoogleIdentityName(user, profile, useSupabase);
       await syncGoogleProfileImage(user, profile.picture, useSupabase);
       // R3 (+ follow-up): regenerate, hydrate identity + role profile, save atomically.
       await establishAuthenticatedSession(req, res, async () => {
@@ -1202,14 +1242,19 @@ exports.googleCallback = async (req, res) => {
       return res.redirect('/auth?error=account_exists');
     }
 
-    const { first, last } = splitGoogleName(profile);
+    const identity = resolveAccountIdentityName({
+      givenName: profile.given_name,
+      familyName: profile.family_name,
+      fullName: profile.name,
+      email
+    });
     const pending = {
       email,
       role: domainRole,
       googleSub: profile.sub || '',
-      givenName: first,
-      familyName: last,
-      fullName: profile.name || '',
+      givenName: identity.firstName,
+      familyName: identity.lastName,
+      fullName: identity.fullName,
       picture: normalizeGoogleProfileImageUrl(profile.picture) || ''
     };
 
@@ -1284,9 +1329,17 @@ exports.completeRegistrationPost = async (req, res) => {
 
   try {
     // Instructors are normally completed in the Google callback. This branch
-    // remains for already-open legacy completion pages and intentionally
-    // ignores any retired instructor form fields.
-    const body = pending.role === 'instructor' ? {} : req.body;
+    // remains for already-open legacy completion pages. Only role-specific
+    // completion fields are forwarded; fullName is intentionally discarded
+    // because the pending verified Google identity is authoritative.
+    const submitted = req.body && typeof req.body === 'object' ? req.body : {};
+    const body = {};
+    const allowedFields = pending.role === 'student-cspc'
+      ? ['studentId', 'course', 'yearLevel', 'semester']
+      : pending.role === 'guest' ? ['address', 'phone'] : [];
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(submitted, field)) body[field] = submitted[field];
+    }
     const result = await completeOAuthRegistration(req, res, pending, body);
     if (result.status === 'account_exists') {
       return res.redirect('/auth?error=account_exists');
@@ -1298,7 +1351,6 @@ exports.completeRegistrationPost = async (req, res) => {
     // log only the safe code, never the full error object (avoids leaking
     // OAuth subjects, profile values, or stack details into server logs).
     const KNOWN_VALIDATION_CODES = new Set([
-      'MISSING_NAME',
       'MISSING_STUDENT',
       'MISSING_GUEST',
       'MISSING_OAUTH_SUBJECT',
@@ -1311,7 +1363,6 @@ exports.completeRegistrationPost = async (req, res) => {
       console.error('completeRegistrationPost: unexpected failure.');
     }
     let msg = 'Something went wrong. Please try again.';
-    if (code === 'MISSING_NAME') msg = 'Please enter your full name.';
     if (code === 'MISSING_STUDENT') msg = 'Student ID is required.';
     if (code === 'MISSING_GUEST') msg = 'Address and phone number are required.';
 
