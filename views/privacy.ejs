@@ -188,6 +188,13 @@
                     <code>HttpOnly</code>, <code>Secure</code>, and
                     <code>SameSite=Lax</code>, so it is not readable by page scripts.
                 </li>
+                <li>
+                    A single last-seen timestamp is updated approximately once per
+                    minute while a signed-in CampuSphere page is visible. It is used
+                    only for the admin-only Users view, which shows administrators whether an account is <em>Online</em>
+                    (activity received within five minutes) or <em>Offline</em>;
+                    hidden or closed pages stop sending heartbeats.
+                </li>
             </ul>
 
             <h3>Security and integrity details</h3>
@@ -296,8 +303,8 @@
                 Pilot data is intended to be kept until <strong>30 days after Team
                     Dutchess's final capstone defense</strong>. After that period, the
                 project owner will <strong>manually delete</strong> the pilot accounts,
-                profiles, and session records, unless CSPC requires them to be retained
-                for longer.
+                profiles, session records, and last-seen timestamps, unless CSPC requires
+                them to be retained for longer.
             </p>
             <div class="legal__callout">
                 <p>

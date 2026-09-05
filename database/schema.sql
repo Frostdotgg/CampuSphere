@@ -28,6 +28,19 @@ CREATE TABLE IF NOT EXISTS users (
     KEY idx_users_role (role)
 );
 
+-- Short-lived authenticated presence signal. This is intentionally separate
+-- from users.updated_at, which describes account/profile changes and must not
+-- be bumped by a recurring heartbeat. A row is created only after real app
+-- activity; existing accounts are therefore Offline/Never until they use the
+-- application. The MySQL migration helper keeps existing volumes in parity.
+CREATE TABLE IF NOT EXISTS user_presence (
+    user_id INT NOT NULL PRIMARY KEY,
+    last_seen_at TIMESTAMP(3) NOT NULL,
+    KEY idx_user_presence_last_seen_at (last_seen_at),
+    CONSTRAINT fk_user_presence_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS student_profiles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

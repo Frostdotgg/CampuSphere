@@ -97,9 +97,9 @@ reason the boundary exists in the first place.
 | Item | Value |
 | ---- | ----- |
 | Proposed file | `repositories/userRepository.js` |
-| Current callers | `controllers/authController.js` (registerPost, loginPost, googleCallback, completeRegistrationPost, hydrateSessionUser, loadRoleProfileIntoSession, createOAuthUserWithProfile, findUserByEmail), `controllers/profileController.js` (updateProfile), `controllers/dashboardController.js` (student/instructor profile fetch), `controllers/adminController.js` (index - recent users `LIMIT 5` + `COUNT(*)` total users / total students where `role='student-cspc'`; users page - full list ordered by `created_at DESC` plus active-since-30-days, inactive (derived), and new-this-month counts), `controllers/adminUsersController.js` (admin API CRUD cleanup: createUser, updateUser, deleteUser). |
-| MySQL tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles` |
-| Supabase tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles` (defined in `0001_initial_schema.sql` section B.1) |
+| Current callers | `controllers/authController.js` (registerPost, loginPost, googleCallback, completeRegistrationPost, hydrateSessionUser, loadRoleProfileIntoSession, createOAuthUserWithProfile, findUserByEmail, best-effort presence touch), `controllers/profileController.js` (updateProfile), `controllers/dashboardController.js` (student/instructor profile fetch), `controllers/adminController.js` (index - recent users `LIMIT 5` + `COUNT(*)` total users / total students where `role='student-cspc'`; users page - explicit safe user projection, one batched presence read, Online/Offline and new-this-month counts), `controllers/adminUsersController.js` (admin API CRUD cleanup: createUser, updateUser, deleteUser), `controllers/presenceController.js` (authenticated heartbeat and admin-only snapshot). |
+| MySQL tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles`, `user_presence` |
+| Supabase tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles` (defined in `0001_initial_schema.sql` section B.1), plus the server-only `user_presence` table from owner-applied migration `0022_user_presence.sql` |
 | Role/security | Local accounts use bcrypt hashes; OAuth accounts carry `oauth_provider='google'` + `oauth_subject`. Admin role creation stays seed-only / direct-DB-only (no public path). The `IMMUTABLE_FIELDS` rule in `profileController.js` (role/email/id/password) must continue to be enforced by the controller; the repository must not provide a way to update those four fields. |
 
 Method responsibilities (no implementation; signatures only):
@@ -137,11 +137,14 @@ Admin read-only helpers (consumed by `adminController.js`):
   Today the admin dashboard uses this for `totalStudents` (role
   `'student-cspc'`); generalising lets the same helper power any
   future per-role stat.
-- `countUpdatedSince(date)` -> number of users with `updated_at >=`
-  the given timestamp. Backs the admin users page "active" stat
-  (currently a 30-day proxy in `adminController.users`). The
-  controller continues to decide what "active" means; the
-  repository only answers the count question.
+- `touchUserPresence(userId)` -> invoke the server-only, database-clocked
+  60-second-throttled presence write for one authenticated user. The
+  controller/service supplies only the session-derived id.
+- `listUserPresence()` -> one indexed `user_id,last_seen_at` read for the
+  administrator Users snapshot. Missing rows mean Offline/Never; this is not
+  a per-user/N+1 query and never substitutes for `users.updated_at`.
+- `countUpdatedSince(date)` -> legacy account-change count helper retained for
+  other callers; it no longer backs the admin users Online/Offline status.
 - `countCreatedInMonth({ year, month })` -> count of users whose
   `created_at` falls inside the given `(year, month)`. Backs the
   admin users page "new this month" stat. Controller passes

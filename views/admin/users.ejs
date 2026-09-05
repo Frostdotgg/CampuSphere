@@ -21,6 +21,7 @@
         executed whatever build the CDN served at request time. %>
     <script src="/vendor/lucide/lucide.min.js"></script>
     <meta name="csrf-token" content="<%= csrfToken %>">
+    <script src="/js/user-presence.js" defer></script>
     <script src="/js/admin/main.js" defer></script>
     <script src="/js/admin/admin-users.js" defer></script>
     <style nonce="<%= cspNonce %>">
@@ -231,10 +232,10 @@
                         <div class="ui-card border-border">
                             <div class="p-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="user-check" class="h-5 w-5 text-chart-1"></i></div>
+                                    <div class="rounded-lg bg-chart-1/10 p-2.5"><i data-lucide="wifi" class="h-5 w-5 text-chart-1"></i></div>
                                     <div>
-                                        <p class="text-sm text-muted-foreground">Active</p>
-                                        <p id="stat-active" class="text-2xl font-bold text-foreground"><%= stats.active %></p>
+                                        <p class="text-sm text-muted-foreground">Online</p>
+                                        <p id="stat-online" class="text-2xl font-bold text-foreground"><%= stats.online %></p>
                                     </div>
                                 </div>
                             </div>
@@ -242,10 +243,10 @@
                         <div class="ui-card border-border">
                             <div class="p-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="rounded-lg bg-chart-4/10 p-2.5"><i data-lucide="user-x" class="h-5 w-5 text-chart-4"></i></div>
+                                    <div class="rounded-lg bg-chart-4/10 p-2.5"><i data-lucide="wifi-off" class="h-5 w-5 text-chart-4"></i></div>
                                     <div>
-                                        <p class="text-sm text-muted-foreground">Inactive</p>
-                                        <p id="stat-inactive" class="text-2xl font-bold text-foreground"><%= stats.inactive %></p>
+                                        <p class="text-sm text-muted-foreground">Offline</p>
+                                        <p id="stat-offline" class="text-2xl font-bold text-foreground"><%= stats.offline %></p>
                                     </div>
                                 </div>
                             </div>
@@ -294,13 +295,13 @@
                                     class="ui-button ui-button-outline ui-button-size-default dropdown-trigger flex items-center justify-between"
                                     style="width:140px;" data-dropdown-target="status-filter-menu"
                                     aria-controls="status-filter-menu" aria-haspopup="menu" aria-expanded="false">
-                                    <span>All Status</span>
+                                    <span>All Presence</span>
                                     <i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
                                 </button>
                                 <div id="status-filter-menu" class="dropdown-menu-content p-1" data-dropdown-placement="anchor" role="menu" style="width:140px;">
-                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All Status</button>
-                                    <button type="button" class="dropdown-menu-item" data-value="active" role="menuitemradio" aria-checked="false">Active</button>
-                                    <button type="button" class="dropdown-menu-item" data-value="inactive" role="menuitemradio" aria-checked="false">Inactive</button>
+                                    <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All Presence</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="online" role="menuitemradio" aria-checked="false">Online</button>
+                                    <button type="button" class="dropdown-menu-item" data-value="offline" role="menuitemradio" aria-checked="false">Offline</button>
                                 </div>
                             </div>
                         </div>
@@ -321,8 +322,8 @@
                                         <th>User</th>
                                         <th>Email</th>
                                         <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Last Active</th>
+                                        <th>Presence</th>
+                                        <th>Last seen</th>
                                         <th style="width:60px;"></th>
                                     </tr>
                                 </thead>
@@ -463,7 +464,7 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject server-side user data as JSON for client-side JS -->
-    <script id="users-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(users.map(u => ({ id: u.id, username: u.username, email: u.email, role: u.role, first_name: u.first_name, last_name: u.last_name, created_at: u.created_at, updated_at: u.updated_at }))) %></script>
+    <script id="users-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(users.map(u => ({ id: u.id, username: u.username, email: u.email, role: u.role, first_name: u.first_name, last_name: u.last_name, created_at: u.created_at, last_seen_at: u.last_seen_at || null }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

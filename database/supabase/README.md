@@ -2,10 +2,10 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-08-31)
+## Current migration status (2026-09-03)
 
-Migration sources are contiguous from `0001` through `0021`. Migrations
-`0001`-`0021` are owner-applied. `0020_room_schedule_documents.sql` is the
+Migration sources are contiguous from `0001` through `0022`. Migrations
+`0001`-`0022` are owner-applied. `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates
 `room_schedule_documents` and adds the nullable indexed
 `vr_hotspots.schedule_document_id` foreign key. It was applied by the owner
@@ -15,8 +15,13 @@ separate evidence boundary. Auth-only migration
 17-argument OAuth-profile RPC while removing the obsolete requirement for
 instructor position, department, and employee ID. The owner applied 0021 and
 supplied read-only postflight evidence; Codex did not apply it. Do not reapply
-either migration without fresh explicit database authorization. The historical
-route/data freeze remains scoped to `0001`-`0020` because 0021 is auth-only.
+either migration without fresh explicit database authorization. Migration
+`0022_user_presence.sql` adds an indexed, server-only `user_presence` table and
+service-role-only atomic touch function; it has no backfill and was applied by
+the owner in the Supabase SQL Editor. Read-only table/API postflight checks
+succeeded; do not reapply it without fresh explicit database authorization. The
+historical route/data freeze remains scoped to `0001`-`0020` because 0021 is
+auth-only and 0022 is presence-only.
 
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their
@@ -139,6 +144,13 @@ Apply order (each file once, in sequence, against the target project):
    role profile row in ONE transaction so a profile-write failure cannot leave
    a partial name update). Function only; apply manually before Supabase-mode
    profile-update verification.
+
+9. `0009_public_registration_trust_policy.sql` through
+   `0021_minimal_instructor_oauth_registration.sql` (the intervening
+   owner-applied auth, index, session, route, schedule, and profile sources).
+10. `0022_user_presence.sql` (owner-applied presence table/function; read-only
+    table/API postflight succeeded; do not reapply without fresh explicit
+    database authorization).
 
 ## 5. Auth decision
 

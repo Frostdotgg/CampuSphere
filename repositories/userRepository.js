@@ -13,7 +13,8 @@
      - Read methods implemented (Section 2.4):
          findUserByEmail, findUserById, loadRoleProfile,
          listRecentUsers, listAllUsersForAdmin,
-         countAll, countByRole, countUpdatedSince, countCreatedInMonth
+         countAll, countByRole, countUpdatedSince, countCreatedInMonth,
+         touchUserPresence, listUserPresence
      - Write methods implemented (Section 2.5) via the SQL functions in
        database/supabase/0003_auth_profile_functions.sql:
          createLocalUser              -> app_create_local_user
@@ -62,6 +63,7 @@ const { resolveAccountIdentityName } = require('../utils/accountIdentityName');
 
 const SALT_ROUNDS = 10;
 const USERS = 'users';
+const USER_PRESENCE = 'user_presence';
 const ROLE_PROFILE_TABLE = {
   'student-cspc': 'student_profiles',
   instructor: 'instructor_profiles',
@@ -227,9 +229,38 @@ async function listAllUsersForAdmin() {
   const sb = client();
   const { data, error } = await sb
     .from(USERS)
-    .select('*')
+    .select('id, username, email, role, first_name, last_name, created_at')
     .order('created_at', { ascending: false });
   ensureNoError(error, 'listAllUsersForAdmin');
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * Atomically record a recent authenticated activity signal. The database
+ * function owns the 60-second write throttle and its clock; callers cannot
+ * supply a timestamp or a looser interval.
+ */
+async function touchUserPresence(userId) {
+  if (userId === null || userId === undefined || userId === '') {
+    throw new Error('userRepository.touchUserPresence: userId is required');
+  }
+  const sb = client();
+  const { error } = await sb.rpc('app_touch_user_presence', {
+    p_user_id: userId
+  });
+  ensureNoError(error, 'touchUserPresence');
+}
+
+/** Return only the presence rows needed by the administrator Users page. */
+async function listUserPresence() {
+  const sb = client();
+  const { data, error } = await sb
+    .from(USER_PRESENCE)
+    // Ordering by the indexed timestamp keeps the read index-friendly while
+    // still returning the complete one-row-per-user snapshot in one request.
+    .select('user_id, last_seen_at')
+    .order('last_seen_at', { ascending: true });
+  ensureNoError(error, 'listUserPresence');
   return Array.isArray(data) ? data : [];
 }
 
@@ -837,6 +868,8 @@ module.exports = {
   loadRoleProfile,
   listRecentUsers,
   listAllUsersForAdmin,
+  touchUserPresence,
+  listUserPresence,
   countAll,
   countByRole,
   countUpdatedSince,

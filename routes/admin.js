@@ -13,6 +13,7 @@ const adminVrController = require('../controllers/adminVrController');
 const adminRouteController = require('../controllers/adminRouteController');
 const adminScheduleController = require('../controllers/adminScheduleController');
 const adminRoomScheduleDocumentController = require('../controllers/adminRoomScheduleDocumentController');
+const presenceController = require('../controllers/presenceController');
 const { requireRole } = require('../middleware/roleAuth');
 const { verifyCsrf } = require('../middleware/csrfProtection');
 const { adminMutationLimiter } = require('../middleware/rateLimit');
@@ -65,6 +66,9 @@ router.get('/campus-map', adminController.campusMap);
 router.post('/api/users', adminUsersController.createUser);
 router.put('/api/users/:id', adminUsersController.updateUser);
 router.delete('/api/users/:id', adminUsersController.deleteUser);
+// One batched presence snapshot for the Users page; never expose presence to
+// non-administrator callers or accept a user id from the browser.
+router.get('/api/users/presence', presenceController.adminSnapshot);
 
 // News/Announcements CRUD
 router.post('/api/news', adminContentController.createNews);

@@ -409,7 +409,10 @@ function verifyBackend(scope, buildings, nodes, edges) {
     say('\nstatic migration checks (this probe applies NO SQL):');
     const dir = path.join(__dirname, '..', 'database', 'supabase');
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
-    const ownerSqlFiles = sqlFiles.filter((f) => f !== '0021_minimal_instructor_oauth_registration.sql');
+    const ownerSqlFiles = sqlFiles.filter((f) => ![
+      '0021_minimal_instructor_oauth_registration.sql',
+      '0022_user_presence.sql'
+    ].includes(f));
     const m18 = '0018_cas_building_baseline.sql';
     const m18Path = path.join(dir, m18);
     const m18Exists = fs.existsSync(m18Path);

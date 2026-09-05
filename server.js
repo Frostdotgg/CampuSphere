@@ -41,7 +41,11 @@ const authenticatedHtmlNoStore = require('./middleware/authenticatedHtmlNoStore'
 const { notFound, serverError } = require('./middleware/errorHandler');
 const { requireLogin } = require('./middleware/roleAuth');
 const { attachCsrfToken, verifyCsrf } = require('./middleware/csrfProtection');
-const { preParseAuthLimiter, profileUpdateLimiter } = require('./middleware/rateLimit');
+const {
+  preParseAuthLimiter,
+  profileUpdateLimiter,
+  presenceHeartbeatLimiter
+} = require('./middleware/rateLimit');
 const { cspNonce, securityHeaders, pilotNoIndex } = require('./middleware/securityHeaders');
 
 // Session runtime (Milestone 8, Section 8.4; Milestone 9, Section 9.4):
@@ -66,6 +70,7 @@ const vrRoutes = require('./routes/vr');
 const adminRoutes = require('./routes/admin');
 const profileController = require('./controllers/profileController');
 const offlineMapController = require('./controllers/offlineMapController');
+const presenceController = require('./controllers/presenceController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -277,6 +282,17 @@ app.use('/admin', adminRoutes);
 // authenticated state-changing write; profileUpdateLimiter (per user+IP) bounds
 // authenticated abuse after both checks pass.
 app.post('/api/update-profile', requireLogin, verifyCsrf, profileUpdateLimiter, profileController.updateProfile);
+
+// Presence is a small authenticated write, separate from profile mutations.
+// The route accepts no identity or timestamp from the browser; the controller
+// derives both from the session and the server/database clock.
+app.post(
+  '/api/presence/heartbeat',
+  requireLogin,
+  verifyCsrf,
+  presenceHeartbeatLimiter,
+  presenceController.heartbeat
+);
 
 /* ---- Error Handling Middleware ---- */
 app.use(notFound);

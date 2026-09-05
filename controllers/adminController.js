@@ -13,6 +13,8 @@ const contentRepository = require('../repositories/contentRepository');
 const auditRepository = require('../repositories/auditRepository');
 const routeAvailability = require('../services/routeAvailability');
 const adminAnalyticsService = require('../services/adminAnalyticsService');
+const presenceService = require('../services/userPresenceService');
+const { presenceSnapshot, isUserOnline } = require('../utils/userPresence');
 const { logServerError } = require('../utils/serverLog');
 const {
   LEGACY_SCHOOL_DESCRIPTION,
@@ -102,44 +104,57 @@ exports.index = async (req, res) => {
 exports.users = async (req, res) => {
   try {
     const useSupabase = authDataSource.isSupabase();
+    const now = new Date();
 
     let users;
-    let activeCount;
+    let presenceRows;
     let newThisMonth;
     if (useSupabase) {
-      users = await userRepository.listAllUsersForAdmin();
-      // "Active" stays a 30-day rolling proxy. MySQL uses
-      // DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) which is midnight 30 days
-      // ago in MySQL server-local time. The Supabase repository compares
-      // updated_at against the supplied instant in UTC; passing
-      // now() - 30 days preserves the rolling-window intent (boundary may
-      // shift by hours depending on server TZ vs. UTC — acceptable).
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      activeCount = await userRepository.countUpdatedSince(since);
-      // newThisMonth uses calendar month. Repository uses UTC month
-      // boundaries; MySQL used server-local month. Pass the current UTC
-      // month — for a server in a non-UTC TZ this may differ at month
-      // edges by up to a day. Documented as a known discrepancy.
-      const now = new Date();
-      newThisMonth = await userRepository.countCreatedInMonth({
-        year: now.getUTCFullYear(),
-        month: now.getUTCMonth() + 1
-      });
+      // Presence is a separate, one-row-per-user read. Run the independent
+      // reads concurrently so the page does not add serial database latency.
+      [users, presenceRows, newThisMonth] = await Promise.all([
+        userRepository.listAllUsersForAdmin(),
+        presenceService.listUserPresence(),
+        userRepository.countCreatedInMonth({
+          year: now.getUTCFullYear(),
+          month: now.getUTCMonth() + 1
+        })
+      ]);
     } else {
-      const [rows] = await db.query('SELECT * FROM users ORDER BY created_at DESC');
-      users = rows;
-      const [[a]] = await db.query(
-        'SELECT COUNT(*) as activeCount FROM users WHERE updated_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)'
+      // The LEFT JOIN keeps this page to one user/presence read and leaves
+      // users with no heartbeat row as Offline/Never. Presence never updates
+      // users.updated_at.
+      const [rows] = await db.query(
+        'SELECT u.id, u.username, u.email, u.role, u.first_name, u.last_name, ' +
+        'u.created_at, p.last_seen_at AS presence_last_seen_at ' +
+        'FROM users u LEFT JOIN user_presence p ON p.user_id = u.id ' +
+        'ORDER BY u.created_at DESC'
       );
-      activeCount = a.activeCount;
+      users = rows.map((row) => ({
+        ...row,
+        last_seen_at: row.presence_last_seen_at || null
+      }));
+      presenceRows = rows.map((row) => ({
+        user_id: row.id,
+        last_seen_at: row.presence_last_seen_at || null
+      })).filter((row) => row.last_seen_at !== null);
       const [[n]] = await db.query(
         'SELECT COUNT(*) as newThisMonth FROM users WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())'
       );
       newThisMonth = n.newThisMonth;
     }
 
+    const presenceById = new Map(
+      presenceSnapshot(presenceRows, now).map((row) => [row.id, row])
+    );
+    users = users.map((user) => ({
+      ...user,
+      last_seen_at: presenceById.get(Number(user.id))?.lastSeenAt || null
+    }));
+    const onlineCount = users.reduce((count, user) =>
+      count + (isUserOnline(user.last_seen_at, now) ? 1 : 0), 0);
     const total = users.length;
-    const inactiveCount = total - activeCount;
+    const offlineCount = total - onlineCount;
 
     res.render('admin/users', {
       title: 'CampuSphere Admin | Users',
@@ -148,8 +163,8 @@ exports.users = async (req, res) => {
       users,
       stats: {
         total,
-        active: activeCount,
-        inactive: inactiveCount,
+        online: onlineCount,
+        offline: offlineCount,
         newThisMonth
       }
     });
@@ -160,7 +175,7 @@ exports.users = async (req, res) => {
       description: 'Manage CampuSphere users.',
       activePage: 'users',
       users: [],
-      stats: { total: 0, active: 0, inactive: 0, newThisMonth: 0 }
+      stats: { total: 0, online: 0, offline: 0, newThisMonth: 0 }
     });
   }
 };

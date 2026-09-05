@@ -28,6 +28,7 @@
      - OAuth start/callback   : 20 / 10 min  per IP            (pre-body)
      - profile update        : 20 / 10 min  per hash(user+IP)
      - admin mutations        : 80 /  5 min  per hash(admin+IP)
+     - presence heartbeat     : 30 /  5 min  per hash(user id)
    ======================================== */
 
 // Reuse the single content-negotiation helper for API vs browser detection.
@@ -70,6 +71,13 @@ const CFG = {
   adminMutation: {
     max: intFromEnv('RATE_LIMIT_ADMIN_MUTATION_MAX', 80),
     windowMs: intFromEnv('RATE_LIMIT_ADMIN_MUTATION_WINDOW_MS', 5 * MIN),
+  },
+  presence: {
+    // A visible tab sends at most five heartbeats per five-minute presence
+    // window. The extra allowance covers page restores and multiple visible
+    // windows without permitting an unbounded write/read flood.
+    max: intFromEnv('RATE_LIMIT_PRESENCE_MAX', 30),
+    windowMs: intFromEnv('RATE_LIMIT_PRESENCE_WINDOW_MS', 5 * MIN),
   },
 };
 
@@ -232,11 +240,26 @@ const adminMutationLimiter = fixedWindow({
   },
 });
 
+// POST /api/presence/heartbeat — per hashed authenticated user id. This is
+// separate from profile/admin mutation budgets because it is expected recurring
+// traffic, while the database function independently throttles the actual
+// timestamp write to once per 60 seconds. Keeping the key user-only prevents a
+// client from bypassing the dedicated budget by changing source IPs.
+const presenceHeartbeatLimiter = fixedWindow({
+  ...CFG.presence,
+  scope: 'presence',
+  keyFn: (req) => {
+    const uid = (req.session && req.session.user && req.session.user.id) || 'anon';
+    return [String(uid)];
+  },
+});
+
 module.exports = {
   preParseAuthLimiter,
   loginAccountLimiter,
   profileUpdateLimiter,
   adminMutationLimiter,
+  presenceHeartbeatLimiter,
   // exported for visibility/testing only
   _config: CFG,
   _fixedWindow: fixedWindow,

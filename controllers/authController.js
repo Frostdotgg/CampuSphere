@@ -22,6 +22,7 @@ const { validateEmail, validatePassword } = require('../utils/adminValidation');
 const { normalizeMediaUrl } = require('../utils/mediaUrl');
 const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
 const { resolveAccountIdentityName, normalizeWhitespace } = require('../utils/accountIdentityName');
+const { touchUserPresenceBestEffort } = require('../services/userPresenceService');
 
 const SALT_ROUNDS = 10;
 
@@ -161,6 +162,10 @@ async function establishAuthenticatedSession(req, res, assignSessionUser) {
     clearSessionCookieQuietly(res);
     throw new Error('SESSION_ESTABLISH_FAILED');
   }
+
+  // Presence is intentionally best-effort. A temporarily unavailable
+  // presence table must never turn a valid login into a failed login.
+  await touchUserPresenceBestEffort(req.session && req.session.user && req.session.user.id);
 }
 
 async function hydrateSessionUser(req, userRow) {

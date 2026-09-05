@@ -664,7 +664,10 @@ function historicalSelectedCasParity(mysql, supabase) {
     say('\nstatic migration checks (this probe applies NO SQL):');
     const dir = path.join(__dirname, '..', 'database', 'supabase');
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
-    const ownerSqlFiles = sqlFiles.filter((f) => f !== '0021_minimal_instructor_oauth_registration.sql');
+    const ownerSqlFiles = sqlFiles.filter((f) => ![
+      '0021_minimal_instructor_oauth_registration.sql',
+      '0022_user_presence.sql'
+    ].includes(f));
     const m17Path = path.join(dir, '0017_route_topology_guard_house.sql');
     const m17Exists = fs.existsSync(m17Path);
     check('static', '0017_route_topology_guard_house.sql exists', m17Exists);

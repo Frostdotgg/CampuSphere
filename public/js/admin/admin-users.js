@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
   try { allUsers = JSON.parse(document.getElementById('users-data-json').textContent); } catch (e) { allUsers = []; }
 
   let currentFilter = { role: 'all', status: 'all', search: '' };
+  let serverClockOffsetMs = 0;
+  let presenceRequestInFlight = false;
+  let presencePollTimer = null;
 
   // ---- Utility: Refresh Lucide icons (M12.P1-R6 guard) ----
   // Every call site below used to invoke `lucide.createIcons()` directly. When
@@ -61,28 +64,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<span class="ui-badge ui-badge-outline ${info.cls}">${info.label}</span>`;
   }
 
-  // ---- Utility: Status Badge ----
-  function statusBadge(updatedAt) {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const isActive = new Date(updatedAt) >= thirtyDaysAgo;
-    if (isActive) {
-      return '<span class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Active</span>';
-    }
-    return '<span class="ui-badge ui-badge-outline bg-chart-4/10 text-chart-4 border-chart-4/20">Inactive</span>';
+  // ---- Utility: five-minute presence ----
+  const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+  function serverNowMs() {
+    return Date.now() + serverClockOffsetMs;
   }
 
-  function isUserActive(updatedAt) {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return new Date(updatedAt) >= thirtyDaysAgo;
+  function isUserOnline(lastSeenAt) {
+    const seen = new Date(lastSeenAt || '').getTime();
+    if (!Number.isFinite(seen)) return false;
+    const now = serverNowMs();
+    return seen >= now - ONLINE_WINDOW_MS && seen <= now;
+  }
+
+  function statusBadge(lastSeenAt) {
+    if (isUserOnline(lastSeenAt)) {
+      return '<span class="ui-badge ui-badge-outline bg-chart-1/10 text-chart-1 border-chart-1/20">Online</span>';
+    }
+    return '<span class="ui-badge ui-badge-outline bg-chart-4/10 text-chart-4 border-chart-4/20">Offline</span>';
   }
 
   // ---- Utility: Time Ago ----
   function timeAgo(dateStr) {
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diffMs = now - then;
+    if (!dateStr) return 'Never';
+    const then = new Date(dateStr).getTime();
+    if (!Number.isFinite(then)) return 'Never';
+    const diffMs = serverNowMs() - then;
+    if (diffMs < 0) return 'Just now';
     const mins = Math.floor(diffMs / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return mins + ' min ago';
@@ -115,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       // Status filter
       if (currentFilter.status !== 'all') {
-        const active = isUserActive(u.updated_at);
-        if (currentFilter.status === 'active' && !active) return false;
-        if (currentFilter.status === 'inactive' && active) return false;
+        const online = isUserOnline(u.last_seen_at);
+        if (currentFilter.status === 'online' && !online) return false;
+        if (currentFilter.status === 'offline' && online) return false;
       }
       // Search filter
       if (currentFilter.search) {
@@ -161,8 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td class="text-sm text-muted-foreground">${escapeHtml(u.email)}</td>
         <td>${roleBadge(u.role)}</td>
-        <td>${statusBadge(u.updated_at)}</td>
-        <td class="text-sm text-muted-foreground">${timeAgo(u.updated_at)}</td>
+        <td>${statusBadge(u.last_seen_at)}</td>
+        <td class="text-sm text-muted-foreground">${timeAgo(u.last_seen_at)}</td>
         <td>
           <button class="ui-button ui-button-ghost ui-button-size-icon h-8 w-8 dropdown-trigger"
                   data-dropdown-target="user-menu-${u.id}">
@@ -253,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Update Stat Cards ----
   function updateStatCards() {
     const total = allUsers.length;
-    const active = allUsers.filter(u => isUserActive(u.updated_at)).length;
-    const inactive = total - active;
+    const online = allUsers.filter(u => isUserOnline(u.last_seen_at)).length;
+    const offline = total - online;
     const now = new Date();
     const newThisMonth = allUsers.filter(u => {
       const d = new Date(u.created_at);
@@ -263,10 +272,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const el = (id) => document.getElementById(id);
     if (el('stat-total'))    el('stat-total').textContent    = total.toLocaleString();
-    if (el('stat-active'))   el('stat-active').textContent   = active.toLocaleString();
-    if (el('stat-inactive')) el('stat-inactive').textContent = inactive.toLocaleString();
+    if (el('stat-online'))   el('stat-online').textContent   = online.toLocaleString();
+    if (el('stat-offline')) el('stat-offline').textContent = offline.toLocaleString();
     if (el('stat-new'))      el('stat-new').textContent      = newThisMonth.toLocaleString();
   }
+
+  // ---- Live presence refresh (one batched GET; no per-user requests) ----
+  async function refreshPresence() {
+    if (presenceRequestInFlight || document.visibilityState === 'hidden') return;
+    presenceRequestInFlight = true;
+    try {
+      const response = await fetch('/admin/api/users/presence', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) return;
+      const snapshot = await response.json();
+      const serverNow = new Date(snapshot && snapshot.serverNow).getTime();
+      if (!Number.isFinite(serverNow) || !Array.isArray(snapshot.users)) return;
+      serverClockOffsetMs = serverNow - Date.now();
+
+      const byId = new Map();
+      snapshot.users.forEach((row) => {
+        const id = Number(row && row.id);
+        if (Number.isSafeInteger(id) && id > 0) {
+          byId.set(id, row.lastSeenAt || null);
+        }
+      });
+      allUsers = allUsers.map((user) => ({
+        ...user,
+        last_seen_at: byId.has(Number(user.id)) ? byId.get(Number(user.id)) : null
+      }));
+      renderTable();
+      updateStatCards();
+    } catch (error) {
+      // Presence is advisory; a temporary snapshot failure must not break CRUD
+      // actions or leave a noisy browser-console error.
+    } finally {
+      presenceRequestInFlight = false;
+    }
+  }
+
+  function stopPresencePolling() {
+    if (presencePollTimer !== null) {
+      clearInterval(presencePollTimer);
+      presencePollTimer = null;
+    }
+  }
+
+  function startPresencePolling() {
+    if (presencePollTimer !== null || document.visibilityState === 'hidden') return;
+    refreshPresence();
+    presencePollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshPresence();
+    }, 30 * 1000);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') startPresencePolling();
+    else stopPresencePolling();
+  });
 
   // ============================================================
   //  MODAL HELPERS
@@ -417,7 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (json.success) {
           // Update local array
           const idx = allUsers.findIndex(u => u.id === parseInt(userId));
-          if (idx !== -1) allUsers[idx] = json.user;
+          if (idx !== -1) {
+            // CRUD responses intentionally do not carry presence data; keep
+            // the current snapshot until the next single batched refresh.
+            allUsers[idx] = { ...json.user, last_seen_at: allUsers[idx].last_seen_at || null };
+          }
           renderTable();
           updateStatCards();
           closeModal(editModal);
@@ -563,4 +634,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Initial Render ----
   renderTable();
   updateStatCards();
+  startPresencePolling();
 });
