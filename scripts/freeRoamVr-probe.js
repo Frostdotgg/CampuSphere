@@ -78,6 +78,11 @@ function metaCsrf(html) {
   return m ? m[1] : '';
 }
 
+function hasCaptureDate(html) {
+  return String(html || '').includes('360° scenes captured on') &&
+    /<time datetime="2026-05-28">May 28, 2026<\/time>/.test(String(html || ''));
+}
+
 const LEAK_PATTERNS = [
   ['JWT-like token', /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
   ['Supabase host', /[a-z0-9-]+\.supabase\.(co|com|in)/i],
@@ -160,6 +165,7 @@ async function runMode(mode, base) {
     r.status === 200 && r.text.includes('Back to Map'));
   check(mode, '/vr/scene-guard-house renders the Guard House as the CURRENT scene',
     r.text.includes('"scene_key":"scene-guard-house"'));
+  check(mode, '/vr/scene-guard-house renders the approved capture date', hasCaptureDate(r.text));
   check(mode, 'Free Roam start is routeless (no completion/destination markers)',
     !r.text.includes('Route complete') &&
     !r.text.includes('You have arrived') &&
@@ -172,6 +178,7 @@ async function runMode(mode, base) {
     fallbackPage.status === 200 &&
     fallbackPage.text.includes('Back to Map') &&
     fallbackPage.text.includes('"scene_key":"scene-guard-house"'));
+  check(mode, '/vr fallback renders the approved capture date', hasCaptureDate(fallbackPage.text));
 
   // ---- scene hotspot / fallback link navigation ----
   const linkMatch = /href="\/vr\/(scene-[A-Za-z0-9_-]+)"/.exec(r.text);
@@ -181,6 +188,7 @@ async function runMode(mode, base) {
     r = await hfetch('/vr/' + targetKey, { headers: HTMLH });
     check(mode, `scene link navigation -> 200 scene browser`,
       r.status === 200 && r.text.includes('Back to Map') && r.text.includes('vr-title'));
+    check(mode, 'navigated scene renders the approved capture date', hasCaptureDate(r.text));
     check(mode, 'navigated scene is also routeless',
       !r.text.includes('Route complete') && !r.text.includes('You have arrived'));
   }
@@ -207,11 +215,17 @@ async function runMode(mode, base) {
     r = await hfetch('/vr/routes/' + routeId, { headers: HTMLH });
     check(mode, 'backward-compat: /vr/routes/:routeId -> 200 guided route',
       r.status === 200 && r.text.includes('Guided VR Route'));
+    if (r.text.includes('id="vrPano"')) {
+      check(mode, 'guided route scene renders the approved capture date', hasCaptureDate(r.text));
+    }
   }
   if (destId) {
     r = await hfetch('/vr/to/' + destId, { headers: HTMLH });
     check(mode, 'backward-compat: /vr/to/:buildingId -> 200 destination route',
       r.status === 200 && r.text.includes('Guard House / Main Gate'));
+    if (r.text.includes('id="vrPano"')) {
+      check(mode, 'destination route scene renders the approved capture date', hasCaptureDate(r.text));
+    }
   }
 
   } finally {

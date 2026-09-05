@@ -30,6 +30,26 @@
     --primary-action-hover-start: #142d54;
     --primary-action-hover-end: #1e4d8c;
 
+    /* Secondary actions use a filled, lower-emphasis surface so they remain
+       visible after the shared button reset and readable in both themes. */
+    --secondary-action-foreground: #142d54;
+    --secondary-action-bg: #e8f1fb;
+    --secondary-action-border: #2563a8;
+    --secondary-action-hover-bg: #dbeafe;
+    --secondary-action-hover-border: #1e4d8c;
+    --secondary-action-active-bg: #cfe2f7;
+    --secondary-action-disabled-foreground: #526579;
+    --secondary-action-disabled-bg: #eef2f7;
+
+    /* Building route actions keep white text on dark-green endpoints in every
+       interaction state; these tokens avoid the low-contrast lime hover that
+       previously appeared in light mode. */
+    --route-action-foreground: #ffffff;
+    --route-action-bg-start: #166534;
+    --route-action-bg-end: #15803d;
+    --route-action-hover-start: #14532d;
+    --route-action-hover-end: #166534;
+
     /* Typography */
     --font-heading: 'Poppins', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -457,6 +477,42 @@ h6 {
     cursor: not-allowed;
     opacity: 0.8;
     transform: none;
+}
+
+.btn--secondary {
+    color: var(--secondary-action-foreground);
+    background: var(--secondary-action-bg);
+    border: 1px solid var(--secondary-action-border);
+    box-shadow: 0 2px 8px rgba(15, 34, 64, 0.12);
+}
+
+.btn--secondary:hover {
+    color: var(--secondary-action-foreground);
+    background: var(--secondary-action-hover-bg);
+    border-color: var(--secondary-action-hover-border);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 34, 64, 0.18);
+}
+
+.btn--secondary:active {
+    background: var(--secondary-action-active-bg);
+    transform: translateY(0);
+}
+
+.btn--secondary:focus-visible {
+    outline: 3px solid var(--ring, var(--navy-400));
+    outline-offset: 2px;
+}
+
+.btn--secondary:disabled,
+.btn--secondary[aria-disabled="true"] {
+    color: var(--secondary-action-disabled-foreground);
+    background: var(--secondary-action-disabled-bg);
+    border-color: var(--gray-300);
+    cursor: not-allowed;
+    opacity: 0.8;
+    transform: none;
+    box-shadow: none;
 }
 
 .btn--outline {
@@ -1529,6 +1585,29 @@ html[data-theme="dark"] {
     border-color: var(--navy-400);
     color: var(--navy-300);
     background: rgba(59, 130, 196, 0.08);
+}
+
+[data-theme="dark"] {
+    --secondary-action-foreground: #e2e8f0;
+    --secondary-action-bg: #17233a;
+    --secondary-action-border: #60a5fa;
+    --secondary-action-hover-bg: #1a3a6b;
+    --secondary-action-hover-border: #93c5fd;
+    --secondary-action-active-bg: #1e4d8c;
+    --secondary-action-disabled-foreground: #94a3b8;
+    --secondary-action-disabled-bg: #1f2537;
+    --route-action-bg-start: #14532d;
+    --route-action-bg-end: #166534;
+    --route-action-hover-start: #166534;
+    --route-action-hover-end: #15803d;
+}
+
+[data-theme="dark"] .btn--secondary {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .btn--secondary:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 /* ========================================
@@ -5200,12 +5279,28 @@ a.btn-google {
 }
 
 .bldg-card__btn--primary {
-    background: var(--navy-600);
-    color: #fff;
+    background: linear-gradient(135deg, var(--primary-action-bg-start), var(--primary-action-bg-end));
+    color: var(--primary-action-foreground);
 }
 
 .bldg-card__btn--primary:hover {
-    background: var(--navy-500);
+    background: linear-gradient(135deg, var(--primary-action-hover-start), var(--primary-action-hover-end));
+}
+
+.bldg-card__btn:focus-visible {
+    outline: 3px solid var(--ring, var(--navy-400));
+    outline-offset: 2px;
+}
+
+.bldg-card__btn:active {
+    transform: translateY(1px);
+}
+
+.bldg-card__btn:disabled,
+.bldg-card__btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
 }
 
 .bldg-card__btn--outline {
@@ -5573,12 +5668,12 @@ a.btn-google {
 
 /* ===== VIEW ROUTES BUTTON ===== */
 .bldg-card__btn--routes {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    color: #fff;
+    background: linear-gradient(135deg, var(--route-action-bg-start), var(--route-action-bg-end));
+    color: var(--route-action-foreground);
 }
 
 .bldg-card__btn--routes:hover {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--route-action-hover-start), var(--route-action-hover-end));
 }
 
 /* ===== RESTRICTED BADGE ON CARD ===== */
@@ -7636,10 +7731,12 @@ textarea {
     padding: 0;
 }
 
-button:not(.btn),
-[type='button']:not(.btn),
-[type='reset']:not(.btn),
-[type='submit']:not(.btn) {
+:where(
+    button:not(.btn),
+    [type='button']:not(.btn),
+    [type='reset']:not(.btn),
+    [type='submit']:not(.btn)
+) {
     -webkit-appearance: button;
     appearance: button;
     background-color: transparent;

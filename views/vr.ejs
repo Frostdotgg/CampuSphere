@@ -16,7 +16,7 @@
             } catch (_) { /* theme preference is best effort */ }
         })();
     </script>
-    <link rel="stylesheet" href="/css/styles.css?v=10">
+    <link rel="stylesheet" href="/css/styles.css?v=11">
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -84,6 +84,7 @@
         .vr-head__titles { min-width: 0; }
         .vr-title { font-size: 1.4rem; font-weight: 700; margin: 0; }
         .vr-progress { font-size: .85rem; opacity: .75; margin: 2px 0 0; }
+        .vr-capture-date { color: var(--vr-panel-muted); font-size: .85rem; margin: 2px 0 0; }
         .vr-desc { margin: 6px 0 14px; opacity: .85; }
         .vr-backlink { display: inline-flex; align-items: center; gap: 6px;
             text-decoration: none; font-weight: 600; border: 1px solid currentColor;
@@ -146,6 +147,9 @@
                 <h1 class="vr-title"><%= scene ? scene.title : 'VR Campus Tour' %></h1>
                 <% if (scene && sceneCount > 0) { %>
                 <p class="vr-progress">Scene <%= sceneIndex %> of <%= sceneCount %></p>
+                <% } %>
+                <% if (scene) { %>
+                <p class="vr-capture-date"><%- include('partials/vr-capture-date') %></p>
                 <% } %>
             </div>
             <a class="vr-backlink" href="/map">

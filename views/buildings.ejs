@@ -11,11 +11,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <meta name="description"
-        content="CampuSphere — Browse all CSPC campus buildings, view floor plans, and find rooms.">
+        content="CampuSphere — Browse all CSPC campus buildings, explore floors and rooms, and find facilities.">
 
     <title>CampuSphere | Campus Buildings</title>
 
-    <link rel="stylesheet" href="/css/styles.css?v=10">
+    <link rel="stylesheet" href="/css/styles.css?v=11">
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
 
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
@@ -189,11 +189,11 @@
 
 
 
-                    <!-- Floor plan panel -->
+                    <!-- Floors and rooms panel -->
 
                     <div class="floor-panel">
 
-                        <div class="floor-panel__label">Floor Plan</div>
+                        <div class="floor-panel__label">Floors &amp; Rooms</div>
 
                         <div class="floor-selector" id="floorSelector"></div>
 
@@ -287,7 +287,7 @@
 
         <!-- Theme Toggle -->
 
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
 
             <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -456,9 +456,9 @@
 
                 <div class="bldg-card__footer">
 
-                    <button class="bldg-card__btn bldg-card__btn--primary" data-action="details">View Details</button>
+                    <button type="button" class="bldg-card__btn bldg-card__btn--primary" data-action="details">View Details</button>
 
-                    <button class="bldg-card__btn bldg-card__btn--routes" data-action="routes">View Routes</button>
+                    <button type="button" class="bldg-card__btn bldg-card__btn--routes" data-action="routes">View Routes</button>
 
                 </div>
 
@@ -576,9 +576,9 @@
 
                     sel.innerHTML = '';
 
-                    document.getElementById('floorPlanHeader').textContent = 'Floor Plan';
+                    document.getElementById('floorPlanHeader').textContent = 'Floors & Rooms';
 
-                    document.getElementById('floorPlanRooms').innerHTML = '<p style="color:var(--gray-500);font-size:.85rem;padding:.5rem 0">No floor plan available.</p>';
+                    document.getElementById('floorPlanRooms').innerHTML = '<p style="color:var(--gray-500);font-size:.85rem;padding:.5rem 0">No floor or room information available.</p>';
 
                 }
 
@@ -629,7 +629,7 @@
                 const floor = floors[fi];
                 if (!floor) return;
 
-                document.getElementById('floorPlanHeader').textContent = floor.label + ' — Room Layout';
+                document.getElementById('floorPlanHeader').textContent = floor.label + ' — Rooms & Facilities';
 
                 document.getElementById('floorPlanRooms').innerHTML = floor.rooms.map(r =>
 

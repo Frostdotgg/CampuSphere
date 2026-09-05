@@ -134,9 +134,9 @@ check('privacy notice explains Google-managed name refresh',
   /displayed name is managed by the verified Google identity/i.test(privacy) &&
   /refreshed after a successful Google sign-in/i.test(privacy));
 check('stylesheet cache key and worker version advance together',
-  /CACHE_VERSION\s*=\s*'v38'/.test(sw) &&
-  sw.includes("'/css/styles.css?v=10'") &&
-  !/CACHE_VERSION\s*=\s*'v37'/.test(sw));
+  /CACHE_VERSION\s*=\s*'v39'/.test(sw) &&
+  sw.includes("'/css/styles.css?v=11'") &&
+  !/CACHE_VERSION\s*=\s*'v38'/.test(sw));
 
 console.log(`\n${failures.length ? 'IDENTITY-NAME-PROBE FAILED' : 'IDENTITY-NAME-PROBE OK'}: ${checks - failures.length}/${checks}`);
 if (failures.length) {

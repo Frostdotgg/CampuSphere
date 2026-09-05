@@ -46,13 +46,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return { redirected: false, status: res.status, json };
   }
 
+  // Keep the embedded building list in the same stable order used by the
+  // destination dropdown. Filtering then performs only one linear scan per
+  // keystroke; no request is made while an administrator is typing.
+  function setBuildings(buildings) {
+    state.buildings = (Array.isArray(buildings) ? buildings : []).slice()
+      .sort((a, b) => str(a.name).localeCompare(str(b.name)));
+  }
+
   // Buildings for the route destination select (embedded JSON already on page).
   function loadBuildings() {
     try {
       const el = $('buildings-data-json');
       const arr = el ? JSON.parse(el.textContent || '[]') : [];
-      state.buildings = Array.isArray(arr) ? arr : [];
-    } catch (e) { state.buildings = []; }
+      setBuildings(arr);
+    } catch (e) { setBuildings([]); }
   }
 
   /* ---------- modal plumbing ---------- */
@@ -202,15 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
     b.textContent = label; b.addEventListener('click', fn); return b;
   }
 
-  function populateBuildingSelect() {
-    const sel = $('route-dest'); if (!sel) return;
-    while (sel.options.length > 1) sel.remove(1);
-    state.buildings.slice().sort((a, b) => str(a.name).localeCompare(str(b.name))).forEach((bl) => {
-      const id = toId(bl.id); if (id === null) return;
-      const o = document.createElement('option'); o.value = String(id); o.textContent = str(bl.name) + ' (#' + id + ')'; sel.appendChild(o);
-    });
-  }
-
   /* BE.3 — keep the two admin panels in sync.
 
      A node/edge/geometry mutation can flip a building between routable and not,
@@ -229,14 +228,72 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) return;
       const data = await res.json();
       if (!data || data.success !== true || !Array.isArray(data.buildings)) return;
-      state.buildings = data.buildings;
-      populateBuildingSelect();
+      setBuildings(data.buildings);
+      const select = $('route-dest');
+      const search = $('route-dest-search');
+      const shown = populateBuildingSelect(select ? select.value : null, search ? search.value : '');
+      setBuildingSelectCount(shown);
     } catch (e) { /* fixed label only; never surface a raw error */ }
   });
+  /**
+   * Populate the route destination select with an optional local search.
+   * The currently selected building is retained even when it is outside the
+   * filter, so editing a route can never silently lose its saved destination.
+   */
+  function populateBuildingSelect(selectedId, filterText) {
+    const sel = $('route-dest'); if (!sel) return 0;
+    const selected = selectedId != null ? String(selectedId) : String(sel.value || '');
+    const needle = String(filterText || '').trim().toLowerCase();
+    while (sel.options.length > 1) sel.remove(1);
+    let shown = 0;
+    state.buildings.forEach((bl) => {
+      const id = toId(bl.id); if (id === null) return;
+      const label = str(bl.name) + ' (#' + id + ')';
+      const matches = !needle || matchesQuery([bl.name, id, label], needle);
+      if (matches) shown += 1;
+      const isSelected = selected !== '' && String(id) === selected;
+      if (!matches && !isSelected) return;
+      const o = document.createElement('option');
+      o.value = String(id); o.textContent = label; sel.appendChild(o);
+    });
+    sel.value = selected;
+    return needle ? shown : state.buildings.length;
+  }
+
+  function setBuildingSelectCount(shown) {
+    const el = $('route-dest-count');
+    if (!el) return;
+    const total = state.buildings.length;
+    el.textContent = total === 0
+      ? 'No buildings available.'
+      : 'Showing ' + shown + ' of ' + total + ' buildings.';
+  }
+
+  function filterDestinationBuildings() {
+    const search = $('route-dest-search');
+    const select = $('route-dest');
+    if (!search || !select) return;
+    setBuildingSelectCount(populateBuildingSelect(select.value, search.value));
+  }
+
+  const destinationSearch = $('route-dest-search');
+  if (destinationSearch) {
+    destinationSearch.addEventListener('input', filterDestinationBuildings);
+    // Prevent Enter in the search field from accidentally submitting the
+    // route form while the administrator is still choosing a destination.
+    destinationSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') e.preventDefault();
+    });
+  }
+
   function openRouteModal(mode, route) {
     const m = $('route-modal'); const form = $('route-form'); if (!form) return;
     state.routeMode = mode; state.routeEditId = mode === 'edit' && route ? toId(route.id) : null;
-    form.reset(); clearErr(m); populateBuildingSelect();
+    form.reset(); clearErr(m);
+    const destinationSearch = $('route-dest-search');
+    if (destinationSearch) destinationSearch.value = '';
+    const selectedDestination = mode === 'edit' && route ? toId(route.destination_building_id) : null;
+    setBuildingSelectCount(populateBuildingSelect(selectedDestination, ''));
     if (mode === 'edit' && route) {
       form.title.value = str(route.title); form.start_label.value = str(route.start_label);
       form.destination_building_id.value = route.destination_building_id != null ? String(num(route.destination_building_id)) : '';

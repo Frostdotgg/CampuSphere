@@ -134,7 +134,7 @@ check('CSP allows Google only as an image origin',
 check('privacy notice names the Google profile picture URL',
   /Google Account profile picture URL/i.test(privacy) && /profile picture URL/i.test(privacy));
 check('service worker cache advances and still precaches profile-script.js',
-  /CACHE_VERSION\s*=\s*'v38'/.test(serviceWorker) &&
+  /CACHE_VERSION\s*=\s*'v39'/.test(serviceWorker) &&
   serviceWorker.includes("'/js/profile-script.js'"));
 
 console.log(`\n${failures.length ? 'GOOGLE PROFILE IMAGE PROBE FAILED' : 'GOOGLE PROFILE IMAGE PROBE PASSED'} (${checks - failures.length}/${checks})`);

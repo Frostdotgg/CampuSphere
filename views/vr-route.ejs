@@ -38,7 +38,7 @@
             } catch (_) { /* theme preference is best effort */ }
         })();
     </script>
-    <link rel="stylesheet" href="/css/styles.css?v=10">
+    <link rel="stylesheet" href="/css/styles.css?v=11">
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -596,6 +596,9 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <span>Approx. <%= vrRoute.estimated_walk_time %></span>
                     </span>
+                    <% } %>
+                    <% if (vrScene) { %>
+                    <span class="vr-chip"><%- include('partials/vr-capture-date') %></span>
                     <% } %>
                 </div>
             </div>

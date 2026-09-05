@@ -34,6 +34,13 @@ function hasDarkViewerContract(source) {
     /\.vr-fallback[\s\S]*?color:\s*#e(?:6edf7|8edf4)/.test(source);
 }
 
+function hasCaptureDateInclude(source) {
+  return source.includes("partials/vr-capture-date") && (
+    /<%\s*if\s*\(vrScene\)\s*\{/.test(source) ||
+    /<%\s*if\s*\(scene\)\s*\{/.test(source)
+  );
+}
+
 /* ---------------- 1. both views use the shared theme contract ---------------- */
 for (const rel of ['views/vr.ejs', 'views/vr-route.ejs']) {
   const source = read(rel);
@@ -44,12 +51,22 @@ for (const rel of ['views/vr.ejs', 'views/vr-route.ejs']) {
     source.indexOf("localStorage.getItem('campussphere-theme')") < source.indexOf('<link rel="stylesheet" href="/css/styles.css'));
   check('views', `${rel} defines light and dark page tokens`, hasThemeContract(source));
   check('views', `${rel} keeps the panorama stage and fallback dark`, hasDarkViewerContract(source));
+  check('views', `${rel} includes the shared VR capture-date fragment`, hasCaptureDateInclude(source));
   check('views', `${rel} does not unconditionally force a dark page background`,
     !/body\s*\{\s*background:\s*#(?:050c18|111827)/.test(source));
 
   const missingDark = source.replace(/html\[data-theme="dark"\] body\s*\{[\s\S]*?\n        \}/, '');
   check('fixtures', `${rel} loses the contract when its dark override is removed`,
     !hasThemeContract(missingDark));
+}
+
+/* ---------------- 1b. shared capture-date contract ---------------- */
+{
+  const captureDate = read('views/partials/vr-capture-date.ejs');
+  check('capture-date', 'uses the approved capture sentence and semantic date',
+    captureDate.trim() === '360° scenes captured on <time datetime="2026-05-28">May 28, 2026</time>.');
+  check('capture-date', 'does not derive the capture date from database timestamps',
+    !/created_at|updated_at/.test(captureDate));
 }
 
 /* ---------------- 2. shared control and persistence contracts ---------------- */

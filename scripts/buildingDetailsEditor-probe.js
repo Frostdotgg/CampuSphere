@@ -485,6 +485,7 @@ function runStaticChecks() {
   const client = read('public/js/admin/admin-buildings.js');
   const css = read('public/css/admin-styles.css');
   const participantView = read('views/buildings.ejs');
+  const aboutView = read('views/about.ejs');
   const controller = read('controllers/buildingsController.js');
 
   check('static', 'the Building modal has NO raw details JSON textarea',
@@ -543,6 +544,17 @@ function runStaticChecks() {
     participantView.indexOf('escapeHtml(r.heading)') !== -1 &&
     participantView.indexOf('escapeHtml(i)') === -1 &&
     participantView.indexOf('escapeHtml(r.num)') === -1);
+  check('static', 'building details labels floor tabs and room listings accurately',
+    /floor-panel__label">Floors &amp; Rooms<\//.test(participantView) &&
+    participantView.indexOf("textContent = 'Floors & Rooms'") !== -1 &&
+    participantView.indexOf('No floor or room information available.') !== -1 &&
+    participantView.indexOf('floor.label + \' — Rooms & Facilities\'') !== -1 &&
+    /explore floors and rooms/i.test(participantView));
+  check('static', 'public building copy does not claim the room listings are architectural floor plans',
+    !/floor-panel__label">Floor Plan<\//.test(participantView) &&
+    !/No floor plan available\./.test(participantView) &&
+    !/Room Layout/.test(participantView) &&
+    /floor and room\s+information/i.test(aboutView));
 }
 
 /* ============================================================

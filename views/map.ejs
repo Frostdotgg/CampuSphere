@@ -14,7 +14,7 @@
          views/partials/head.ejs; map.ejs owns its own <head>, so it must carry it. -->
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <link rel="stylesheet" href="/css/styles.css?v=10">
+    <link rel="stylesheet" href="/css/styles.css?v=11">
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -323,7 +323,7 @@
     </div>
 
     <!-- Theme Toggle -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
         <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5" />

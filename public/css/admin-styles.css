@@ -1495,6 +1495,7 @@ html[data-theme="dark"] body {
 .admin-search-field input:focus-visible,
 #schedule-search:focus-visible,
 #schedule-building-search:focus-visible,
+#route-dest-search:focus-visible,
 #edge-from-search:focus-visible,
 #edge-to-search:focus-visible,
 #schedule-clear-filters:focus-visible,
@@ -1524,6 +1525,7 @@ html[data-theme="dark"] body {
     .admin-search-field input,
     #schedule-search,
     #schedule-building-search,
+    #route-dest-search,
     #edge-from-search,
     #edge-to-search {
         min-height: 44px;

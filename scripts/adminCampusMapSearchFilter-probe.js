@@ -105,13 +105,17 @@ function runStaticChecks() {
     /ADD COLUMN IF NOT EXISTS schedule_document_id/i.test(migration));
   check('static', 'legacy time-row mutations are retired',
     !/router\.(?:post|put|delete)\('\/api\/schedules/.test(adminRoutes));
-  check('static', 'route, node, and edge searches remain labelled graph controls',
+  check('static', 'route, node, edge, and destination searches remain labelled graph controls',
     ['route-search', 'node-search', 'edge-search'].every((id) => view.includes(`id="${id}"`)) &&
+    view.includes('id="route-dest-search"') &&
+    view.includes('aria-describedby="route-dest-count"') &&
+    view.includes('id="route-dest-count"') &&
     graph.includes('fieldsForRoute') && graph.includes('fieldsForNode') && graph.includes('fieldsForEdge'));
   check('static', 'graph client renders backend values through text APIs',
     !/\binnerHTML\s*=|insertAdjacentHTML|document\.write/.test(graph));
   check('static', 'graph controls and schedule controls retain keyboard-sized targets',
-    /min-height:\s*44px/.test(css) && /:focus-visible[\s\S]{0,220}outline:/.test(css));
+    /min-height:\s*44px/.test(css) && /:focus-visible[\s\S]{0,220}outline:/.test(css) &&
+    /#route-dest-search:focus-visible/.test(css) && /#route-dest-search,[\s\S]{0,120}min-height:\s*44px/.test(css));
 }
 
 /* Database-free graph-client smoke. It deliberately avoids the removed
@@ -121,7 +125,13 @@ async function runGraphClientChecks() {
   console.log('\n[client-graph] graph panel search smoke');
   const graph = read('public/js/admin/admin-map-graph.js');
   check('client-graph', 'route search covers destination and walk-time fields',
-    /estimated_walk_time/.test(graph) && /destination_name/.test(graph));
+    /estimated_walk_time/.test(graph) && /destination_name/.test(graph) &&
+    graph.includes('function populateBuildingSelect(selectedId, filterText)') &&
+    graph.includes('function filterDestinationBuildings()') &&
+    graph.includes("destinationSearch.addEventListener('input', filterDestinationBuildings)") &&
+    graph.includes('const selected = selectedId != null') &&
+    graph.includes('sel.value = selected;') &&
+    graph.includes("destinationSearch.value = ''"));
   check('client-graph', 'node search covers key, label, type, and building name',
     /node_key/.test(graph) && /node_type/.test(graph) && /buildingNameForId/.test(graph));
   check('client-graph', 'edge search covers endpoint labels and geometry metadata',
