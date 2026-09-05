@@ -28,6 +28,8 @@ const policy = require(path.join(ROOT, 'utils', 'googleProfileImage'));
 const auth = read('controllers/authController.js');
 const repository = read('repositories/userRepository.js');
 const profile = read('public/js/profile-script.js');
+const dashboardController = read('controllers/dashboardController.js');
+const dashboardView = read('views/dashboard.ejs');
 const securityHeaders = read('middleware/securityHeaders.js');
 const privacy = read('views/privacy.ejs');
 const serviceWorker = read('public/sw.js');
@@ -91,6 +93,17 @@ check('session exposes only safe image fields',
   auth.includes('profile_image_url: storedPicture') &&
   auth.includes('profile_image_source:') &&
   !auth.includes('oauth_subject: userRow.oauth_subject'));
+check('student dashboard projects the session image in both profile branches',
+  (() => {
+    const studentBranch = dashboardController.slice(
+      dashboardController.indexOf('// Fetch additional profile data if student'),
+      dashboardController.indexOf('// Fetch additional profile data if instructor')
+    );
+    const projections = [...studentBranch.matchAll(/studentProfile = \{([\s\S]*?)\n        \};/g)].map((match) => match[1]);
+    return projections.length === 2 && projections.every((projection) =>
+      /profileImage:\s*user\.profile_image_url\s*\|\|\s*''/.test(projection) &&
+      /profileImageSource:\s*user\.profile_image_source\s*\|\|\s*''/.test(projection));
+  })());
 
 console.log('\n[google profile image] browser and delivery contracts');
 check('profile data reads the server session image and source',
@@ -103,6 +116,17 @@ check('Google-synced Edit Profile state is read-only',
 check('avatar image loads use no-referrer and error fallback',
   profile.includes("img.referrerPolicy = 'no-referrer';") &&
   profile.includes("if (img.parentElement === avatar) applyProfileImage('');"));
+check('student Personal Info renders a safe image with an SVG fallback',
+  dashboardView.includes('data-profile-avatar="student"') &&
+  dashboardView.includes('data-profile-image="student"') &&
+  dashboardView.includes('referrerpolicy="no-referrer"') &&
+  dashboardView.includes('studentProfile.profileImage') &&
+  dashboardView.includes("data-profile-image]').forEach") &&
+  dashboardView.includes('aria-hidden="true"') &&
+  dashboardView.includes("document.createElementNS('http://www.w3.org/2000/svg', 'svg')"));
+check('dashboard sanitizes the projected student image before rendering',
+  dashboardView.includes('function sanitizeProfileImage(profile)') &&
+  dashboardView.includes('CampuSphereData.studentProfile = sanitizeProfileImage(serverStudentProfile);'));
 check('CSP allows Google only as an image origin',
   /imgSrc:\s*\[[^\]]*https:\/\/\*\.googleusercontent\.com/.test(securityHeaders) &&
   !/scriptSrc:\s*\[[^\]]*googleusercontent\.com/.test(securityHeaders) &&

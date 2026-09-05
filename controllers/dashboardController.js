@@ -68,7 +68,9 @@ exports.index = async (req, res) => {
           studentId: fallback(sp.student_id_number),
           email: user.email,
           course: fallback(sp.course),
-          yearLevel: fallback(sp.year_level)
+          yearLevel: fallback(sp.year_level),
+          profileImage: user.profile_image_url || '',
+          profileImageSource: user.profile_image_source || ''
         };
       } else {
         // No profile row exists yet — show empty-state defaults
@@ -77,7 +79,9 @@ exports.index = async (req, res) => {
           studentId: 'Not yet set',
           email: user.email,
           course: 'Not yet set',
-          yearLevel: 'Not yet set'
+          yearLevel: 'Not yet set',
+          profileImage: user.profile_image_url || '',
+          profileImageSource: user.profile_image_source || ''
         };
       }
     }
