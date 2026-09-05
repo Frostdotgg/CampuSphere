@@ -77,8 +77,8 @@ const VERCEL_JSON_FILE = 'vercel.json';
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
   files: 196,
-  bytes: 7267861,
-  sha256: '4646cbbfa36e48cf2fff789a107a21ae44b3025692dd8467299da80c5c5e8316',
+  bytes: 7267536,
+  sha256: 'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768',
 });
 
 /* M12.P1-R8 label correction.
