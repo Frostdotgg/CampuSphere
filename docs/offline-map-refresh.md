@@ -1,18 +1,17 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-09-02): the read-coalescing, load-evidence, and
-freeze-refresh commits do not change the offline publisher, bounds, release
+Current handoff note (2026-09-05): the Dashboard-image, five-minute-presence,
+and campus-UI commits do not change the offline publisher, bounds, release
 center, opening camera, Drive workflow, IndexedDB activation, or
-user-controlled update model. The service-worker shell is now `v38` for the
-server-controlled account-name and authenticated profile CSS corrections; that cache revision does not change the
-PMTiles release rectangle or publisher. The current full source package is
-191 files, 7,239,253 bytes, aggregate SHA-256
-`8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`
+user-controlled update model. The service-worker shell is now `v39` for the
+shared button/theme correction and stylesheet key `v11`; that cache revision
+does not change the PMTiles release rectangle or publisher. The current full
+source package is 196 files, 7,267,536 bytes, aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`
 with package boundary `74/74`. Keep this current full-package evidence separate
-from the historical offline-specific `c4de5ab` package evidence below. GitHub
-`main` contained `7f4bfce` before the September 2 authority synchronization,
-but Vercel deployment/Ready state, promotion, Production smoke, and immutable
-deployed bytes for that commit remain unverified.
+from the historical offline-specific `c4de5ab` package evidence below. No
+Vercel deployment/Ready state, promotion, Production smoke, or immutable
+deployed-byte identity was inspected or established in this closeout.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

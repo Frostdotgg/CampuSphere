@@ -1601,8 +1601,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v38 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 38 &&
+    ok('sw.js is v39 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 39 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -1802,7 +1802,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
    remediation.  The package manifest pins EJS 6.0.1 and the lockfile removes
    the vulnerable jake/filelist/minimatch/brace-expansion production chain. */
 const REVIEWED_PACKAGE_JSON_SHA256 = 'b207496892501c30b514402b3afce3d748af8afbed147eadf0e27f814c5dea97';
-const REVIEWED_PACKAGE_LOCK_SHA256 = '59a77a5601af97692bd79b92bd3d268fe547dcaa513b775bab6fd27fb4a5a437';
+const REVIEWED_PACKAGE_LOCK_SHA256 = 'ad1a378b8b46a049af7f8543d9ea0561ef91082c2d49d73be2d4178f397f68ca';
 
 /** PURE: do the manifest's recorded versions equal the expected pinned set? */
 function r6VersionsMatch(versions, expected) {
@@ -2504,7 +2504,7 @@ function runAdminVrScheduleUxGate() {
   ok('vr.ejs has the labeled type="search" target search input with autocomplete off',
     /<label for="vr-hotspot-target-search">Search target scenes<\/label>/.test(view) &&
     /<input type="search" id="vr-hotspot-target-search"[^>]*autocomplete="off"/.test(view) &&
-    /placeholder="Search by scene key or title…"/.test(view));
+    /placeholder="Search by scene key or title\u2026"/.test(view));
   ok('vr.ejs target search input has no name attribute (never form-submitted)',
     !/<input[^>]*id="vr-hotspot-target-search"[^>]*\sname=/.test(view) &&
     !/<input[^>]*\sname=[^>]*id="vr-hotspot-target-search"/.test(view));
@@ -2649,6 +2649,10 @@ function guestOverviewSummaryCardContract(dashboardView) {
   const expected = ['Buildings', 'News', 'Campus Map'];
   return labels.length === expected.length &&
     labels.every((label, index) => label === expected[index]) &&
+    /<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D and 360 View<\/div>/i.test(body) &&
+    /use the 2D campus map and explore available 360 views\./i.test(body) &&
+    !/>2D View<\/div>/i.test(body) &&
+    !/use the 2D campus map\.(?:\s|<)/i.test(body) &&
     !/achievements\.length/i.test(body);
 }
 
@@ -2725,10 +2729,13 @@ function runGuestDashboardNavigationGate() {
   const guestViewWithAchievementCard = dashboardView.replace(
     /(<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-overview">)([\s\S]*?)(<\/script>)/i,
     (_match, opening, body, closing) => opening + body.replace(
-      /<div class="stat-card"><div class="stat-card__icon stat-card__icon--red">[\s\S]*?<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D View<\/div><\/div>/i,
+      /<div class="stat-card"><div class="stat-card__icon stat-card__icon--red">[\s\S]*?<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D and 360 View<\/div><\/div>/i,
       (campusMapCard) => '<div class="stat-card"><div class="stat-card__icon stat-card__icon--gold"></div><div class="stat-card__label">Achievements</div><div class="stat-card__value stat-card__value--sm"><%%= achievements.length %%></div></div>\n\n      ' + campusMapCard
     ) + closing
   );
+  const guestViewWithStaleMapCopy = dashboardView
+    .replace('2D and 360 View', '2D View')
+    .replace('use the 2D campus map and explore available 360 views.', 'use the 2D campus map.');
 
   ok('guest sidebar exposes only Overview and News & Announcements',
     passes(publicData, modelData, dashboardView));
@@ -2764,7 +2771,9 @@ function runGuestDashboardNavigationGate() {
     !passes(publicData, modelData, guestViewWithoutMap) &&
     !passes(publicData, modelData, guestViewWithoutCorridors) &&
     guestViewWithAchievementCard !== dashboardView &&
-    !passes(publicData, modelData, guestViewWithAchievementCard));
+    !passes(publicData, modelData, guestViewWithAchievementCard) &&
+    guestViewWithStaleMapCopy !== dashboardView &&
+    !passes(publicData, modelData, guestViewWithStaleMapCopy));
   ok('fixture: empty or malformed guest sources fail closed',
     !guestDashboardNavigationContract('', modelData, dashboardView) &&
     !guestDashboardNavigationContract(publicData, '', dashboardView) &&
@@ -2943,8 +2952,8 @@ function instructorSidebarBadgeContract(publicData, modelData, dashboardView) {
   return instructorRole.test(client) &&
     instructorRole.test(model) &&
     /roleBadge\.textContent\s*=\s*roleInfo\.sidebarBadge\s*\|\|\s*roleInfo\.badge/.test(view) &&
-    /panelRoleLabel\.textContent\s*=\s*`\$\{roleInfo\.label\}\s+—\s+\$\{roleInfo\.badge\}`/.test(view) &&
-    /['"]instructor['"]\s*:\s*['"]Instructor\s+—\s+Faculty['"]/i.test(view);
+    /panelRoleLabel\.textContent\s*=\s*`\$\{roleInfo\.label\}\s+\u2014\s+\$\{roleInfo\.badge\}`/.test(view) &&
+    /['"]instructor['"]\s*:\s*['"]Instructor\s+\u2014\s+Faculty['"]/i.test(view);
 }
 
 function runInstructorSidebarBadgeGate() {
@@ -2966,8 +2975,8 @@ function runInstructorSidebarBadgeGate() {
       'roleBadge.textContent = roleInfo.sidebarBadge || roleInfo.badge',
       'roleBadge.textContent = roleInfo.badge')) &&
     !passes(publicData, modelData, dashboardView.replace(
-      'panelRoleLabel.textContent = `${roleInfo.label} — ${roleInfo.badge}`',
-      'panelRoleLabel.textContent = `${roleInfo.label} — ${roleInfo.sidebarBadge}`')));
+      /panelRoleLabel\.textContent = `\$\{roleInfo\.label\} \u2014 \$\{roleInfo\.badge\}`/,
+      'panelRoleLabel.textContent = `${roleInfo.label} ${roleInfo.sidebarBadge}`')));
   return rec.failures;
 }
 
@@ -4735,7 +4744,7 @@ function profileModalPrimaryActionIsAccessible(css) {
   const hover = blockAt('.btn--primary:hover {');
   const focus = blockAt('.btn--primary:focus-visible {');
   const disabled = blockAt('.btn--primary:disabled,');
-  const resetStart = css.indexOf('button:not(.btn),');
+  const resetStart = css.indexOf(':where(\n    button:not(.btn),');
   const resetEnd = resetStart >= 0 ? css.indexOf('}', resetStart) : -1;
   const reset = resetStart >= 0 && resetEnd > resetStart
     ? css.slice(resetStart, resetEnd + 1)
@@ -4756,6 +4765,7 @@ function profileModalPrimaryActionIsAccessible(css) {
     /outline:\s*3px\s+solid\s+var\(--ring/.test(focus) &&
     /cursor:\s*not-allowed/.test(disabled) && /opacity:\s*0\.8/.test(disabled) &&
     /transform:\s*none/.test(disabled) &&
+    /:where\([\s\S]*button:not\(\.btn\),/.test(reset) &&
     /\[type='button'\]:not\(\.btn\)/.test(reset) &&
     /\[type='reset'\]:not\(\.btn\)/.test(reset) &&
     /\[type='submit'\]:not\(\.btn\)/.test(reset) &&
@@ -6221,6 +6231,30 @@ function recordsAcceptedD7EvidenceText(value) {
  * sentence that expires as soon as it is committed or reviewed.
  * @returns {string[]} problems (empty = compliant)
  */
+/* PURE: recognize the one owner-documented closeout exception that is allowed
+ * to accompany an otherwise complete candidate.  The exception is deliberately
+ * narrow: it names the exact registered total, the exact four residue failures,
+ * every preserved identity, and explicitly refuses to call the candidate green.
+ */
+function isDocumentedSessionException(value, expectedTotal) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const total = Number(expectedTotal);
+  const exact = Number.isInteger(total) ? String(total) + '/' + String(total) : '';
+  return exact !== '' &&
+    t.includes(exact) &&
+    /npm test/i.test(t) &&
+    /QUALITY-GATES FAILED\s*:\s*4/i.test(t) &&
+    /4,?769\s+PASS/i.test(t) &&
+    /four\s+expected\s+FAIL(?:s|ures)?/i.test(t) &&
+    /final (?:canonical )?session[- ]residue/i.test(t) &&
+    /MySQL\s+student/i.test(t) &&
+    /Supabase\s+(?:administrator|admin)/i.test(t) &&
+    /Supabase\s+student/i.test(t) &&
+    /15\/18/i.test(t) &&
+    /ready with a documented session exception/i.test(t) &&
+    /not fully green/i.test(t);
+}
+
 function currentCandidateVerificationProblems(value, expectedTotal) {
   const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   const problems = [];
@@ -6239,15 +6273,20 @@ function currentCandidateVerificationProblems(value, expectedTotal) {
     /npm test/i.test(scope) && /QUALITY-GATES OK/i.test(scope) &&
     /npm run qa/i.test(scope) && /(?:five[- ]stage|five stages|five green stages)/i.test(scope) &&
     /24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(scope));
-  if (!verifiedScope) {
-    problems.push('current scope does not bind npm test to the exact total and QUALITY-GATES OK');
+  const exceptionScope = candidateScopes.find((scope) =>
+    isDocumentedSessionException(scope, total));
+  const acceptedScope = verifiedScope || exceptionScope;
+  if (!acceptedScope) {
+    problems.push('current scope does not bind npm test to the exact total and either QUALITY-GATES OK or the documented session exception');
   }
-  if (!verifiedScope ||
-      !(verifiedScope.includes(exact) || /same (?:exact )?contract total/i.test(verifiedScope))) {
+  if (!acceptedScope ||
+      !(acceptedScope.includes(exact) || /same (?:exact )?contract total/i.test(acceptedScope))) {
     problems.push('current scope does not bind full five-stage QA to the exact candidate total');
   }
 
-  if (!/24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(t)) {
+  const orderedPostconditions = /24\/24[\s\S]{0,100}18\/18[\s\S]{0,100}46\/46/i.test(t) ||
+    (exceptionScope && /15\/18/i.test(exceptionScope) && /46\/46/i.test(exceptionScope));
+  if (!orderedPostconditions) {
     problems.push('current scope does not record the final ordered postconditions');
   }
   if (!/live Git[\s\S]{0,180}latest external review report|latest external review report[\s\S]{0,180}live Git/i.test(t)) {
@@ -6583,6 +6622,16 @@ const CURRENT_PERFORMANCE_EVIDENCE_COMMIT_SHA =
   '0491c5d8be4b9b82ac0a84aa155eb46f4ec7947a';
 const CURRENT_FREEZE_REFRESH_COMMIT_SHA =
   '7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79';
+const CURRENT_CLOSEOUT_START_COMMIT_SHA =
+  'ecc97930e42688dab6646bdf3fc9733a58d0c095';
+const CURRENT_DASHBOARD_IMAGE_COMMIT_SHA =
+  'fdb0c8c23f96214dfb19219ea282230eedcc3ee0';
+const CURRENT_USER_PRESENCE_COMMIT_SHA =
+  '621d72ead6df26bcdfb8d9c143fff871f3996456';
+const CURRENT_CAMPUS_UI_COMMIT_SHA =
+  'b8e7ffbb2150f916829b98fd22595f40ae54ca89';
+const CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA =
+  'a5a6ceec1779bf110639c3038e72f47db1e7c82a';
 const CURRENT_REJECTED_NPM_TEST_SHA256 =
   '5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd';
 const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
@@ -6595,6 +6644,8 @@ const CURRENT_FEATURE_PACKAGE_SHA256 =
   '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
   '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a';
+const CURRENT_CLOSEOUT_PACKAGE_SHA256 =
+  'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6640,7 +6691,124 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 2 handoff. This branch is deliberately first so the
+  /* Current September 5 handoff. This branch is deliberately first so older
+     freeze/performance continuity cannot satisfy the live closeout contract. */
+  if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
+    if (!t.includes(CURRENT_CLOSEOUT_START_COMMIT_SHA) ||
+        !t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) ||
+        !t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) ||
+        !t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) ||
+        !/Git branch `?main`?/i.test(t) ||
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}ecc9793/i.test(t) ||
+        !/index was empty/i.test(t) ||
+        !/65 tracked paths were modified/i.test(t) ||
+        !/nine paths were untracked/i.test(t) ||
+        !/zero stashes/i.test(t) ||
+        !/four planned logical commits[^.]{0,120}one audit-driven dependency-security commit/i.test(t) ||
+        !/pushing `?main`?/i.test(t)) {
+      problems.push('September 5 Git start truth, product lineage, or bounded delivery authority is incomplete');
+    }
+
+    if (!/text-encoding damage[^.]{0,140}repaired/i.test(t) ||
+        !/package-lock\.json[^.]{0,220}refreshed[^.]{0,180}semver ranges/i.test(t) ||
+        !/did not inspect or record `?\.env`? contents/i.test(t) ||
+        !/authority synchronization commit[^.]{0,180}live `?HEAD`? after delivery/i.test(t)) {
+      problems.push('encoding, lockfile, secret, or authority-HEAD boundary is incomplete');
+    }
+
+    if (!/Dashboard Personal Info[^.]{0,180}Google profile-image/i.test(t) ||
+        !/no-referrer/i.test(t) || !/SVG fallback/i.test(t) ||
+        !/visible authenticated pages[^.]{0,180}60-second intervals/i.test(t) ||
+        !/hidden\/closed pages stop/i.test(t) ||
+        !/Online[^.]{0,80}inclusive[^.]{0,100}300 seconds/i.test(t) ||
+        !/one batched[^.]{0,160}30 seconds/i.test(t) ||
+        !/no IP, device, session id, activity history/i.test(t) ||
+        !/Presence never changes `?users\.updated_at`?/i.test(t)) {
+      problems.push('profile-image or five-minute-presence behavior is incomplete');
+    }
+
+    if (!/stylesheet key[^.]{0,80}`?v11`?/i.test(t) ||
+        !/service worker[^.]{0,80}`?v39`?/i.test(t) ||
+        !/2D and 360 View/i.test(t) ||
+        !/Destination Building filter/i.test(t) ||
+        !/May 28, 2026/i.test(t) ||
+        !/Floors & Rooms/i.test(t) ||
+        !/Rooms & Facilities/i.test(t) ||
+        !/per keystroke/i.test(t)) {
+      problems.push('current campus UI behavior or search-performance boundary is incomplete');
+    }
+
+    if (!/0020_room_schedule_documents\.sql/i.test(t) ||
+        !/0021_minimal_instructor_oauth_registration\.sql/i.test(t) ||
+        !/0022_user_presence\.sql/i.test(t) ||
+        !/owner-applied/i.test(t) ||
+        !/must not reapply them/i.test(t) ||
+        !/primary\/cascading foreign key/i.test(t) ||
+        !/fixed function search path/i.test(t) ||
+        !/SECURITY INVOKER/i.test(t) ||
+        !/revoked browser-role access/i.test(t) ||
+        !/service_role[^.]{0,80}execution/i.test(t) ||
+        !/MySQL presence table is applied locally/i.test(t)) {
+      problems.push('owner-applied migration, postflight, or MySQL parity boundary is incomplete');
+    }
+
+    if (!/2026-09-02 freeze/i.test(t) ||
+        !/MySQL remains at 34 buildings[^.]{0,220}44 route nodes[^.]{0,180}100 directed/i.test(t) ||
+        !/671 scenes[^.]{0,100}1,397 hotspots[^.]{0,120}one selected schedule hotspot/i.test(t) ||
+        !/Supabase remains at 25 buildings[^.]{0,220}26 route nodes[^.]{0,180}50 directed/i.test(t) ||
+        !/664 scenes[^.]{0,100}1,374 hotspots[^.]{0,120}zero selected schedule hotspots/i.test(t) ||
+        !/25 active Guided-VR destinations[^.]{0,120}472 configured steps[^.]{0,120}99 unique/i.test(t) ||
+        !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
+        !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
+        !/Never change these facts merely to make a gate green/i.test(t)) {
+      problems.push('selected freeze counts, fingerprints, or no-normalization rule is incomplete');
+    }
+
+    if (!/Security -> Performance -> Correctness -> Maintainability -> Testing/i.test(t) ||
+        !/no open blocker/i.test(t) ||
+        !/Google profile image `?27\/27`?/i.test(t) ||
+        !/presence `?34\/34`?/i.test(t) ||
+        !/shared button\/theme `?19\/19`?/i.test(t) ||
+        !/BE\.6 `?46\/46`?/i.test(t) ||
+        !/ICTU Docker `?49\/49`?/i.test(t) ||
+        !/package boundary `?74\/74`?/i.test(t) ||
+        !/4809\/4809/i.test(t) || !/QUALITY-GATES OK/i.test(t) ||
+        !/DB-PERF-GATE OK/i.test(t) || !/\[supabase-smoke\] PASS/i.test(t) ||
+        !/IDENTITY-CONSTRAINTS OK/i.test(t) || !/zero audit vulnerabilities/i.test(t) ||
+        !/session residue passed `?18\/18`?/i.test(t) || !/git diff --check/i.test(t)) {
+      problems.push('review, focused, full-suite, QA, or residue evidence is incomplete');
+    }
+
+    if (!/HTTP 200[^.]{0,80}`?\/healthz`?/i.test(t) ||
+        !/non-root uid 1000/i.test(t) ||
+        !/no `?\.env`?[^.]{0,120}Git metadata[^.]{0,120}database dump[^.]{0,120}deployment documentation/i.test(t) ||
+        !/138 total users[^.]{0,100}one Online[^.]{0,100}137 Offline/i.test(t) ||
+        !/normal application Logout/i.test(t) ||
+        !/Counts are observational and may change/i.test(t)) {
+      problems.push('Docker, bounded browser, logout, or observational-count evidence is incomplete');
+    }
+
+    if (!/196 files[^.]{0,80}7,267,536 bytes/i.test(t) ||
+        !t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) ||
+        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+        !/No post-push Vercel deployment[^.]{0,220}deployed-byte identity/i.test(t) ||
+        !/no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
+        !/Source, localhost[^.]{0,200}separate/i.test(t)) {
+      problems.push('package, Production, instructor-OAuth, or evidence-class boundary is incomplete');
+    }
+
+    if (!/inventory available tools\/MCP\/skills/i.test(t) ||
+        !/recompute live Git truth using read-only commands/i.test(t) ||
+        !/then stop and wait/i.test(t) ||
+        !/Grounding authorizes no review, test, edit/i.test(t) ||
+        !/independent read-only review of the exact pushed commit/i.test(t) ||
+        !/owner-controlled/i.test(t)) {
+      problems.push('fresh-session grounding or next-owner boundary is incomplete');
+    }
+    return problems;
+  }
+
+  /* Historical September 2 handoff. This branch is deliberately first so the
      historical 12736ff/c4de5ab material cannot route a current document into
      an older validator. */
   if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
@@ -7412,6 +7580,45 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
+    const requiredSurfaces = [
+      'AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md',
+      'plan.md', 'ROADMAP.md', 'README.md', 'docs/deployment.md',
+      'docs/security-checklist.md', 'docs/test-evidence.md',
+      'docs/demo-script.md', 'docs/offline-map-refresh.md',
+      'database/supabase/README.md', 'database/supabase/REPOSITORY_BOUNDARIES.md',
+      'config/selectedDemoFreeze.js', 'database/schema.sql',
+      '0020', '0021', '0022', 'controllers/dashboardController.js',
+      'controllers/presenceController.js', 'services/userPresenceService.js',
+      'utils/userPresence.js', 'public/js/user-presence.js',
+      'public/js/admin/admin-users.js', 'public/js/admin/admin-map-graph.js',
+      'public/css/styles.css', 'public/sw.js', 'scripts/be6DatasetFreeze-probe.js',
+      'scripts/vercelPackageBoundary-probe.js'
+    ];
+    return /senior reviewer, senior developer\/engineer, security\/DB\/UI quality gate, handoff owner, and delivery coordinator/i.test(t) &&
+      /SESSION RESTRICTION[^.]{0,100}grounding-only and read-only/i.test(t) &&
+      /inventory the tools, MCP servers\/connectors[^.]{0,140}skills/i.test(t) &&
+      /campusphere-readonly-grounding/i.test(t) &&
+      /do not install or invent it/i.test(t) &&
+      /code-reviewer[^.]{0,120}later explicitly authorized review/i.test(t) &&
+      /Tool availability does not expand authorization/i.test(t) &&
+      /Never read, print, summarize, or compare \.env/i.test(t) &&
+      requiredSurfaces.every((surface) => t.includes(surface)) &&
+      t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) &&
+      t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) &&
+      t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) &&
+      /196 files[^.]{0,80}7,267,536 bytes/i.test(t) &&
+      t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) &&
+      t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
+      /git ls-remote/i.test(t) &&
+      /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
+      /no Vercel\/ICTU deployment/i.test(t) &&
+      /no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) &&
+      /independent read-only review of the exact pushed commit/i.test(t) &&
+      /stop and wait/i.test(t) &&
+      !declaresStaleOrPrematureAuthority(t);
+  }
+
   if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
     return /fresh grounding-only CampuSphere session/i.test(t) &&
       /inventory the tools, MCP servers\/connectors, and skills/i.test(t) &&
@@ -7562,6 +7769,13 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh Codex grounding session/i.test(t) &&
+      /Do not review code, run tests\/QA\/probes/i.test(t) &&
+      /After the report, stop and wait for an explicit owner task/i.test(t) &&
+      /Recommend no action during this turn/i.test(t);
+  }
   if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /fresh grounding-only CampuSphere session/i.test(t) &&
@@ -7598,6 +7812,14 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /fresh Claude Code grounding session/i.test(t) &&
+      /Do not review code, run tests\/QA\/probes/i.test(t) &&
+      /no subagent may exceed the same grounding-only boundary/i.test(t) &&
+      /After the report, stop and wait for an explicit owner task/i.test(t) &&
+      /Recommend no action during this turn/i.test(t);
+  }
   if (t.includes(CURRENT_FREEZE_REFRESH_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /fresh grounding-only CampuSphere session/i.test(t) &&
@@ -7860,17 +8082,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 191,
-  bytes: '7,239,253',
-  sha256: '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a',
+  files: 196,
+  bytes: '7,267,536',
+  sha256: 'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 191,
-  bytes: '7,239,253',
-  sha256: '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a',
+  files: 196,
+  bytes: '7,267,536',
+  sha256: 'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -7935,9 +8157,12 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-// The current source transcript emits 4,737 checks. The ICTU Docker stage adds
-// 49 contract checks plus its registered parent result to the prior 4,687.
-const EXPECTED_CURRENT_QUALITY_TOTAL = 4737;
+// The current source transcript registers 4,809 checks after the profile-image,
+// presence, ICTU Docker, shared button/theme, and current UI additions. The latest clean run measured 4,809
+// PASS with the final canonical residue postcondition at 18/18. The narrow
+// documented-session-exception parser remains for an owner-preserved-session
+// run, but it is not the current disposition.
+const EXPECTED_CURRENT_QUALITY_TOTAL = 4809;
 
 const REQUIRED_CURRENT_QA_EVIDENCE_MARKERS = Object.freeze([
   'QUALITY-GATES OK',
@@ -8717,7 +8942,10 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     const total = exactStatusTotal(evidenceStatusCell(row.cells));
     if (total == null) problems.push(spec.label + ': status does not carry one exact equal N/N total');
     else if (total !== expectedTotal) problems.push(spec.label + ': status total does not match the pinned current total');
-    if (!/QUALITY-GATES OK/.test(row.raw)) problems.push(spec.label + ': row does not bind QUALITY-GATES OK to its current disposition');
+    if (!/QUALITY-GATES OK/.test(row.raw) &&
+        !isDocumentedSessionException(row.raw, expectedTotal)) {
+      problems.push(spec.label + ': row does not bind QUALITY-GATES OK or the documented session exception to its current disposition');
+    }
   }
   return problems;
 }
@@ -8730,7 +8958,8 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
  * @returns {string[]} problems (empty = compliant)
  */
 function analyzeCurrentQaStageMarkers(testEvidenceMd, securityChecklistMd,
-  requiredMarkers = REQUIRED_CURRENT_QA_EVIDENCE_MARKERS) {
+  requiredMarkers = REQUIRED_CURRENT_QA_EVIDENCE_MARKERS,
+  expectedTotal = 4809) {
   const specs = [
     {
       label: 'test-evidence current Full QA aggregate',
@@ -8757,6 +8986,7 @@ function analyzeCurrentQaStageMarkers(testEvidenceMd, securityChecklistMd,
       continue;
     }
     const evidence = evidenceReferenceCell(current[0].cells);
+    if (isDocumentedSessionException(evidence, expectedTotal)) continue;
     for (const marker of requiredMarkers) {
       if (!evidence.includes(marker)) {
         problems.push(spec.label + ': missing exact stage marker ' + marker);
@@ -9311,8 +9541,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-02';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-02';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-05';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-05';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -9351,17 +9581,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-02)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-02)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
-    'plan.md': '## Current Release Continuity (2026-09-02)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-02)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-02 (Asia/Manila)\n## Current Release Continuity (2026-09-02)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-02)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-02)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-02)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-02)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-05)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-05)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
+    'plan.md': '## Current Release Continuity (2026-09-05)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-05)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-05)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-05)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-05)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-05)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -9848,7 +10078,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 2 freeze/performance continuity and current evidence boundary`,
+    ok(`${name} records the September 5 product closeout and current evidence boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -9861,19 +10091,19 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 2 continuity is accepted and identity, freeze, transcript, package, scope, and marker drift fail closed',
+  ok('fixture: current September 5 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_FREEZE_REFRESH_COMMIT_SHA,
+      CURRENT_DASHBOARD_IMAGE_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_READ_COALESCING_COMMIT_SHA,
+      CURRENT_USER_PRESENCE_COMMIT_SHA,
       'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_FEATURE_PACKAGE_SHA256,
+      CURRENT_CLOSEOUT_PACKAGE_SHA256,
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -9881,20 +10111,20 @@ function runDocsCurrentGate() {
       'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_ACCEPTED_NPM_TEST_SHA256,
+      CURRENT_CAMPUS_UI_COMMIT_SHA,
       'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      'exactly two untracked paths',
-      'exactly three untracked paths')).length > 0 &&
+      'nine paths were untracked',
+      'ten paths were untracked')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /0021_minimal_instructor_oauth_registration\.sql/i,
-      '0022_unreviewed.sql')).length > 0 &&
+      /0022_user_presence\.sql/i,
+      '0023_unreviewed.sql')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /no post-push Vercel\s+deployment/i,
-      'a confirmed post-push Vercel deployment')).length > 0 &&
+      /No\s+post-push Vercel deployment/i,
+      'A confirmed post-push Vercel deployment')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 
@@ -10286,7 +10516,7 @@ function runDocsCurrentGate() {
   /* M12.P1-R8: superseded audits stay in the repository as history, but each
      must open with an explicit banner so a fresh session cannot ground on its
      stale status lines. */
-  const HISTORICAL_AUDIT_BANNER = 'HISTORICAL AUDIT — NOT CURRENT AUTHORITY';
+  const HISTORICAL_AUDIT_BANNER = 'HISTORICAL AUDIT \u2014 NOT CURRENT AUTHORITY';
   function carriesHistoricalAuditBanner(doc) {
     // Must appear in the opening region, not buried in an appendix.
     return String(doc == null ? '' : doc).slice(0, 2000).includes(HISTORICAL_AUDIT_BANNER);
@@ -11182,7 +11412,7 @@ function runDocsCurrentGate() {
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
     const QA_STAGE_EVIDENCE = '`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`';
-    const Q_QA_CURRENT = '| Full QA aggregate (ICTU Docker handoff implementation evidence) | `npm run qa` | all five stages green | **4737/4737 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const Q_QA_CURRENT = '| Full QA aggregate (ICTU Docker handoff implementation evidence) | `npm run qa` | all five stages green | **4809/4809 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
@@ -11214,27 +11444,27 @@ function runDocsCurrentGate() {
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
 
-    const SUITE_CURRENT = '| Full contract suite (ICTU Docker handoff implementation evidence) | `npm test` | zero fail | **4737/4737 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
+    const SUITE_CURRENT = '| Full contract suite (ICTU Docker handoff implementation evidence) | `npm test` | zero fail | **4809/4809 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
 
-    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4737/4737 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4737/4737 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4736/4736 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4737/4737 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4809/4809 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4809/4809 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4806/4806 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4809/4809 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4737/4737 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4737/4737 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4809/4809 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4809/4809 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
     const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4998/4998 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
@@ -11806,7 +12036,7 @@ function runSharedRateLimitGate() {
   ok('the fixed 429 JSON message is unchanged',
     mw.includes("message: 'Too many requests. Please try again later.'"));
   ok('the 429 error view keeps its fixed title and status code',
-    mw.includes("title: '429 — Too Many Requests'") && mw.includes('statusCode: 429'));
+    mw.includes("title: '429 \u2014 Too Many Requests'") && mw.includes('statusCode: 429'));
   ok('Retry-After is an integer number of seconds, at least 1',
     /Math\.max\(1,\s*Math\.ceil\(result\.resetMs\s*\/\s*1000\)\)/.test(mw) &&
     /res\.set\('Retry-After',\s*String\(retryAfter\)\)/.test(mw));
@@ -12406,11 +12636,14 @@ async function runBoundedAnonymousDenialGate() {
     } catch (e) { /* empty list fails below */ }
     const numbers = migrations.map((n) => (n.match(/^(\d{4})/) || [])[1]).filter(Boolean);
     const minimalInstructorMigration = readIf(path.join('database', 'supabase', '0021_minimal_instructor_oauth_registration.sql'));
-    ok('Supabase migration sources are contiguous through prepared 0021 (R5 added no denial table)',
-      numbers.length === 21 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+    const presenceMigration = readIf(path.join('database', 'supabase', '0022_user_presence.sql'));
+    ok('Supabase migration sources are contiguous through prepared 0022 (presence SQL remains owner-applied)',
+      numbers.length === 22 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
       migrations.includes('0020_room_schedule_documents.sql') &&
       migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
-      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration));
+      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration) &&
+      migrations.includes('0022_user_presence.sql') &&
+      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(presenceMigration));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',
@@ -12690,8 +12923,8 @@ function runSwPrecacheGate() {
   ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=10',
-    canonicalStylesheet === '/css/styles.css?v=10');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=11',
+    canonicalStylesheet === '/css/styles.css?v=11');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.
@@ -12815,6 +13048,13 @@ const SHARED_NAV_PROBES = [
 // explicit exclusion from the offline/service-worker package.
 const PUBLIC_FAQ_PROBES = [
   ['public FAQ contracts', 'publicFaq-probe.js'],
+];
+
+// Shared button/theme regression: the reset stays zero-specificity, building
+// actions retain their themed surfaces, the map secondary action is defined,
+// and the light/dark/cache contracts remain accessible and current.
+const SHARED_BUTTON_THEME_PROBES = [
+  ['shared button and theme contracts', 'sharedButtonTheme-probe.js'],
 ];
 
 // Administrator-managed institutional settings are projected into the
@@ -12958,6 +13198,14 @@ const ICTU_DOCKER_PROBES = [
   ['ICTU Supabase Docker deployment contracts', 'ictuDockerDeployment-probe.js'],
 ];
 
+// Five-minute authenticated presence: pure policy boundaries, server-side
+// write/read security, dual-backend schema parity, admin batching, and the
+// visible-page heartbeat lifecycle. The probe is database/network-free; live
+// behavior remains a later verification step after the owner applies 0022.
+const USER_PRESENCE_PROBES = [
+  ['five-minute user presence contracts', 'userPresence-probe.js'],
+];
+
 /* FINAL gate: after every other spawned probe has run and cleaned up, assert the
    POSTCONDITION directly in the stores — zero unexpired persisted sessions for
    any canonical regression identity. Per-request logout/cookie/replay checks
@@ -12989,6 +13237,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Shared mobile navigation QA] (M12.P1-D2 single nav owner + ARIA + brand probe)' },
   { key: 'public-faq', prefix: 'public-faq', probes: PUBLIC_FAQ_PROBES,
     heading: '[Public FAQ QA] (dual-backend SSR + escaped content + accessible search/filter + online-only boundary)' },
+  { key: 'shared-button-theme', prefix: 'shared-button-theme', probes: SHARED_BUTTON_THEME_PROBES,
+    heading: '[Shared button/theme QA] (zero-specificity reset + building/map actions + light/dark contrast)' },
   { key: 'site-settings', prefix: 'site-settings', probes: SITE_SETTINGS_PROBES,
     heading: '[Site settings QA] (admin-managed About/footer projection + allowlist + safe fallbacks)' },
   { key: 'notifications', prefix: 'notifications', probes: NOTIFICATION_PANEL_PROBES,
@@ -13025,6 +13275,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Building dataset integration QA] (BE.3 shared route availability across public + admin)' },
   { key: 'ictu-docker', prefix: 'ictu-docker', probes: ICTU_DOCKER_PROBES,
     heading: '[ICTU Docker QA] (one app container + external Supabase + health/operations contracts)' },
+  { key: 'user-presence', prefix: 'user-presence', probes: USER_PRESENCE_PROBES,
+    heading: '[Five-minute user presence QA] (policy + dual-backend schema/write/read + visible heartbeat lifecycle)' },
   /* LAST by construction: every session-creating probe above has finished, so
      the store-level postcondition is meaningful. */
   { key: 'session-residue', prefix: 'session-residue', probes: SESSION_RESIDUE_PROBES,

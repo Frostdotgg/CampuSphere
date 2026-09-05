@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-09-02 (Asia/Manila)
+Last updated: 2026-09-05 (Asia/Manila)
 
 ## Current Handoff Override
 
@@ -49,7 +49,142 @@ pre-promotion snapshot below is historical and must not be used as current
 authority.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-02)
+## Current Release Continuity (2026-09-05)
+
+At the start of this owner-authorized closeout, Git branch `main` had local
+`HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
+`ecc97930e42688dab6646bdf3fc9733a58d0c095` (`ecc9793`). The index was
+empty, 65 tracked paths were modified, nine paths were untracked, and there
+were zero stashes. The owner authorized preserving and closing that exact
+profile-image, five-minute-presence, and campus-UI work; synchronizing current
+authority and new-session prompts; creating the four planned logical commits
+plus one audit-driven dependency-security commit; and pushing
+`main`. This authorization did not include Vercel or ICTU deployment,
+promotion, Production smoke, or database/content mutation. The accidental
+text-encoding damage in the pending authority/probe files was repaired before
+commit. After the fresh audit exposed newly published `mysql2` and `qs`
+advisories, `package-lock.json` was intentionally refreshed within the existing
+semver ranges; `package.json` constraints were unchanged. Codex did not
+inspect or record `.env` contents.
+
+The current product lineage created by this closeout is:
+
+- Dashboard Google-image repair Git commit SHA-1
+  `fdb0c8c23f96214dfb19219ea282230eedcc3ee0` (`fdb0c8c`).
+- Five-minute presence Git commit SHA-1
+  `621d72ead6df26bcdfb8d9c143fff871f3996456` (`621d72e`).
+- Campus UI refinement Git commit SHA-1
+  `b8e7ffbb2150f916829b98fd22595f40ae54ca89` (`b8e7ffb`).
+- Runtime dependency security Git commit SHA-1
+  `a5a6ceec1779bf110639c3038e72f47db1e7c82a` (`a5a6cee`).
+- The authority synchronization commit containing this block and the current
+  grounding prompts is the live `HEAD` after delivery. A new session must
+  recompute its full SHA rather than trust a self-referential value in this
+  commit.
+
+The Dashboard Personal Info card now receives the same validated Google
+profile-image URL/source as the authenticated navbar and Edit Profile modal,
+uses a no-referrer image request, and retains a safe SVG fallback. No profile
+API, schema, session revocation, or data backfill is involved.
+
+Five-minute presence is now source-complete for all authenticated roles.
+Visible authenticated pages send a CSRF-protected heartbeat on load/resume and
+at 60-second intervals; hidden/closed pages stop. The database atomically
+limits timestamp writes to at most one per user per 60 seconds. Administrators
+receive one batched, reduced Online/Offline/Last seen snapshot every 30 seconds
+while the Users page is visible. Missing timestamps mean Offline/Never, Online
+is inclusive at server time minus 300 seconds, login remains available if the
+advisory presence store fails, and no IP, device, session id, activity history,
+or client timestamp is stored. Presence never changes `users.updated_at`.
+
+The current UI refinements restore visible light/dark action surfaces for
+building View Details/View Routes and the campus-map Download/Update Offline
+Map action; advance the shared stylesheet key to `v11` and service worker to
+`v39`; label the guest dashboard map as `2D and 360 View`; add a local,
+keyboard-safe Destination Building filter to admin route add/edit; show
+`360° scenes captured on May 28, 2026.` on Free Roam and Guided VR pages; and
+replace the misleading building label `Floor Plan` with `Floors & Rooms`
+and `Rooms & Facilities`. The destination search is an in-memory linear
+filter over the already embedded building list and performs no request per
+keystroke.
+
+Supabase migrations `0020_room_schedule_documents.sql`,
+`0021_minimal_instructor_oauth_registration.sql`, and
+`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+not reapply them without new explicit database authorization. Read-only 0022
+postflight confirmed the presence table, primary/cascading foreign key,
+last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
+browser-role access, and `service_role` execution. The matching additive
+MySQL presence table is applied locally. No user/account/profile/campus record
+was backfilled or altered to obtain verification.
+
+The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
+reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
+selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
+50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
+active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
+The MySQL building/route SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
+the Supabase building/route SHA-256
+`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+the selected VR SHA-256
+`1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
+the shared Guided-VR catalog SHA-256
+`ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
+and the freeze-manifest SHA-256
+`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+Never change these facts merely to make a gate green.
+
+The required Security -> Performance -> Correctness -> Maintainability ->
+Testing review found no open blocker. Presence is session-bound, parameterized
+on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
+batched without N+1 reads, and sanitized on failure. Focused evidence includes
+Google profile image `27/27`, presence `34/34`, shared button/theme
+`19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
+`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
+`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
+session residue passed `18/18`, and `git diff --check` passed. These are
+source/local evidence, not Production evidence.
+
+The rebuilt local Supabase Docker testing application returned HTTP 200 from
+`/healthz`, ran as non-root uid 1000, and its image contained no `.env`, Git
+metadata, database dump, or deployment documentation. The time-scoped
+administrator Chrome check observed 138 total users, one Online and 137 Offline
+while the administrator page was visible; Online/Offline filters, Last seen,
+30-second polling, mobile/desktop layout, and light/dark mode worked without
+console errors. The authenticated UI checks also covered the synchronized
+Google image and current UI wording/actions. The administrator session used for
+verification was ended through the normal application Logout before the final
+residue gate. Counts are observational and may change; no account email belongs
+in authority evidence.
+
+The current Vercel source package is 196 files and 7,267,536 bytes with
+aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+Authority documents and scripts are outside that allowlisted package. No
+post-push Vercel deployment, Ready state, promotion, Production smoke, or
+immutable deployed-byte identity was inspected or established. Technical
+Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the
+last independently post-deployment-verified baseline. There is still no real
+CSPC instructor Gmail end-to-end OAuth observation. Source, localhost,
+owner-observed vendor state, Production, and independent evidence must remain
+separate.
+
+A fresh Codex or Claude Code session must use the current copy-paste prompt in
+`docs/new-session-grounding-prompts.md`: inventory available tools/MCP/skills,
+read current authority and the named implementation surfaces, recompute live
+Git truth using read-only commands, report discrepancies and the unverified
+Vercel boundary, then stop and wait. Grounding authorizes no review, test,
+edit, database/session/browser/vendor action, Git mutation, deployment,
+promotion, Production smoke, or GO/NO-GO. The recommended next separately
+authorized action is an independent read-only review of the exact pushed
+commit; any feature, deployment, or milestone decision remains owner-controlled.
+
+## Historical Release Continuity (2026-09-02; superseded)
 
 At the start of this authority synchronization, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at pushed freeze/package-evidence
@@ -267,8 +402,8 @@ remained running with restart count 0/OOM false. Load-test artifacts are under
 `artifacts/`; this remains local/source evidence, not Production proof.
 Focused evidence includes instructor minimal-profile `30/30`, OFF.2 PWA
 `145/145`, VR hotspot navigation green, and package boundary `74/74`. The
-current source package is 190 files, 7,228,842 bytes, aggregate SHA-256
-`864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079`.
+current source package is 195 files, 7,260,728 bytes, aggregate SHA-256
+`77f18089fbcb2906c68b3c6aeb5ac29ee7b21a8e29bb2a7b1e929f3838fad8d0`.
 A rebuilt Docker localhost check covered `/home`, `/events`, the guest
 dashboard, and Guided-VR with no console errors. The scoped review order was
 Security -> Performance -> Correctness -> Maintainability -> Testing and found
@@ -721,197 +856,194 @@ live repository/vendor evidence win when they conflict.
 <!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 ## Codex Grounding Prompt
 
+Copy only the block below into a fresh Codex session.
+
 ```text
-Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+This prompt is for a fresh Codex grounding session.
 
-You are Codex starting a fresh grounding-only CampuSphere session. Ground the
-current repository truth, report it, then stop and wait for the owner. This
-prompt authorizes no code review, tests, probes, server/browser work, edits,
-database or session access, vendor action, Git mutation, deployment, promotion,
-Production smoke, rollback, or GO/NO-GO.
+You are the CampuSphere project's senior reviewer, senior developer/engineer,
+security/DB/UI quality gate, handoff owner, and delivery coordinator.
 
-First inventory the tools, MCP servers/connectors, and skills actually available
-in this session. If the installed `campusphere-readonly-grounding` skill exists,
-read its complete SKILL.md and use it. Do not install or invent it if absent.
-Use a context-mode or another bounded read-only facility for long files when
-available. Reserve the `code-reviewer` skill for a later explicitly authorized
-review; do not use it now. Do not use browser or external vendor connectors
-during grounding. A later separately authorized Vercel inspection should use
-`chrome:control-chrome` because the owner has an existing signed-in Chrome
-session. Never read `.env`, print secrets, or expose identifiers or key material.
+SESSION RESTRICTION: this turn is grounding-only and read-only. Do not review
+code, run tests/QA/probes, start or stop servers/containers, open or control a
+browser, access or mutate MySQL/Supabase/sessions, inspect vendor dashboards,
+edit files, stage/commit/push Git, deploy/promote, perform a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, or compare .env or secret
+values. After the report, stop and wait for an explicit owner task.
 
-Read these files completely, in this order, resolving current sections over
-explicitly historical/superseded sections:
+Repository:
+C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-1. AGENTS.md
-2. CLAUDE.md
-3. CODEX_HANDOFF.md
-4. CLAUDE_HANDOFF.md
-5. plan.md
-6. ROADMAP.md
-7. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
-   docs/demo-script.md, docs/offline-map-refresh.md, and
-   docs/new-session-grounding-prompts.md
-8. config/selectedDemoFreeze.js, utils/singleFlight.js,
-   repositories/buildingRepository.js, repositories/routeRepository.js,
-   services/routeAvailability.js, the building/route mutation controllers,
-   lt-04-vr.js, lt-05-search.js, lt-06-route.js, lt-08-endurance.js,
-   scripts/readCoalescing-probe.js, scripts/be6DatasetFreeze-probe.js,
-   scripts/vercelPackageBoundary-probe.js, scripts/quality-gates.js, and
-   scripts/probeSessionResidue-probe.js
-9. The migration filename inventory and source for
-   0020_room_schedule_documents.sql and
-   0021_minimal_instructor_oauth_registration.sql. Never apply either migration.
-10. Inspect only bounded metadata and terminal markers for
-    artifacts/npm-test-2026-09-02.txt and
-    artifacts/npm-test-2026-09-02-final.txt; verify their SHA-256 values without
-    copying secrets or dumping both transcripts into context.
+Recorded checkpoint to verify, not blindly repeat: the four source/product commits
+are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
+`621d72ead6df26bcdfb8d9c143fff871f3996456`, and
+`b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
+196 files, 7,267,536 bytes, aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+The last independently post-deployment-verified Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
+new deployed-byte identity.
 
-Use read-only Git commands to recompute the branch, full local HEAD,
-origin/main tracking ref, remote main via `git ls-remote` (no fetch/pull), index,
-staged/unstaged/untracked paths, stash count, safety ref
-backup-pre-trailer-strip, and recent graph. Do not assume the recorded
-7f4bfce start snapshot is still HEAD after the authority synchronization.
+First inventory the tools, MCP servers/connectors, browser surfaces, and skills
+actually available in this session. If a campusphere-readonly-grounding skill
+is installed, read and follow it; do not install or invent it. The code-reviewer
+skill is reserved for a later explicitly authorized review and must not be used
+for this grounding turn. Tool availability does not expand authorization.
 
-Current facts to verify, not blindly repeat:
+Read the current authority in this order:
+1. AGENTS.md and CLAUDE.md.
+2. CODEX_HANDOFF.md and CLAUDE_HANDOFF.md.
+3. plan.md, ROADMAP.md, and README.md.
+4. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, docs/offline-map-refresh.md, and this prompt file.
+5. database/supabase/README.md and
+   database/supabase/REPOSITORY_BOUNDARIES.md.
 
-- The pre-sync pushed baseline was
-  7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79. Its recent lineage is
-  9de526ec260d065a0c1fe967d7fac0ae715ea2d6 ->
-  c1ca1b441e3ef4577de278f531fab8f41e1f03fa ->
-  b8da21ef79b29e672737730ef4d35e38c1ca1b59 ->
-  0491c5d8be4b9b82ac0a84aa155eb46f4ec7947a -> 7f4bfce.
-- `/home` requires login; the auth tab says `Sign in using Email`; `/home`
-  search is removed while three quick links remain.
-- Read coalescing shares only in-flight reads, discards them on settle, clones
-  building results, and invalidates relevant active reads after successful
-  mutations. It is not a completed-result cache.
-- The owner removed the unintended 26th Supabase building; Codex did not mutate
-  the database. The real Academic Building IV Mac Laboratory schedule hotspot
-  is intentional and retained.
-- The 2026-09-02 freeze pins MySQL at 34 buildings / 44 route nodes / 100
-  directed edges / 50 reverse pairs / 100 valid geometries / 671 scenes /
-  1,397 hotspots / one selected schedule hotspot. Supabase is 25 / 26 / 50 /
-  25 / 50 / 664 / 1,374 / zero. Shared Guided-VR remains 25 destinations,
-  472 steps, and 99 unique scene keys. Freeze fingerprints must match
-  config/selectedDemoFreeze.js; do not refresh them during grounding.
-- The first September 2 npm-test transcript is rejected freeze-drift evidence:
-  SHA-256 5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd,
-  4,683 PASS, four FAIL, residue 18/18, QUALITY-GATES FAILED: 1. The final
-  accepted transcript is SHA-256
-  d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d,
-  4,687 PASS, zero FAIL, BE.6 46/46, residue 18/18, QUALITY-GATES OK.
-- Local evidence: LT-05 4,000/4,000; LT-06 3,200/3,200; LT-08
-  79,560/79,560; read-coalescing 6/6. The owner-observed screenshot-only LT-04
-  was 50/50 with zero failures at 5 VUs for 30 seconds and exercises Cloudinary
-  delivery, not upload. These are localhost/source facts, not Production proof.
-- The source package pin is 190 files, 7,228,842 bytes, aggregate SHA-256
-  864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079.
-- Migrations 0020 and 0021 are owner-applied. Do not reapply or mutate data.
-- Offline publisher, Drive/IndexedDB design, bounds, release center, opening
-  camera, and whole-edge-tile decision are unchanged. Do not bootstrap or
-  rollback. No real new OSM building has been observed end to end.
-- GitHub main contained 7f4bfce before this authority sync, but no later Vercel
-  deployment/Ready state/promotion/Production smoke/deployed-byte proof has
-  been observed. Do not call that a failed deployment. The last independently
-  verified technical Production baseline remains
-  fea3b2e11c6331eddc1ee091b165427d8e0218d7.
-- Final Milestone 12 disposition remains external.
+Then inspect, read-only, the minimum current implementation surfaces needed to
+verify the authority rather than repeat it: package.json, .vercelignore,
+vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
+.dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
+migrations 0020-0022, controllers/dashboardController.js,
+controllers/presenceController.js, services/userPresenceService.js,
+utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
+server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
+public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
+views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
+views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
+scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
+scripts/ictuDockerDeployment-probe.js, and
+scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
+executing it is not.
 
-Report: available capabilities and files read; exact live Git truth; current
-product, freeze, package, test, load, and offline evidence; any inconsistency;
-the unverified Vercel boundary; and the next authorization boundary. Ground
-only. Do not review code or run anything. Then stop and wait for the owner. No
-next feature is authorized. Production promotion or deployment is not
-authorized by this prompt. Do not infer that implementation, testing, browser
-work, database/session/vendor action, Git mutation, deployment, or another
-pilot is authorized.
+Recompute live Git truth using read-only commands only:
+- current branch and full HEAD SHA;
+- local HEAD, origin/main, and remote main via git ls-remote;
+- tracked, staged, and untracked status;
+- stash count;
+- a short recent commit graph.
+Do not fetch, pull, reset, clean, switch, restore, commit, or push.
+
+Verify and report, with discrepancies called out instead of normalized:
+- whether current authority is the 2026-09-05 block and whether older blocks
+  are explicitly historical/superseded;
+- exact Git equality or divergence and whether the tree is clean;
+- the current four source/product commits and authority HEAD;
+- current behavior: Dashboard Google image, five-minute presence, v11/v39
+  button/theme correction, guest 2D and 360 wording, admin destination search,
+  VR May 28 2026 capture date, and Floors & Rooms wording;
+- owner-applied migrations 0020, 0021, and 0022 without reapplying them;
+- the unchanged selected freeze and package pin as recorded, clearly labelled
+  recorded evidence unless independently recomputed without executing gates;
+- evidence classes separately: historical, current source/package, localhost,
+  owner-observed vendor/Production, independently verified Production, and
+  external milestone disposition;
+- the explicit boundary that this closeout performed no Vercel/ICTU deployment,
+  promotion, Production smoke, or immutable deployed-byte verification;
+- remaining limitations, including no real CSPC instructor Gmail end-to-end
+  OAuth observation.
+
+Recommend no action during this turn. State that the next separately authorized
+move is an independent read-only review of the exact pushed commit, or another
+owner-selected task. Then stop and wait.
 ```
 
 ## Claude Code Grounding Prompt
 
+Copy only the block below into a fresh Claude Code session.
+
 ```text
-Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
+This prompt is for a fresh Claude Code grounding session.
 
-You are Claude Code starting a fresh grounding-only CampuSphere session. Ground
-the current repository truth, report it, then stop and wait for the owner. Do
-not edit, review code, test, run probes or servers, access a browser, access or
-alter databases/sessions/vendors, stage, commit, push, deploy, promote, run a
-Production smoke, rollback, or issue a GO/NO-GO.
+You are the CampuSphere project's senior reviewer, senior developer/engineer,
+security/DB/UI quality gate, handoff owner, and delivery coordinator.
 
-Inventory the tools, MCP servers/connectors, and skills actually available. If
-the installed `campusphere-readonly-grounding` skill exists, read its complete
-SKILL.md and use it; do not install or invent it. Use context-mode or another
-bounded read-only facility for long files when available. Reserve
-`code-reviewer` for a later explicitly authorized review. Do not use browser or
-vendor connectors during grounding. A later separately authorized Vercel task
-should use `chrome:control-chrome` because the owner has a signed-in Chrome
-session. Never read `.env`, print secrets, or expose identifiers/key material.
+SESSION RESTRICTION: this turn is grounding-only and read-only. Do not review
+code, run tests/QA/probes, start or stop servers/containers, open or control a
+browser, access or mutate MySQL/Supabase/sessions, inspect vendor dashboards,
+edit files, stage/commit/push Git, deploy/promote, perform a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, or compare .env or secret
+values. After the report, stop and wait for an explicit owner task.
 
-Read completely and in order: AGENTS.md; CLAUDE.md; CODEX_HANDOFF.md;
-CLAUDE_HANDOFF.md; plan.md; ROADMAP.md; docs/deployment.md;
-docs/security-checklist.md; docs/test-evidence.md; docs/demo-script.md;
-docs/offline-map-refresh.md; docs/new-session-grounding-prompts.md;
-config/selectedDemoFreeze.js; utils/singleFlight.js; the building and route
-repositories; services/routeAvailability.js; relevant mutation controllers;
-lt-04-vr.js, lt-05-search.js, lt-06-route.js, lt-08-endurance.js;
-scripts/readCoalescing-probe.js; scripts/be6DatasetFreeze-probe.js;
-scripts/vercelPackageBoundary-probe.js; scripts/quality-gates.js; and
-scripts/probeSessionResidue-probe.js. Inspect the migration filename inventory,
-`0020_room_schedule_documents.sql`, and
-`0021_minimal_instructor_oauth_registration.sql` source, but never apply them.
-Inspect only bounded
-metadata/terminal markers for the two September 2 npm-test transcripts and
-verify their SHA-256 values without dumping them into context.
+Repository:
+C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-Recompute with read-only Git commands: branch, full HEAD, origin/main, remote
-main via `git ls-remote` without fetch/pull, index, staged/unstaged/untracked
-paths, stash count, backup-pre-trailer-strip, and recent graph. The recorded
-pre-sync baseline 7f4bfce54c7961bf5e3ffc4cf72a119bcf8d2b79 may no longer be
-HEAD after the authority commit, so live Git wins.
+Recorded checkpoint to verify, not blindly repeat: the four source/product commits
+are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
+`621d72ead6df26bcdfb8d9c143fff871f3996456`, and
+`b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
+196 files, 7,267,536 bytes, aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+The last independently post-deployment-verified Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
+new deployed-byte identity.
 
-Verify these facts against source and current authority:
+First inventory the tools, MCP servers/connectors, browser surfaces, subagent
+capabilities, and skills actually available in this session. If a
+campusphere-readonly-grounding skill is installed, read and follow it; do not
+install or invent it. A code-reviewer skill, if present, is reserved for a later
+explicitly authorized review and must not be used for this grounding turn.
+Tool availability does not expand authorization, and no subagent may exceed the
+same grounding-only boundary.
 
-- Recent lineage: 9de526e grounding wording, c1ca1b4 auth/home simplification,
-  b8da21e in-flight read coalescing, 0491c5d load/release evidence, 7f4bfce
-  freeze/package refresh.
-- `/home` is authenticated; `Sign in using Email` and three quick links remain;
-  `/home` search does not.
-- Coalescing shares active reads only, is cleared on settle, clones building
-  rows, and invalidates on successful mutations; it is not a durable cache.
-- Owner—not Codex—removed the unintended 26th Supabase building. The real
-  Academic Building IV Mac Laboratory schedule hotspot remains intentional.
-- 2026-09-02 freeze: MySQL 34 buildings, 44 nodes, 100 edges, 50 reverse pairs,
-  100 geometries, 671 scenes, 1,397 hotspots, one schedule hotspot; Supabase
-  25, 26, 50, 25, 50, 664, 1,374, zero; shared Guided-VR 25 destinations, 472
-  steps, 99 unique scene keys. Compare exact fingerprints to the config; never
-  refresh them in this session.
-- Rejected transcript hash
-  5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd:
-  4,683 PASS/four FAIL, residue 18/18, QUALITY-GATES FAILED: 1. Accepted final
-  hash d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d:
-  4,687 PASS/zero FAIL, BE.6 46/46, residue 18/18, QUALITY-GATES OK.
-- Local performance: LT-05 4,000/4,000, LT-06 3,200/3,200, LT-08
-  79,560/79,560, coalescing 6/6. Owner-observed screenshot-only LT-04 is 50/50
-  at 5 VUs for 30 seconds, Cloudinary delivery only. None is Production proof.
-- Current source package: 190 files, 7,228,842 bytes, SHA-256
-  864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079.
-- Migrations 0020/0021 are owner-applied and must not be reapplied. Offline
-  publisher/bounds/camera/Drive/IndexedDB decisions are unchanged; do not
-  bootstrap or rollback; no real new OSM building has been observed end to end.
-- 7f4bfce was pushed to GitHub main before this sync. Vercel deployment, Ready
-  status, promotion, Production smoke, and deployed bytes for it remain
-  unverified. An older screenshot at 371540f is not proof of failure. The last
-  independently verified technical Production baseline is
-  fea3b2e11c6331eddc1ee091b165427d8e0218d7. Final Milestone 12 remains external.
+Read the current authority in this order:
+1. AGENTS.md and CLAUDE.md.
+2. CLAUDE_HANDOFF.md and CODEX_HANDOFF.md.
+3. plan.md, ROADMAP.md, and README.md.
+4. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, docs/offline-map-refresh.md, and this prompt file.
+5. database/supabase/README.md and
+   database/supabase/REPOSITORY_BOUNDARIES.md.
 
-Report capabilities/files read, exact live Git, current product/freeze/package
-and evidence, inconsistencies, unverified Vercel state, and the next authority
-boundary. Ground only. After the grounding report, stop and wait for the owner.
-Do not plan or start another task. Production promotion or deployment is not
-authorized by this prompt. Do not infer that implementation, testing,
-database/session/vendor work, Git mutation, browser work, deployment, or
-another pilot is authorized.
+Then inspect, read-only, the minimum current implementation surfaces needed to
+verify the authority rather than repeat it: package.json, .vercelignore,
+vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
+.dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
+migrations 0020-0022, controllers/dashboardController.js,
+controllers/presenceController.js, services/userPresenceService.js,
+utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
+server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
+public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
+views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
+views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
+scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
+scripts/ictuDockerDeployment-probe.js, and
+scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
+executing it is not.
+
+Recompute live Git truth using read-only commands only:
+- current branch and full HEAD SHA;
+- local HEAD, origin/main, and remote main via git ls-remote;
+- tracked, staged, and untracked status;
+- stash count;
+- a short recent commit graph.
+Do not fetch, pull, reset, clean, switch, restore, commit, or push.
+
+Verify and report, with discrepancies called out instead of normalized:
+- whether current authority is the 2026-09-05 block and whether older blocks
+  are explicitly historical/superseded;
+- exact Git equality or divergence and whether the tree is clean;
+- the current four source/product commits and authority HEAD;
+- current behavior: Dashboard Google image, five-minute presence, v11/v39
+  button/theme correction, guest 2D and 360 wording, admin destination search,
+  VR May 28 2026 capture date, and Floors & Rooms wording;
+- owner-applied migrations 0020, 0021, and 0022 without reapplying them;
+- the unchanged selected freeze and package pin as recorded, clearly labelled
+  recorded evidence unless independently recomputed without executing gates;
+- evidence classes separately: historical, current source/package, localhost,
+  owner-observed vendor/Production, independently verified Production, and
+  external milestone disposition;
+- the explicit boundary that this closeout performed no Vercel/ICTU deployment,
+  promotion, Production smoke, or immutable deployed-byte verification;
+- remaining limitations, including no real CSPC instructor Gmail end-to-end
+  OAuth observation.
+
+Recommend no action during this turn. State that the next separately authorized
+move is an independent read-only review of the exact pushed commit, or another
+owner-selected task. Then stop and wait.
 ```
 
 ## Historical Codex Grounding Prompt (2026-08-31 current prompt; superseded; do not use)

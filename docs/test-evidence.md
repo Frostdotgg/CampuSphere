@@ -5,7 +5,142 @@ evidence without committing private data. Store actual screenshots or recordings
 outside the repo unless they have been reviewed and explicitly approved.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-02)
+## Current Release Continuity (2026-09-05)
+
+At the start of this owner-authorized closeout, Git branch `main` had local
+`HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
+`ecc97930e42688dab6646bdf3fc9733a58d0c095` (`ecc9793`). The index was
+empty, 65 tracked paths were modified, nine paths were untracked, and there
+were zero stashes. The owner authorized preserving and closing that exact
+profile-image, five-minute-presence, and campus-UI work; synchronizing current
+authority and new-session prompts; creating the four planned logical commits
+plus one audit-driven dependency-security commit; and pushing
+`main`. This authorization did not include Vercel or ICTU deployment,
+promotion, Production smoke, or database/content mutation. The accidental
+text-encoding damage in the pending authority/probe files was repaired before
+commit. After the fresh audit exposed newly published `mysql2` and `qs`
+advisories, `package-lock.json` was intentionally refreshed within the existing
+semver ranges; `package.json` constraints were unchanged. Codex did not
+inspect or record `.env` contents.
+
+The current product lineage created by this closeout is:
+
+- Dashboard Google-image repair Git commit SHA-1
+  `fdb0c8c23f96214dfb19219ea282230eedcc3ee0` (`fdb0c8c`).
+- Five-minute presence Git commit SHA-1
+  `621d72ead6df26bcdfb8d9c143fff871f3996456` (`621d72e`).
+- Campus UI refinement Git commit SHA-1
+  `b8e7ffbb2150f916829b98fd22595f40ae54ca89` (`b8e7ffb`).
+- Runtime dependency security Git commit SHA-1
+  `a5a6ceec1779bf110639c3038e72f47db1e7c82a` (`a5a6cee`).
+- The authority synchronization commit containing this block and the current
+  grounding prompts is the live `HEAD` after delivery. A new session must
+  recompute its full SHA rather than trust a self-referential value in this
+  commit.
+
+The Dashboard Personal Info card now receives the same validated Google
+profile-image URL/source as the authenticated navbar and Edit Profile modal,
+uses a no-referrer image request, and retains a safe SVG fallback. No profile
+API, schema, session revocation, or data backfill is involved.
+
+Five-minute presence is now source-complete for all authenticated roles.
+Visible authenticated pages send a CSRF-protected heartbeat on load/resume and
+at 60-second intervals; hidden/closed pages stop. The database atomically
+limits timestamp writes to at most one per user per 60 seconds. Administrators
+receive one batched, reduced Online/Offline/Last seen snapshot every 30 seconds
+while the Users page is visible. Missing timestamps mean Offline/Never, Online
+is inclusive at server time minus 300 seconds, login remains available if the
+advisory presence store fails, and no IP, device, session id, activity history,
+or client timestamp is stored. Presence never changes `users.updated_at`.
+
+The current UI refinements restore visible light/dark action surfaces for
+building View Details/View Routes and the campus-map Download/Update Offline
+Map action; advance the shared stylesheet key to `v11` and service worker to
+`v39`; label the guest dashboard map as `2D and 360 View`; add a local,
+keyboard-safe Destination Building filter to admin route add/edit; show
+`360° scenes captured on May 28, 2026.` on Free Roam and Guided VR pages; and
+replace the misleading building label `Floor Plan` with `Floors & Rooms`
+and `Rooms & Facilities`. The destination search is an in-memory linear
+filter over the already embedded building list and performs no request per
+keystroke.
+
+Supabase migrations `0020_room_schedule_documents.sql`,
+`0021_minimal_instructor_oauth_registration.sql`, and
+`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+not reapply them without new explicit database authorization. Read-only 0022
+postflight confirmed the presence table, primary/cascading foreign key,
+last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
+browser-role access, and `service_role` execution. The matching additive
+MySQL presence table is applied locally. No user/account/profile/campus record
+was backfilled or altered to obtain verification.
+
+The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
+reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
+selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
+50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
+active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
+The MySQL building/route SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
+the Supabase building/route SHA-256
+`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+the selected VR SHA-256
+`1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
+the shared Guided-VR catalog SHA-256
+`ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
+and the freeze-manifest SHA-256
+`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+Never change these facts merely to make a gate green.
+
+The required Security -> Performance -> Correctness -> Maintainability ->
+Testing review found no open blocker. Presence is session-bound, parameterized
+on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
+batched without N+1 reads, and sanitized on failure. Focused evidence includes
+Google profile image `27/27`, presence `34/34`, shared button/theme
+`19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
+`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
+`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
+session residue passed `18/18`, and `git diff --check` passed. These are
+source/local evidence, not Production evidence.
+
+The rebuilt local Supabase Docker testing application returned HTTP 200 from
+`/healthz`, ran as non-root uid 1000, and its image contained no `.env`, Git
+metadata, database dump, or deployment documentation. The time-scoped
+administrator Chrome check observed 138 total users, one Online and 137 Offline
+while the administrator page was visible; Online/Offline filters, Last seen,
+30-second polling, mobile/desktop layout, and light/dark mode worked without
+console errors. The authenticated UI checks also covered the synchronized
+Google image and current UI wording/actions. The administrator session used for
+verification was ended through the normal application Logout before the final
+residue gate. Counts are observational and may change; no account email belongs
+in authority evidence.
+
+The current Vercel source package is 196 files and 7,267,536 bytes with
+aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+Authority documents and scripts are outside that allowlisted package. No
+post-push Vercel deployment, Ready state, promotion, Production smoke, or
+immutable deployed-byte identity was inspected or established. Technical
+Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the
+last independently post-deployment-verified baseline. There is still no real
+CSPC instructor Gmail end-to-end OAuth observation. Source, localhost,
+owner-observed vendor state, Production, and independent evidence must remain
+separate.
+
+A fresh Codex or Claude Code session must use the current copy-paste prompt in
+`docs/new-session-grounding-prompts.md`: inventory available tools/MCP/skills,
+read current authority and the named implementation surfaces, recompute live
+Git truth using read-only commands, report discrepancies and the unverified
+Vercel boundary, then stop and wait. Grounding authorizes no review, test,
+edit, database/session/browser/vendor action, Git mutation, deployment,
+promotion, Production smoke, or GO/NO-GO. The recommended next separately
+authorized action is an independent read-only review of the exact pushed
+commit; any feature, deployment, or milestone decision remains owner-controlled.
+
+## Historical Release Continuity (2026-09-02; superseded)
 
 At the start of this authority synchronization, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at pushed freeze/package-evidence
@@ -954,7 +1089,8 @@ require explicit manual promotion before they replace the live alias.
 
 | Gate | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- | --- |
-| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, ordinary D6 success in MySQL and Supabase, and BE.6 `46/46` | **4687/4687 PASS — accepted local evidence; exit 0** | September 2 final transcript `artifacts/npm-test-2026-09-02-final.txt`, SHA-256 `d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d`: exactly 4,687 `[PASS]` lines, zero `[FAIL]` lines, `QUALITY-GATES OK`, ordinary D6 `266/266` with both required comparison legs, BE.6 `46/46`, and embedded residue `18/18`; live Git and the latest external review report control release disposition |
+| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | All application, security, dataset, and session checks pass | **4809/4809 PASS - accepted local evidence; exit 0; `QUALITY-GATES OK`** | Fresh 2026-09-05 `npm test` registered `4809/4809` checks and produced 4,809 PASS with zero FAIL lines; final canonical session residue is `18/18`. Focused profile-image `27/27`, presence `34/34`, BE.6 `46/46`, ICTU Docker `49/49`, package `74/74`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities` are green. No account/profile/campus/freeze data was changed to make the checks pass; presence timestamps and verification sessions followed normal application behavior; this source push is owner-authorized |
+| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) — historical/superseded | `npm test` | Preserve the previously accepted all-green evidence as history | **Historical/superseded: 4687/4687 PASS — accepted local evidence; exit 0** | September 2 final transcript `artifacts/npm-test-2026-09-02-final.txt`, SHA-256 `d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d`: exactly 4,687 `[PASS]` lines, zero `[FAIL]` lines, `QUALITY-GATES OK`, ordinary D6 `266/266` with both required comparison legs, BE.6 `46/46`, and embedded residue `18/18`; retained as historical evidence after the presence closeout |
 | Full contract suite (September 2 freeze-drift run) — historical/rejected | `npm test` | Preserve the fail-closed dataset-freeze result without promoting it | **Historical/rejected: 4,683 PASS, four FAIL, exit 1, `QUALITY-GATES FAILED: 1`** | `artifacts/npm-test-2026-09-02.txt`, SHA-256 `5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd`: three BE.6 data-freeze assertions plus the parent probe-exit assertion failed; `BE6-DATASET-FREEZE-PROBE FAILED: 3`; embedded residue was still `18/18`. The owner later removed the unintended 26th Supabase building; Codex did not mutate the database. The refreshed intended freeze and accepted final transcript above supersede this run |
 | Full contract suite (rejected-run analyzer first execution) — historical/rejected | `npm test` | Preserve the fail-closed analyzer defect without promoting the otherwise green runtime matrix | **Historical/rejected: 4640/4641 checks passed; one `docs-current` failure; exit 1; no `QUALITY-GATES OK`** | Every runtime/database/catalog probe and the embedded canonical residue gate were green, including `18/18`. The new analyzer inspected only the first 4,628 mention in the evidence ledger instead of accepting a later exact evidence scope, so the combined live authority assertion failed closed. The analyzer now evaluates every bounded 4,628 scope and requires at least one transcript-faithful exact account. No session or data correction was required; this red run is not promoted |
 | Full contract suite (transcript-fidelity correction candidate) — historical/superseded after independent review | `npm test` | Preserve the exact green result without promoting its contradictory authority text | **Historical/superseded: 4639/4639 PASS; exit 0; `QUALITY-GATES OK`** | Exact 34-file manifest SHA-256 `ebf1142c11e3c027c0b3339a6888bc19196936ae3323644d907c68def224c4b4` received commit-readiness NO-GO because current authority repeated the same rejected 4,628-PASS retry with both the exact nine wording failures plus residue and an incorrect lower failure count. Runtime, Guided-VR, BE.6, package, and QA-marker review found no separate blocker. Superseded by the bounded authority-consistency candidate above |
@@ -965,7 +1101,7 @@ require explicit manual promotion before they replace the live alias.
 | Full contract suite (bounded review-finding remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4623/4624 checks passed; one `docs-current` failure; exit 1; no `QUALITY-GATES OK`** | Runtime, dual-backend catalog, supported fixture cleanup, and embedded `18/18` residue were green. The sole failure was the reusable Codex prompt lacking an explicit review-open sentence within the fail-closed authority scope; corrected before the exact green row above |
 | Full contract suite (Guided-VR catalog-remediation pre-disclosure candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/pre-disclosure: 4609/4609 PASS; exit 0; does not validate the later failure-disclosure documentation bytes** | One `QUALITY-GATES OK`, zero `[FAIL]` lines, and clean embedded `18/18` residue before QA. Superseded by the current exact row after the bounded session correction and fresh matrix |
 | Full contract suite (Guided-VR catalog-remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4,591 PASS plus eight documentation-only failures; exit 1; no `QUALITY-GATES OK`** | Every runtime/database/catalog probe and embedded `18/18` residue postcondition passed. Failures were confined to secret-label/current routing wording, reusable-prompt currency, two stale-current safety rows, and three unset suite/QA evidence contracts. This run is retained only as measurement evidence |
-| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **191 files, 7,239,253 bytes, aggregate SHA-256 `8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a`; focused package gate `74/74`** | Current identity-lock candidate source/package evidence; this is not immutable deployed-byte proof and does not authorize deployment. Historical pushed `c4de5ab` offline-camera package: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. Historical `38905b7` package: 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
+| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`; focused package gate `74/74`** | Current presence candidate source/package evidence; this is not immutable deployed-byte proof and does not authorize deployment. Historical pushed `c4de5ab` offline-camera package: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. Historical `38905b7` package: 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency second execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,774/3,777 checks passed, three `docs-current` failures, exit 1; no `QUALITY-GATES OK`** | The frozen candidate passed its hash/Git preflight, syntax checks, and focused logout probe at `75/75`. `npm test` then completed once and failed only the three recorded documentation contracts: `docs/test-evidence.md` did not distinguish the deployed runtime baseline from the documentation-only commit, and both `docs/test-evidence.md` and `docs/deployment.md` carried a claim-scoped stale deployment conflict. Embedded residue and BE.6 reported `18/18` and `46/46`, but stop-on-red prevented `npm run qa` and the final independent `24/24 -> 18/18 -> 46/46`; no retry was run, and clean embedded checks do not promote the red suite |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency first execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,742/3,772 checks passed, 30 failed, exit 1; no `QUALITY-GATES OK`** | The single execution exposed static documentation/analyzer contract failures plus the long-hex false positive. It did not establish acceptance evidence and was not retried. The focused logout probe had already passed `75/75`, and the test transcript emitted zero escaped logout-destroy error lines; those facts do not convert this red suite into a pass |
 | Full contract suite (M12.P1 SEC-51 gate-hardening correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3760/3760` PASS — later found FAIL-OPEN by independent Codex review on contradictory-scope deployed SHAs and superseded by the correction row above; retained as history, NOT accepted evidence** | `+5` versus the superseded `3755`: five separately named rejecting fixtures for five fail-open cases found by independent Codex adversarial review, which passed only 7 of 12 cases. Two cases escaped topic detection — a stale claim after a semicolon, and a stale claim in the following sentence — because topic matching was per-claim, so a clause that did not repeat the topic was skipped. Three more defeated SHA co-occurrence: a row or prose statement naming a DIFFERENT 40-character SHA as the deployed baseline while mentioning the expected SHA nearby for comparison. Both classes are now closed. Topic is matched on the containing EVIDENCE SCOPE — one table row, or one prose paragraph — so a following claim cannot escape by omitting the topic, while scope boundaries stop context crossing into an unrelated row or paragraph. A new pure `claimBindsShaToDeployedBaseline()` replaces co-occurrence with explicit binding: the claim must be non-historical, contain exactly ONE full 40-character SHA, that SHA must be the expected one, and it must be grammatically attached to the deployed production baseline. Historical and past-bounded exemptions remain per-claim. The pre-existing regression fixture is restored verbatim rather than reworded to suit the detector. Superseded: `3755/3755` was recorded as green but is historical/superseded — independent adversarial review later found it fail-open, so it is retained as history and is NOT accepted evidence |
@@ -973,7 +1109,8 @@ require explicit manual promotion before they replace the live alias.
 | Full contract suite (M12.P1 SEC-51 pilot-surface correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3728/3728` PASS — superseded by the evidence-synchronization row above, which added assertions rather than invalidating this run; retained as history, not as a current disposition** | `+24` versus the superseded `3704`, reconciled exactly: `+11` live `pilot-readiness` assertions (truthful landing mapping; the removed exclusive claim; the unchanged `getRoleFromEmail()` domain comparisons; the navbar ARIA contract; the single deferred shared-client tag; the one-setter public-nav client; no page-local handler on either anonymous view; both views rendering the shared partial; in-card theme placement on both auth surfaces; and the auth-scoped CSS) and `+13` mutated-source rejecting fixtures covering every one of them. The SEC-51 deployment-smoke analyzer was inverted rather than added, so its assertion and fixture counts are unchanged. Disclosed: the first attempt was RED at `3725/3` — the client-behaviour detectors matched the client's own JSDoc header instead of code shapes (fail-open), the landing refusal mutation never matched because the sentence is line-wrapped, and the full 40-char baseline SHA in `docs/deployment.md` tripped the long-hex secret scan. All three were fixed, and a comment-only fixture now pins the fail-open closed. No pre-existing gate was weakened. R1-R7 focused probes stay standalone and are not in this total |
 | Full contract suite (M12.P1-R8 evidence-consistency correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3704/3704` PASS — superseded by the SEC-51 pilot-surface correction row above, which added assertions rather than invalidating this run; retained as history, not as a current disposition** | `+19` versus the superseded `3685`, reconciled exactly: `+7` live `docs-current` evidence-consistency assertions (one current non-Pending Full QA aggregate disposition; no Pending or blank disposition anywhere in the Manual Black-Box Checklist; deployment smoke still deferred to SEC-51 and never PASS; no superseded R8 candidate figure in a current status cell, checked in both evidence documents; exactly one current R8 package inventory row carrying the independently pinned figures; and exactly one current full-suite correction-candidate row) and `+12` accepting/rejecting fixtures covering every one of those rules. Each analyzer reads only the markdown text it is handed and targets PARSED CELLS, so a superseded figure quoted as historical context inside an evidence cell stays legitimate while the same figure in a STATUS cell fails. No pre-existing gate changed. R1-R7 focused probes stay standalone and are not in this total |
 | Full contract suite (M12.P1-R8 re-review correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3685/3685` PASS — superseded by the evidence-consistency correction row above, which added assertions rather than invalidating this run; retained as history, not as a current disposition** | `+26` versus the previous R8 candidate's `3659`: `+9` in `pilot-readiness` (the scoped anonymous-denial claim, preservation of the separate method/path request-log disclosure, and the ambiguity-reintroduction fixtures) and `+11` in `vercel-package-boundary` (independently pinned stale-worktree-wording detection with positive-neutral and negative fixtures), plus `+6` new runtime `/privacy` assertions across both backends. No pre-existing gate changed. R1-R7 focused probes stay standalone and are not in this total |
-| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | Contracts, DB perf, Supabase smoke, identity, and audit all green | **4687/4687 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; live Git and the latest external review report control release disposition |
+| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | All five contract, database, smoke, identity, and audit stages pass | **4809/4809 PASS; all five stages green; exit 0** | Fresh 2026-09-05 QA evidence binds the contract stage to `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; final residue is `18/18`. No account/profile/campus/freeze data was changed to make the checks pass; presence timestamps and verification sessions followed normal application behavior; this source push is owner-authorized |
+| Full QA aggregate (M12.P1-D6 accepted local candidate) — historical/superseded | `npm run qa` | Preserve the previously accepted all-green evidence as history | **Historical/superseded: 4687/4687 PASS — all five stages green; exit 0** | `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; retained as historical evidence after the presence closeout |
 | Full QA aggregate (transcript-fidelity correction candidate) — historical/superseded after independent review | `npm run qa` | Preserve the exact prior five-stage result without promoting the rejected authority bytes | **Historical/superseded: 4639/4639 PASS — all five stages green; exit 0** | The actual markers were `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`; the exact 34-file candidate nevertheless received commit-readiness NO-GO for its contradictory rejected-run authority wording |
 | Full QA aggregate (pre-transcript-fidelity remediation candidate) — historical/superseded | `npm run qa` | Preserve the green inner command while disclosing the evidence-scorer defect | **Historical/superseded: 4637 contract PASS lines; inner `npm run qa` exit 0; enclosing scorer exit 97** | The scorer incorrectly required nonexistent `SUPABASE-SMOKE OK` instead of the actual `[supabase-smoke] PASS` marker. No application stage failed and no retry was caused; the run is superseded by the current transcript-faithful matrix |
 | Full QA aggregate (pre-independent-review remediation candidate) — historical/superseded | `npm run qa` | Preserve the prior five-stage result without treating it as current-byte evidence | **Historical/superseded: 4624/4624 PASS — all five stages; exit 0** | Validated the prior exact 31-file candidate; superseded by the current bounded-remediation matrix |

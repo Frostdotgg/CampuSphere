@@ -153,7 +153,142 @@ caching remains available, and browser Back/reload after logout cannot replay
 the authenticated map or retain CampuSphere dynamic caches/catalog records.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-02)
+## Current Release Continuity (2026-09-05)
+
+At the start of this owner-authorized closeout, Git branch `main` had local
+`HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
+`ecc97930e42688dab6646bdf3fc9733a58d0c095` (`ecc9793`). The index was
+empty, 65 tracked paths were modified, nine paths were untracked, and there
+were zero stashes. The owner authorized preserving and closing that exact
+profile-image, five-minute-presence, and campus-UI work; synchronizing current
+authority and new-session prompts; creating the four planned logical commits
+plus one audit-driven dependency-security commit; and pushing
+`main`. This authorization did not include Vercel or ICTU deployment,
+promotion, Production smoke, or database/content mutation. The accidental
+text-encoding damage in the pending authority/probe files was repaired before
+commit. After the fresh audit exposed newly published `mysql2` and `qs`
+advisories, `package-lock.json` was intentionally refreshed within the existing
+semver ranges; `package.json` constraints were unchanged. Codex did not
+inspect or record `.env` contents.
+
+The current product lineage created by this closeout is:
+
+- Dashboard Google-image repair Git commit SHA-1
+  `fdb0c8c23f96214dfb19219ea282230eedcc3ee0` (`fdb0c8c`).
+- Five-minute presence Git commit SHA-1
+  `621d72ead6df26bcdfb8d9c143fff871f3996456` (`621d72e`).
+- Campus UI refinement Git commit SHA-1
+  `b8e7ffbb2150f916829b98fd22595f40ae54ca89` (`b8e7ffb`).
+- Runtime dependency security Git commit SHA-1
+  `a5a6ceec1779bf110639c3038e72f47db1e7c82a` (`a5a6cee`).
+- The authority synchronization commit containing this block and the current
+  grounding prompts is the live `HEAD` after delivery. A new session must
+  recompute its full SHA rather than trust a self-referential value in this
+  commit.
+
+The Dashboard Personal Info card now receives the same validated Google
+profile-image URL/source as the authenticated navbar and Edit Profile modal,
+uses a no-referrer image request, and retains a safe SVG fallback. No profile
+API, schema, session revocation, or data backfill is involved.
+
+Five-minute presence is now source-complete for all authenticated roles.
+Visible authenticated pages send a CSRF-protected heartbeat on load/resume and
+at 60-second intervals; hidden/closed pages stop. The database atomically
+limits timestamp writes to at most one per user per 60 seconds. Administrators
+receive one batched, reduced Online/Offline/Last seen snapshot every 30 seconds
+while the Users page is visible. Missing timestamps mean Offline/Never, Online
+is inclusive at server time minus 300 seconds, login remains available if the
+advisory presence store fails, and no IP, device, session id, activity history,
+or client timestamp is stored. Presence never changes `users.updated_at`.
+
+The current UI refinements restore visible light/dark action surfaces for
+building View Details/View Routes and the campus-map Download/Update Offline
+Map action; advance the shared stylesheet key to `v11` and service worker to
+`v39`; label the guest dashboard map as `2D and 360 View`; add a local,
+keyboard-safe Destination Building filter to admin route add/edit; show
+`360° scenes captured on May 28, 2026.` on Free Roam and Guided VR pages; and
+replace the misleading building label `Floor Plan` with `Floors & Rooms`
+and `Rooms & Facilities`. The destination search is an in-memory linear
+filter over the already embedded building list and performs no request per
+keystroke.
+
+Supabase migrations `0020_room_schedule_documents.sql`,
+`0021_minimal_instructor_oauth_registration.sql`, and
+`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+not reapply them without new explicit database authorization. Read-only 0022
+postflight confirmed the presence table, primary/cascading foreign key,
+last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
+browser-role access, and `service_role` execution. The matching additive
+MySQL presence table is applied locally. No user/account/profile/campus record
+was backfilled or altered to obtain verification.
+
+The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
+reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
+selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
+50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
+active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
+The MySQL building/route SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
+the Supabase building/route SHA-256
+`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+the selected VR SHA-256
+`1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
+the shared Guided-VR catalog SHA-256
+`ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
+and the freeze-manifest SHA-256
+`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+Never change these facts merely to make a gate green.
+
+The required Security -> Performance -> Correctness -> Maintainability ->
+Testing review found no open blocker. Presence is session-bound, parameterized
+on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
+batched without N+1 reads, and sanitized on failure. Focused evidence includes
+Google profile image `27/27`, presence `34/34`, shared button/theme
+`19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
+`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
+`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
+`IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
+session residue passed `18/18`, and `git diff --check` passed. These are
+source/local evidence, not Production evidence.
+
+The rebuilt local Supabase Docker testing application returned HTTP 200 from
+`/healthz`, ran as non-root uid 1000, and its image contained no `.env`, Git
+metadata, database dump, or deployment documentation. The time-scoped
+administrator Chrome check observed 138 total users, one Online and 137 Offline
+while the administrator page was visible; Online/Offline filters, Last seen,
+30-second polling, mobile/desktop layout, and light/dark mode worked without
+console errors. The authenticated UI checks also covered the synchronized
+Google image and current UI wording/actions. The administrator session used for
+verification was ended through the normal application Logout before the final
+residue gate. Counts are observational and may change; no account email belongs
+in authority evidence.
+
+The current Vercel source package is 196 files and 7,267,536 bytes with
+aggregate SHA-256
+`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+Authority documents and scripts are outside that allowlisted package. No
+post-push Vercel deployment, Ready state, promotion, Production smoke, or
+immutable deployed-byte identity was inspected or established. Technical
+Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the
+last independently post-deployment-verified baseline. There is still no real
+CSPC instructor Gmail end-to-end OAuth observation. Source, localhost,
+owner-observed vendor state, Production, and independent evidence must remain
+separate.
+
+A fresh Codex or Claude Code session must use the current copy-paste prompt in
+`docs/new-session-grounding-prompts.md`: inventory available tools/MCP/skills,
+read current authority and the named implementation surfaces, recompute live
+Git truth using read-only commands, report discrepancies and the unverified
+Vercel boundary, then stop and wait. Grounding authorizes no review, test,
+edit, database/session/browser/vendor action, Git mutation, deployment,
+promotion, Production smoke, or GO/NO-GO. The recommended next separately
+authorized action is an independent read-only review of the exact pushed
+commit; any feature, deployment, or milestone decision remains owner-controlled.
+
+## Historical Release Continuity (2026-09-02; superseded)
 
 At the start of this authority synchronization, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at pushed freeze/package-evidence
@@ -1276,6 +1411,19 @@ synchronization.
 The synchronized auth/home candidate records `npm test` `4687/4687` with
 `QUALITY-GATES OK` and `npm run qa` at the same exact contract total, with
 five-stage QA and ordered postconditions `24/24 -> 18/18 -> 46/46`.
+Closeout verification (2026-09-05): fresh `npm test` registered `4809/4809`
+checks and produced `4,809 PASS` with `QUALITY-GATES OK`; the final canonical
+session-residue postcondition is `18/18`. Focused profile-image `27/27`,
+presence `34/34`, BE.6 `46/46`, ICTU Docker `49/49`, package `74/74`,
+`DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and
+npm audit `0 vulnerabilities` are green. No account, profile, campus-content,
+or freeze record was changed to make verification pass; presence timestamps
+and verification sessions changed only through normal application behavior.
+`npm run qa` records the same exact contract total with all five stage markers;
+ordered postconditions are `24/24 -> 18/18 -> 46/46`. The source/product
+commits are `fdb0c8c`, `621d72e`, `b8e7ffb`, and `a5a6cee`; the authority synchronization is the
+live `HEAD` after delivery. This owner-authorized push is source delivery only;
+no Vercel/ICTU deployment, promotion, or Production smoke is included.
 <!-- M12.P1 CURRENT STATUS END -->
 <!-- M12.P1 HISTORICAL 2026-07-30 STATUS START -->
 **HISTORICAL/SUPERSEDED (2026-07-30 continuity snapshot; retained for incident
