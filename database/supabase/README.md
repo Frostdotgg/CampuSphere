@@ -2,10 +2,11 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-09-03)
+## Current migration status (2026-09-05)
 
-Migration sources are contiguous from `0001` through `0022`. Migrations
-`0001`-`0022` are owner-applied. `0020_room_schedule_documents.sql` is the
+Migration sources are contiguous from `0001` through `0023`. Migrations
+`0001`-`0022` are owner-applied. `0023_directional_route_edge_geometry.sql`
+is source-only until the owner separately applies it. `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates
 `room_schedule_documents` and adds the nullable indexed
 `vr_hotspots.schedule_document_id` foreign key. It was applied by the owner
@@ -21,7 +22,11 @@ service-role-only atomic touch function; it has no backfill and was applied by
 the owner in the Supabase SQL Editor. Read-only table/API postflight checks
 succeeded; do not reapply it without fresh explicit database authorization. The
 historical route/data freeze remains scoped to `0001`-`0020` because 0021 is
-auth-only and 0022 is presence-only.
+auth-only and 0022 is presence-only. Migration 0023 adds the service-role-only
+`app_set_route_edge_geometry_one_way` backstop used by the directional admin
+geometry editor. It changes no schema or data by itself, but must be owner-
+applied before Supabase-mode geometry saves can publish an independent exit
+path. Do not apply it without fresh explicit database authorization.
 
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their
@@ -151,6 +156,8 @@ Apply order (each file once, in sequence, against the target project):
 10. `0022_user_presence.sql` (owner-applied presence table/function; read-only
     table/API postflight succeeded; do not reapply without fresh explicit
     database authorization).
+11. `0023_directional_route_edge_geometry.sql` (source-only until the owner
+    applies it; service-role-only one-way geometry save/clear backstop).
 
 ## 5. Auth decision
 

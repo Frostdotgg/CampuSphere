@@ -411,7 +411,8 @@ function verifyBackend(scope, buildings, nodes, edges) {
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
     const ownerSqlFiles = sqlFiles.filter((f) => ![
       '0021_minimal_instructor_oauth_registration.sql',
-      '0022_user_presence.sql'
+      '0022_user_presence.sql',
+      '0023_directional_route_edge_geometry.sql'
     ].includes(f));
     const m18 = '0018_cas_building_baseline.sql';
     const m18Path = path.join(dir, m18);
@@ -419,6 +420,8 @@ function verifyBackend(scope, buildings, nodes, edges) {
     check('static', `${m18} exists`, m18Exists);
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
+    check('static', '0023_directional_route_edge_geometry.sql is declared source-only',
+      sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
     check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
       ownerSqlFiles.length === 20 &&
       ownerSqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&

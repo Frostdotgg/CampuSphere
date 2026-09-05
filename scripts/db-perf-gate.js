@@ -284,6 +284,8 @@ async function verifySupabase() {
     'Supabase declares the path_geometry 2-200 array constraint (0015)');
   critical(/FUNCTION\s+public\.app_set_route_edge_geometry_pair\s*\(/i.test(sbSql),
     'Supabase declares the atomic pair geometry RPC (0015)');
+  critical(/FUNCTION\s+public\.app_set_route_edge_geometry_one_way\s*\(/i.test(sbSql),
+    'Supabase declares the directional one-way geometry RPC (0023)');
   critical(/ON\s+CONFLICT\s*\(\s*from_node_id\s*,\s*to_node_id\s*\)\s*DO\s+UPDATE/i.test(sbSql) &&
     /DELETE\s+FROM\s+public\.route_edges/i.test(sbSql),
     'Supabase declares the 0017 topology repair (transit-pair retirement + repaired-pair upserts)');

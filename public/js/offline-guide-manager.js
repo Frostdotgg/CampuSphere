@@ -27,6 +27,7 @@
   var activeFilter = 'all';
   var lastInvoker = null;
   var routeSummaryInvoker = null;
+  var routeSummaryKey = null;
   var logoutVersion = 0;
   var downloadController = null;
   var mobileSidebarMedia = null;
@@ -147,6 +148,12 @@
     if (!Array.isArray(guide.buildings) || !Array.isArray(guide.routes) || !guide.basemap) {
       throw new Error('The offline guide is incomplete.');
     }
+    // Exit routes were added additively. A pre-exit package remains usable for
+    // entry navigation, while a refreshed package must carry an array (which
+    // may be empty when no building has a publishable reverse route).
+    if (guide.exitRoutes !== undefined && !Array.isArray(guide.exitRoutes)) {
+      throw new Error('The offline exit routes are invalid.');
+    }
     if (!isHexHash(guide.basemap.sha256) || !Number.isInteger(guide.basemap.bytes) ||
         guide.basemap.bytes < 1 || guide.basemap.bytes > MAX_BASEMAP_BYTES) {
       throw new Error('The offline map identity is invalid.');
@@ -193,7 +200,8 @@
     }
     var buildings = record.guide && Array.isArray(record.guide.buildings) ? record.guide.buildings.length : 0;
     var routes = record.guide && Array.isArray(record.guide.routes) ? record.guide.routes.length : 0;
-    summary.textContent = buildings + ' buildings · ' + routes + ' Main Gate routes · downloaded ' +
+    var exits = record.guide && Array.isArray(record.guide.exitRoutes) ? record.guide.exitRoutes.length : 0;
+    summary.textContent = buildings + ' buildings · ' + routes + ' entry routes · ' + exits + ' exit routes · downloaded ' +
       new Date(record.downloadedAt).toLocaleString() + mapSnapshotLabel(record);
   }
 
@@ -357,6 +365,13 @@
     return activeRecord.guide.routes.find(function (route) { return route.destinationKey === key; }) || null;
   }
 
+  function exitRouteFor(key) {
+    if (!activeRecord || !activeRecord.guide || !Array.isArray(activeRecord.guide.exitRoutes)) return null;
+    return activeRecord.guide.exitRoutes.find(function (route) {
+      return route && route.buildingKey === key;
+    }) || null;
+  }
+
   function buildingFor(key) {
     if (!activeRecord || !activeRecord.guide) return null;
     return activeRecord.guide.buildings.find(function (building) { return building.key === key; }) || null;
@@ -368,6 +383,22 @@
     if (reason === 'route_data_unavailable') return 'Route data was unavailable when this guide was downloaded.';
     if (reason === 'ambiguous_name') return 'This destination could not be matched safely.';
     return 'This building is not connected to a route node yet.';
+  }
+
+  function exitUnavailableMessage(building) {
+    var reason = building && building.exitRouteUnavailableReason;
+    if (!activeRecord || !activeRecord.guide || !Array.isArray(activeRecord.guide.exitRoutes) ||
+        !Object.prototype.hasOwnProperty.call(building || {}, 'exitRouteAvailable')) {
+      return 'Update Offline Map while connected to download exit routes.';
+    }
+    if (reason === 'same_as_entry') return 'Exit route needs a separate path.';
+    if (reason === 'exit_not_drawn') return 'Exit route has not been drawn yet.';
+    if (reason === 'unreachable') return 'No walkable exit route to the Main Gate is available.';
+    if (reason === 'invalid_geometry') return 'This exit route cannot be drawn safely.';
+    if (reason === 'route_data_unavailable') return 'Route data was unavailable when this guide was downloaded.';
+    if (reason === 'ambiguous_name') return 'This exit destination could not be matched safely.';
+    if (reason === 'not_mapped') return 'This building is not connected to an exit route.';
+    return 'A separate exit route is not available for this building.';
   }
 
   function openDetails(key, invoker) {
@@ -396,15 +427,30 @@
     renderStaticList('offlineEntrancesSection', 'offlineEntrancesList', details.entrances, renderTextItem);
     renderStaticList('offlineLandmarksSection', 'offlineLandmarksList', details.landmarks, renderTextItem);
 
+    var entryRoute = routeFor(key);
+    var exitRoute = exitRouteFor(key);
+    var entryAvailable = building.routeAvailable === true && !!entryRoute;
+    var exitAvailable = building.exitRouteAvailable === true && !!exitRoute;
     var action = byId('offlineSetDestination');
     var notice = byId('offlineRouteNotice');
     if (action) {
-      action.disabled = !building.routeAvailable;
-      action.setAttribute('aria-disabled', building.routeAvailable ? 'false' : 'true');
+      action.disabled = !entryAvailable;
+      action.setAttribute('aria-disabled', entryAvailable ? 'false' : 'true');
     }
     if (notice) {
-      notice.hidden = !!building.routeAvailable;
-      notice.textContent = building.routeAvailable ? '' : unavailableMessage(building.routeUnavailableReason);
+      notice.hidden = entryAvailable;
+      notice.textContent = entryAvailable ? '' : unavailableMessage(building.routeUnavailableReason);
+    }
+    var exitAction = byId('offlineExitRoute');
+    var exitNotice = byId('offlineExitNotice');
+    if (exitAction) {
+      exitAction.disabled = !exitAvailable;
+      exitAction.setAttribute('aria-disabled', exitAvailable ? 'false' : 'true');
+      exitAction.title = exitAvailable ? '' : exitUnavailableMessage(building);
+    }
+    if (exitNotice) {
+      exitNotice.hidden = exitAvailable;
+      exitNotice.textContent = exitAvailable ? '' : exitUnavailableMessage(building);
     }
 
     panel.hidden = false;
@@ -511,9 +557,11 @@
     if (!wasOpen) return;
     var invoker = routeSummaryInvoker;
     routeSummaryInvoker = null;
+    var returnKey = routeSummaryKey || destinationKey;
+    routeSummaryKey = null;
     var target = selectFocusReturnTarget(invoker, [
       byId('offlineRouteFind'),
-      buildingListButtonForKey(destinationKey),
+      buildingListButtonForKey(returnKey),
       byId('offlineBuildingSearch'),
       byId('offlineMobileListToggle')
     ]);
@@ -547,7 +595,7 @@
 
   function setDestination(key) {
     var building = buildingFor(key);
-    if (!building || !building.routeAvailable) return;
+    if (!building || !building.routeAvailable || !routeFor(key)) return;
     rememberRouteSummaryInvoker();
     destinationKey = key;
     updateRoutePlanner();
@@ -581,6 +629,7 @@
     destinationKey = null;
     lastInvoker = null;
     routeSummaryInvoker = null;
+    routeSummaryKey = null;
 
     var container = byId('offlineMap');
     if (container) container.hidden = false;
@@ -598,16 +647,24 @@
     updateRoutePlanner();
   }
 
-  function showRoute(key) {
-    var route = routeFor(key);
+  function showRoute(key, options) {
+    var isExit = !!(options && options.isExit);
+    var route = isExit ? exitRouteFor(key) : routeFor(key);
     var building = buildingFor(key);
     var summary = byId('offlineRouteSummary');
-    if (!route || !building || !summary) {
+    if (!route || !building || !summary || !Array.isArray(route.geometry) || route.geometry.length < 2) {
       routeSummaryInvoker = null;
+      routeSummaryKey = null;
       return;
     }
-    byId('offlineRouteTitle').textContent = 'Route to ' + building.name;
-    byId('offlineRouteSubtitle').textContent = 'From Guard House / Main Gate';
+    routeSummaryKey = key;
+    if (isExit) {
+      byId('offlineRouteTitle').textContent = building.name + ' to ' + (route.destinationName || 'Guard House / Main Gate');
+      byId('offlineRouteSubtitle').textContent = 'Exit route to Guard House / Main Gate';
+    } else {
+      byId('offlineRouteTitle').textContent = 'Route to ' + building.name;
+      byId('offlineRouteSubtitle').textContent = 'From Guard House / Main Gate';
+    }
     byId('offlineRouteTime').textContent = route.estimatedWalkTime + ' \u00b7 ' + Math.round(route.distanceMeters) + ' m';
     var steps = byId('offlineRouteSteps');
     clearNode(steps);
@@ -1064,6 +1121,12 @@
     });
     var setDest = byId('offlineSetDestination');
     if (setDest) setDest.addEventListener('click', function () { if (selectedKey) setDestination(selectedKey); });
+    var exitRoute = byId('offlineExitRoute');
+    if (exitRoute) exitRoute.addEventListener('click', function () {
+      if (!selectedKey || !exitRouteFor(selectedKey)) return;
+      rememberRouteSummaryInvoker();
+      showRoute(selectedKey, { isExit: true });
+    });
     var clearDest = byId('offlineRouteDestClear');
     if (clearDest) clearDest.addEventListener('click', clearDestination);
     var findRoute = byId('offlineRouteFind');

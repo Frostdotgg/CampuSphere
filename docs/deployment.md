@@ -93,13 +93,19 @@ or client timestamp is stored. Presence never changes `users.updated_at`.
 The current UI refinements restore visible light/dark action surfaces for
 building View Details/View Routes and the campus-map Download/Update Offline
 Map action; advance the shared stylesheet key to `v11` and service worker to
-`v39`; label the guest dashboard map as `2D and 360 View`; add a local,
+`v40`; label the guest dashboard map as `2D and 360 View`; add a local,
 keyboard-safe Destination Building filter to admin route add/edit; show
 `360° scenes captured on May 28, 2026.` on Free Roam and Guided VR pages; and
 replace the misleading building label `Floor Plan` with `Floors & Rooms`
 and `Rooms & Facilities`. The destination search is an in-memory linear
 filter over the already embedded building list and performs no request per
 keystroke.
+
+The offline guide now carries separately authored entry and exit 2D routes.
+An exit is published only when the reverse path is reachable, every selected
+reverse edge has explicit valid geometry, and its geometry is not the mirrored
+entry path. Existing entry-only downloads remain usable until Update Offline
+Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
 `0021_minimal_instructor_oauth_registration.sql`, and

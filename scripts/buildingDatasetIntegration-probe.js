@@ -63,6 +63,7 @@ const { GUIDED_VR_ROUTES } = require('../config/guidedVrRoutes');
 const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
 const REASONS = ['not_mapped', 'unreachable', 'invalid_geometry', 'ambiguous_name', 'route_data_unavailable'];
+const EXIT_REASONS = REASONS.concat('exit_not_drawn', 'same_as_entry');
 const ANCHOR_POLICY = GUIDED_VR_ROUTES[0];
 
 const failures = [];
@@ -112,8 +113,13 @@ function contractOk(b) {
   if (typeof b.route_available !== 'boolean') return false;
   if (!(b.route_destination_id === null || Number.isInteger(Number(b.route_destination_id)))) return false;
   const r = b.route_unavailable_reason;
-  if (b.route_available === true) return r === null || r === undefined;
-  return REASONS.includes(r);
+  if (b.route_available === true && !(r === null || r === undefined)) return false;
+  if (b.route_available !== true && !REASONS.includes(r)) return false;
+  if (typeof b.exit_route_available !== 'boolean') return false;
+  const er = b.exit_route_unavailable_reason;
+  return b.exit_route_available === true
+    ? er === null || er === undefined
+    : EXIT_REASONS.includes(er);
 }
 
 /* ===========================================================================
@@ -197,39 +203,39 @@ function verifyConfiguredEndpointAvailabilityContract() {
   const gate = node('main-gate', 1, { node_type: 'gate', building_id: null });
   const exact = node(destinationKey, 2);
   const sibling = node('configured-destination-sibling', 3);
-  const edge = (to) => ({
-    from: 'main-gate',
+  const edge = (from, to, distance, walk) => ({
+    from,
     to,
-    distance_meters: 10,
-    walk_time_seconds: 8,
+    distance_meters: distance == null ? 10 : distance,
+    walk_time_seconds: walk == null ? 8 : walk,
     path_label: 'fixture path',
     is_accessible: 1
   });
-  const run = (nodes, edges, name) => decorate({
+  const run = (nodes, edges, name, geometry) => decorate({
     destinationName: name || ANCHOR_POLICY.destination_name,
     routeBuildingId: buildingId,
     nodes,
     edges,
-    edgeGeometryByKey: new Map(),
+    edgeGeometryByKey: geometry || new Map(),
     vrRouteId: 7
   });
 
-  let result = run([gate, sibling, exact], [edge(sibling.key), edge(exact.key)]);
+  let result = run([gate, sibling, exact], [edge('main-gate', sibling.key), edge('main-gate', exact.key)]);
   check('endpoint', 'active catalog availability follows the configured natural node key',
     result.route_available === true && result.route_destination_id === buildingId);
 
-  result = run([gate, sibling], [edge(sibling.key)]);
+  result = run([gate, sibling], [edge('main-gate', sibling.key)]);
   check('endpoint', 'connected sibling cannot hide a missing configured endpoint',
     result.route_available === false && result.route_unavailable_reason === 'not_mapped');
 
   result = run(
     [gate, sibling, node(destinationKey, 4, { building_id: buildingId + 1 })],
-    [edge(sibling.key), edge(destinationKey)]
+    [edge('main-gate', sibling.key), edge('main-gate', destinationKey)]
   );
   check('endpoint', 'configured key attached to the wrong building fails closed',
     result.route_available === false && result.route_unavailable_reason === 'not_mapped');
 
-  result = run([gate, exact, node(destinationKey, 5)], [edge(destinationKey)]);
+  result = run([gate, exact, node(destinationKey, 5)], [edge('main-gate', destinationKey)]);
   check('endpoint', 'duplicate configured endpoint keys fail closed',
     result.route_available === false && result.route_unavailable_reason === 'not_mapped');
 
@@ -237,9 +243,86 @@ function verifyConfiguredEndpointAvailabilityContract() {
   check('endpoint', 'exact configured endpoint without a Dijkstra path is unreachable',
     result.route_available === false && result.route_unavailable_reason === 'unreachable');
 
-  result = run([gate, sibling], [edge(sibling.key)], 'Unconfigured Future Building');
+  result = run([gate, sibling], [edge('main-gate', sibling.key)], 'Unconfigured Future Building');
   check('endpoint', 'non-catalog buildings retain the generic building-node fallback',
     result.route_available === true && result.route_unavailable_reason === null);
+
+  const mirroredGeometry = new Map([
+    ['main-gate|' + destinationKey, [
+      { lat: gate.lat, lng: gate.lng },
+      { lat: exact.lat, lng: exact.lng }
+    ]],
+    [destinationKey + '|main-gate', [
+      { lat: exact.lat, lng: exact.lng },
+      { lat: gate.lat, lng: gate.lng }
+    ]]
+  ]);
+  const mirrored = run(
+    [gate, exact],
+    [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 10, 8)],
+    undefined,
+    mirroredGeometry
+  );
+  check('exit', 'a legacy mirrored pair is withheld as an exit route',
+    mirrored.route_available === true && mirrored.exit_route_available === false &&
+    mirrored.exit_route_unavailable_reason === 'same_as_entry');
+
+  const notDrawn = run(
+    [gate, exact],
+    [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 17, 13)]
+  );
+  check('exit', 'a missing reverse drawing is not published as an exit route',
+    notDrawn.route_available === true && notDrawn.exit_route_available === false &&
+    notDrawn.exit_route_unavailable_reason === 'exit_not_drawn');
+
+  const distinctGeometry = new Map([
+    ['main-gate|' + destinationKey, [
+      { lat: gate.lat, lng: gate.lng },
+      { lat: exact.lat, lng: exact.lng }
+    ]],
+    [destinationKey + '|main-gate', [
+      { lat: exact.lat, lng: exact.lng },
+      { lat: exact.lat + 0.00005, lng: exact.lng + 0.00005 },
+      { lat: gate.lat, lng: gate.lng }
+    ]]
+  ]);
+  const distinct = run(
+    [gate, exact],
+    [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 17, 13)],
+    undefined,
+    distinctGeometry
+  );
+  check('exit', 'a separately drawn reverse path remains available with independent metrics',
+    distinct.route_available === true && distinct.exit_route_available === true &&
+    distinct.exit_route_unavailable_reason === null);
+
+  const strictMirror = routeAvailability.evaluateExitRoute({
+    nodes: [gate, exact],
+    edges: [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 10, 8)],
+    edgeGeometryByKey: mirroredGeometry,
+    buildingNodeKey: destinationKey
+  });
+  check('exit', 'shared strict evaluator rejects a mirrored reverse path',
+    strictMirror.ok === false && strictMirror.reason === 'same_as_entry');
+
+  const strictMissing = routeAvailability.evaluateExitRoute({
+    nodes: [gate, exact],
+    edges: [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 17, 13)],
+    edgeGeometryByKey: new Map(),
+    buildingNodeKey: destinationKey
+  });
+  check('exit', 'shared strict evaluator rejects a missing reverse drawing',
+    strictMissing.ok === false && strictMissing.reason === 'exit_not_drawn');
+
+  const strictDistinct = routeAvailability.evaluateExitRoute({
+    nodes: [gate, exact],
+    edges: [edge('main-gate', destinationKey, 10, 8), edge(destinationKey, 'main-gate', 17, 13)],
+    edgeGeometryByKey: distinctGeometry,
+    buildingNodeKey: destinationKey
+  });
+  check('exit', 'shared strict evaluator returns the distinct reverse geometry',
+    strictDistinct.ok === true && strictDistinct.reason === null &&
+    JSON.stringify(strictDistinct.geometry) === JSON.stringify(distinctGeometry.get(destinationKey + '|main-gate')));
 }
 
 /* ===========================================================================
@@ -376,8 +459,13 @@ async function runMode(scope, base, authSource) {
     check(scope, '/map pathfind uses the validated route-source id with NO building.id fallback',
       /const destId = routeDestinationId\(b\);/.test(mapHtml) &&
       !/route_destination_id != null\) \? b\.route_destination_id : b\.id/.test(mapHtml));
-    check(scope, '/map Set-as-Destination forwards route_destination_id to the computed lookup',
+  check(scope, '/map Set-as-Destination forwards route_destination_id to the computed lookup',
       /findComputedRoute\(\{[\s\S]*?route_destination_id: b\.route_destination_id[\s\S]*?\}\)/.test(mapHtml));
+    check(scope, '/map exposes a separate Exit-to-Main-Gate action and directional pathfind selector',
+      /id="panelExitBtn"/.test(mapHtml) &&
+      /exit_route_available/.test(mapHtml) &&
+      /startBuildingId=/.test(mapHtml) &&
+      /direction=exit/.test(mapHtml));
     check(scope, '/map keeps the authoritative first-paint index (search cannot overwrite it)',
       !/buildingIndex\.set\(r\.building\.id/.test(mapHtml) &&
       /function selectBuildingFromResult\(/.test(mapHtml));

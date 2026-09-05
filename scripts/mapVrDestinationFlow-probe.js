@@ -143,6 +143,47 @@ async function runMode(scope, base, authSource) {
         keys.length === route.scene_keys.length && keys.every((key, index) => key === route.scene_keys[index]));
     }
 
+    const exitBuilding = buildings.find((building) =>
+      building.route_available === true && Number.isInteger(Number(building.route_destination_id)) &&
+      Number(building.route_destination_id) > 0);
+    if (exitBuilding) {
+      const exitId = Number(exitBuilding.route_destination_id);
+      response = await request(
+        `/api/pathfind?direction=exit&startBuildingId=${exitId}`,
+        { headers: jsonHeaders }
+      );
+      const exitRoute = response.json && response.json.route;
+      const exitExpected = exitBuilding.exit_route_available === true;
+      check(scope, 'explicit exit selector enforces decorated availability and Main Gate destination',
+        response.status === 200 && response.json && response.json.success === true &&
+        (exitExpected
+          ? !!exitRoute && exitRoute.start && exitRoute.start.key && exitRoute.destination &&
+            exitRoute.destination.key === 'main-gate' &&
+            Array.isArray(exitRoute.geometry) && exitRoute.geometry.length >= 2
+          : !exitRoute && typeof response.json.exit_route_unavailable_reason === 'string'));
+
+      response = await request(
+        `/api/pathfind?startBuildingId=${exitId}&destinationNodeKey=main-gate`,
+        { headers: jsonHeaders }
+      );
+      check(scope, 'legacy building-start form is rejected without explicit exit direction',
+        response.status === 400 && response.json && response.json.success === false);
+      response = await request(
+        `/api/pathfind?direction=exit&startBuildingId=${exitId}&destinationNodeKey=main-gate`,
+        { headers: jsonHeaders }
+      );
+      check(scope, 'exit mode rejects a caller-supplied destination override',
+        response.status === 400 && response.json && response.json.success === false);
+    } else {
+      check(scope, 'building start selector fixture is available', false);
+    }
+
+    response = await request('/api/pathfind?direction=sideways&start=main-gate&destinationNodeKey=main-gate', {
+      headers: jsonHeaders
+    });
+    check(scope, 'unknown pathfind direction returns sanitized 400',
+      response.status === 400 && response.json && response.json.success === false);
+
     response = await request('/api/pathfind?start=main-gate&destinationBuildingId=abc', { headers: jsonHeaders });
     check(scope, 'invalid pathfind building id returns sanitized 400',
       response.status === 400 && response.json && response.json.success === false);

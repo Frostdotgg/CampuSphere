@@ -121,7 +121,7 @@ function offlineInteractionLifecycleProblems(source, shell) {
   if (!/var invoker = lastInvoker;[\s\S]*lastInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*buildingListButtonForKey\(selectedKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle[\s\S]*offlineRecenterMap/.test(detailsCloseBody)) {
     problems.push('details close does not restore by the required visible fallback order');
   }
-  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(destinationKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
+  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*returnKey = routeSummaryKey \|\| destinationKey;[\s\S]*selectFocusReturnTarget\(invoker, \s*\[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(returnKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
     problems.push('close does not restore by the required fallback order');
   }
   if (/setData\(|drawFallbackRoute\(/.test(closeBody)) problems.push('close clears the rendered route');
@@ -169,7 +169,7 @@ function offlineInteractionMutationsAreRejected(source, shell) {
     { source: source.replace("    if (element.closest('[hidden], [aria-hidden=\"true\"], [inert]')) return false;", ''), shell },
     { source: source.replace('    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;', ''), shell },
     { source: source.replace("        if (event.key !== 'Tab') return;", '        return;'), shell },
-    { source: source.replace('    routeSummaryInvoker = null;\n    var target = selectFocusReturnTarget(invoker, [', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var target = selectFocusReturnTarget(invoker, ["), shell },
+    { source: source.replace('    routeSummaryInvoker = null;\n    var returnKey = routeSummaryKey || destinationKey;', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var returnKey = routeSummaryKey || destinationKey;"), shell },
     { source: source.replace("      byId('offlineMobileListToggle'),\n      byId('offlineRecenterMap')", "      byId('offlineRecenterMap')"), shell },
     { source: source.replace("    theme.setAttribute('aria-pressed', dark ? 'true' : 'false');", ''), shell },
     { source: source.replace("  var THEME_STORAGE_KEY = 'campussphere-theme';", "  var THEME_STORAGE_KEY = 'offline-theme';"), shell },
@@ -193,13 +193,16 @@ function offlineInteractionMutationsAreRejected(source, shell) {
     offlineInteractionLifecycleProblems(fixture.source, fixture.shell).length > 0);
 }
 
-function buildFixture() {
-  const nodes = [
+function buildFixtureNodes() {
+  return [
     { id: 1, node_key: 'main-gate', label: 'Guard House / Main Gate', node_type: 'entrance', building_id: null, lat: 13.404, lng: 123.371 },
     { id: 2, node_key: 'junction-a', label: 'Central Walk', node_type: 'junction', building_id: null, lat: 13.405, lng: 123.372 },
     { id: 3, node_key: 'fixture-library', label: 'Fixture Library', node_type: 'building', building_id: 42, lat: 13.406, lng: 123.373 }
   ];
-  const edges = [
+}
+
+function buildFixtureEdges() {
+  return [
     {
       from_node_id: 1, to_node_id: 2, distance_meters: 120, walk_time_seconds: 90,
       path_label: 'Main Walk', is_accessible: 1,
@@ -209,9 +212,30 @@ function buildFixture() {
       from_node_id: 2, to_node_id: 3, distance_meters: 80, walk_time_seconds: 60,
       path_label: 'Library Walk', is_accessible: 1,
       path_geometry: [{ lat: 13.405, lng: 123.372 }, { lat: 13.406, lng: 123.373 }]
+    },
+    {
+      from_node_id: 3, to_node_id: 2, distance_meters: 86, walk_time_seconds: 66,
+      path_label: 'Library Exit Walk', is_accessible: 1,
+      path_geometry: [
+        { lat: 13.406, lng: 123.373 },
+        { lat: 13.4056, lng: 123.3731 },
+        { lat: 13.405, lng: 123.372 }
+      ]
+    },
+    {
+      from_node_id: 2, to_node_id: 1, distance_meters: 96, walk_time_seconds: 74,
+      path_label: 'Gate Exit Walk', is_accessible: 1,
+      path_geometry: [
+        { lat: 13.405, lng: 123.372 },
+        { lat: 13.4047, lng: 123.3714 },
+        { lat: 13.404, lng: 123.371 }
+      ]
     }
   ];
-  const buildings = [
+}
+
+function buildFixtureBuildings() {
+  return [
     {
       id: 999, name: 'Fixture Library', category: 'Academic', description: '<b>Study</b>',
       lat: 13.406, lng: 123.373, route_available: true, route_destination_id: 42,
@@ -227,7 +251,14 @@ function buildFixture() {
       route_unavailable_reason: 'not_mapped'
     }
   ];
-  return offlineGuide.buildGuide({ buildings, nodeRows: nodes, edgeRows: edges });
+}
+
+function buildFixture() {
+  return offlineGuide.buildGuide({
+    buildings: buildFixtureBuildings(),
+    nodeRows: buildFixtureNodes(),
+    edgeRows: buildFixtureEdges()
+  });
 }
 
 function runPurePackageChecks() {
@@ -238,18 +269,31 @@ function runPurePackageChecks() {
   const annex = guide.buildings.find((building) => building.key === 'unmapped-annex');
 
   ok('package has the canonical Main Gate origin', guide.origin.key === 'main-gate');
-  ok('package includes every fixture building but only the routable path', guide.buildings.length === 2 && guide.routes.length === 1);
+  ok('package includes every fixture building and both direction-specific routable paths',
+    guide.buildings.length === 2 && guide.routes.length === 1 && guide.exitRoutes.length === 1);
   ok('route uses the route-source natural destination rather than the building-row id', route && route.destinationKey === 'fixture-library');
   ok('route preserves ordered stored geometry in [lng, lat] form',
     JSON.stringify(route.geometry) === JSON.stringify([[123.371, 13.404], [123.372, 13.405], [123.373, 13.406]]));
   ok('route preserves bounded steps, distance, and walk time',
     route.steps.length === 2 && route.distanceMeters === 200 && route.walkTimeSeconds === 150);
+  const exitRoute = guide.exitRoutes[0];
+  ok('exit route is keyed by its originating building and ends at Main Gate',
+    exitRoute && exitRoute.buildingKey === 'fixture-library' &&
+    exitRoute.destinationKey === 'main-gate' && exitRoute.destinationName === 'Guard House / Main Gate');
+  ok('exit route preserves its own geometry, steps, distance, and walk time',
+    exitRoute && JSON.stringify(exitRoute.geometry) === JSON.stringify([
+      [123.373, 13.406], [123.3731, 13.4056], [123.372, 13.405],
+      [123.3714, 13.4047], [123.371, 13.404]
+    ]) && exitRoute.steps.length === 2 && exitRoute.distanceMeters === 182 && exitRoute.walkTimeSeconds === 140);
+  ok('building carries separate exit availability metadata',
+    library.exitRouteAvailable === true && library.exitRouteUnavailableReason === null);
   ok('building details retain text, offices, floors, rooms, entrances, and landmarks',
     library.details.info.length === 1 && library.details.floors[0].rooms.length === 1 &&
     library.details.entrances[0] === 'East entrance' && library.details.landmarks[0] === 'Central Walk');
   ok('HTML-like database text remains inert data rather than markup', library.description === '<b>Study</b>');
   ok('an unmapped building remains visible with a truthful unavailable state',
-    annex.routeAvailable === false && annex.routeUnavailableReason === 'not_mapped');
+    annex.routeAvailable === false && annex.routeUnavailableReason === 'not_mapped' &&
+    annex.exitRouteAvailable === false && annex.exitRouteUnavailableReason === 'not_mapped');
   ok('package emits no backend selector, database id, image, schedule, VR, session, or admin field',
     !/"sources"|"id"|"img"|"schedule|"vr_|"session"|"admin/i.test(serialized));
   ok('package fingerprint is deterministic and content-sensitive',
@@ -267,6 +311,52 @@ function runPurePackageChecks() {
       });
       return false;
     } catch (error) { return true; }
+  })());
+  ok('mirrored reverse geometry is not published as an exit route', (() => {
+    const mirroredEdges = buildFixtureEdges().map((edge) => Object.assign({}, edge));
+    mirroredEdges[2].path_geometry = [
+      { lat: 13.406, lng: 123.373 },
+      { lat: 13.405, lng: 123.372 }
+    ];
+    mirroredEdges[3].path_geometry = [
+      { lat: 13.405, lng: 123.372 },
+      { lat: 13.404, lng: 123.371 }
+    ];
+    const mirrored = offlineGuide.buildGuide({
+      buildings: buildFixtureBuildings(), nodeRows: buildFixtureNodes(), edgeRows: mirroredEdges
+    });
+    const building = mirrored.buildings.find((item) => item.key === 'fixture-library');
+    return mirrored.exitRoutes.length === 0 && building.exitRouteAvailable === false &&
+      building.exitRouteUnavailableReason === 'same_as_entry';
+  })());
+  ok('missing reverse geometry is withheld while entry remains available', (() => {
+    const missingEdges = buildFixtureEdges().map((edge) => Object.assign({}, edge));
+    missingEdges[2].path_geometry = null;
+    const missing = offlineGuide.buildGuide({
+      buildings: buildFixtureBuildings(), nodeRows: buildFixtureNodes(), edgeRows: missingEdges
+    });
+    const building = missing.buildings.find((item) => item.key === 'fixture-library');
+    return missing.routes.length === 1 && missing.exitRoutes.length === 0 &&
+      building.routeAvailable === true && building.exitRouteUnavailableReason === 'exit_not_drawn';
+  })());
+  ok('invalid reverse geometry is withheld while entry remains available', (() => {
+    const invalidEdges = buildFixtureEdges().map((edge) => Object.assign({}, edge));
+    invalidEdges[2].path_geometry = [{ lat: 99, lng: 123.373 }, { lat: 13.405, lng: 123.372 }];
+    const invalid = offlineGuide.buildGuide({
+      buildings: buildFixtureBuildings(), nodeRows: buildFixtureNodes(), edgeRows: invalidEdges
+    });
+    const building = invalid.buildings.find((item) => item.key === 'fixture-library');
+    return invalid.routes.length === 1 && invalid.exitRoutes.length === 0 &&
+      building.routeAvailable === true && building.exitRouteUnavailableReason === 'invalid_geometry';
+  })());
+  ok('unreachable reverse graph is withheld while entry remains available', (() => {
+    const oneWayEdges = buildFixtureEdges().slice(0, 2);
+    const unreachable = offlineGuide.buildGuide({
+      buildings: buildFixtureBuildings(), nodeRows: buildFixtureNodes(), edgeRows: oneWayEdges
+    });
+    const building = unreachable.buildings.find((item) => item.key === 'fixture-library');
+    return unreachable.routes.length === 1 && unreachable.exitRoutes.length === 0 &&
+      building.routeAvailable === true && building.exitRouteUnavailableReason === 'unreachable';
   })());
 }
 
@@ -304,6 +394,9 @@ function runStaticBoundaryChecks() {
   })());
   ok('package service applies an explicit two-megabyte response bound',
     /MAX_PACKAGE_BYTES\s*=\s*2\s*\*\s*1024\s*\*\s*1024/.test(service));
+  ok('package publishes separately evaluated, explicitly drawn exit routes',
+    /exitRoutes/.test(service) && /evaluateExitRoute/.test(service) &&
+    /exitRouteAvailable/.test(service) && /exitRouteUnavailableReason/.test(service));
   ok('download is explicit and never starts during initialization',
     /addEventListener\('click',\s*downloadGuide\)/.test(manager) &&
     !/DOMContentLoaded[^;]*downloadGuide\(/.test(manager));
@@ -319,6 +412,12 @@ function runStaticBoundaryChecks() {
     /if \(map !== nextMap\) return/.test(manager));
   ok('stored guide and map bytes are reverified on every load',
     /function verifyStoredRecord/.test(manager) && /record\.basemap\.arrayBuffer\(\)/.test(manager));
+  ok('offline clients keep entry navigation backward-compatible and expose exit navigation when present',
+    /guide\.exitRoutes !== undefined && !Array\.isArray\(guide\.exitRoutes\)/.test(manager) &&
+    /function exitRouteFor\(key\)/.test(manager) &&
+    /byId\('offlineExitRoute'\)/.test(manager) &&
+    /showRoute\(selectedKey, \{ isExit: true \}\)/.test(manager) &&
+    /Update Offline Map while connected to download exit routes/.test(manager));
   ok('database text is rendered through textContent and no innerHTML sink exists',
     /node\.textContent\s*=\s*text/.test(manager) && !/\.innerHTML\s*=/.test(manager));
   ok('offline origin marker says Guard House while retaining the canonical main-gate key',
@@ -372,6 +471,9 @@ function runStaticBoundaryChecks() {
   ok('offline shell excludes 360, Guided VR, Free Roam, schedules, and photos',
     !/href="[^"]*\/vr|src="[^"]*pannellum|panorama|schedule(s)?\s*:/i.test(shell) &&
     /no account, session, schedule, admin, photo, or 360 data/i.test(shell));
+  ok('offline details include a separate exit action and status notice',
+    /id="offlineExitRoute"/.test(shell) && /id="offlineExitNotice"/.test(shell) &&
+    /Exit to Main Gate/.test(shell) && /entry and exit routes/i.test(shell));
   ok('service worker forbids the package API and never precaches guide JSON or the PMTiles archive', (() => {
     const precache = (sw.match(/PRECACHE_URLS\s*=\s*\[([\s\S]*?)\]/) || [])[1] || '';
     return sw.includes("'/api/offline-guide'") && !/\/api\/offline-guide/.test(precache) && !/\.pmtiles/.test(precache);

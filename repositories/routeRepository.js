@@ -865,11 +865,10 @@ async function adminGetEdgeWithGeometry(id) {
   };
 }
 
-// Atomic forward+reverse geometry write via the single service-role RPC from
-// migration 0016 (extends 0015's app_set_route_edge_geometry_pair to also
-// clear both directions when p_geometry is NULL). Never performs two
-// independent PostgREST updates. Raises EDGE_PAIR_NOT_FOUND when the reverse
-// row is missing (controller maps to 409). Returns the affected row count.
+// Historical atomic forward+reverse geometry write via the service-role RPC
+// from migration 0016. Kept for compatibility with old migration tooling; the
+// admin editor now uses adminSetEdgeGeometry() below so each direction is
+// independently editable.
 async function adminSetEdgeGeometryPair(fromNodeId, toNodeId, geometryOrNull) {
   const sb = getSupabaseClient();
   const { data, error } = await sb.rpc('app_set_route_edge_geometry_pair', {
@@ -878,6 +877,22 @@ async function adminSetEdgeGeometryPair(fromNodeId, toNodeId, geometryOrNull) {
     p_geometry: geometryOrNull
   });
   if (error) throw fail('adminSetEdgeGeometryPair', error);
+  const val = Array.isArray(data) ? (data[0] != null ? data[0] : 0) : (data != null ? data : 0);
+  return Number(val) || 0;
+}
+
+// Directional geometry write for the exit-route editor. Unlike the historical
+// pair RPC above, this updates only the selected directed route_edges row, so
+// an administrator can draw a different path and enter different metrics for
+// the reverse journey. The function is service-role-only and is supplied by
+// Supabase migration 0023.
+async function adminSetEdgeGeometry(edgeId, geometryOrNull) {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb.rpc('app_set_route_edge_geometry_one_way', {
+    p_edge_id: Number(edgeId),
+    p_geometry: geometryOrNull
+  });
+  if (error) throw fail('adminSetEdgeGeometry', error);
   const val = Array.isArray(data) ? (data[0] != null ? data[0] : 0) : (data != null ? data : 0);
   return Number(val) || 0;
 }
@@ -935,6 +950,7 @@ module.exports = {
   adminListEdges,
   adminGetEdge,
   adminGetEdgeWithGeometry,
+  adminSetEdgeGeometry,
   adminSetEdgeGeometryPair,
   adminNodeHasAttachedGeometry,
   adminFindEdgeIdByPair,

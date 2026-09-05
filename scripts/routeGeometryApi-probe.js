@@ -18,7 +18,8 @@
        coordinates, with no duplicated consecutive points;
      - route.nodes / route.segments / distance / walk-time metrics keep the
        pre-RF.3 shape byte-for-byte (segments carry NO geometry key);
-     - reverse traversal returns the exact reversed forward geometry;
+     - reverse traversal remains a valid directed route; its geometry is not
+       required to mirror the forward route;
      - start-equals-destination returns exactly one coordinate;
      - leak scan over every captured body.
 
@@ -37,7 +38,8 @@ const {
   ENDPOINT_EPSILON,
   normalizeStoredPathGeometry,
   assembleRouteGeometry,
-  reversePathGeometry
+  reversePathGeometry,
+  isReversePathGeometry
 } = require('../utils/routeGeometry');
 
 // M12.P1-R1: regression identities come from the shared TEST-ONLY loader —
@@ -193,6 +195,15 @@ function runPureHelperChecks() {
     samePt(boundary.geometry[0], { lat: -90, lng: -180 }) &&
     samePt(boundary.geometry[1], { lat: 90, lng: 180 }));
 
+  check(scope, 'reverse-geometry helper identifies mirrored paths',
+    isReversePathGeometry(abGeom, reversePathGeometry(abGeom)) === true);
+  check(scope, 'reverse-geometry helper accepts a distinct detour as independent',
+    isReversePathGeometry(abGeom, [
+      { lat: 10.001, lng: 20.001 },
+      { lat: 10.0007, lng: 20.0009 },
+      { lat: 10, lng: 20 }
+    ]) === false);
+
   // Finite MySQL DECIMAL strings still supported for in-range coordinates.
   const decimalStr = assembleRouteGeometry({
     nodes: [{ key: 'a', lat: '10.00000000', lng: '20.00000000' }, B],
@@ -346,17 +357,23 @@ async function runMode(mode, base) {
     if (legacyOk && geometryOk) {
       okCount++;
       geometryPointTotal += g.length;
-      if (!directPair && nodes.length >= 2) directPair = [nodes[0].key, nodes[1].key];
+      // Keep a complete Main Gate -> building pair when available so the
+      // reverse assertion can exercise the strict exit policy rather than
+      // accidentally treating an intermediate waypoint as a building exit.
+      if (!directPair && nodes.length === 2) {
+        directPair = { start: nodes[0].key, end: nodes[1].key, building: b };
+      }
     }
   }
   check(mode, `${GUIDED_VR_ROUTES.length}/${GUIDED_VR_ROUTES.length} active destinations return ordered numeric route.geometry with intact legacy contract (ok ${okCount}/${GUIDED_VR_ROUTES.length}, total points ${geometryPointTotal})`,
     okCount === GUIDED_VR_ROUTES.length);
 
   // Reverse traversal: use the first direct segment from an accepted route so
-  // no equal-cost whole-route tie can test Dijkstra selection instead of the
-  // stored forward/reverse geometry contract.
-  const pairStart = directPair && directPair[0];
-  const pairEnd = directPair && directPair[1];
+  // no equal-cost whole-route tie can test Dijkstra selection. The reverse row
+  // is validated as its own directed route; it is not required to mirror the
+  // forward geometry.
+  const pairStart = directPair && directPair.start;
+  const pairEnd = directPair && directPair.end;
   const fwd = pairStart && pairEnd
     ? await jfetch(`/api/pathfind?start=${encodeURIComponent(pairStart)}&destinationNodeKey=${encodeURIComponent(pairEnd)}`, { headers: H })
     : { json: null };
@@ -365,13 +382,20 @@ async function runMode(mode, base) {
     : { json: null };
   const fwdRoute = fwd.json && fwd.json.route;
   const revRoute = rev.json && rev.json.route;
-  const fwdReversed = fwdRoute ? reversePathGeometry(fwdRoute.geometry) : [];
-  const reverseMatches = !!fwdRoute && !!revRoute &&
-    Array.isArray(fwdRoute.geometry) && fwdRoute.geometry.length >= 2 &&
+  const forwardValid = !!fwdRoute &&
+    Array.isArray(fwdRoute.geometry) && fwdRoute.geometry.length >= 2;
+  const reverseGeometryValid = !!revRoute &&
     Array.isArray(revRoute.geometry) &&
-    revRoute.geometry.length === fwdReversed.length &&
-    revRoute.geometry.every((p, i) => samePt(p, fwdReversed[i]));
-  check(mode, 'one direct route pair returns exact reversed forward geometry', reverseMatches);
+    revRoute.geometry.length >= 2 &&
+    Array.isArray(revRoute.nodes) && revRoute.nodes[0] && revRoute.nodes[revRoute.nodes.length - 1] &&
+    samePt(revRoute.geometry[0], revRoute.nodes[0]) &&
+    samePt(revRoute.geometry[revRoute.geometry.length - 1], revRoute.nodes[revRoute.nodes.length - 1]);
+  const strictExitDenialValid = directPair && directPair.building &&
+    directPair.building.exit_route_available !== true &&
+    !revRoute && rev.json && rev.json.success === true &&
+    typeof rev.json.exit_route_unavailable_reason === 'string';
+  check(mode, 'one direct route pair preserves entry geometry and enforces exit policy',
+    forwardValid && (reverseGeometryValid || strictExitDenialValid));
 
   // Start equals destination: one coordinate.
   r = await jfetch('/api/pathfind?start=main-gate&destinationNodeKey=main-gate', { headers: H });

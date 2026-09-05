@@ -43,12 +43,20 @@
      3. the path has finite, ordered nodes;
      4. it assembles complete, valid road geometry.
 
+   Exit availability is an additive companion contract. It evaluates the
+   directed path from the building's natural node back to `main-gate`, and is
+   true only when that path is reachable, drawable, and not merely the exact
+   reverse of the entry geometry. This keeps legacy mirrored pairs safe while
+   allowing an admin to publish a separately drawn exit route.
+
    Reasons (fixed, sanitized — never a graph payload or a backend error):
      null                     available
      'not_mapped'             no route node maps to this building
      'unreachable'            node exists but no path from main-gate
      'invalid_geometry'       path found, but the drawing geometry is unusable
      'route_data_unavailable' the route source itself failed (FAIL CLOSED)
+     'exit_not_drawn'          exit path still relies on missing edge geometry
+     'same_as_entry'          exit geometry is only the mirrored entry path
 
    On a route-source failure every building is marked unavailable with
    'route_data_unavailable'. Failing OPEN here would re-offer a destination
@@ -57,7 +65,10 @@
    Geometry note: a MISSING stored geometry on an edge is not a defect — RF.3/RF.5
    deliberately fall back to that edge's two node endpoints, and the route still
    draws. Only MALFORMED/endpoint-invalid geometry (invalidEdges) or an
-   un-assemblable path (incomplete) makes a building 'invalid_geometry'.
+   un-assemblable path (incomplete) makes a building 'invalid_geometry'. The
+   exit companion is stricter: every selected exit edge must have explicitly
+   stored valid geometry, otherwise it remains 'exit_not_drawn' rather than
+   publishing an inferred straight-line exit.
 
    Boundary: server-only. Reads config/db (MySQL) and repositories/routeRepository
    (Supabase). No req/res, no session, no rendering, no mutation. Never throws to
@@ -70,7 +81,11 @@ const routeRepository = require('../repositories/routeRepository');
 const buildingRepository = require('../repositories/buildingRepository');
 const { createSingleFlight } = require('../utils/singleFlight');
 const { findShortestPath } = require('../utils/pathfinding');
-const { assembleRouteGeometry } = require('../utils/routeGeometry');
+const {
+  assembleRouteGeometry,
+  normalizeStoredPathGeometry,
+  isReversePathGeometry
+} = require('../utils/routeGeometry');
 const {
   GUIDED_VR_ROUTES,
   DEFERRED_GUIDED_VR_DESTINATIONS
@@ -83,6 +98,8 @@ const REASON = Object.freeze({
   NOT_MAPPED: 'not_mapped',
   UNREACHABLE: 'unreachable',
   INVALID_GEOMETRY: 'invalid_geometry',
+  EXIT_NOT_DRAWN: 'exit_not_drawn',
+  SAME_AS_ENTRY: 'same_as_entry',
   AMBIGUOUS_NAME: 'ambiguous_name',
   ROUTE_DATA_UNAVAILABLE: 'route_data_unavailable'
 });
@@ -105,6 +122,8 @@ function unavailable(reason) {
     route_available: false,
     route_destination_id: null,
     route_unavailable_reason: reason,
+    exit_route_available: false,
+    exit_route_unavailable_reason: reason,
     vr_route_id: null
   };
 }
@@ -276,6 +295,103 @@ function resolveAvailabilityDestinationNode({
   return matches.find((node) => node.node_type === 'building') || matches[0] || null;
 }
 
+/* ---------------------------------------------------------------------------
+   PURE directed route evaluation shared by availability decoration and the
+   public pathfinding controller.
+
+   Entry routes retain the legacy geometry fallback. Exit routes call the same
+   evaluator with requireExplicitGeometry=true so a missing edge shape can
+   never be published as an inferred straight-line exit.
+--------------------------------------------------------------------------- */
+function evaluateDirectedPath({
+  nodes,
+  edges,
+  edgeGeometryByKey,
+  startKey,
+  endKey,
+  requireExplicitGeometry = false
+}) {
+  const graphNodes = Array.isArray(nodes) ? nodes : [];
+  const graphEdges = Array.isArray(edges) ? edges : [];
+  const geometryByKey = edgeGeometryByKey instanceof Map ? edgeGeometryByKey : new Map();
+  const result = findShortestPath({
+    nodes: graphNodes,
+    edges: graphEdges,
+    startKey,
+    endKey
+  });
+  const reachable =
+    result.success &&
+    Array.isArray(result.nodes) && result.nodes.length >= 2 &&
+    Number.isFinite(Number(result.distance_meters)) &&
+    Number.isFinite(Number(result.walk_time_seconds));
+  if (!reachable) return { ok: false, reason: REASON.UNREACHABLE, result: null, geometry: null };
+
+  const assembled = assembleRouteGeometry({
+    nodes: result.nodes,
+    segments: result.segments,
+    edgeGeometryByKey: geometryByKey
+  });
+  const geometryOk =
+    !assembled.incomplete &&
+    assembled.invalidEdges === 0 &&
+    Array.isArray(assembled.geometry) &&
+    assembled.geometry.length >= 2;
+  if (!geometryOk) return { ok: false, reason: REASON.INVALID_GEOMETRY, result, geometry: null };
+
+  if (requireExplicitGeometry) {
+    const explicitlyDrawn = result.segments.every((segment) => {
+      const raw = geometryByKey.get(String(segment.from) + '|' + String(segment.to));
+      return normalizeStoredPathGeometry(raw).state === 'present';
+    });
+    if (!explicitlyDrawn) {
+      return { ok: false, reason: REASON.EXIT_NOT_DRAWN, result, geometry: null };
+    }
+  }
+
+  return { ok: true, reason: null, result, geometry: assembled.geometry };
+}
+
+/*
+ * Evaluate a building's complete two-way contract. The optional entryEvaluation
+ * lets availability decoration reuse the entry result it already computed,
+ * while the controller can call this helper directly for a stale/direct caller.
+ */
+function evaluateExitRoute({
+  nodes,
+  edges,
+  edgeGeometryByKey,
+  buildingNodeKey,
+  mainGateKey = START_NODE_KEY,
+  entryEvaluation = null
+}) {
+  const entry = entryEvaluation || evaluateDirectedPath({
+    nodes,
+    edges,
+    edgeGeometryByKey,
+    startKey: mainGateKey,
+    endKey: buildingNodeKey
+  });
+  if (!entry.ok) return { ok: false, reason: entry.reason, entry, exit: null, geometry: null };
+
+  const exit = evaluateDirectedPath({
+    nodes,
+    edges,
+    edgeGeometryByKey,
+    startKey: buildingNodeKey,
+    endKey: mainGateKey,
+    requireExplicitGeometry: true
+  });
+  if (!exit.ok) return { ok: false, reason: exit.reason, entry, exit, geometry: null };
+
+  const sameAsEntry = isReversePathGeometry(entry.geometry, exit.geometry);
+  if (sameAsEntry) {
+    return { ok: false, reason: REASON.SAME_AS_ENTRY, entry, exit, geometry: null, sameAsEntry: true };
+  }
+
+  return { ok: true, reason: null, entry, exit, geometry: exit.geometry, sameAsEntry: false };
+}
+
 /* PURE per-destination availability calculation, exported for rejecting
    fixtures. Database/repository reads remain in buildAvailabilityIndex(). */
 function availabilityDecorationForDestination({
@@ -302,55 +418,60 @@ function availabilityDecorationForDestination({
       route_available: false,
       route_destination_id: routeBuildingId,
       route_unavailable_reason: REASON.NOT_MAPPED,
+      exit_route_available: false,
+      exit_route_unavailable_reason: REASON.NOT_MAPPED,
       vr_route_id: vr
     };
   }
 
-  const result = findShortestPath({
-    nodes: Array.isArray(nodes) ? nodes : [],
-    edges: Array.isArray(edges) ? edges : [],
+  const entry = evaluateDirectedPath({
+    nodes,
+    edges,
+    edgeGeometryByKey,
     startKey: START_NODE_KEY,
     endKey: dest.key
   });
-  const reachable =
-    result.success &&
-    Array.isArray(result.nodes) && result.nodes.length >= 2 &&
-    Number.isFinite(Number(result.distance_meters)) &&
-    Number.isFinite(Number(result.walk_time_seconds));
-
-  if (!reachable) {
+  if (!entry.ok) {
     return {
       route_available: false,
       route_destination_id: routeBuildingId,
-      route_unavailable_reason: REASON.UNREACHABLE,
+      route_unavailable_reason: entry.reason,
+      exit_route_available: false,
+      exit_route_unavailable_reason: entry.reason,
       vr_route_id: vr
     };
   }
 
-  const assembled = assembleRouteGeometry({
-    nodes: result.nodes,
-    segments: result.segments,
-    edgeGeometryByKey: edgeGeometryByKey instanceof Map ? edgeGeometryByKey : new Map()
+  const exit = evaluateExitRoute({
+    nodes,
+    edges,
+    edgeGeometryByKey,
+    buildingNodeKey: dest.key,
+    mainGateKey: START_NODE_KEY,
+    entryEvaluation: entry
   });
-  const geometryOk =
-    !assembled.incomplete &&
-    assembled.invalidEdges === 0 &&
-    Array.isArray(assembled.geometry) &&
-    assembled.geometry.length >= 2;
-
-  return geometryOk
-    ? {
+  if (!exit.ok) {
+    return {
       route_available: true,
       route_destination_id: routeBuildingId,
       route_unavailable_reason: null,
-      vr_route_id: vr
-    }
-    : {
-      route_available: false,
-      route_destination_id: routeBuildingId,
-      route_unavailable_reason: REASON.INVALID_GEOMETRY,
+      exit_route_available: false,
+      exit_route_unavailable_reason: exit.reason,
       vr_route_id: vr
     };
+  }
+
+  // A legacy mirrored pair is not an exit route. The admin must draw and save
+  // a distinct directed geometry (and may enter distinct scalar metrics) before
+  // the public Exit action is offered.
+  return {
+    route_available: true,
+    route_destination_id: routeBuildingId,
+    route_unavailable_reason: null,
+    exit_route_available: true,
+    exit_route_unavailable_reason: null,
+    vr_route_id: vr
+  };
 }
 
 /* ---------------------------------------------------------------------------
@@ -527,6 +648,8 @@ module.exports = {
   canonicalJoinVerdict,
   groupByCanonical,
   resolveAvailabilityDestinationNode,
+  evaluateDirectedPath,
+  evaluateExitRoute,
   availabilityDecorationForDestination,
   loadRouteSource,
   loadBuildingSourceRoster,

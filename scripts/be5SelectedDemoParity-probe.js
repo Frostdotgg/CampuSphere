@@ -431,7 +431,8 @@ function runMigrationTests() {
   const files = fs.readdirSync(dir).filter((file) => file.endsWith('.sql')).sort();
   const freezeFiles = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
-    '0022_user_presence.sql'
+    '0022_user_presence.sql',
+    '0023_directional_route_edge_geometry.sql'
   ].includes(file));
   check(section, 'route-data freeze migration source list remains contiguous 0001-0020',
     freezeFiles.length === 20 &&

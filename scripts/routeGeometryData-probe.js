@@ -19,7 +19,8 @@
          finite in-range values)
        - endpoint continuity: first/last points match the live from/to node
          coordinates within ENDPOINT_EPSILON
-       - 50 forward/reverse pairs are EXACT reversals of each other
+       - 50 forward/reverse pairs are present; each directed geometry is
+         validated independently so a reverse row may be a dedicated exit path
        - 33/34 buildings remain routable from main-gate (pure Dijkstra over
          the same rows; utils/pathfinding.js untouched)
        - retired shortcut/transit pairs stay absent
@@ -29,7 +30,7 @@
        - route_edges.path_geometry column is readable
        - 25 buildings / 26 nodes / 50 directed edges
        - 50/50 valid geometries with endpoint continuity
-       - 25/25 forward/reverse pairs are exact reversals
+       - 25/25 forward/reverse pairs are present with independent geometry
        - 25/25 buildings remain routable from main-gate
        Fails CLOSED when the Supabase env is missing (unless
        PROBE_SKIP_SUPABASE=1 marks an intentionally unconfigured
@@ -59,8 +60,7 @@ const db = require('../config/db');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { findShortestPath } = require('../utils/pathfinding');
 const {
-  validatePathGeometry,
-  reversePathGeometry
+  validatePathGeometry
 } = require('../utils/routeGeometry');
 const { SELECTED_DEMO_FREEZE } = require('../config/selectedDemoFreeze');
 
@@ -90,8 +90,9 @@ const RETIRED_PAIRS = [
   ['auditorium', 'mid-campus']
 ];
 
-// Exact migration-source sequence guard: every position 0001_..0020_
-// must be present exactly once in sorted order.
+// Exact migration-source sequence guard: every position 0001_..0020_ must be
+// present exactly once in sorted order. Later owner/source-only migrations are
+// explicitly excluded from the historical baseline sequence.
 // migration. Length/first/last alone would accept a corrupted list (e.g.
 // missing 0010 plus a duplicate 0018), so each sorted slot is pinned.
 const EXPECTED_MIGRATION_PREFIXES = Object.freeze(
@@ -105,7 +106,8 @@ function hasExactMigrationSequence(files) {
   if (!Array.isArray(files)) return false;
   const sorted = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
-    '0022_user_presence.sql'
+    '0022_user_presence.sql',
+    '0023_directional_route_edge_geometry.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -203,9 +205,9 @@ function normalizePoints(points) {
       missingCount === 0 && malformedCount === 0);
     check('endpoint continuity holds for every stored geometry (failures ' + endpointFailCount + ')', endpointFailCount === 0);
 
-    // Forward/reverse exact-reversal parity across the undirected pairs
+    // Forward/reverse pair presence across the undirected pairs. Geometry is
+    // validated per directed row above; a reverse row may intentionally differ.
     let pairCount = 0;
-    let reversalFail = 0;
     const seen = new Set();
     for (const [k, fwd] of geometryByPair) {
       const [a, b] = k.split('|');
@@ -215,10 +217,10 @@ function normalizePoints(points) {
       seen.add(unordered);
       pairCount++;
       const rev = geometryByPair.get(rk);
-      if (!rev || JSON.stringify(rev) !== JSON.stringify(reversePathGeometry(fwd))) reversalFail++;
+      if (!rev) continue;
     }
-    check(`${MYSQL_COUNTS.exact_reverse_geometries} MySQL forward/reverse pairs are exact reversals (pairs ${pairCount}, mismatches ${reversalFail})`,
-      pairCount === MYSQL_COUNTS.exact_reverse_geometries && reversalFail === 0);
+    check(`${MYSQL_COUNTS.reverse_pairs} MySQL forward/reverse pairs are present (pairs ${pairCount})`,
+      pairCount === MYSQL_COUNTS.reverse_pairs && seen.size === MYSQL_COUNTS.reverse_pairs);
 
     // Retired shortcut pairs stay absent
     let retiredPresent = 0;
@@ -313,7 +315,6 @@ function normalizePoints(points) {
           sbEdges.length === SUPABASE_COUNTS.route_edges && sbBad === 0);
 
         let sbPairs = 0;
-        let sbRevFail = 0;
         const sbSeen = new Set();
         for (const [k, fwd] of sbGeomByPair) {
           const [a, b] = k.split('|');
@@ -322,10 +323,10 @@ function normalizePoints(points) {
           sbSeen.add(unordered);
           sbPairs++;
           const rev = sbGeomByPair.get(b + '|' + a);
-          if (!rev || JSON.stringify(rev) !== JSON.stringify(reversePathGeometry(fwd))) sbRevFail++;
+          if (!rev) continue;
         }
-        check(`live Supabase has ${SUPABASE_COUNTS.exact_reverse_geometries} forward/reverse pairs, all exact reversals (pairs ${sbPairs}, mismatches ${sbRevFail})`,
-          sbRevFail === 0 && sbPairs === SUPABASE_COUNTS.exact_reverse_geometries &&
+        check(`live Supabase has ${SUPABASE_COUNTS.reverse_pairs} forward/reverse pairs (pairs ${sbPairs})`,
+          sbPairs === SUPABASE_COUNTS.reverse_pairs && sbSeen.size === SUPABASE_COUNTS.reverse_pairs &&
           sbPairs * 2 === sbEdges.length);
 
         check(`live Supabase building count is ${SUPABASE_COUNTS.buildings} (found ${sbBuildings.length})`,
@@ -388,6 +389,26 @@ function normalizePoints(points) {
         /GRANT\s+EXECUTE[\s\S]{0,120}TO\s+service_role/i.test(sql));
     }
 
+    const m23Path = path.join(root, 'database', 'supabase', '0023_directional_route_edge_geometry.sql');
+    const m23Exists = fs.existsSync(m23Path);
+    check('0023 directional route-edge geometry migration exists (source-only)', m23Exists);
+    if (m23Exists) {
+      const sql = fs.readFileSync(m23Path, 'utf8');
+      check('0023 declares the one-way geometry RPC',
+        /FUNCTION\s+public\.app_set_route_edge_geometry_one_way\s*\(/i.test(sql));
+      check('0023 updates only the selected edge and permits NULL clear',
+        /WHERE\s+id\s*=\s*p_edge_id/i.test(sql) && /p_geometry\s+IS\s+NULL/i.test(sql) &&
+        !/v_reverse_id/i.test(sql));
+      check('0023 uses locked endpoint validation with service-role-only grants',
+        /ORDER\s+BY\s+id\s+FOR\s+UPDATE/i.test(sql) &&
+        /SECURITY\s+INVOKER/i.test(sql) &&
+        /SET\s+search_path\s*=\s*pg_catalog,\s*public/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+PUBLIC/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+anon/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+authenticated/i.test(sql) &&
+        /GRANT\s+EXECUTE[\s\S]*TO\s+service_role/i.test(sql));
+    }
+
     const m14 = fs.readFileSync(path.join(root, 'database', 'supabase', '0014_route_graph_accuracy.sql'), 'utf8')
       .replace(/\r\n/g, '\n');
     const m14Hash = crypto.createHash('sha256').update(m14, 'utf8').digest('hex');
@@ -406,6 +427,8 @@ function normalizePoints(points) {
     // live above, so the geometry contract is unaffected.
     check('0019_be5_selected_demo_parity.sql is declared (BE.5; owner-applied)',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
+    check('0023_directional_route_edge_geometry.sql is declared source-only',
+      sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
     check('migration source list is contiguous 0001-0020', hasExactMigrationSequence(sqlFiles));
     // Database-free negative fixture on an in-memory copy: no migration file is
     // created, renamed, deleted, or modified.
@@ -415,7 +438,7 @@ function normalizePoints(points) {
       ) === false);
 
     console.log('');
-    console.log(`NOTE 0015 and 0017 are OWNER-APPLIED; live Supabase path_geometry column, ${SUPABASE_COUNTS.valid_geometries}/${SUPABASE_COUNTS.route_edges} coverage, and ${SUPABASE_COUNTS.exact_reverse_geometries}-pair reverse parity are verified above (read-only).`);
+    console.log(`NOTE 0015 and 0017 are OWNER-APPLIED; live Supabase path_geometry column, ${SUPABASE_COUNTS.valid_geometries}/${SUPABASE_COUNTS.route_edges} coverage, and ${SUPABASE_COUNTS.reverse_pairs}-pair directed topology are verified above (read-only).`);
     console.log('NOTE read-only probe: no rows were created or modified, and no SQL was applied.');
   } catch (e) {
     console.error('  [FAIL] probe aborted by an unexpected error (sanitized).');

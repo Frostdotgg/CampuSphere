@@ -251,8 +251,10 @@
                     <div class="map-panel__actions">
                         <div class="map-panel__action-buttons">
                             <button type="button" class="btn btn--secondary btn--sm" id="panelSetDestBtn">Set as Destination</button>
+                            <button type="button" class="btn btn--secondary btn--sm" id="panelExitBtn">Exit to Main Gate</button>
                             <!-- BE.3: sanitized reason shown when this building has no usable route. -->
-                            <p class="map-panel__route-notice" id="panelRouteNotice" role="status" hidden></p>
+                            <p class="map-panel__route-notice" id="panelRouteNotice" role="status" style="flex-basis:100%;" hidden></p>
+                            <p class="map-panel__route-notice" id="panelExitNotice" role="status" style="flex-basis:100%;" hidden></p>
                             <a href="/buildings" class="btn btn--primary btn--sm">View Details</a>
                             <a id="panelVrBtn" class="btn btn--primary btn--sm" href="#" hidden>Set VR Route</a>
                         </div>
@@ -374,7 +376,9 @@
         const panelTitle = document.getElementById('panelTitle');
         const panelDesc = document.getElementById('panelDesc');
         const panelSetDestBtn = document.getElementById('panelSetDestBtn');
+        const panelExitBtn = document.getElementById('panelExitBtn');
         const panelRouteNotice = document.getElementById('panelRouteNotice');
+        const panelExitNotice = document.getElementById('panelExitNotice');
         const panelVrBtn = document.getElementById('panelVrBtn');
         const panelMeta = document.getElementById('panelMeta');
         const panelWalkTime = document.getElementById('panelWalkTime');
@@ -710,6 +714,21 @@
                 case 'ambiguous_name': return 'Duplicate building name — route unavailable';
                 case 'route_data_unavailable': return 'Route status unavailable';
                 default: return 'Route unavailable';
+            }
+        }
+        function isExitRouteAvailable(b) {
+            return !!(b && b.exit_route_available === true);
+        }
+        function exitRouteUnavailableLabel(b) {
+            switch (b && b.exit_route_unavailable_reason) {
+                case 'same_as_entry': return 'Exit route needs a separate path';
+                case 'exit_not_drawn': return 'Exit route not drawn yet';
+                case 'not_mapped': return 'Exit route not set up yet';
+                case 'unreachable': return 'No exit walking route yet';
+                case 'invalid_geometry': return 'Exit route unavailable';
+                case 'ambiguous_name': return 'Duplicate building name — exit unavailable';
+                case 'route_data_unavailable': return 'Exit route status unavailable';
+                default: return 'Exit route unavailable';
             }
         }
 
@@ -1049,6 +1068,7 @@
             // verdict. An unavailable building keeps its info panel (name, photo,
             // category, details) but cannot be used as a navigation destination.
             const avail = isRouteAvailable(bldg);
+            const exitAvail = isExitRouteAvailable(bldg);
 
             // VR launch (11.8B): a predefined campus_routes row keeps its curated
             // guided route; otherwise the destination-based /vr/to/:buildingId flow
@@ -1080,9 +1100,18 @@
                 panelSetDestBtn.setAttribute('aria-disabled', avail ? 'false' : 'true');
                 panelSetDestBtn.title = avail ? '' : routeUnavailableLabel(bldg);
             }
+            if (panelExitBtn) {
+                panelExitBtn.disabled = !exitAvail;
+                panelExitBtn.setAttribute('aria-disabled', exitAvail ? 'false' : 'true');
+                panelExitBtn.title = exitAvail ? '' : exitRouteUnavailableLabel(bldg);
+            }
             if (panelRouteNotice) {
                 panelRouteNotice.textContent = avail ? '' : routeUnavailableLabel(bldg);
                 panelRouteNotice.hidden = avail;
+            }
+            if (panelExitNotice) {
+                panelExitNotice.textContent = exitAvail ? '' : exitRouteUnavailableLabel(bldg);
+                panelExitNotice.hidden = exitAvail;
             }
 
             // BE.3: SELECTING an unavailable building must itself invalidate any
@@ -1395,9 +1424,13 @@
                 const vrId = route && route.id;
                 if (vrId) {
                     routePanelVrBtn.href = '/vr/routes/' + vrId;
+                    routePanelVrBtn.removeAttribute('aria-disabled');
+                    routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = false;
                 } else {
                     routePanelVrBtn.removeAttribute('href');
+                    routePanelVrBtn.removeAttribute('aria-disabled');
+                    routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = true;
                 }
             }
@@ -1580,11 +1613,14 @@
             return false;
         }
 
-        function openComputedRoutePanel(route, b, failMessage) {
-            const destName = (b && b.name) ||
-                (route && route.destination && route.destination.label) || 'Destination';
-            routePanelTitle.textContent = `${COMPUTED_START_LABEL} to ${destName}`;
-            routePanelSubtitle.textContent = `${COMPUTED_START_LABEL} to ${destName}`;
+        function openComputedRoutePanel(route, b, failMessage, options) {
+            const isExit = !!(options && options.isExit);
+            const buildingName = (b && b.name) ||
+                (route && route.destination && route.destination.label) || 'Building';
+            const startName = isExit ? buildingName : COMPUTED_START_LABEL;
+            const destName = isExit ? COMPUTED_START_LABEL : buildingName;
+            routePanelTitle.textContent = `${startName} to ${destName}`;
+            routePanelSubtitle.textContent = `${startName} to ${destName}`;
             if (route && route.estimated_walk_time) {
                 routePanelTime.textContent = `Walk time: ${route.estimated_walk_time}`;
                 routePanelTime.hidden = false;
@@ -1612,11 +1648,12 @@
                 routePanelSteps.innerHTML = '';
                 routePanelStepsWrap.hidden = true;
                 routePanelEmpty.textContent = failMessage ||
-                    `No route available between ${COMPUTED_START_LABEL} and ${destName} yet.`;
+                    `No route available between ${startName} and ${destName} yet.`;
                 routePanelEmpty.hidden = false;
             }
 
-            // Set VR Route from the computed route summary.
+            // Set VR Route from the computed entry-route summary. An exit route
+            // intentionally has no Guided-VR action; VR remains an entry flow.
             //
             // BE.3 repair: guided VR reads the ROUTE source, so /vr/to/:id takes a
             // ROUTE-SOURCE building id. This previously fell back to `b.id` — a
@@ -1629,7 +1666,12 @@
                 const vrRouteId = bldg && bldg.vr_route_id;
                 const destId = routeDestinationId(bldg) || routeDestinationId(b);
 
-                if (vrRouteId) {
+                if (isExit) {
+                    routePanelVrBtn.removeAttribute('href');
+                    routePanelVrBtn.setAttribute('aria-disabled', 'true');
+                    routePanelVrBtn.classList.add('is-disabled');
+                    routePanelVrBtn.hidden = true;
+                } else if (vrRouteId) {
                     routePanelVrBtn.href = '/vr/routes/' + vrRouteId;
                     routePanelVrBtn.removeAttribute('aria-disabled');
                     routePanelVrBtn.classList.remove('is-disabled');
@@ -1653,14 +1695,16 @@
             showRoutePanelDialog();
         }
 
-        async function findComputedRoute(b, inheritedToken) {
+        async function findComputedRoute(b, inheritedToken, options) {
             if (!b || b.id == null) return;
+            const isExit = !!(options && options.isExit);
             // BE.3 backstop: never issue /api/pathfind for a building the server has
-            // already declared unroutable. setDestination blocks this path, but a
-            // direct caller must not be able to slip past it.
-            if (b.route_available === false) {
+            // already declared unavailable. The public action blocks this path,
+            // but a direct caller must not be able to slip past it.
+            if ((!isExit && b.route_available === false) ||
+                (isExit && b.exit_route_available !== true)) {
                 cancelRouteLookup();
-                setHint(routeUnavailableLabel(b), 5000);
+                setHint(isExit ? exitRouteUnavailableLabel(b) : routeUnavailableLabel(b), 5000);
                 return;
             }
             // BE.3 repair: /api/pathfind keys off the ROUTE-SOURCE building id. There
@@ -1678,10 +1722,13 @@
             // share one generation; a direct call (Set as Destination) begins a
             // fresh lookup, which clears the current line before the fetch.
             const token = (typeof inheritedToken === 'number') ? inheritedToken : beginRouteLookup();
-            setHint('Finding route...');
+            setHint(isExit ? 'Finding exit route...' : 'Finding route...');
             try {
+                const pathfindUrl = isExit
+                    ? `/api/pathfind?direction=exit&startBuildingId=${encodeURIComponent(destId)}`
+                    : `/api/pathfind?start=${encodeURIComponent(COMPUTED_START_KEY)}&destinationBuildingId=${encodeURIComponent(destId)}`;
                 const res = await fetch(
-                    `/api/pathfind?start=${encodeURIComponent(COMPUTED_START_KEY)}&destinationBuildingId=${encodeURIComponent(destId)}`,
+                    pathfindUrl,
                     { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }
                 );
                 if (!isCurrentRouteLookup(token)) return; // superseded -> ignore, leave newer line intact
@@ -1689,13 +1736,13 @@
                 if (!isCurrentRouteLookup(token)) return;
                 if (res.ok && data && data.success && data.route) {
                     drawComputedPath(data.route);
-                    openComputedRoutePanel(data.route, b, null);
+                    openComputedRoutePanel(data.route, b, null, { isExit });
                 } else {
                     // Sanitized 400/404 or success:true route:null (no path):
                     // no line is drawn (already cleared at lookup start) and the
                     // safe readable state is shown.
                     clearComputedPath();
-                    openComputedRoutePanel(null, b, (data && data.message) || 'Unable to compute a route right now.');
+                    openComputedRoutePanel(null, b, (data && data.message) || 'Unable to compute a route right now.', { isExit });
                 }
                 setHint('');
             } catch (err) {
@@ -1766,6 +1813,23 @@
                 route_available: b.route_available,
                 route_destination_id: b.route_destination_id
             });
+            if (isMobile()) {
+                infoPanel.classList.remove('visible');
+                mapSidebar.classList.add('open');
+                syncSheetState();
+            }
+        });
+
+        panelExitBtn && panelExitBtn.addEventListener('click', () => {
+            if (currentBuildingId == null) return;
+            const b = buildingIndex.get(currentBuildingId);
+            if (!b || !isExitRouteAvailable(b)) return;
+            findComputedRoute({
+                id: b.id,
+                name: b.name,
+                exit_route_available: b.exit_route_available,
+                route_destination_id: b.route_destination_id
+            }, undefined, { isExit: true });
             if (isMobile()) {
                 infoPanel.classList.remove('visible');
                 mapSidebar.classList.add('open');

@@ -934,7 +934,7 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advanced for the shared button/theme controls (v39)', SW.cacheVersion(swSource) === 39);
+  ok('cache version advanced for offline entry and exit route support (v40)', SW.cacheVersion(swSource) === 40);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
@@ -1015,10 +1015,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The immediately preceding v36 shell must not mask the corrected profile surfaces.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v39'", "CACHE_VERSION = 'v38'");
-  ok('REJECTS an un-advanced (stale v38) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 39);
+  // The immediately preceding v39 shell must not mask the offline route update.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v40'", "CACHE_VERSION = 'v39'");
+  ok('REJECTS an un-advanced (stale v39) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 40);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1161,7 +1161,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v39');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v40');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1293,11 +1293,14 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-     // current v39 caches - shell and static ONLY. Any v39 API/external cache
+     // current v40 caches - shell and static ONLY. Any v40 API/external cache
      // name is adversarial and must still be pruned.
+     'campusphere-pwa-shell-v40', 'campusphere-pwa-static-v40',
+     'campusphere-pwa-api-v40', 'campusphere-pwa-external-v40',
+     // the immediately preceding v39 set is stale and must be pruned too.
      'campusphere-pwa-shell-v39', 'campusphere-pwa-static-v39',
      'campusphere-pwa-api-v39', 'campusphere-pwa-external-v39',
-     // the immediately preceding v38 set is stale and must be pruned too.
+     // the preceding v38 set is stale and must be pruned too.
      'campusphere-pwa-shell-v38', 'campusphere-pwa-static-v38',
      'campusphere-pwa-api-v38', 'campusphere-pwa-external-v38',
      // the older v37 set is stale and must be pruned too.
@@ -1313,15 +1316,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v39 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v40 caches (shell + static only)',
     settled.length === 1 && settled[0].status === 'fulfilled' &&
-    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v39`)));
+    ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v40`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v38 and v37 sets, older API/external/page generations, and any v39-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v39, v38, and v37 sets, older API/external/page generations, and any v40-suffixed API or external cache',
     !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v39`)) &&
+      !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v40`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
@@ -1370,6 +1373,10 @@ async function checkVersionedCleanup(swSource) {
      !remaining.includes('campusphere-pwa-external-v34') &&
      !remaining.includes('campusphere-pwa-api-v35') &&
      !remaining.includes('campusphere-pwa-external-v35') &&
+    !remaining.includes('campusphere-pwa-api-v40') &&
+    !remaining.includes('campusphere-pwa-external-v40') &&
+    !remaining.includes('campusphere-pwa-shell-v39') &&
+    !remaining.includes('campusphere-pwa-static-v39') &&
     !remaining.includes('campusphere-pwa-api-v39') &&
     !remaining.includes('campusphere-pwa-external-v39') &&
     !remaining.includes('campusphere-pwa-shell-v38') &&
@@ -1781,8 +1788,8 @@ async function checkOfflineShell(base) {
     /body\.offline-page[\s\S]{0,120}background:\s*var\(--gray-50\)/.test(css) &&
     /\[data-theme="dark"\][\s\S]{0,160}background:\s*#111827/.test(css));
 
-  ok('the shell truthfully limits offline scope to buildings/details/Main Gate routes and denies sensitive/media data',
-    /buildings, building details, and Main Gate routes/.test(html) &&
+  ok('the shell truthfully limits offline scope to buildings/details/entry and exit routes and denies sensitive/media data',
+    /buildings, building details, and entry and exit routes/.test(html) &&
     /no account, session, schedule, admin, photo, or 360 data/i.test(html));
 
   // Every internal link the shell offers must be a real route.

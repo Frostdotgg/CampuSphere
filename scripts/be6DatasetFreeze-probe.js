@@ -67,7 +67,8 @@ function migrationRecords() {
     // intentionally pins the 0001-0020 sequence only.
     .filter((name) => ![
       '0021_minimal_instructor_oauth_registration.sql',
-      '0022_user_presence.sql'
+      '0022_user_presence.sql',
+      '0023_directional_route_edge_geometry.sql'
     ].includes(name))
     .sort()
     .map((name) => [

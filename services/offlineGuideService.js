@@ -5,8 +5,10 @@
 
    Server-only, read-only package assembly. The service reads the same active
    BUILDING_DATA_SOURCE / ROUTE_DATA_SOURCE used by the online map, computes
-   every route from the canonical main-gate, and emits only participant-safe
-   campus data. It never reads a request/session and never mutates a backend.
+   every entry route from the canonical main-gate plus separately authored exit
+   routes back to it, and emits only participant-safe campus data. Exit routes
+   are published only when their reverse geometry is explicit and distinct.
+   It never reads a request/session and never mutates a backend.
    ======================================== */
 
 const crypto = require('crypto');
@@ -15,8 +17,6 @@ const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const routeAvailability = require('./routeAvailability');
 const { normalizeBuildingRows } = require('../utils/buildingData');
-const { findShortestPath } = require('../utils/pathfinding');
-const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const basemapManifest = require('../public/maps/manifest.json');
 const {
   getCurrentRelease,
@@ -36,6 +36,11 @@ const ALLOWED_UNAVAILABLE_REASONS = new Set([
   'invalid_geometry',
   'ambiguous_name',
   'route_data_unavailable'
+]);
+const ALLOWED_EXIT_UNAVAILABLE_REASONS = new Set([
+  ...ALLOWED_UNAVAILABLE_REASONS,
+  'exit_not_drawn',
+  'same_as_entry'
 ]);
 
 function safeText(value, max = MAX_TEXT) {
@@ -162,43 +167,121 @@ function normalizeGraph(nodeRows, edgeRows) {
   return { nodes, edges, edgeGeometryByKey };
 }
 
-function makeRoute(building, graph) {
-  if (!building.route_available || !Number.isFinite(Number(building.route_destination_id))) return null;
-  const destination = routeAvailability.resolveAvailabilityDestinationNode({
+function resolveDestination(building, graph) {
+  if (!building || !Number.isFinite(Number(building.route_destination_id))) return null;
+  return routeAvailability.resolveAvailabilityDestinationNode({
     destinationName: building.name,
     routeBuildingId: Number(building.route_destination_id),
     nodes: graph.nodes
   });
-  if (!destination) return null;
+}
 
-  const result = findShortestPath({
-    nodes: graph.nodes,
-    edges: graph.edges,
-    startKey: routeAvailability.START_NODE_KEY,
-    endKey: destination.key
-  });
-  if (!result.success || !Array.isArray(result.nodes) || result.nodes.length < 2) return null;
-
-  const assembled = assembleRouteGeometry({
-    nodes: result.nodes,
-    segments: result.segments,
-    edgeGeometryByKey: graph.edgeGeometryByKey
-  });
-  if (assembled.incomplete || assembled.invalidEdges > 0 || assembled.geometry.length < 2) return null;
+function serializeRoute({ building, destination, graph, result, geometry, direction }) {
+  if (!result || !Array.isArray(result.nodes) || result.nodes.length < 2 ||
+      !Array.isArray(geometry) || geometry.length < 2) return null;
 
   const labelByKey = new Map(graph.nodes.map((node) => [node.key, node.label || node.key]));
-  return {
-    destinationKey: destinationKey(building.name),
-    destinationName: safeText(building.name, 300),
+  const route = {
     distanceMeters: Number(result.distance_meters) || 0,
     walkTimeSeconds: Number(result.walk_time_seconds) || 0,
     estimatedWalkTime: formatWalkTime(result.walk_time_seconds),
-    geometry: assembled.geometry.map((point) => [point.lng, point.lat]),
+    geometry: geometry.map((point) => [point.lng, point.lat]),
     steps: result.segments.map((segment, index) => ({
       order: index + 1,
       instruction: `Follow ${safeText(segment.path_label, 300) || 'the campus walkway'} to ${labelByKey.get(segment.to) || 'the next point'}.`,
       distanceMeters: Number(segment.distance_meters) || 0
     }))
+  };
+
+  if (direction === 'exit') {
+    const origin = graph.nodes.find((node) => node.key === routeAvailability.START_NODE_KEY);
+    return Object.assign({
+      buildingKey: destinationKey(building.name),
+      buildingName: safeText(building.name, 300),
+      originName: safeText(building.name, 300),
+      destinationKey: routeAvailability.START_NODE_KEY,
+      destinationName: safeText(origin && origin.label, 300) || 'Guard House / Main Gate'
+    }, route);
+  }
+
+  return Object.assign({
+    destinationKey: destinationKey(building.name),
+    destinationName: safeText(building.name, 300)
+  }, route);
+}
+
+/* Build both directions from one immutable graph snapshot. The entry evaluation
+   is passed into evaluateExitRoute so its geometry is compared with the chosen
+   reverse geometry without selecting a second, potentially different entry path. */
+function makeRoutePair(building, graph) {
+  const entryFallbackReason = ALLOWED_UNAVAILABLE_REASONS.has(building && building.route_unavailable_reason)
+    ? building.route_unavailable_reason
+    : 'not_mapped';
+  const exitFallbackReason = ALLOWED_EXIT_UNAVAILABLE_REASONS.has(building && building.exit_route_unavailable_reason)
+    ? building.exit_route_unavailable_reason
+    : entryFallbackReason;
+
+  if (!building || !building.route_available || !Number.isFinite(Number(building.route_destination_id))) {
+    return { entry: null, exit: null, entryReason: entryFallbackReason, exitReason: exitFallbackReason };
+  }
+
+  const destination = resolveDestination(building, graph);
+  if (!destination) {
+    return { entry: null, exit: null, entryReason: 'not_mapped', exitReason: 'not_mapped' };
+  }
+
+  const entryEvaluation = routeAvailability.evaluateDirectedPath({
+    nodes: graph.nodes,
+    edges: graph.edges,
+    edgeGeometryByKey: graph.edgeGeometryByKey,
+    startKey: routeAvailability.START_NODE_KEY,
+    endKey: destination.key
+  });
+  if (!entryEvaluation.ok) {
+    return {
+      entry: null,
+      exit: null,
+      entryReason: entryEvaluation.reason,
+      exitReason: entryEvaluation.reason
+    };
+  }
+
+  const entry = serializeRoute({
+    building,
+    destination,
+    graph,
+    result: entryEvaluation.result,
+    geometry: entryEvaluation.geometry,
+    direction: 'entry'
+  });
+  if (!entry) {
+    return { entry: null, exit: null, entryReason: 'invalid_geometry', exitReason: 'invalid_geometry' };
+  }
+
+  const exitEvaluation = routeAvailability.evaluateExitRoute({
+    nodes: graph.nodes,
+    edges: graph.edges,
+    edgeGeometryByKey: graph.edgeGeometryByKey,
+    buildingNodeKey: destination.key,
+    mainGateKey: routeAvailability.START_NODE_KEY,
+    entryEvaluation
+  });
+  const exit = exitEvaluation.ok
+    ? serializeRoute({
+      building,
+      destination,
+      graph,
+      result: exitEvaluation.exit.result,
+      geometry: exitEvaluation.geometry,
+      direction: 'exit'
+    })
+    : null;
+
+  return {
+    entry,
+    exit,
+    entryReason: null,
+    exitReason: exit ? null : (exitEvaluation.reason || 'invalid_geometry')
   };
 }
 
@@ -213,17 +296,15 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
   const seenKeys = new Set();
   const safeBuildings = [];
   const routes = [];
+  const exitRoutes = [];
   for (const building of (buildings || [])) {
     const key = destinationKey(building && building.name);
     if (!key || seenKeys.has(key)) throw new Error('Offline guide destination keys are not unique.');
     seenKeys.add(key);
 
-    const route = makeRoute(building, graph);
-    const reason = route
-      ? null
-      : (ALLOWED_UNAVAILABLE_REASONS.has(building.route_unavailable_reason)
-        ? building.route_unavailable_reason
-        : 'not_mapped');
+    const pair = makeRoutePair(building, graph);
+    const route = pair.entry;
+    const exitRoute = pair.exit;
     safeBuildings.push({
       key,
       name: safeText(building.name, 300) || 'Unnamed building',
@@ -232,14 +313,18 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
       lat: finiteCoord(building.lat, -90, 90),
       lng: finiteCoord(building.lng, -180, 180),
       routeAvailable: !!route,
-      routeUnavailableReason: reason,
+      routeUnavailableReason: route ? null : pair.entryReason,
+      exitRouteAvailable: !!exitRoute,
+      exitRouteUnavailableReason: exitRoute ? null : pair.exitReason,
       details: safeDetails(building)
     });
     if (route) routes.push(route);
+    if (exitRoute) exitRoutes.push(exitRoute);
   }
 
   safeBuildings.sort((a, b) => a.name.localeCompare(b.name, 'en'));
   routes.sort((a, b) => a.destinationName.localeCompare(b.destinationName, 'en'));
+  exitRoutes.sort((a, b) => a.buildingName.localeCompare(b.buildingName, 'en'));
 
   const selectedBasemap = basemap || {
     asset: basemapManifest.asset,
@@ -268,7 +353,8 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
     },
     basemap: selectedBasemap,
     buildings: safeBuildings,
-    routes
+    routes,
+    exitRoutes
   };
 }
 
@@ -358,6 +444,7 @@ module.exports = {
   formatWalkTime,
   sha256Json,
   normalizeGraph,
+  makeRoutePair,
   buildGuide,
   createOfflineGuidePackage
 };

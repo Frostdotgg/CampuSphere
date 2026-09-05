@@ -29,7 +29,6 @@ const routeAvailability = require('../services/routeAvailability');
 const auditService = require('../services/auditService');
 const {
   validatePathGeometry,
-  reversePathGeometry,
   normalizeStoredPathGeometry,
   ENDPOINT_EPSILON
 } = require('../utils/routeGeometry');
@@ -137,6 +136,9 @@ function handleErr(res, e, label) {
   }
   if (e && typeof e.message === 'string' && e.message.indexOf('EDGE_PAIR_NOT_FOUND') !== -1) {
     return res.status(409).json({ success: false, message: 'The reverse direction of this edge is missing. Both directions must exist to store geometry.' });
+  }
+  if (e && typeof e.message === 'string' && e.message.indexOf('EDGE_NOT_FOUND') !== -1) {
+    return res.status(404).json({ success: false, message: 'Edge not found.' });
   }
   if (e && typeof e.message === 'string' && e.message.indexOf('INVALID_GEOMETRY') !== -1) {
     return res.status(400).json({ success: false, message: 'The submitted road geometry is invalid.' });
@@ -666,12 +668,12 @@ exports.getEdge = async (req, res) => {
 };
 
 /* RF.4: PUT /admin/api/route-edges/:id/geometry
-   Strict allowlist { path_geometry }. null clears BOTH directed rows; a
-   non-null value validates against the current from/to nodes (2-200 points,
-   ranged lat/lng, exact keys, endpoint epsilon, snapEndpoints) and writes the
-   forward + exact-reversed geometry to both rows atomically (MySQL tx locking
-   both edges + endpoint nodes; Supabase one service-role RPC). Missing edge
-   404; missing reverse 409; invalid 400; unexpected sanitized 500. Never
+   Strict allowlist { path_geometry }. null clears only the selected directed
+   row; a non-null value validates against its current from/to nodes (2-200
+   points, ranged lat/lng, exact keys, endpoint epsilon, snapEndpoints) and
+   writes only that row atomically (MySQL transaction or Supabase service-role
+   RPC). The reverse edge is deliberately independent so entry and exit paths
+   can differ. Missing edge 404; invalid 400; unexpected sanitized 500. Never
    returns or logs raw geometry. */
 exports.updateEdgeGeometry = async (req, res) => {
   const id = parseId(req.params.id);
@@ -700,25 +702,22 @@ exports.updateEdgeGeometry = async (req, res) => {
         if (!v.ok) throw new ApiError(400, v.message);
         payload = v.value;
       }
-      // One service-role RPC updates forward + exact reverse (or clears both).
-      // Raises EDGE_PAIR_NOT_FOUND -> 409 when the reverse row is missing.
-      await routeRepository.adminSetEdgeGeometryPair(edge.from_node_id, edge.to_node_id, payload);
+      // One service-role RPC updates only the selected directed row (or clears
+      // it). The owner must apply migration 0023 before enabling this path in
+      // Supabase; the old pair RPC remains historical compatibility only.
+      await routeRepository.adminSetEdgeGeometry(id, payload);
     } else {
       await withTx(async (conn) => {
         const [sel] = await conn.query(
           'SELECT id, from_node_id, to_node_id FROM route_edges WHERE id = ? FOR UPDATE', [id]);
         if (!sel.length) throw new ApiError(404, 'Edge not found.');
         const fromId = sel[0].from_node_id, toId = sel[0].to_node_id;
-        const [rev] = await conn.query(
-          'SELECT id FROM route_edges WHERE from_node_id = ? AND to_node_id = ? FOR UPDATE', [toId, fromId]);
-        if (!rev.length) throw new ApiError(409, 'The reverse direction of this edge is missing. Both directions must exist to store geometry.');
-        const revId = rev[0].id;
         const [nodes] = await conn.query(
-          'SELECT id, lat, lng FROM route_nodes WHERE id IN (?, ?) FOR UPDATE', [fromId, toId]);
+          'SELECT id, lat, lng FROM route_nodes WHERE id IN (?, ?) ORDER BY id FOR UPDATE', [fromId, toId]);
         const byId = new Map(nodes.map((n) => [n.id, n]));
         const fromNode = byId.get(fromId), toNode = byId.get(toId);
         if (!fromNode || !toNode) throw new ApiError(404, 'Edge endpoint node not found.');
-        let forwardJson = null, reverseJson = null;
+        let geometryJson = null;
         if (!clearing) {
           const v = validatePathGeometry(rawGeom, {
             fromNode: { lat: Number(fromNode.lat), lng: Number(fromNode.lng) },
@@ -726,12 +725,11 @@ exports.updateEdgeGeometry = async (req, res) => {
             allowNull: false, snapEndpoints: true
           });
           if (!v.ok) throw new ApiError(400, v.message);
-          forwardJson = JSON.stringify(v.value);
-          reverseJson = JSON.stringify(reversePathGeometry(v.value));
+          geometryJson = JSON.stringify(v.value);
         }
-        // Both writes in one transaction: no partial pair update.
-        await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [forwardJson, id]);
-        await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [reverseJson, revId]);
+        // One directed row only: the reverse edge keeps its own geometry and
+        // can be edited separately for an independent exit path.
+        await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [geometryJson, id]);
       });
     }
     invalidateRouteReadFlights();

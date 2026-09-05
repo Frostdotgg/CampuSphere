@@ -16,8 +16,8 @@
          coordinate (13.40575220764974, 123.37434735272177, persisted at the
          8-dp precision both backends use)
        - every frozen geometry is valid + endpoint-continuous
-       - all frozen forward/reverse geometry pairs are EXACT reversals, and the
-         forward/reverse edge scalars are symmetric
+       - all frozen directed edges have valid endpoint-continuous geometry;
+         reverse rows, when present, may carry independent geometry and scalars
        - the geometry-bearing pairs attached to the gate begin at the exact
          stored gate coordinate
        - the five eastern terminal spurs exist in BOTH directions:
@@ -243,8 +243,7 @@ function verifyExpandedTopology(scope, nodes, edges, buildings) {
   check(scope, `all ${expected.valid_geometries} edges carry valid endpoint-continuous geometry`,
     validGeometry === expected.valid_geometries && validGeometry === edges.length);
 
-  let exactPairs = 0;
-  let scalarMismatch = 0;
+  let reversePairs = 0;
   const seen = new Set();
   for (const [pair, rows] of edgeByPair) {
     const [a, b] = pair.split('|');
@@ -253,15 +252,10 @@ function verifyExpandedTopology(scope, nodes, edges, buildings) {
     seen.add(identity);
     const reverse = edgeByPair.get(`${b}|${a}`);
     if (!reverse || rows.length !== 1 || reverse.length !== 1) continue;
-    const forwardGeometry = pts(parseStoredGeometry(rows[0].path_geometry));
-    const reverseGeometry = pts(parseStoredGeometry(reverse[0].path_geometry));
-    if (JSON.stringify(reverseGeometry) === JSON.stringify(reversePathGeometry(forwardGeometry))) exactPairs++;
-    if (Number(rows[0].distance_meters) !== Number(reverse[0].distance_meters) ||
-        Number(rows[0].walk_time_seconds) !== Number(reverse[0].walk_time_seconds)) scalarMismatch++;
+    reversePairs++;
   }
-  check(scope, `${expected.reverse_pairs} exact forward/reverse geometry pairs`,
-    exactPairs === expected.exact_reverse_geometries && seen.size === expected.reverse_pairs);
-  check(scope, 'forward/reverse distance and walk-time scalars are symmetric', scalarMismatch === 0);
+  check(scope, `${expected.reverse_pairs} directed reverse pairs remain represented`,
+    reversePairs === expected.reverse_pairs && seen.size === expected.reverse_pairs);
 
   const pfNodes = nodes.map((n) => ({
     id: Number(n.id), key: n.node_key, label: n.label, node_type: n.node_type,
@@ -666,7 +660,8 @@ function historicalSelectedCasParity(mysql, supabase) {
     const sqlFiles = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
     const ownerSqlFiles = sqlFiles.filter((f) => ![
       '0021_minimal_instructor_oauth_registration.sql',
-      '0022_user_presence.sql'
+      '0022_user_presence.sql',
+      '0023_directional_route_edge_geometry.sql'
     ].includes(f));
     const m17Path = path.join(dir, '0017_route_topology_guard_house.sql');
     const m17Exists = fs.existsSync(m17Path);
@@ -677,6 +672,8 @@ function historicalSelectedCasParity(mysql, supabase) {
       sqlFiles.some((f) => f === '0018_cas_building_baseline.sql'));
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
+    check('static', '0023_directional_route_edge_geometry.sql is declared source-only',
+      sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
     check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
       ownerSqlFiles.length === 20 &&
       ownerSqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&

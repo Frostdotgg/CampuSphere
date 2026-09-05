@@ -270,9 +270,10 @@ CREATE TABLE IF NOT EXISTS route_edges (
     path_label VARCHAR(150),
     is_accessible TINYINT(1) NOT NULL DEFAULT 1,
     -- Pre-Milestone-12 RF.2: optional ordered [{lat,lng},...] drawing shape
-    -- (2-200 points, from-node -> to-node; reverse rows store the exact
-    -- reversed sequence). Authoritative for DRAWING the selected route only;
-    -- routing stays on the scalar graph fields above. Contract + validation:
+    -- (2-200 points, from-node -> to-node). Seeded reverse rows may start as
+    -- exact reversals, but admin edits can store an independent exit geometry.
+    -- Authoritative for DRAWING the selected route only; routing stays on the
+    -- scalar graph fields above. Contract + validation:
     -- utils/routeGeometry.js.
     path_geometry JSON NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -171,7 +171,7 @@ check('navbar', 'browser session projection excludes instructor legacy metadata'
 check('privacy', 'privacy notice explains preserved legacy values are hidden',
   /Legacy employee ID, position, and department values may remain stored[\s\S]*no longer collected or shown/i.test(privacy));
 check('delivery', 'service-worker cache advances for the changed profile surfaces',
-  /CACHE_VERSION\s*=\s*'v39'/.test(serviceWorker));
+  /CACHE_VERSION\s*=\s*'v40'/.test(serviceWorker));
 
 // Negative UI fixtures catch accidental reintroduction of one of the removed
 // labels or controls even when the surrounding template remains unchanged.

@@ -497,6 +497,17 @@ document.addEventListener('DOMContentLoaded', () => {
     info.appendChild(top); info.appendChild(sub);
     const acts = document.createElement('div'); acts.className = 'vr-hotspot-actions';
     acts.appendChild(mkBtn('Edit', () => { if (id !== null) openEdgeModal('edit', edge); }));
+    const reverse = state.edges.find((candidate) =>
+      Number(candidate.from_node_id) === Number(edge.to_node_id) &&
+      Number(candidate.to_node_id) === Number(edge.from_node_id));
+    if (reverse) {
+      acts.appendChild(mkBtn('Edit reverse direction', () => openEdgeModal('edit', reverse)));
+    } else {
+      acts.appendChild(mkBtn('Add reverse direction', () => openEdgeModal('create', {
+        from_node_id: edge.to_node_id,
+        to_node_id: edge.from_node_id
+      })));
+    }
     acts.appendChild(mkBtn('Delete', () => { if (id !== null) openDelete('route_edge', id, 'Delete the edge ' + str(edge.from_node_key) + ' → ' + str(edge.to_node_key) + '?'); }, true));
     row.appendChild(info); row.appendChild(acts);
     return row;
@@ -561,8 +572,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toSearch) toSearch.value = '';
     setNodeSelectCount('edge-from-count', state.nodes.length);
     setNodeSelectCount('edge-to-count', state.nodes.length);
-    populateNodeSelect($('edge-from'), mode === 'edit' && edge ? toId(edge.from_node_id) : null, '');
-    populateNodeSelect($('edge-to'), mode === 'edit' && edge ? toId(edge.to_node_id) : null, '');
+    const seededFrom = edge && edge.from_node_id != null ? toId(edge.from_node_id) : null;
+    const seededTo = edge && edge.to_node_id != null ? toId(edge.to_node_id) : null;
+    populateNodeSelect($('edge-from'), seededFrom, '');
+    populateNodeSelect($('edge-to'), seededTo, '');
     if (mode === 'edit' && edge) {
       form.distance_meters.value = String(num(edge.distance_meters)); form.walk_time_seconds.value = String(num(edge.walk_time_seconds));
       form.path_label.value = str(edge.path_label); form.is_accessible.checked = truthy(edge.is_accessible);
@@ -760,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     while (list.firstChild) list.removeChild(list.firstChild);
     if (geo.cleared) {
       const li = document.createElement('li'); li.className = 'text-muted-foreground';
-      li.style.fontSize = '0.78rem'; li.textContent = 'Geometry will be cleared on save (both directions).';
+      li.style.fontSize = '0.78rem'; li.textContent = 'Geometry will be cleared on save for this direction.';
       list.appendChild(li); return;
     }
     if (!geo.waypoints.length) {
@@ -822,7 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function geoClear() {
     geoPushHistory(); geo.waypoints = []; geo.cleared = true;
-    geoRender(); geoStatus('Marked for clearing — save to remove geometry from both directions.');
+    geoRender(); geoStatus('Marked for clearing — save to remove geometry from this direction.');
   }
   function geoPreview() { geoRender(); geoFitBounds(); geoStatus('Preview updated.'); }
   async function geoSave() {
@@ -847,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     geo.busy = false; if (btn) btn.disabled = false;
     if (result && result.status === 200 && result.json && result.json.success) {
       showToast(wasCleared ? 'Geometry cleared.' : 'Geometry saved.');
-      geoStatus(wasCleared ? 'Geometry cleared for both directions.' : 'Geometry saved for both directions.');
+      geoStatus(wasCleared ? 'Geometry cleared for this direction.' : 'Geometry saved for this direction.');
       if (wasCleared) { geo.cleared = false; geo.waypoints = []; geoRender(); }
       // Clearing geometry can make a destination unroutable (and re-adding it can
       // restore routability), so the building cards must re-evaluate.

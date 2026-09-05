@@ -11,9 +11,9 @@
    through scripts/with-server.js — never a foreground server.
 
    Covers: logged-out 401, non-admin 403, missing-CSRF 403, strict allowlist
-   rejection, valid save, exact reverse, clear, reset, malformed shapes,
-   range/point limits, endpoint snapping, missing-reverse 409, rollback / no
-   partial writes, node-move guard (409 + metadata-only 200), audit action, and
+   rejection, valid directional save, independent reverse save, clear, reset,
+   malformed shapes, range/point limits, endpoint snapping, one-way edge save,
+   rollback / no partial writes, node-move guard (409 + metadata-only 200), audit action, and
    full cleanup (every changed geometry/node restored in finally; any throwaway
    edge deleted). Prints fixed PASS/FAIL labels only — never raw geometry,
    cookies, secrets, hosts, raw DB errors, or stack traces.
@@ -37,6 +37,7 @@ const { withServer } = require('./with-server');
 // (fail-closed, never printed) for the Supabase leg. No hardcoded
 // live-capable credential remains in this probe.
 const { getRegressionCredentials } = require('./regressionCredentials');
+const { findShortestPath } = require('../utils/pathfinding');
 // Shared probe session ownership (scripts/probeSessionLifecycle.js). Every
 // canonical identity this probe authenticates is terminated through the real
 // logout interface, so a standalone run leaves no persisted regression session.
@@ -45,9 +46,9 @@ const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 const EXPECTED_0014_SHA256 = 'ad9179bd0def19567b512e495fd3133211288e253c872b260421a912cc44e6aa';
 const EXPECTED_0015_SHA256 = 'e7c6d828faf07c53d923ed58651a0abb8a834273eefa38aa0c04fbf492f70c99';
 
-// Exact migration-source sequence guard: every position 0001_..0020_
-// must be present exactly once in sorted order. Migrations through 0019 are
-// owner-applied; 0020 is source-only pending separate operational approval.
+// Exact migration-source sequence guard: every position 0001_..0020_ must be
+// present exactly once in sorted order. Later owner/source-only migrations are
+// explicitly excluded from this historical baseline sequence.
 // migration. Length/first/last alone would accept a corrupted list (e.g.
 // missing 0010 plus a duplicate 0018), so each sorted slot is pinned.
 const EXPECTED_MIGRATION_PREFIXES = Object.freeze(
@@ -61,7 +62,8 @@ function hasExactMigrationSequence(files) {
   if (!Array.isArray(files)) return false;
   const sorted = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
-    '0022_user_presence.sql'
+    '0022_user_presence.sql',
+    '0023_directional_route_edge_geometry.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -126,7 +128,7 @@ async function runMode(base, mode) {
     const text = await res.text();
     bodies.push(text);
     let json = null; try { json = JSON.parse(text); } catch (e) { /* html */ }
-    return { status: res.status, json };
+    return { status: res.status, json, text };
   }
   async function login(email, pass) {
     const jar = cookieJar();
@@ -201,10 +203,26 @@ async function runMode(base, mode) {
   const allNodes = (nodesResp.json && nodesResp.json.nodes) || [];
   const byKey = new Map(allNodes.map((n) => [n.node_key, n]));
   const mainGate = byKey.get('main-gate');
+  const nodeKeyById = new Map(allNodes.map((n) => [Number(n.id), n.node_key]));
+  const graphNodes = allNodes.map((n) => ({ key: n.node_key }));
+  const graphEdges = edges.map((e) => ({
+    from: nodeKeyById.get(Number(e.from_node_id)),
+    to: nodeKeyById.get(Number(e.to_node_id)),
+    distance_meters: Number(e.distance_meters) || 0,
+    walk_time_seconds: Number(e.walk_time_seconds) || 0,
+    path_label: e.path_label != null ? e.path_label : null,
+    is_accessible: Number(e.is_accessible)
+  }));
   const revExists = (f, t) => edges.some((e) => Number(e.from_node_id) === t && Number(e.to_node_id) === f);
   const target = mainGate && edges.find((e) =>
     Number(e.from_node_id) === Number(mainGate.id) &&
-    revExists(Number(e.from_node_id), Number(e.to_node_id)));
+    revExists(Number(e.from_node_id), Number(e.to_node_id)) &&
+    allNodes.some((n) => Number(n.id) === Number(e.to_node_id) && n.building_id != null) &&
+    (() => {
+      const toKey = nodeKeyById.get(Number(e.to_node_id));
+      const path = findShortestPath({ nodes: graphNodes, edges: graphEdges, startKey: 'main-gate', endKey: toKey });
+      return path.success && path.nodes.length === 2 && path.nodes[1].key === toKey;
+    })());
   check(mode, 'fixture: a main-gate edge with a reverse pair exists', !!target);
   if (!target) return bodies;
   const E = Number(target.id);
@@ -309,17 +327,70 @@ async function runMode(base, mode) {
     Array.isArray(snapped) && near(snapped[0].lat, fromNode.lat) && near(snapped[0].lng, fromNode.lng) &&
     near(snapped[snapped.length - 1].lat, toNode.lat) && near(snapped[snapped.length - 1].lng, toNode.lng));
 
-  // ---- valid save + exact reverse ----
+  // ---- valid directional save + independent reverse ----
   r = await put(E, { path_geometry: validGeom });
   check(mode, 'valid geometry save -> 200', r.status === 200 && !!r.json && r.json.success === true);
   g = await jfetch('/admin/api/route-edges/' + E, { headers: GET });
   const savedFwd = g.json && g.json.edge ? g.json.edge.path_geometry : null;
   const gr = await jfetch('/admin/api/route-edges/' + R, { headers: GET });
   const savedRev = gr.json && gr.json.edge ? gr.json.edge.path_geometry : null;
-  const isExactReverse = Array.isArray(savedFwd) && Array.isArray(savedRev) &&
-    savedFwd.length === savedRev.length &&
-    savedFwd.every((p, i) => near(p.lat, savedRev[savedRev.length - 1 - i].lat) && near(p.lng, savedRev[savedRev.length - 1 - i].lng));
-  check(mode, 'reverse row stores the exact reversed sequence', isExactReverse);
+  check(mode, 'directional save updates the selected row only',
+    JSON.stringify(savedFwd) === JSON.stringify(validGeom) &&
+    JSON.stringify(savedRev || null) === JSON.stringify(origReverse || null));
+  const exitMid = { lat: mid.lat + 0.00005, lng: mid.lng + 0.00005 };
+  const independentReverse = [
+    { lat: toNode.lat, lng: toNode.lng },
+    exitMid,
+    { lat: fromNode.lat, lng: fromNode.lng }
+  ];
+  r = await put(R, { path_geometry: independentReverse });
+  check(mode, 'reverse direction accepts its own geometry -> 200', r.status === 200 && !!r.json && r.json.success === true);
+  const gfAfterReverse = await jfetch('/admin/api/route-edges/' + E, { headers: GET });
+  const grAfterReverse = await jfetch('/admin/api/route-edges/' + R, { headers: GET });
+  check(mode, 'reverse save leaves the forward geometry unchanged',
+    JSON.stringify(gfAfterReverse.json && gfAfterReverse.json.edge && gfAfterReverse.json.edge.path_geometry) === JSON.stringify(validGeom) &&
+    JSON.stringify(grAfterReverse.json && grAfterReverse.json.edge && grAfterReverse.json.edge.path_geometry) === JSON.stringify(independentReverse));
+
+  // ---- complete MySQL exit flow: save -> reload map -> strict pathfind ----
+  // Supabase cannot run this mutation leg until the owner applies migration
+  // 0023; its static/RPC contract is checked below and the live leg is kept
+  // explicitly deferred rather than treating a missing RPC as a pass.
+  if (mode === 'mysql') {
+    const targetBuildingNode = allNodes.find((n) => Number(n.id) === Number(target.to_node_id));
+    const targetBuildingId = targetBuildingNode && Number(targetBuildingNode.building_id);
+    const publicHeaders = { Accept: 'application/json', Cookie: student.jar.header() };
+    const publicBuildings = await jfetch('/api/buildings', { headers: publicHeaders });
+    const publicBuilding = (publicBuildings.json && publicBuildings.json.buildings || [])
+      .find((b) => Number(b.route_destination_id) === targetBuildingId);
+    check(mode, 'exit E2E: saved reverse direction becomes available in the public building snapshot',
+      Number.isInteger(targetBuildingId) && targetBuildingId > 0 &&
+      !!publicBuilding && publicBuilding.route_available === true &&
+      publicBuilding.exit_route_available === true &&
+      publicBuilding.exit_route_unavailable_reason === null);
+
+    const mapReload = await jfetch('/map', {
+      headers: { Accept: 'text/html', Cookie: student.jar.header() }
+    });
+    check(mode, 'exit E2E: reloaded /map contains the Exit action and explicit exit request contract',
+      mapReload.status === 200 &&
+      /id="panelExitBtn"/.test(mapReload.text) &&
+      /exit_route_available/.test(mapReload.text) &&
+      /direction=exit/.test(mapReload.text));
+
+    const exitPath = await jfetch('/api/pathfind?direction=exit&startBuildingId=' + targetBuildingId, {
+      headers: publicHeaders
+    });
+    const exitRoute = exitPath.json && exitPath.json.route;
+    check(mode, 'exit E2E: strict API returns the stored reverse geometry and reverse metrics',
+      exitPath.status === 200 && exitPath.json && exitPath.json.success === true && !!exitRoute &&
+      exitRoute.start && exitRoute.start.key === targetBuildingNode.node_key &&
+      exitRoute.destination && exitRoute.destination.key === 'main-gate' &&
+      Number(exitRoute.distance_meters) === Number(reverse.distance_meters) &&
+      Number(exitRoute.walk_time_seconds) === Number(reverse.walk_time_seconds) &&
+      JSON.stringify(exitRoute.geometry) === JSON.stringify(independentReverse));
+  } else {
+    console.log(`  [INFO] ${mode} :: complete exit save/reload UAT deferred until owner applies migration 0023`);
+  }
 
   // ---- reset (two endpoints) ----
   r = await put(E, { path_geometry: [{ lat: fromNode.lat, lng: fromNode.lng }, { lat: toNode.lat, lng: toNode.lng }] });
@@ -327,16 +398,17 @@ async function runMode(base, mode) {
   g = await jfetch('/admin/api/route-edges/' + E, { headers: GET });
   check(mode, 'reset stored exactly two points', Array.isArray(g.json.edge.path_geometry) && g.json.edge.path_geometry.length === 2);
 
-  // ---- clear (null both directions) ----
+  // ---- clear (selected direction only) ----
   r = await put(E, { path_geometry: null });
   check(mode, 'clear geometry -> 200', r.status === 200);
   g = await jfetch('/admin/api/route-edges/' + E, { headers: GET });
   const clearedF = g.json && g.json.edge ? g.json.edge.path_geometry : 'x';
   const gr2 = await jfetch('/admin/api/route-edges/' + R, { headers: GET });
   const clearedR = gr2.json && gr2.json.edge ? gr2.json.edge.path_geometry : 'x';
-  check(mode, 'clear removed geometry from both directions', clearedF === null && clearedR === null);
+  check(mode, 'clear removed geometry from selected direction only',
+    clearedF === null && JSON.stringify(clearedR) === JSON.stringify(independentReverse));
 
-  // ---- missing-reverse 409 via a throwaway one-directional edge ----
+  // ---- one-way geometry save via a throwaway one-directional edge ----
   let throwawayEdgeId = null;
   const A = byKey.get('main-gate'), B = byKey.get('chs');
   const connected = (f, t) => edges.some((e) => (Number(e.from_node_id) === f && Number(e.to_node_id) === t));
@@ -348,12 +420,12 @@ async function runMode(base, mode) {
     if (cr.status === 201 && cr.json && cr.json.edge) {
       throwawayEdgeId = Number(cr.json.edge.id);
       const rr = await put(throwawayEdgeId, { path_geometry: [{ lat: Number(A.lat), lng: Number(A.lng) }, { lat: Number(B.lat), lng: Number(B.lng) }] });
-      check(mode, 'missing reverse pair -> 409', rr.status === 409);
+      check(mode, 'missing reverse pair still accepts one-way geometry -> 200', rr.status === 200 && !!rr.json && rr.json.success === true);
     } else {
-      check(mode, 'missing reverse pair -> 409 (throwaway edge create failed)', false);
+      check(mode, 'one-way geometry save (throwaway edge create failed)', false);
     }
   } else {
-    check(mode, 'missing reverse pair -> 409 (fixture unavailable)', false);
+    check(mode, 'one-way geometry save (fixture unavailable)', false);
   }
 
   // ---- node-move guard (attached geometry still exists on other edges) ----
@@ -390,15 +462,17 @@ async function runMode(base, mode) {
   try {
     if (origForward) await put(E, { path_geometry: origForward });
     else await put(E, { path_geometry: null });
-    // Restoring E's forward geometry rewrites R as the exact reverse; verify
-    // it matches the captured original reverse.
+    // Restore the reverse direction independently; one save must never rewrite
+    // the other directed row.
+    if (origReverse) await put(R, { path_geometry: origReverse });
+    else await put(R, { path_geometry: null });
     const vf = await jfetch('/admin/api/route-edges/' + E, { headers: GET });
     const vr = await jfetch('/admin/api/route-edges/' + R, { headers: GET });
     const okF = JSON.stringify((vf.json.edge && vf.json.edge.path_geometry) || null) === JSON.stringify(origForward || null);
     const okR = JSON.stringify((vr.json.edge && vr.json.edge.path_geometry) || null) === JSON.stringify(origReverse || null);
-    check(mode, 'cleanup: original forward + reverse geometry restored exactly', okF && okR);
+    check(mode, 'cleanup: original forward + reverse geometry restored independently', okF && okR);
   } catch (e) {
-    check(mode, 'cleanup: original forward + reverse geometry restored exactly', false);
+    check(mode, 'cleanup: original forward + reverse geometry restored independently', false);
   }
   if (nodeRestore) {
     try {
@@ -472,6 +546,8 @@ function runStaticSupabaseChecks() {
     /NODE_GEOMETRY_ATTACHED[\s\S]{0,160}status\(409\)/.test(ctrl));
   check(scope, 'controller enforces immutable edge endpoints (409)',
     /Edge endpoints cannot be changed after creation/.test(ctrl));
+  check(scope, 'controller uses the one-way geometry repository write',
+    /adminSetEdgeGeometry\(id, payload\)/.test(ctrl));
 
   // 0014 + 0015 immutable. 0017, 0018, and 0019 are owner-applied.
   const migrationHash = (file) => crypto.createHash('sha256')
@@ -492,6 +568,23 @@ function runStaticSupabaseChecks() {
   // here is unaffected.
   check(scope, '0019_be5_selected_demo_parity.sql is declared (BE.5; owner-applied)',
     sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
+  const m23Path = path.join(dir, '0023_directional_route_edge_geometry.sql');
+  const m23Exists = fs.existsSync(m23Path);
+  check(scope, '0023_directional_route_edge_geometry.sql is declared source-only', m23Exists);
+  if (m23Exists) {
+    const sql = fs.readFileSync(m23Path, 'utf8');
+    check(scope, '0023 one-way RPC locks and updates only the selected edge',
+      /FUNCTION\s+public\.app_set_route_edge_geometry_one_way\s*\(/i.test(sql) &&
+      /WHERE\s+id\s*=\s*p_edge_id/i.test(sql) &&
+      !/v_reverse_id/i.test(sql));
+    check(scope, '0023 one-way RPC is SECURITY INVOKER and service-role-only',
+      /SECURITY\s+INVOKER/i.test(sql) &&
+      /SET\s+search_path\s*=\s*pg_catalog,\s*public/i.test(sql) &&
+      /REVOKE\s+EXECUTE[\s\S]*FROM\s+PUBLIC/i.test(sql) &&
+      /REVOKE\s+EXECUTE[\s\S]*FROM\s+anon/i.test(sql) &&
+      /REVOKE\s+EXECUTE[\s\S]*FROM\s+authenticated/i.test(sql) &&
+      /GRANT\s+EXECUTE[\s\S]*TO\s+service_role/i.test(sql));
+  }
   check(scope, 'migration source list is contiguous 0001-0020', hasExactMigrationSequence(sqlFiles));
   // Database-free negative fixture on an in-memory copy: no migration file is
   // created, renamed, deleted, or modified.

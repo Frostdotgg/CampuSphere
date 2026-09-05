@@ -125,7 +125,8 @@ router.post('/api/route-edges', adminRouteController.createEdge);
 router.get('/api/route-edges/:id', adminRouteController.getEdge);
 router.put('/api/route-edges/:id', adminRouteController.updateEdge);
 // RF.4: dedicated road-geometry write (strict { path_geometry } allowlist;
-// null clears both directed rows). Distinct path from the edge PUT above.
+// null clears only the selected directed row). Distinct path from the edge PUT
+// above so reverse entry/exit geometry remains independently editable.
 router.put('/api/route-edges/:id/geometry', adminRouteController.updateEdgeGeometry);
 router.delete('/api/route-edges/:id', adminRouteController.deleteEdge);
 

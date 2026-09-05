@@ -13,7 +13,9 @@
      - the first/last points match the edge endpoint node coordinates
        within ENDPOINT_EPSILON (1e-6 degrees) and, when snapEndpoints is
        set, are normalized to the exact stored node values;
-     - the reverse directed edge stores the exact reversed sequence.
+     - each directed edge stores its own drawing sequence. A reverse edge may
+       intentionally use a different geometry when the campus has separate
+       entry and exit paths.
 
    The geometry is authoritative ONLY for drawing the selected route;
    the graph (route_nodes / route_edges scalars) stays authoritative for
@@ -147,8 +149,9 @@ function validatePathGeometry(value, opts) {
 }
 
 /**
- * Exact reversed point sequence for the reverse directed edge. Returns a new
- * array of new point objects; never mutates the input.
+ * Exact reversed point sequence for seed/migration helpers. Returns a new array
+ * of new point objects; never mutates the input. Runtime admin edits do not
+ * call this helper because reverse directions are independently editable.
  */
 function reversePathGeometry(points) {
   if (!Array.isArray(points)) return [];
@@ -158,6 +161,31 @@ function reversePathGeometry(points) {
     out.push({ lat: Number(p.lat), lng: Number(p.lng) });
   }
   return out;
+}
+
+/**
+ * Whether two complete drawing polylines describe the same path in opposite
+ * directions. Coordinates are compared with the same endpoint tolerance used
+ * by the geometry contract, which avoids treating harmless decimal rounding as
+ * a distinct route while still allowing an admin-drawn detour to qualify as a
+ * separate exit path.
+ */
+function isReversePathGeometry(forward, reverse) {
+  if (!Array.isArray(forward) || !Array.isArray(reverse) ||
+      forward.length < MIN_PATH_GEOMETRY_POINTS ||
+      forward.length !== reverse.length) return false;
+  for (let i = 0; i < forward.length; i++) {
+    const a = forward[i];
+    const b = reverse[reverse.length - 1 - i];
+    if (!isPlainObject(a) || !isPlainObject(b)) return false;
+    const alat = Number(a.lat), alng = Number(a.lng);
+    const blat = Number(b.lat), blng = Number(b.lng);
+    if (!Number.isFinite(alat) || !Number.isFinite(alng) ||
+        !Number.isFinite(blat) || !Number.isFinite(blng) ||
+        Math.abs(alat - blat) > ENDPOINT_EPSILON ||
+        Math.abs(alng - blng) > ENDPOINT_EPSILON) return false;
+  }
+  return true;
 }
 
 /**
@@ -299,6 +327,7 @@ module.exports = {
   ENDPOINT_EPSILON,
   validatePathGeometry,
   reversePathGeometry,
+  isReversePathGeometry,
   buildPathGeometry,
   normalizeStoredPathGeometry,
   assembleRouteGeometry

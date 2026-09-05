@@ -100,13 +100,19 @@ or client timestamp is stored. Presence never changes `users.updated_at`.
 The current UI refinements restore visible light/dark action surfaces for
 building View Details/View Routes and the campus-map Download/Update Offline
 Map action; advance the shared stylesheet key to `v11` and service worker to
-`v39`; label the guest dashboard map as `2D and 360 View`; add a local,
+`v40`; label the guest dashboard map as `2D and 360 View`; add a local,
 keyboard-safe Destination Building filter to admin route add/edit; show
 `360° scenes captured on May 28, 2026.` on Free Roam and Guided VR pages; and
 replace the misleading building label `Floor Plan` with `Floors & Rooms`
 and `Rooms & Facilities`. The destination search is an in-memory linear
 filter over the already embedded building list and performs no request per
 keystroke.
+
+The offline guide now carries separately authored entry and exit 2D routes.
+An exit is published only when the reverse path is reachable, every selected
+reverse edge has explicit valid geometry, and its geometry is not the mirrored
+entry path. Existing entry-only downloads remain usable until Update Offline
+Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
 `0021_minimal_instructor_oauth_registration.sql`, and
@@ -930,7 +936,7 @@ Verify and report, with discrepancies called out instead of normalized:
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
 - the current four source/product commits and authority HEAD;
-- current behavior: Dashboard Google image, five-minute presence, v11/v39
+- current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, and Floors & Rooms wording;
 - owner-applied migrations 0020, 0021, and 0022 without reapplying them;
@@ -1027,7 +1033,7 @@ Verify and report, with discrepancies called out instead of normalized:
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
 - the current four source/product commits and authority HEAD;
-- current behavior: Dashboard Google image, five-minute presence, v11/v39
+- current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, and Floors & Rooms wording;
 - owner-applied migrations 0020, 0021, and 0022 without reapplying them;

@@ -3,9 +3,10 @@
 Current handoff note (2026-09-05): the Dashboard-image, five-minute-presence,
 and campus-UI commits do not change the offline publisher, bounds, release
 center, opening camera, Drive workflow, IndexedDB activation, or
-user-controlled update model. The service-worker shell is now `v39` for the
-shared button/theme correction and stylesheet key `v11`; that cache revision
-does not change the PMTiles release rectangle or publisher. The current full
+user-controlled update model. The service-worker shell is now `v40` for the
+offline entry/exit route UI and package support (following the shared
+button/theme correction and stylesheet key `v11`); that cache revision does
+not change the PMTiles release rectangle or publisher. The current full
 source package is 196 files, 7,267,536 bytes, aggregate SHA-256
 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`
 with package boundary `74/74`. Keep this current full-package evidence separate
@@ -16,6 +17,13 @@ deployed-byte identity was inspected or established in this closeout.
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps
 OpenStreetMap build.
+
+The offline guide package now includes the same backend snapshot's entry routes
+and separately authored exit routes. An exit is available only when its
+reverse path is reachable, every selected reverse edge has explicit valid
+geometry, and the assembled geometry is not the exact mirrored entry path.
+Older entry-only packages remain usable; users must choose Update Offline Map
+while connected to receive the new exit data.
 
 ## Runtime behavior
 

@@ -422,6 +422,7 @@
                         own native select, always preserves that select's current selection, and
                         both are disabled while editing because RF.4 makes endpoints immutable. %>
                     <p id="edge-endpoint-note" class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;" hidden>Endpoints cannot be changed after an edge is created. Delete the edge and add a new one to reconnect different nodes.</p>
+                    <p class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;">Edges are directional. Save the reverse direction separately when its walking path or metrics differ.</p>
                     <div class="form-group">
                         <label for="edge-from-search">Search from-nodes</label>
                         <input type="search" id="edge-from-search" class="ui-input" autocomplete="off" aria-describedby="edge-from-count" placeholder="Filter by node key or label…">
@@ -450,7 +451,7 @@
                         <p class="text-muted-foreground" style="font-size:0.76rem;margin:0.25rem 0 0.5rem;line-height:1.4;">
                             Click the map to add a waypoint, or use “Add waypoint”. Drag intermediate markers to adjust; edit
                             coordinates in the list for keyboard control. Endpoints are locked to the node coordinates. Saving
-                            writes both directions; “Clear” removes geometry from both.
+                            saves this direction only; “Clear” removes geometry from this direction. Edit the reverse edge separately for a dedicated exit path.
                         </p>
                         <div id="edge-geo-map" style="height:260px;width:100%;max-width:100%;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;background:#11151c;"></div>
                         <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;">
@@ -540,7 +541,7 @@
          the route-availability fields must be carried through it. They are sanitized
          server-side (boolean + fixed reason code + route-source id) — no graph
          payload, node key, or backend error is exposed. -->
-    <script id="buildings-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, image_url: b.image_url, cloudinary_public_id: b.cloudinary_public_id, created_at: b.created_at, updated_at: b.updated_at, route_available: b.route_available, route_destination_id: b.route_destination_id, route_unavailable_reason: b.route_unavailable_reason }))) %></script>
+    <script id="buildings-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, image_url: b.image_url, cloudinary_public_id: b.cloudinary_public_id, created_at: b.created_at, updated_at: b.updated_at, route_available: b.route_available, route_destination_id: b.route_destination_id, route_unavailable_reason: b.route_unavailable_reason, exit_route_available: b.exit_route_available, exit_route_unavailable_reason: b.exit_route_unavailable_reason }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

@@ -1423,7 +1423,7 @@ function offlineInteractionLifecycleProblems(source, shell) {
   if (!/var invoker = lastInvoker;[\s\S]*lastInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*buildingListButtonForKey\(selectedKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle[\s\S]*offlineRecenterMap/.test(detailsCloseBody)) {
     problems.push('details close does not restore by the required visible fallback order');
   }
-  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(destinationKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
+  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\((?:destinationKey|returnKey)\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
     problems.push('close does not restore by the required fallback order');
   }
   if (/setData\(|drawFallbackRoute\(/.test(closeBody)) problems.push('close clears the rendered route');
@@ -1601,8 +1601,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v39 and the offline origin marker label plus marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 39 &&
+    ok('sw.js is v40 and the offline origin marker, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 40 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -6728,7 +6728,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     }
 
     if (!/stylesheet key[^.]{0,80}`?v11`?/i.test(t) ||
-        !/service worker[^.]{0,80}`?v39`?/i.test(t) ||
+        !/service worker[^.]{0,80}`?v40`?/i.test(t) ||
         !/2D and 360 View/i.test(t) ||
         !/Destination Building filter/i.test(t) ||
         !/May 28, 2026/i.test(t) ||
@@ -8091,8 +8091,8 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 196,
-  bytes: '7,267,536',
-  sha256: 'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768',
+  bytes: '7,288,870',
+  sha256: 'b7dfc58929c6baf1eaf5a2a7a2414e3b4e88f5dae46675eaaee5c339abda29eb',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -12637,13 +12637,17 @@ async function runBoundedAnonymousDenialGate() {
     const numbers = migrations.map((n) => (n.match(/^(\d{4})/) || [])[1]).filter(Boolean);
     const minimalInstructorMigration = readIf(path.join('database', 'supabase', '0021_minimal_instructor_oauth_registration.sql'));
     const presenceMigration = readIf(path.join('database', 'supabase', '0022_user_presence.sql'));
-    ok('Supabase migration sources are contiguous through prepared 0022 (presence SQL remains owner-applied)',
-      numbers.length === 22 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+    const directionalGeometryMigration = readIf(path.join('database', 'supabase', '0023_directional_route_edge_geometry.sql'));
+    ok('Supabase migration sources are contiguous through prepared 0023 (directional geometry SQL remains owner-applied)',
+      numbers.length === 23 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
       migrations.includes('0020_room_schedule_documents.sql') &&
       migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
       /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration) &&
       migrations.includes('0022_user_presence.sql') &&
-      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(presenceMigration));
+      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(presenceMigration) &&
+      migrations.includes('0023_directional_route_edge_geometry.sql') &&
+      /source-only|owner-applied/i.test(directionalGeometryMigration) &&
+      /app_set_route_edge_geometry_one_way/i.test(directionalGeometryMigration));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',

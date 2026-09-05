@@ -238,8 +238,8 @@ function runStaticSourceGate(src) {
   check(scope, 'findRoute begins a lookup and passes its token to the computed fallback',
     /async function findRoute\(\)[\s\S]*?const token = beginRouteLookup\(\);/.test(src)
     && /await findComputedRoute\(\s*\{[\s\S]*?destinationBuilding\.name[\s\S]*?\}\s*,\s*token\s*\)/.test(src));
-  check(scope, 'findComputedRoute accepts an inherited token and self-begins otherwise',
-    /async function findComputedRoute\(b, inheritedToken\)/.test(src)
+  check(scope, 'findComputedRoute accepts an inherited token and optional exit direction',
+    /async function findComputedRoute\(b, inheritedToken(?:, options)?\)/.test(src)
     && src.includes("(typeof inheritedToken === 'number') ? inheritedToken : beginRouteLookup()"));
   check(scope, 'every awaited route response is guarded by isCurrentRouteLookup',
     countOccurrences(src, 'if (!isCurrentRouteLookup(token)) return;') >= 4);
@@ -261,6 +261,9 @@ function runStaticSourceGate(src) {
   // Unchanged API endpoints.
   check(scope, 'unchanged API: /api/pathfind + /api/routes still queried',
     src.includes('/api/pathfind?start=') && src.includes('/api/routes?start='));
+  check(scope, 'directional exit action uses startBuildingId and suppresses VR for exits',
+    src.includes('id="panelExitBtn"') && src.includes('startBuildingId=') &&
+    src.includes("if (isExit) {") && src.includes('Exit to Main Gate'));
   check(scope, 'route computation is not duplicated in the browser (no client Dijkstra/edges fetch)',
     !/dijkstra/i.test(src) && !src.includes('route_edges') && !src.includes('/api/route-edges'));
 

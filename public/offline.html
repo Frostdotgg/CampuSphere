@@ -91,7 +91,7 @@
       <img src="/img/Camarines-sur-polytechnic-colleges.png" alt="" width="96" height="96">
       <p class="offline-eyebrow">Offline Campus Map</p>
       <h1 id="offline-empty-title">Bring the campus map with you</h1>
-      <p>While connected and signed in, download the current CSPC map, buildings, building details, and Main Gate routes to this device.</p>
+      <p>While connected and signed in, download the current CSPC map, buildings, building details, and entry and exit routes to this device.</p>
       <button class="btn btn--primary" data-offline-guide-download type="button">Download Offline Map</button>
       <p class="offline-status" data-offline-guide-status role="status" aria-live="polite"></p>
       <p class="offline-empty__privacy">The guide contains campus information only - no account, session, schedule, admin, photo, or 360 data.</p>
@@ -225,7 +225,9 @@
             <div class="map-panel__actions">
               <div class="map-panel__action-buttons">
                 <button type="button" class="btn btn--secondary btn--sm" id="offlineSetDestination">Set as Destination</button>
+                <button type="button" class="btn btn--secondary btn--sm" id="offlineExitRoute">Exit to Main Gate</button>
                 <p class="map-panel__route-notice" id="offlineRouteNotice" role="status" hidden></p>
+                <p class="map-panel__route-notice" id="offlineExitNotice" role="status" hidden></p>
               </div>
             </div>
           </div>

@@ -12,8 +12,6 @@ const routeRepository = require('../repositories/routeRepository');
 const { logServerError } = require('../utils/serverLog');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const routeAvailability = require('../services/routeAvailability');
-const { GUIDED_VR_ROUTES, DEFERRED_GUIDED_VR_DESTINATIONS } = require('../config/guidedVrRoutes');
-const { resolveGuidedDestinationPolicyByName } = require('../services/guidedVrResolution');
 
 const MAX_QUERY_LEN = 100;
 const MAX_RESULTS = 25;
@@ -437,7 +435,9 @@ function formatWalkTime(seconds) {
 
 /**
  * GET /api/pathfind
- *   ?start=<node_key>
+ *   ?start=<node_key>                  (directed graph node start)
+ *   ?direction=exit&startBuildingId=<building id>
+ *                                      (strict building -> main-gate exit)
  *   &destinationNodeKey=<node_key>      (resolved first if present)
  *   &destinationBuildingId=<building id> (fallback)
  *
@@ -446,34 +446,71 @@ function formatWalkTime(seconds) {
  * - Unknown start/destination -> 404 JSON { success:false }.
  * - Graph not seeded or no path between known points ->
  *   200 JSON { success:true, route:null, message }.
+ * - Exit requests never use geometry fallback: they return route:null when the
+ *   reverse geometry is missing, invalid, unreachable, or only mirrors entry.
  * Errors are logged server-side; no stack trace is sent to the client.
  */
 exports.apiPathfind = async (req, res) => {
   try {
     const start = String(req.query.start || '').trim();
+    const direction = String(req.query.direction || '').trim().toLowerCase();
+    const startBuildingIdRaw = String(req.query.startBuildingId || '').trim();
     const destinationNodeKey = String(req.query.destinationNodeKey || '').trim();
     const destinationBuildingIdRaw = String(req.query.destinationBuildingId || '').trim();
+    const exitMode = direction === 'exit';
 
-    if (!start) {
+    if (direction && direction !== 'exit') {
+      return res.status(400).json({ success: false, message: 'Invalid "direction".' });
+    }
+    if (exitMode && (!startBuildingIdRaw || start || destinationNodeKey || destinationBuildingIdRaw)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Exit requests require "startBuildingId" and use Main Gate as the destination.'
+      });
+    }
+    if (!exitMode && startBuildingIdRaw) {
+      return res.status(400).json({
+        success: false,
+        message: '"startBuildingId" is only valid with "direction=exit".'
+      });
+    }
+    if (!exitMode && !start) {
       return res.status(400).json({ success: false, message: 'Query parameter "start" is required.' });
     }
-    if (!destinationNodeKey && !destinationBuildingIdRaw) {
+    if (!exitMode && !destinationNodeKey && !destinationBuildingIdRaw) {
       return res.status(400).json({
         success: false,
         message: 'Provide "destinationNodeKey" or "destinationBuildingId".'
       });
     }
-    if (start.length > MAX_QUERY_LEN || destinationNodeKey.length > MAX_QUERY_LEN) {
+    if (
+      direction.length > MAX_QUERY_LEN ||
+      start.length > MAX_QUERY_LEN ||
+      startBuildingIdRaw.length > MAX_QUERY_LEN ||
+      destinationNodeKey.length > MAX_QUERY_LEN ||
+      destinationBuildingIdRaw.length > MAX_QUERY_LEN
+    ) {
       return res.status(400).json({ success: false, message: 'Parameter too long.' });
     }
 
+    let startBuildingId = null;
+    if (exitMode) {
+      if (!/^\d+$/.test(startBuildingIdRaw)) {
+        return res.status(400).json({ success: false, message: 'Invalid "startBuildingId".' });
+      }
+      startBuildingId = parseInt(startBuildingIdRaw, 10);
+      if (!Number.isSafeInteger(startBuildingId) || startBuildingId < 1) {
+        return res.status(400).json({ success: false, message: 'Invalid "startBuildingId".' });
+      }
+    }
+
     let destinationBuildingId = null;
-    if (!destinationNodeKey) {
+    if (!exitMode && !destinationNodeKey) {
       if (!/^\d+$/.test(destinationBuildingIdRaw)) {
         return res.status(400).json({ success: false, message: 'Invalid "destinationBuildingId".' });
       }
       destinationBuildingId = parseInt(destinationBuildingIdRaw, 10);
-      if (!Number.isFinite(destinationBuildingId) || destinationBuildingId < 1) {
+      if (!Number.isSafeInteger(destinationBuildingId) || destinationBuildingId < 1) {
         return res.status(400).json({ success: false, message: 'Invalid "destinationBuildingId".' });
       }
     }
@@ -554,18 +591,53 @@ exports.apiPathfind = async (req, res) => {
       };
     });
 
-    // Resolve start node.
-    const startNode = nodeByKey.get(start);
-    if (!startNode) {
-      return res.status(404).json({
-        success: false,
-        message: `Unknown start point "${start}".`
-      });
+    // Resolve the directed start node. Exit routes use a route-source building
+    // id and the same configured natural-node policy as destination resolution;
+    // entry callers continue to use the stable `main-gate` node key unchanged.
+    let startNode = null;
+    if (start) {
+      startNode = nodeByKey.get(start) || null;
+      if (!startNode) {
+        return res.status(404).json({
+          success: false,
+          message: `Unknown start point "${start}".`
+        });
+      }
+    } else {
+      let startBuilding = null;
+      if (useSupabase) {
+        startBuilding = await routeRepository.findRouteSourceBuildingById(startBuildingId);
+      } else {
+        const [buildingRows] = await db.query(
+          'SELECT id, name FROM buildings WHERE id = ? LIMIT 1',
+          [startBuildingId]
+        );
+        startBuilding = buildingRows[0] || null;
+      }
+      startNode = startBuilding
+        ? routeAvailability.resolveAvailabilityDestinationNode({
+          destinationName: startBuilding.name,
+          routeBuildingId: startBuildingId,
+          nodes
+        })
+        : null;
+      if (!startNode) {
+        return res.status(404).json({
+          success: false,
+          message: `No route node maps to building id ${startBuildingId}.`
+        });
+      }
     }
 
-    // Resolve destination node: node key takes precedence, then building id.
+    // Resolve destination node: explicit exit mode is pinned to Main Gate;
+    // ordinary requests retain node-key precedence, then building id.
     let destNode = null;
-    if (destinationNodeKey) {
+    if (exitMode) {
+      destNode = nodeByKey.get(routeAvailability.START_NODE_KEY) || null;
+      if (!destNode) {
+        return res.status(404).json({ success: false, message: 'Main Gate is not available.' });
+      }
+    } else if (destinationNodeKey) {
       destNode = nodeByKey.get(destinationNodeKey) || null;
       if (!destNode) {
         return res.status(404).json({
@@ -588,26 +660,13 @@ exports.apiPathfind = async (req, res) => {
         );
         destinationBuilding = buildingRows[0] || null;
       }
-      const guidedPolicy = destinationBuilding
-        ? resolveGuidedDestinationPolicyByName({
-            destinationName: destinationBuilding.name,
-            activeRoutes: GUIDED_VR_ROUTES,
-            deferredDestinations: DEFERRED_GUIDED_VR_DESTINATIONS,
-            canonicalize: routeAvailability.canonicalKey
-          })
-        : { kind: 'none' };
-      if (guidedPolicy.kind === 'active') {
-        const matches = nodes.filter((node) =>
-          node.key === guidedPolicy.route.destination_node_key &&
-          node.building_id === destinationBuildingId);
-        destNode = matches.length === 1 ? matches[0] : null;
-      } else if (guidedPolicy.kind === 'invalid') {
-        destNode = null;
-      } else {
-        const matches = nodes.filter((n) => n.building_id === destinationBuildingId);
-        // Generic/deferred routes retain the local graph mapping.
-        destNode = matches.find((n) => n.node_type === 'building') || matches[0] || null;
-      }
+      destNode = destinationBuilding
+        ? routeAvailability.resolveAvailabilityDestinationNode({
+          destinationName: destinationBuilding.name,
+          routeBuildingId: destinationBuildingId,
+          nodes
+        })
+        : null;
       if (!destNode) {
         return res.status(404).json({
           success: false,
@@ -616,42 +675,74 @@ exports.apiPathfind = async (req, res) => {
       }
     }
 
-    const result = findShortestPath({
-      nodes,
-      edges,
-      startKey: startNode.key,
-      endKey: destNode.key
-    });
+    // A building-node -> Main Gate request is an exit regardless of whether a
+    // stale/direct caller supplied the explicit direction flag. This closes the
+    // node-key form of the browser-only policy bypass while leaving other generic
+    // node-to-node requests unchanged.
+    const isBuildingExit =
+      destNode.key === routeAvailability.START_NODE_KEY &&
+      (startNode.node_type === 'building' || startNode.building_id != null);
+    const enforceExitPolicy = exitMode || isBuildingExit;
+    let result;
+    let routeGeometry;
 
-    if (!result.success) {
-      if (result.reason === 'start_not_found') {
-        return res.status(404).json({ success: false, message: `Unknown start point "${start}".` });
-      }
-      if (result.reason === 'destination_not_found') {
-        return res.status(404).json({ success: false, message: 'Unknown destination.' });
-      }
-      // no_route: known endpoints, but the graph has no connecting path.
-      return res.json({
-        success: true,
-        route: null,
-        message: 'No route available between the selected points.'
+    if (enforceExitPolicy) {
+      const exitEvaluation = routeAvailability.evaluateExitRoute({
+        nodes,
+        edges,
+        edgeGeometryByKey,
+        buildingNodeKey: startNode.key,
+        mainGateKey: routeAvailability.START_NODE_KEY
       });
-    }
+      if (!exitEvaluation.ok || !exitEvaluation.exit || !exitEvaluation.exit.result) {
+        return res.json({
+          success: true,
+          route: null,
+          exit_route_unavailable_reason: exitEvaluation.reason || routeAvailability.REASON.UNREACHABLE,
+          message: 'Exit route is not available for this building.'
+        });
+      }
+      result = exitEvaluation.exit.result;
+      routeGeometry = exitEvaluation.geometry;
+    } else {
+      result = findShortestPath({
+        nodes,
+        edges,
+        startKey: startNode.key,
+        endKey: destNode.key
+      });
 
-    // RF.3: flattened road-following drawing shape, assembled from the
-    // SELECTED edges in traversal order (utils/routeGeometry.js). Missing
-    // stored geometry silently falls back to that edge's two node endpoints;
-    // malformed / endpoint-invalid stored geometry also falls back but logs
-    // ONE fixed sanitized diagnostic per request. route.nodes and
-    // route.segments stay byte-compatible; per-segment geometry, validation
-    // state, and raw stored payloads are never exposed.
-    const assembled = assembleRouteGeometry({
-      nodes: result.nodes,
-      segments: result.segments,
-      edgeGeometryByKey
-    });
-    if (assembled.invalidEdges > 0 || assembled.incomplete) {
-      logServerError('map.pathfind.geometry', req);
+      if (!result.success) {
+        if (result.reason === 'start_not_found') {
+          return res.status(404).json({ success: false, message: `Unknown start point "${start}".` });
+        }
+        if (result.reason === 'destination_not_found') {
+          return res.status(404).json({ success: false, message: 'Unknown destination.' });
+        }
+        // no_route: known endpoints, but the graph has no connecting path.
+        return res.json({
+          success: true,
+          route: null,
+          message: 'No route available between the selected points.'
+        });
+      }
+
+      // RF.3: flattened road-following drawing shape, assembled from the
+      // SELECTED edges in traversal order (utils/routeGeometry.js). Missing
+      // stored geometry silently falls back to that edge's two node endpoints;
+      // malformed / endpoint-invalid stored geometry also falls back but logs
+      // ONE fixed sanitized diagnostic per request. route.nodes and
+      // route.segments stay byte-compatible; per-segment geometry, validation
+      // state, and raw stored payloads are never exposed.
+      const assembled = assembleRouteGeometry({
+        nodes: result.nodes,
+        segments: result.segments,
+        edgeGeometryByKey
+      });
+      if (assembled.invalidEdges > 0 || assembled.incomplete) {
+        logServerError('map.pathfind.geometry', req);
+      }
+      routeGeometry = assembled.geometry;
     }
 
     const route = {
@@ -671,7 +762,7 @@ exports.apiPathfind = async (req, res) => {
         lng: n.lng
       })),
       segments: result.segments,
-      geometry: assembled.geometry
+      geometry: routeGeometry
     };
 
     res.json({ success: true, route });
