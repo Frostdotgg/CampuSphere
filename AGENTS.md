@@ -6,7 +6,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtual campus map tour for Camarines Sur Polytechnic Colleges (CSPC). Authentication uses session cookies (express-session) with bcrypt for local credentials and Google OAuth as a second sign-in path. Persistence spans two backends selected at runtime: **Supabase/PostgreSQL is the production data store and production session-store target**, while **MySQL (via the `mysql2/promise` pool) remains the local-development / fallback / local-rehearsal store**. Supabase Auth is not used — CampuSphere keeps Express sessions, bcrypt local login, and Google OAuth. Server-side data access goes through the `repositories/` and `services/` layers (the session stores also live in `services/`).
 
-## Guest building/VR visibility policy (working-tree candidate)
+## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
 Signed-in guests may browse every building, 2D route, and 360 scene. Room
 schedules are limited to `student-cspc`, `instructor`, and `admin`; VR scene and
@@ -18,7 +18,7 @@ owner-applied in Supabase; Codex did not apply or reapply them. Do not reapply
 them without fresh explicit database
 authorization; the selected historical freeze is unchanged.
 
-## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+## Admin-managed instructor profile integrity (pushed source release, 2026-09-07)
 
 Admin user creation and role promotion now guarantee one minimal
 `instructor_profiles` row on both MySQL and Supabase when the account's role is
@@ -29,6 +29,8 @@ user transaction. Supabase migration `0026_admin_instructor_profile_integrity.sq
 contains the conflict-safe backfill and server-only admin create/update RPCs;
 the owner has applied it and Codex did not apply or reapply it. It does not
 change campus, route, VR, event, or selected-freeze data.
+
+The completed source release is Git commit `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`), pushed to `main`. Local `HEAD`, `origin/main`, and the remote `main` were independently confirmed equal; the worktree is clean. The current Vercel package is 197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`. Supabase migrations 0024, 0025, and 0026 were owner-applied; Codex did not apply or reapply them. No Vercel deployment, Ready-state inspection, promotion, Production smoke, or immutable deployed-byte verification has been performed for this source release.
 
 ## Common Commands
 
@@ -149,9 +151,10 @@ postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification. The working-tree candidate
-also contains source-only `0026_admin_instructor_profile_integrity.sql`,
-pending one explicit owner application; Codex has not applied it.
+was backfilled or altered to obtain verification. Historical snapshot only: at
+the start of this snapshot, source-only
+`0026_admin_instructor_profile_integrity.sql` was pending one explicit owner
+application; the current pushed release above records the later owner action.
 
 The selected data/route freeze is the owner-approved 2026-09-06 freeze after
 the separately authored Supabase exit geometries were verified.
@@ -199,9 +202,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 197 files and 7,299,447 bytes with
+The current Vercel source package is 197 files and 7,301,960 bytes with
 aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -892,7 +895,7 @@ live repository/vendor evidence win when they conflict.
 <!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 
 <!-- M12.P1 CURRENT STATUS START -->
-<!-- M12.P1 OPERATIVE SOURCE CANDIDATE START -->
+<!-- M12.P1 HISTORICAL PRE-PUSH SOURCE CANDIDATE START -->
 **SOURCE-ONLY CANDIDATE STATUS.** This is the current local source/worktree
 preparation record, not a deployment or Production claim. Branch `main` is at
 local HEAD `23c55365198198276f17364f15523da2eb233df2`; the current candidate
@@ -937,7 +940,7 @@ wording failures, and one canonical MySQL student-session residue failure. A
 separate historical scorer returned 97 after looking for the invented
 `SUPABASE-SMOKE OK` marker rather than the actual `[supabase-smoke] PASS`
 marker.
-<!-- M12.P1 OPERATIVE SOURCE CANDIDATE END -->
+<!-- M12.P1 HISTORICAL PRE-PUSH SOURCE CANDIDATE END -->
 **HISTORICAL PRE-PROMOTION SNAPSHOT (2026-08-21; superseded by the current
 release continuity block above).**
 

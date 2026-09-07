@@ -10,7 +10,7 @@ or management call. Legacy time rows remain read-only fallback data and offline
 packages continue to exclude schedules. Migration source `0020` exists but is
 not applied; runtime verification and release work remain separately gated.
 
-## Guest building/VR visibility and event-audience policy (working-tree candidate, 2026-09-06)
+## Guest building/VR visibility and event-audience policy (pushed source release, 2026-09-07)
 
 Signed-in guests can browse every building, 2D route, and 360 scene. Room
 schedules remain participant-only; scene/exit hotspots remain guest-visible,
@@ -20,7 +20,7 @@ hotspots are always hidden. Supabase migration
 owner-applied; Codex did not apply or reapply them. The selected data/route
 freeze now records the separately authored Supabase exit geometries.
 
-## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+## Admin-managed instructor profile integrity (pushed source release, 2026-09-07)
 
 Admin-created instructors and accounts promoted to instructor now receive one
 minimal `instructor_profiles` row on both backends when a row is missing.
@@ -30,6 +30,12 @@ and server-only create/update RPCs. Existing profile values are preserved and
 role changes away from instructor do not delete profiles. The project owner has
 applied migration 0026; Codex did not apply or reapply it. It is
 auth/profile-only and does not change the selected data/route/VR freeze.
+
+This source release is committed and pushed as `5d505e97e990ad82df6c858e28d48542deb8bf2c`
+(`5d505e9`) on `main`. The current Vercel package is 197 files, 7,301,960
+bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
+Vercel promotion and Production verification remain owner-controlled and were
+not performed here.
 
 ## Source Review Note
 
@@ -299,9 +305,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 197 files and 7,299,447 bytes with
+The current Vercel source package is 197 files and 7,301,960 bytes with
 aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -992,7 +998,7 @@ live repository/vendor evidence win when they conflict.
 <!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 
 <!-- M12.P1 CURRENT STATUS START -->
-<!-- M12.P1 OPERATIVE SOURCE CANDIDATE START -->
+<!-- M12.P1 HISTORICAL PRE-PUSH SOURCE CANDIDATE START -->
 **SOURCE-ONLY CANDIDATE STATUS.** This is the current local source/worktree
 preparation record, not a deployment or Production claim. Branch `main` is at
 local HEAD `23c55365198198276f17364f15523da2eb233df2`; the current candidate
@@ -1036,7 +1042,7 @@ wording failures, and one canonical MySQL student-session residue failure. A
 separate historical scorer returned 97 after looking for the invented
 `SUPABASE-SMOKE OK` marker rather than the actual `[supabase-smoke] PASS`
 marker.
-<!-- M12.P1 OPERATIVE SOURCE CANDIDATE END -->
+<!-- M12.P1 HISTORICAL PRE-PUSH SOURCE CANDIDATE END -->
 **HISTORICAL PRE-PROMOTION SNAPSHOT (2026-08-21; superseded by the current
 release continuity block above).**
 

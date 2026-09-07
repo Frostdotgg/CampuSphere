@@ -5,7 +5,8 @@ Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 ## Current migration status (2026-09-07)
 
 Migration sources are contiguous from `0001` through `0026`. Migrations
-`0001`-`0025` are owner-applied; Codex did not apply or reapply 0024 or 0025.
+`0001`-`0026` are owner-applied; Codex did not apply or reapply 0024, 0025, or
+0026.
 Do not reapply an owner-applied migration without fresh explicit database authorization.
 `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates

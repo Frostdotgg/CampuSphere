@@ -6903,7 +6903,7 @@ const CURRENT_FEATURE_PACKAGE_SHA256 =
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
   '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a';
 const CURRENT_CLOSEOUT_PACKAGE_SHA256 =
-  'f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074';
+  'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -7050,7 +7050,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
       problems.push('Docker, bounded browser, logout, or observational-count evidence is incomplete');
     }
 
-    if (!/197 files[^.]{0,80}7,299,447 bytes/i.test(t) ||
+    if (!/197 files[^.]{0,80}7,301,960 bytes/i.test(t) ||
         !t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) ||
         !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
         !/No post-push Vercel deployment[^.]{0,220}deployed-byte identity/i.test(t) ||
@@ -7869,7 +7869,7 @@ function reusablePromptIsCurrent(body) {
       t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) &&
       t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) &&
       t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) &&
-      /197 files[^.]{0,80}7,299,447 bytes/i.test(t) &&
+      /197 files[^.]{0,80}7,301,960 bytes/i.test(t) &&
       t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) &&
       t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /git ls-remote/i.test(t) &&
@@ -9804,7 +9804,7 @@ function runDocsCurrentGate() {
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
   const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-06';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-06';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-07';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -9845,11 +9845,11 @@ function runDocsCurrentGate() {
   const DATE_FIXTURE = {
     'AGENTS.md': '## Current Release Continuity (2026-09-06)',
     'CLAUDE.md': '## Current Release Continuity (2026-09-06)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
     'plan.md': '## Current Release Continuity (2026-09-06)',
     'ROADMAP.md': '## Current Release Continuity (2026-09-06)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
     'docs/demo-script.md': '## Current Release Continuity (2026-09-06)',
     'docs/deployment.md': '## Current Release Continuity (2026-09-06)',
     'docs/security-checklist.md': '## Current Release Continuity (2026-09-06)',

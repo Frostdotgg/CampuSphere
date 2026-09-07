@@ -3,22 +3,22 @@
 Milestone 8, Section 8.10. This script is for a controlled defense/demo using
 seeded data. Do not use real secrets or private production data on screen.
 
-## Guest building/VR visibility policy (working-tree candidate)
+## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
 Signed-in guests may browse every building, 2D route, and 360 scene. Room
 schedules are limited to `student-cspc`, `instructor`, and `admin`; scene/exit
 hotspots remain guest-visible, information hotspots require explicit admin
-approval, and schedule hotspots are always hidden. Supabase migration
-`0024_vr_hotspot_guest_visibility.sql` is owner-applied; Codex did not apply or
-reapply it. The selected freeze is unchanged.
+approval, and schedule hotspots are always hidden. Supabase migrations
+`0024_vr_hotspot_guest_visibility.sql` and `0025_event_audience.sql` are
+owner-applied; Codex did not apply or reapply them. The selected freeze is
+unchanged.
 
-## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+## Admin-managed instructor profile integrity (pushed source release, 2026-09-07)
 
 When demonstrating Admin > Users, creating an Instructor or promoting an
 existing account to Instructor now creates its minimal role profile
 automatically. The profile keeps blank legacy fields and Active status, and
-existing values are preserved. Supabase migration
-The project owner has applied Supabase migration
+existing values are preserved. The project owner has applied Supabase migration
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply
 it, so the demo may exercise the live Supabase path.
 
@@ -148,9 +148,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 197 files and 7,299,447 bytes with
+The current Vercel source package is 197 files and 7,301,960 bytes with
 aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical

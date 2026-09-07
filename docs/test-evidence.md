@@ -4,16 +4,17 @@ Milestone 8, Section 8.10. Use this checklist to record defense and deployment
 evidence without committing private data. Store actual screenshots or recordings
 outside the repo unless they have been reviewed and explicitly approved.
 
-## Guest building/VR visibility policy (working-tree candidate)
+## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
 Signed-in guests may browse every building, 2D route, and 360 scene. Room
 schedules are limited to `student-cspc`, `instructor`, and `admin`; scene/exit
 hotspots remain guest-visible, information hotspots require explicit admin
-approval, and schedule hotspots are always hidden. Supabase migration
-`0024_vr_hotspot_guest_visibility.sql` is owner-applied; Codex did not apply or
-reapply it. The selected freeze is unchanged.
+approval, and schedule hotspots are always hidden. Supabase migrations
+`0024_vr_hotspot_guest_visibility.sql` and `0025_event_audience.sql` are
+owner-applied; Codex did not apply or reapply them. The selected freeze is
+unchanged.
 
-## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+## Admin-managed instructor profile integrity (pushed source release, 2026-09-07)
 
 Focused coverage now checks admin instructor creation, instructor re-edit, and
 guest-to-instructor promotion on both backends, including exactly one minimal
@@ -97,9 +98,10 @@ postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification. The working-tree candidate
-also contains source-only `0026_admin_instructor_profile_integrity.sql`,
-pending one explicit owner application; Codex has not applied it.
+was backfilled or altered to obtain verification. Historical snapshot only: at
+the start of this snapshot, source-only
+`0026_admin_instructor_profile_integrity.sql` was pending one explicit owner
+application; the current pushed release above records the later owner action.
 
 The selected data/route freeze is the owner-approved 2026-09-06 freeze after
 the separately authored Supabase exit geometries were verified.
@@ -146,9 +148,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 197 files and 7,299,447 bytes with
+The current Vercel source package is 197 files and 7,301,960 bytes with
 aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical

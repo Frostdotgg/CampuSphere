@@ -1,17 +1,19 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-09-06 (Asia/Manila)
+Last updated: 2026-09-07 (Asia/Manila)
 
 ## Current Handoff Override
 
-The current bounded source lineage adds `6849aec` (protect `/home`),
-`12736ff` (reviewed product/UI/instructor batch), and `06e1512` (local route
-maintenance evidence) after pushed `c4de5ab`. The owner authorized this session
-to commit and push the bounded source and authority work, but did not authorize
-Production promotion, deployment, Production smoke, database/vendor mutation,
-or a new GO/NO-GO. The two current copy-paste prompts below authorize grounding
-only. A fresh session must recompute Git truth, report the requested context,
-and wait for the owner.
+The current pushed source release is `5d505e97e990ad82df6c858e28d48542deb8bf2c`
+(`5d505e9`) on `main`, with local `HEAD`, `origin/main`, and remote `main`
+confirmed equal. It contains the guest visibility, event-audience, and admin
+instructor-profile integrity changes. The source package is 197 files,
+7,301,960 bytes, aggregate SHA-256
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
+The owner has not authorized Vercel promotion, Production smoke, or immutable
+deployed-byte verification. The two current copy-paste prompts below authorize
+grounding only. A fresh session must recompute Git truth, report the requested
+context, and wait for the owner.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -48,8 +50,8 @@ course-catalog work, pilot work, or a new GO/NO-GO. Every older prompt and
 pre-promotion snapshot below is historical and must not be used as current
 authority.
 
-The current working-tree candidate also includes admin-managed instructor
-profile integrity: admin creation and role promotion create a minimal
+The current pushed source release also includes admin-managed instructor profile
+integrity: admin creation and role promotion create a minimal
 `instructor_profiles` row on both backends. The project owner has applied
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
@@ -129,9 +131,10 @@ postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification. The working-tree candidate
-also contains source-only `0026_admin_instructor_profile_integrity.sql`,
-pending one explicit owner application; Codex has not applied it.
+was backfilled or altered to obtain verification. Historical snapshot only: at
+the start of this snapshot, source-only
+`0026_admin_instructor_profile_integrity.sql` was pending one explicit owner
+application; the current pushed release above records the later owner action.
 
 The selected data/route freeze is the owner-approved 2026-09-06 freeze after
 the separately authored Supabase exit geometries were verified.
@@ -178,9 +181,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 197 files and 7,299,447 bytes with
+The current Vercel source package is 197 files and 7,301,960 bytes with
 aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -890,13 +893,14 @@ values. After the report, stop and wait for an explicit owner task.
 Repository:
 C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-Recorded checkpoint to verify, not blindly repeat: the four source/product commits
+Recorded checkpoint to verify, not blindly repeat: earlier source/product commits
 are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
-`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
-197 files, 7,299,447 bytes, aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the current role-aware source
+release is `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). The current
+source package is 197 files, 7,301,960 bytes, aggregate SHA-256
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 The last independently post-deployment-verified Production baseline remains
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
 new deployed-byte identity.
@@ -920,17 +924,18 @@ Then inspect, read-only, the minimum current implementation surfaces needed to
 verify the authority rather than repeat it: package.json, .vercelignore,
 vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
 .dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
-migrations 0020-0022, controllers/dashboardController.js,
+migrations 0020-0026, controllers/dashboardController.js,
 controllers/presenceController.js, services/userPresenceService.js,
 utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
 server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
 public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
 views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
 views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
-controllers/adminUsersController.js,
+controllers/adminUsersController.js, controllers/eventsController.js,
+repositories/contentRepository.js,
 database/supabase/0026_admin_instructor_profile_integrity.sql,
 scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
-scripts/instructorMinimalProfile-probe.js,
+scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
 scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
 scripts/ictuDockerDeployment-probe.js, and
 scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
@@ -945,10 +950,11 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether current authority is the 2026-09-06 block and whether older blocks
+- whether the 2026-09-07 pushed-release block is current and whether older blocks
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
-- the current four source/product commits and authority HEAD;
+- the current role-aware source release, earlier product/security commits, and
+  authority HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
@@ -992,13 +998,14 @@ values. After the report, stop and wait for an explicit owner task.
 Repository:
 C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-Recorded checkpoint to verify, not blindly repeat: the four source/product commits
+Recorded checkpoint to verify, not blindly repeat: earlier source/product commits
 are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
-`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
-197 files, 7,299,447 bytes, aggregate SHA-256
-`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the current role-aware source
+release is `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). The current
+source package is 197 files, 7,301,960 bytes, aggregate SHA-256
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 The last independently post-deployment-verified Production baseline remains
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
 new deployed-byte identity.
@@ -1024,17 +1031,18 @@ Then inspect, read-only, the minimum current implementation surfaces needed to
 verify the authority rather than repeat it: package.json, .vercelignore,
 vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
 .dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
-migrations 0020-0022, controllers/dashboardController.js,
+migrations 0020-0026, controllers/dashboardController.js,
 controllers/presenceController.js, services/userPresenceService.js,
 utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
 server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
 public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
 views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
 views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
-controllers/adminUsersController.js,
+controllers/adminUsersController.js, controllers/eventsController.js,
+repositories/contentRepository.js,
 database/supabase/0026_admin_instructor_profile_integrity.sql,
 scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
-scripts/instructorMinimalProfile-probe.js,
+scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
 scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
 scripts/ictuDockerDeployment-probe.js, and
 scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
@@ -1049,10 +1057,11 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether current authority is the 2026-09-06 block and whether older blocks
+- whether the 2026-09-07 pushed-release block is current and whether older blocks
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
-- the current four source/product commits and authority HEAD;
+- the current role-aware source release, earlier product/security commits, and
+  authority HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
