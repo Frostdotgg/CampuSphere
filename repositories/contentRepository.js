@@ -13,16 +13,16 @@
      `config/db.js`, any controller, route, view, middleware, or
      public file.
    - Never reads req / res / sessions / res.locals / app.locals /
-     browser globals. The only role input is the `role` argument to
-     listAnnouncementsForRole; this module makes no other role
-     decision (audience filtering is data, not policy).
+     browser globals. Role input is supplied only through the explicit
+     `listAnnouncementsForRole` / `listEventsForRole` arguments; this module
+     makes no other role decision (audience filtering is data, not policy).
    - Returns plain row-like objects in the MySQL-era shapes the
      controllers/views already consume; the controllers keep owning
      response/EJS shaping:
        announcements: id, title, category, audience, excerpt, content,
                       author_id, published_date, created_at, updated_at
-       events:        id, title, category, event_date, description,
-                      location, event_time, created_at, updated_at
+     events:        id, title, category, audience, event_date, description,
+                    location, event_time, created_at, updated_at
    - Ordering / draft-visibility / audience rules (s7 + plan.md 4.4):
        listAnnouncementsForRole     : published only (published_date
                                       NOT NULL), audience IN
@@ -36,6 +36,8 @@
        listAllAnnouncementsForAdmin : created_at DESC.
        listEvents                   : event_date ASC by default; callers may
                                       request DESC for the public events page.
+                                      When role is supplied, only Everyone and
+                                      the matching role are returned.
        listEventsForAdmin           : event_date DESC.
    - Supabase failures are rethrown as plain Error objects prefixed
      with `contentRepository.<method>:`, carrying only a redacted
@@ -50,7 +52,7 @@ const { getSupabaseClient } = require('../config/supabase');
 const ANNOUNCEMENT_COLUMNS =
   'id, title, category, audience, excerpt, content, author_id, published_date, created_at, updated_at';
 const EVENT_COLUMNS =
-  'id, title, category, event_date, description, location, event_time, created_at, updated_at';
+  'id, title, category, audience, event_date, description, location, event_time, created_at, updated_at';
 
 // listRecentAnnouncements limit clamp. The admin "recent news" panel
 // uses 4 today; missing/invalid -> 4, otherwise clamped to 1..50.
@@ -209,14 +211,20 @@ async function listAllAnnouncements() {
  * window matches the boundary contract (s7); both bounds are inclusive and
  * compared against event_date. Callers may pass sortDirection: 'desc' for
  * newest-to-oldest presentation. The id tie-breaker keeps equal-date rows
- * deterministic in either direction. eventsController still reshapes rows
- * into its EJS view shape.
+ * deterministic in either direction. When `role` is supplied, only the
+ * Everyone and matching-role audiences are returned. Omitting `role` keeps
+ * the unrestricted internal read used by administrative callers. The
+ * eventsController still reshapes rows into its EJS view shape.
  */
-async function listEvents({ from, to, limit, sortDirection = 'asc' } = {}) {
+async function listEvents({ from, to, limit, sortDirection = 'asc', role } = {}) {
   const sb = getSupabaseClient();
   let query = sb.from('events').select(EVENT_COLUMNS);
   if (from != null) query = query.gte('event_date', from);
   if (to != null) query = query.lte('event_date', to);
+  if (role !== undefined) {
+    const trimmedRole = typeof role === 'string' ? role.trim() : '';
+    query = query.in('audience', trimmedRole ? ['all', trimmedRole] : ['all']);
+  }
   const descending = sortDirection === 'desc';
   query = query
     .order('event_date', { ascending: !descending })
@@ -231,6 +239,17 @@ async function listEvents({ from, to, limit, sortDirection = 'asc' } = {}) {
   const { data, error } = await query;
   if (error) throw fail('listEvents', error);
   return data || [];
+}
+
+/**
+ * Role-scoped event read for participant-facing surfaces. A missing or
+ * malformed role receives Everyone events only.
+ */
+async function listEventsForRole(role, options = {}) {
+  return listEvents({
+    ...options,
+    role: role == null ? '' : role
+  });
 }
 
 /**
@@ -351,11 +370,13 @@ async function deleteAnnouncement(id) {
 /**
  * Insert one event and return the inserted row. event_date is kept
  * date-compatible; event_time stays free text; categories are not normalised.
+ * Audience defaults to Everyone for compatibility with older callers.
  */
 async function createEvent(payload = {}) {
   const row = {
     title: payload.title,
     category: payload.category,
+    audience: payload.audience != null && payload.audience !== '' ? payload.audience : 'all',
     event_date: normalizeEventDate(payload.event_date),
     description: payload.description != null ? payload.description : null,
     location: payload.location != null ? payload.location : null,
@@ -382,7 +403,7 @@ async function updateEvent(id, payload = {}) {
   if (!Number.isInteger(numId) || numId < 1) return null;
 
   const patch = {};
-  for (const key of ['title', 'category', 'description', 'location', 'event_time']) {
+  for (const key of ['title', 'category', 'audience', 'description', 'location', 'event_time']) {
     if (payload[key] !== undefined) patch[key] = payload[key];
   }
   if (payload.event_date !== undefined) patch.event_date = normalizeEventDate(payload.event_date);
@@ -431,6 +452,7 @@ module.exports = {
   deleteAnnouncement,
   // Events (reads)
   listEvents,
+  listEventsForRole,
   listEventsForAdmin,
   countEvents,
   // Events (writes - Section 4.6)

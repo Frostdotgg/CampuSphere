@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if(items.length===0){
-      eventsTableBody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:2rem;">
+      eventsTableBody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;">
         <i data-lucide="calendar-x" style="width:2.5rem;height:2.5rem;color:var(--muted-foreground);display:inline-block;"></i>
         <p class="text-muted-foreground text-sm" style="margin-top:.5rem;">No events found.</p></td></tr>`;
       refreshIcons(); return;
@@ -229,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     eventsTableBody.innerHTML=items.map(ev=>`<tr data-id="${ev.id}">
       <td class="text-sm font-medium">${esc(ev.title)}</td>
       <td>${catBadge(ev.category)}</td>
+      <td><span class="ui-badge ui-badge-outline">${esc(audienceLabel(ev.audience))}</span></td>
       <td class="text-sm text-muted-foreground">${fmtDate(ev.event_date)}</td>
       <td class="text-sm text-muted-foreground">${esc(ev.event_time||'—')}</td>
       <td class="text-sm text-muted-foreground">${esc(ev.location||'—')}</td>
@@ -347,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openCreateEvent(){
     const form=document.getElementById('event-form'); if(form)form.reset();
     form.removeAttribute('data-edit-id');
+    if(form.audience) form.audience.value='all';
     document.getElementById('event-modal-title').textContent='Create New Event';
     document.getElementById('event-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Event';
     clearFormErrors(eventModal); openModal(eventModal); refreshIcons();
@@ -358,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.dataset.editId=id;
     form.title_field.value=ev.title||'';
     form.category.value=ev.category||'';
+    if(form.audience) form.audience.value=ev.audience||'all';
     form.event_date.value=ev.event_date?new Date(ev.event_date).toISOString().split('T')[0]:'';
     form.event_time.value=ev.event_time||'';
     form.location.value=ev.location||'';
@@ -371,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if(eventForm) eventForm.addEventListener('submit', async e=>{
     e.preventDefault(); clearFormErrors(eventModal);
     const editId=eventForm.dataset.editId;
-    const data={title:eventForm.title_field.value.trim(),category:eventForm.category.value,event_date:eventForm.event_date.value,event_time:eventForm.event_time.value.trim(),location:eventForm.location.value.trim(),description:eventForm.description.value.trim()};
+    const data={title:eventForm.title_field.value.trim(),category:eventForm.category.value,audience:eventForm.audience.value,event_date:eventForm.event_date.value,event_time:eventForm.event_time.value.trim(),location:eventForm.location.value.trim(),description:eventForm.description.value.trim()};
     if(!data.title||!data.category||!data.event_date){showFormError(eventModal,'Title, category, and date are required.');return;}
 
     const btn=document.getElementById('event-submit-btn');

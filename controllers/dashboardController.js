@@ -8,7 +8,34 @@ const authDataSource = require('../config/authDataSource');
 const userRepository = require('../repositories/userRepository');
 const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
+const mapRuntime = require('../config/mapRuntime');
+const buildingRepository = require('../repositories/buildingRepository');
 const { logServerError } = require('../utils/serverLog');
+
+function parseGuestBuildingCount(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+  if (typeof value === 'string' && /^[0-9]+$/.test(value)) {
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+  }
+  return null;
+}
+
+async function readGuestBuildingCount(req) {
+  try {
+    const rawCount = mapRuntime.isBuildingSupabase()
+      ? await buildingRepository.countAll()
+      : (await db.query('SELECT COUNT(*) AS total FROM buildings'))[0][0].total;
+    const count = parseGuestBuildingCount(rawCount);
+    if (count === null) throw new Error('Invalid guest building count');
+    return count;
+  } catch {
+    logServerError('dashboard.index.guestBuildingCount', req);
+    return null;
+  }
+}
 
 /**
  * GET /dashboard — Role-Based Dashboard
@@ -18,6 +45,9 @@ exports.index = async (req, res) => {
     // Get user data from session
     const user = req.session.user || null;
     const role = (user && user.role) ? user.role : null;
+    const guestBuildingCount = role === 'guest'
+      ? await readGuestBuildingCount(req)
+      : null;
 
     // Role-targeted announcement filtering (Milestone 4, Phase 2 Section 5).
     // Only published announcements addressed to everyone ('all') plus those
@@ -123,6 +153,7 @@ exports.index = async (req, res) => {
       activeTab: 'tabDashboard',
       news: newsRows,
       user: user,
+      guestBuildingCount: guestBuildingCount,
       studentProfile: studentProfile,
       instructorProfile: instructorProfile
     });
@@ -134,6 +165,7 @@ exports.index = async (req, res) => {
       activeTab: 'tabDashboard',
       news: [],
       user: null,
+      guestBuildingCount: null,
       studentProfile: null,
       instructorProfile: null
     });

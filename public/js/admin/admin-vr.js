@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const hotspotScheduleSearch = document.getElementById('vr-hotspot-schedule-search');
   const hotspotScheduleSelect = document.getElementById('vr-hotspot-schedule-document');
   const hotspotScheduleStatus = document.getElementById('vr-hotspot-schedule-status');
+  const hotspotGuestVisibilityGroup = document.getElementById('vr-hotspot-guest-visibility-group');
+  const hotspotGuestVisible = document.getElementById('vr-hotspot-guest-visible');
   const hotspotSceneLabel = document.getElementById('vr-hotspot-scene-label');
 
   const deleteModal = document.getElementById('vr-delete-modal');
@@ -336,6 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const top = document.createElement('div');
     top.className = 'vr-hotspot-top';
     top.appendChild(badge(str(h.hotspot_type), 'vr-badge-type'));
+    if (str(h.hotspot_type) === 'info' && (h.guest_visible === true || h.guest_visible === 1 || h.guest_visible === '1')) {
+      top.appendChild(badge('guest visible', 'vr-badge-guest-visible'));
+    }
     const label = document.createElement('span');
     label.className = 'vr-hotspot-label';
     label.textContent = str(h.label);
@@ -674,6 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyHotspotTypeUi() {
     const type = hotspotTypeSelect ? hotspotTypeSelect.value : '';
     const isScene = type === 'scene';
+    const isInfo = type === 'info';
     const isSchedule = type === 'schedule';
     if (hotspotTargetSelect) hotspotTargetSelect.disabled = !isScene;
     if (hotspotTargetSearch) hotspotTargetSearch.disabled = !isScene;
@@ -692,6 +698,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (hotspotScheduleSearch) hotspotScheduleSearch.value = '';
       if (hotspotScheduleSelect) hotspotScheduleSelect.value = '';
       renderScheduleDocumentOptions(null);
+    }
+    if (hotspotGuestVisibilityGroup) hotspotGuestVisibilityGroup.style.display = isInfo ? '' : 'none';
+    if (hotspotGuestVisible) {
+      hotspotGuestVisible.disabled = !isInfo;
+      if (!isInfo) hotspotGuestVisible.checked = false;
     }
   }
   if (hotspotTypeSelect) hotspotTypeSelect.addEventListener('change', applyHotspotTypeUi);
@@ -723,6 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
     hotspotForm.reset();
     clearFormError(hotspotModal);
     hotspotTypeSelect.value = ['scene', 'info', 'exit', 'schedule'].indexOf(str(h.hotspot_type)) !== -1 ? str(h.hotspot_type) : 'info';
+    if (hotspotGuestVisible) {
+      hotspotGuestVisible.checked = h.guest_visible === true || h.guest_visible === 1 || h.guest_visible === '1';
+    }
     hotspotForm.label.value = str(h.label);
     hotspotForm.text.value = str(h.text);
     hotspotForm.yaw.value = String(numOf(h.yaw));
@@ -751,7 +765,10 @@ document.addEventListener('DOMContentLoaded', () => {
         text: hotspotForm.text.value.trim(),
         yaw: hotspotForm.yaw.value.trim(),
         pitch: hotspotForm.pitch.value.trim(),
-        display_order: hotspotForm.display_order.value.trim()
+        display_order: hotspotForm.display_order.value.trim(),
+        guest_visible: type === 'info'
+          ? !!(hotspotGuestVisible && hotspotGuestVisible.checked)
+          : (type === 'scene' || type === 'exit')
       };
       if (!payload.label) { showFormError(hotspotModal, 'Label is required.'); return; }
       if (type === 'scene') {

@@ -107,7 +107,10 @@ function hasExactMigrationSequence(files) {
   const sorted = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
     '0022_user_presence.sql',
-    '0023_directional_route_edge_geometry.sql'
+    '0023_directional_route_edge_geometry.sql',
+    '0024_vr_hotspot_guest_visibility.sql',
+    '0025_event_audience.sql',
+    '0026_admin_instructor_profile_integrity.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -391,7 +394,7 @@ function normalizePoints(points) {
 
     const m23Path = path.join(root, 'database', 'supabase', '0023_directional_route_edge_geometry.sql');
     const m23Exists = fs.existsSync(m23Path);
-    check('0023 directional route-edge geometry migration exists (source-only)', m23Exists);
+    check('0023 directional route-edge geometry migration exists (owner-applied)', m23Exists);
     if (m23Exists) {
       const sql = fs.readFileSync(m23Path, 'utf8');
       check('0023 declares the one-way geometry RPC',
@@ -427,7 +430,7 @@ function normalizePoints(points) {
     // live above, so the geometry contract is unaffected.
     check('0019_be5_selected_demo_parity.sql is declared (BE.5; owner-applied)',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('0023_directional_route_edge_geometry.sql is declared source-only',
+    check('0023_directional_route_edge_geometry.sql is declared owner-applied',
       sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
     check('migration source list is contiguous 0001-0020', hasExactMigrationSequence(sqlFiles));
     // Database-free negative fixture on an in-memory copy: no migration file is

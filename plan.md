@@ -15,14 +15,39 @@ selected Supabase and local MySQL stores. Runtime dual-backend checks, review,
 commit, and push are complete evidence; deployment and Production acceptance
 remain separate authorization/evidence boundaries.
 
+## Guest building/VR visibility and event-audience policy (working-tree candidate, 2026-09-06)
+
+Signed-in guests can browse every building, 2D route, and 360 scene. Schedule
+APIs and schedule hotspots remain limited to students, instructors, and admins;
+scene/exit hotspots remain visible to guests, while information hotspots require
+an explicit admin approval bit. MySQL schema/seed support the policy and
+Supabase migrations `0024_vr_hotspot_guest_visibility.sql` and
+`0025_event_audience.sql` are owner-applied; Codex did not apply or reapply
+them. Do not reapply them without fresh explicit database
+authorization. The selected freeze is unchanged.
+
+## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+
+The admin user flow now keeps instructor role profiles complete on both
+backends. A new instructor and an account promoted to instructor receive one
+minimal `instructor_profiles` row (`employee_id`, `department`, and `position`
+blank; `status = 'Active'`) when none exists. Existing profile values are
+preserved, role changes away from instructor are non-destructive, and a
+conflict-safe backfill repairs only missing rows. MySQL performs the profile
+insert in the same transaction as the user write; Supabase uses the
+server-only atomic admin RPCs in migration
+`0026_admin_instructor_profile_integrity.sql`, which the project owner has
+applied. Codex did not apply or reapply it. This auth/profile change does not alter the selected campus,
+route, VR, event, or freeze data.
+
 ## Summary
 
 Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Destination Routing Repair (RF.1-RF.6) is also complete and Codex GO. BE.1 through BE.6 and OFF.1 are complete and Codex GO. Final Milestone 12 GO has not been issued.
 
-Supabase migration sources are contiguous from `0001` through `0020`; migrations `0014` through `0019` are owner-applied and verified, and owner-applied `0020_room_schedule_documents.sql` is recorded before this verification. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
+Supabase migration sources are contiguous from `0001` through `0026`; the historical route/data freeze remains scoped through `0020`; migrations `0014` through `0019` are owner-applied and verified, owner-applied `0020_room_schedule_documents.sql` is recorded before this verification, and `0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and `0026_admin_instructor_profile_integrity.sql` are owner-applied by the project owner. Codex did not apply or reapply them. Migration 0026 is auth/profile-only. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-05)
+## Current Release Continuity (2026-09-06)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
@@ -88,32 +113,37 @@ entry path. Existing entry-only downloads remain usable until Update Offline
 Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
-`0021_minimal_instructor_oauth_registration.sql`, and
-`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+`0021_minimal_instructor_oauth_registration.sql`, `0022_user_presence.sql`,
+`0023_directional_route_edge_geometry.sql`,
+`0024_vr_hotspot_guest_visibility.sql`, and `0025_event_audience.sql` are
+owner-applied. Codex did not apply them and must
 not reapply them without new explicit database authorization. Read-only 0022
 postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification.
+was backfilled or altered to obtain verification. The working-tree candidate
+also contains source-only `0026_admin_instructor_profile_integrity.sql`,
+pending one explicit owner application; Codex has not applied it.
 
-The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+The selected data/route freeze is the owner-approved 2026-09-06 freeze after
+the separately authored Supabase exit geometries were verified.
 MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
 reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
 selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
-50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, 664 scenes,
 1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
 active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
 The MySQL building/route SHA-256
 `0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
 the Supabase building/route SHA-256
-`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`;
 the selected VR SHA-256
 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
 the shared Guided-VR catalog SHA-256
 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
 and the freeze-manifest SHA-256
-`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+`9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
 Never change these facts merely to make a gate green.
 
 The required Security -> Performance -> Correctness -> Maintainability ->
@@ -122,7 +152,7 @@ on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
 batched without N+1 reads, and sanitized on failure. Focused evidence includes
 Google profile image `27/27`, presence `34/34`, shared button/theme
 `19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
-`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+`74/74`. The fresh full source suite passed `4850/4850` with zero failures
 and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
 `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
@@ -141,9 +171,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 196 files and 7,267,536 bytes with
+The current Vercel source package is 197 files and 7,299,447 bytes with
 aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -834,6 +864,51 @@ live repository/vendor evidence win when they conflict.
 <!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 
 <!-- M12.P1 CURRENT STATUS START -->
+<!-- M12.P1 OPERATIVE SOURCE CANDIDATE START -->
+**SOURCE-ONLY CANDIDATE STATUS.** This is the current local source/worktree
+preparation record, not a deployment or Production claim. Branch `main` is at
+local HEAD `23c55365198198276f17364f15523da2eb233df2`; the current candidate
+worktree is intentionally dirty, uncommitted, unstaged, and unpushed, with zero
+stashes. It is ready to stage/commit/push only after a separate owner
+authorization.
+
+Fresh local `npm test` registered `4850/4850` with `QUALITY-GATES OK`; fresh
+`npm run qa` completed all five stages with `QUALITY-GATES OK`, `DB-PERF-GATE
+OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
+vulnerabilities. Focused current evidence is offline map `21/21`, R2 `119/119`,
+R3 `86/86`, R4 `180/180`, R5 `90/90`, R6 `231/231`, and R7 `74/74`.
+Historical accepted ordered postconditions remain `24/24 -> 18/18 -> 46/46`;
+the current canonical residue gate is `18/18`.
+
+Historical accepted R1-R7, D1-D5, and expanded D7 evidence remains recorded;
+this source-only candidate does not reissue that historical Production GO.
+The standalone R1 pilot-credential rerun is a separate live-Supabase data
+prerequisite with three findings, is SELECT-only, and changed no data. The
+current source suite and aggregate QA are not being relabelled to hide that
+separate live-data limitation. Dependency-security remediation remains
+recorded historical evidence.
+
+No Vercel/ICTU deployment, promotion, Production smoke, or immutable
+deployed-byte verification was performed for this candidate. The last
+independently post-deployment-verified Production baseline is
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; source/local evidence is not
+Production evidence. Live Git and the latest external review report control
+mutable lifecycle state. Final Milestone 12 remains external; deployment is not
+authorized, and no GO/NO-GO is issued by this preparation record.
+
+Migrations `0020` through `0025` are owner-applied and were not reapplied.
+The guest building/VR visibility policy, audience-filtered events, directional
+entry/exit routes, and four intentional audience UAT events remain in the
+candidate. The current source package pin is 197 files, 7,299,447 bytes,
+aggregate SHA-256 `f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
+
+Historical rejected-run account: a 20-minute wrapper bound ended with no
+completion count; its bounded retry recorded 4,628 PASS, nine current-authority
+wording failures, and one canonical MySQL student-session residue failure. A
+separate historical scorer returned 97 after looking for the invented
+`SUPABASE-SMOKE OK` marker rather than the actual `[supabase-smoke] PASS`
+marker.
+<!-- M12.P1 OPERATIVE SOURCE CANDIDATE END -->
 **HISTORICAL PRE-PROMOTION SNAPSHOT (2026-08-21; superseded by the current
 release continuity block above).**
 

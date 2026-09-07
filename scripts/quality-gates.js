@@ -110,6 +110,49 @@ function cookieJar() {
     values() { return Object.values(jar); },
   };
 }
+
+// Read the role-profile row created by the admin-user HTTP contract. This
+// helper is intentionally per-call so the quality-gates parent does not leave
+// a MySQL pool socket open after the child server legs finish. It returns only
+// non-sensitive profile fields and never prints ids, emails, hashes, or keys.
+async function readInstructorProfilesForGate(mode, userId) {
+  if (!userId) return [];
+  if (mode === 'supabase') {
+    const { getSupabaseClient } = require('../config/supabase');
+    const { data, error } = await getSupabaseClient()
+      .from('instructor_profiles')
+      .select('employee_id,department,position,status')
+      .eq('user_id', userId);
+    if (error) throw new Error('Supabase instructor profile read failed.');
+    return Array.isArray(data) ? data : [];
+  }
+
+  const mysql = require('mysql2/promise');
+  const conn = await mysql.createConnection({
+    host: process.env.DB_HOST || '127.0.0.1',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: process.env.DB_NAME || 'campusphere_db'
+  });
+  try {
+    const [rows] = await conn.execute(
+      'SELECT employee_id, department, position, status FROM instructor_profiles WHERE user_id = ?',
+      [userId]
+    );
+    return Array.isArray(rows) ? rows : [];
+  } finally {
+    await conn.end();
+  }
+}
+
+function isMinimalInstructorProfile(rows) {
+  return Array.isArray(rows) && rows.length === 1
+    && rows[0].employee_id === ''
+    && rows[0].department === ''
+    && rows[0].position === ''
+    && rows[0].status === 'Active';
+}
+
 const metaCsrf = (html) => {
   const m = html.match(/name="csrf-token" content="([^"]+)"/) || html.match(/name="_csrf" value="([^"]+)"/);
   return m ? m[1] : '';
@@ -843,6 +886,111 @@ async function runSuite(base, mode) {
     }
   }
 
+  // 9c2. Admin-managed instructor profile integrity. Both backend legs create
+  // a direct instructor and promote a throwaway guest to instructor, then
+  // inspect the backend row without exposing profile data. Each user is
+  // deleted through the real admin API in finally.
+  {
+    const profilePass = 'QG-Profile-Pass123!';
+    const profileEmail = (kind) => `qg-instructor-profile-${kind}-${mode}-${Date.now()}@example.com`;
+    const createProfileEmail = profileEmail('create');
+    const promoteProfileEmail = profileEmail('promote');
+    let createdInstructorId = null;
+    let promotedInstructorId = null;
+
+    const deleteProbeUser = async (id) => {
+      if (!id) return;
+      const csrf = await refreshAdminCsrf(base, admin).catch(() => admin.csrf);
+      await fetch(base + `/admin/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
+      }).catch(() => {});
+    };
+
+    try {
+      let csrf = await refreshAdminCsrf(base, admin);
+      let createResponse = await fetch(base + '/admin/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
+        body: JSON.stringify({
+          first_name: 'QG',
+          last_name: 'InstructorCreate',
+          email: createProfileEmail,
+          password: profilePass,
+          role: 'instructor'
+        }),
+      });
+      let createBody = parseJson(await createResponse.text());
+      createdInstructorId = createBody && createBody.user && createBody.user.id;
+      ok('Admin instructor: direct create returns 201',
+        createResponse.status === 201 && !!createBody && createBody.success === true && !!createdInstructorId);
+      if (createdInstructorId) {
+        let profiles = [];
+        try { profiles = await readInstructorProfilesForGate(mode, createdInstructorId); } catch (error) { profiles = []; }
+        ok('Admin instructor: direct create has exactly one minimal profile', isMinimalInstructorProfile(profiles));
+
+        // Re-editing an instructor must preserve the single profile rather
+        // than inserting a second row or overwriting its values.
+        csrf = await refreshAdminCsrf(base, admin);
+        const editResponse = await fetch(base + `/admin/api/users/${createdInstructorId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
+          body: JSON.stringify({
+            first_name: 'QG',
+            last_name: 'InstructorEdited',
+            email: createProfileEmail,
+            role: 'instructor'
+          }),
+        });
+        const editBody = parseJson(await editResponse.text());
+        ok('Admin instructor: re-edit returns 200',
+          editResponse.status === 200 && !!editBody && editBody.success === true);
+        try { profiles = await readInstructorProfilesForGate(mode, createdInstructorId); } catch (error) { profiles = []; }
+        ok('Admin instructor: re-edit keeps exactly one profile', isMinimalInstructorProfile(profiles));
+      }
+
+      csrf = await refreshAdminCsrf(base, admin);
+      createResponse = await fetch(base + '/admin/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
+        body: JSON.stringify({
+          first_name: 'QG',
+          last_name: 'InstructorPromote',
+          email: promoteProfileEmail,
+          password: profilePass,
+          role: 'guest'
+        }),
+      });
+      createBody = parseJson(await createResponse.text());
+      promotedInstructorId = createBody && createBody.user && createBody.user.id;
+      ok('Admin instructor: promotion fixture guest create returns 201',
+        createResponse.status === 201 && !!createBody && createBody.success === true && !!promotedInstructorId);
+
+      if (promotedInstructorId) {
+        csrf = await refreshAdminCsrf(base, admin);
+        const promoteResponse = await fetch(base + `/admin/api/users/${promotedInstructorId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf, Cookie: admin.jar.header() },
+          body: JSON.stringify({
+            first_name: 'QG',
+            last_name: 'InstructorPromote',
+            email: promoteProfileEmail,
+            role: 'instructor'
+          }),
+        });
+        const promoteBody = parseJson(await promoteResponse.text());
+        ok('Admin instructor: role promotion returns 200',
+          promoteResponse.status === 200 && !!promoteBody && promoteBody.success === true);
+        let profiles = [];
+        try { profiles = await readInstructorProfilesForGate(mode, promotedInstructorId); } catch (error) { profiles = []; }
+        ok('Admin instructor: role promotion creates exactly one minimal profile', isMinimalInstructorProfile(profiles));
+      }
+    } finally {
+      await deleteProbeUser(createdInstructorId);
+      await deleteProbeUser(promotedInstructorId);
+    }
+  }
+
   // 9d. M2 public registration validation: local POST /register must apply a
   //     server-side email format + password policy BEFORE any DB work, so a
   //     malformed email or a too-short password is rejected and grants NO
@@ -940,8 +1088,28 @@ async function runSuite(base, mode) {
       const { jar, csrf } = await regBase();
       const r = await postRegister(jar, csrf, { fullName: 'QG Valid Guest', email: regEmail, password: 'ProbePass123!', role: 'guest' });
       allCookieValues.push(...jar.values());
-      ok('M2 register: valid guest registration -> 302 /dashboard',
-        r.status === 302 && /\/dashboard/.test(r.headers.get('location') || ''));
+      const registrationSucceeded = r.status === 302 && /\/dashboard/.test(r.headers.get('location') || '');
+      ok('M2 register: valid guest registration -> 302 /dashboard', registrationSucceeded);
+      if (registrationSucceeded) {
+        const buildingResponse = await fetch(base + '/api/buildings', {
+          headers: { Accept: 'application/json', Cookie: jar.header() },
+        });
+        jar.apply(buildingResponse);
+        const buildingJson = parseJson(await buildingResponse.text());
+        const dashboardResponse = await fetch(base + '/dashboard', {
+          headers: { Accept: 'text/html', Cookie: jar.header() },
+        });
+        jar.apply(dashboardResponse);
+        const dashboardHtml = await dashboardResponse.text();
+        allCookieValues.push(...jar.values());
+        const expectedCount = buildingJson && buildingJson.success === true && Array.isArray(buildingJson.buildings)
+          ? buildingJson.buildings.length
+          : null;
+        const renderedCount = /<div id="guest-overview-building-count"[^>]*>\s*([^<]+?)\s*<\/div>/i.exec(dashboardHtml);
+        ok(`M2 guest dashboard: Overview building count matches ${mode} catalog`,
+          expectedCount !== null && buildingResponse.status === 200 && dashboardResponse.status === 200 &&
+          renderedCount && renderedCount[1].trim() === String(expectedCount));
+      }
     } finally {
       // Best-effort cleanup: locate the created guest via the admin users page
       // bootstrap JSON (there is no GET /admin/api/users) and delete it.
@@ -1471,7 +1639,7 @@ function offlineInteractionMutationsAreRejected(source, shell) {
     { source: source.replace("    if (element.closest('[hidden], [aria-hidden=\"true\"], [inert]')) return false;", ''), shell },
     { source: source.replace('    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;', ''), shell },
     { source: source.replace("        if (event.key !== 'Tab') return;", '        return;'), shell },
-    { source: source.replace('    routeSummaryInvoker = null;\n    var target = selectFocusReturnTarget(invoker, [', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var target = selectFocusReturnTarget(invoker, ["), shell },
+    { source: source.replace('    routeSummaryInvoker = null;\n    var returnKey = routeSummaryKey || destinationKey;\n    routeSummaryKey = null;\n    var target = selectFocusReturnTarget(invoker, [', "    routeSummaryInvoker = null;\n    map.getSource('offline-route').setData({});\n    var returnKey = routeSummaryKey || destinationKey;\n    routeSummaryKey = null;\n    var target = selectFocusReturnTarget(invoker, ["), shell },
     { source: source.replace("      byId('offlineMobileListToggle'),\n      byId('offlineRecenterMap')", "      byId('offlineRecenterMap')"), shell },
     { source: source.replace("    theme.setAttribute('aria-pressed', dark ? 'true' : 'false');", ''), shell },
     { source: source.replace("  var THEME_STORAGE_KEY = 'campussphere-theme';", "  var THEME_STORAGE_KEY = 'offline-theme';"), shell },
@@ -2649,11 +2817,36 @@ function guestOverviewSummaryCardContract(dashboardView) {
   const expected = ['Buildings', 'News', 'Campus Map'];
   return labels.length === expected.length &&
     labels.every((label, index) => label === expected[index]) &&
+    /id="guest-overview-building-count"[^>]*>\s*<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i.test(body) &&
+    !/guestBuildings\s*\.\s*length/i.test(body) &&
     /<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D and 360 View<\/div>/i.test(body) &&
     /use the 2D campus map and explore available 360 views\./i.test(body) &&
     !/>2D View<\/div>/i.test(body) &&
     !/use the 2D campus map\.(?:\s|<)/i.test(body) &&
     !/achievements\.length/i.test(body);
+}
+
+/**
+ * PURE: the guest Overview building metric is sourced from the active map
+ * backend and degrades to a truthful placeholder when that read fails.
+ */
+function guestDashboardBuildingCountContract(dashboardController, dashboardView) {
+  const controller = typeof dashboardController === 'string' ? dashboardController : '';
+  const view = typeof dashboardView === 'string' ? dashboardView : '';
+  if (!controller || !view) return false;
+
+  return /require\(['"]\.\.\/config\/mapRuntime['"]\)/i.test(controller) &&
+    /require\(['"]\.\.\/repositories\/buildingRepository['"]\)/i.test(controller) &&
+    /mapRuntime\.isBuildingSupabase\(\)[\s\S]*?buildingRepository\.countAll\(\)/i.test(controller) &&
+    /SELECT\s+COUNT\(\*\)\s+AS\s+total\s+FROM\s+buildings/i.test(controller) &&
+    /guestBuildingCount\s*=\s*role\s*===\s*['"]guest['"]/i.test(controller) &&
+    /logServerError\(\s*['"]dashboard\.index\.guestBuildingCount['"]/i.test(controller) &&
+    /guestBuildingCount\s*:\s*guestBuildingCount/i.test(controller) &&
+    /guestBuildingCount\s*:\s*null/i.test(controller) &&
+    /id="guest-overview-building-count"[^>]*>\s*<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i.test(view) &&
+    !/guestBuildings\s*\.\s*length/i.test(
+      (/id="tmpl-guest-overview">([\s\S]*?)<\/script>/i.exec(view) || [])[1] || ''
+    );
 }
 
 function guestDashboardNavigationContract(publicData, modelData, dashboardView) {
@@ -2709,6 +2902,7 @@ function runGuestDashboardNavigationGate() {
   const { ok } = rec;
   const root = path.join(__dirname, '..');
   const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
+  const dashboardController = fs.readFileSync(path.join(root, 'controllers', 'dashboardController.js'), 'utf8');
   const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
   const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
   const passes = (client, model, view) =>
@@ -2739,6 +2933,8 @@ function runGuestDashboardNavigationGate() {
 
   ok('guest sidebar exposes only Overview and News & Announcements',
     passes(publicData, modelData, dashboardView));
+  ok('guest Overview building count uses the selected live catalog',
+    guestDashboardBuildingCountContract(dashboardController, dashboardView));
   ok('guest news rename updates the overview and opened panel while preserving guest sections',
     /News & Announcements/i.test(dashboardView) &&
     !/News & Events/i.test((dashboardView.match(
@@ -2774,6 +2970,14 @@ function runGuestDashboardNavigationGate() {
     !passes(publicData, modelData, guestViewWithAchievementCard) &&
     guestViewWithStaleMapCopy !== dashboardView &&
     !passes(publicData, modelData, guestViewWithStaleMapCopy));
+  ok('fixture: restoring the static guest building count is rejected',
+    !passes(
+      publicData,
+      modelData,
+      dashboardView.replace(
+        /<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i,
+        '<%%= guestBuildings.length %%>'
+      )));
   ok('fixture: empty or malformed guest sources fail closed',
     !guestDashboardNavigationContract('', modelData, dashboardView) &&
     !guestDashboardNavigationContract(publicData, '', dashboardView) &&
@@ -2873,8 +3077,10 @@ function homeCurrentDataContract(pageController, homeView, styles) {
     /HOME_FEATURED_BUILDING_LIMIT = 3/.test(controller);
   const events =
     /contentDataSource\.isSupabase\(\)/.test(controller) &&
-    /contentRepository\.listEvents\(\{[\s\S]{0,220}sortDirection:\s*'desc'/.test(controller) &&
+    /(?:contentRepository\.listEventsForRole\(role,\s*\{|contentRepository\.listEvents\(\{[\s\S]{0,220}role:)/.test(controller) &&
+    /sortDirection:\s*'desc'/.test(controller) &&
     /ORDER BY event_date DESC, id DESC/.test(controller) &&
+    /audienceSql/.test(controller) &&
     /HOME_LATEST_EVENT_LIMIT = 2/.test(controller) &&
     /toHomeEvent/.test(controller);
   const failureStates =
@@ -3058,16 +3264,17 @@ function publicEventsDateOrderingContract(repository, controller, notificationSe
   if (!repo || !ctrl || !notifications) return false;
 
   const repositoryContract =
-    /async function listEvents\(\{\s*from,\s*to,\s*limit,\s*sortDirection\s*=\s*['"]asc['"]\s*\}\s*=\s*\{\}\)/.test(repo) &&
+    /async function listEvents\(\{\s*from,\s*to,\s*limit,\s*sortDirection\s*=\s*['"]asc['"]\s*,\s*role\s*\}\s*=\s*\{\}\)/.test(repo) &&
+    /async function listEventsForRole\(role, options = \{\}\)/.test(repo) &&
     /const descending = sortDirection === ['"]desc['"]/.test(repo) &&
     /\.order\(['"]event_date['"],\s*\{\s*ascending:\s*!descending\s*\}\)\s*\.order\(['"]id['"],\s*\{\s*ascending:\s*!descending\s*\}\)/.test(repo);
 
   const pageContract =
-    /contentRepository\.listEvents\(\{\s*sortDirection:\s*['"]desc['"]\s*\}\)/.test(ctrl) &&
+    /contentRepository\.listEventsForRole\(role,\s*\{\s*sortDirection:\s*['"]desc['"]\s*\}\)/.test(ctrl) &&
     /ORDER BY event_date DESC, id DESC/.test(ctrl);
 
   const notificationContract =
-    /contentRepository\.listEvents\(\{ from: today, limit: EVENT_LIMIT \}\)/.test(notifications) &&
+    /contentRepository\.listEventsForRole\(normalizedRole,\s*\{ from: today, limit: EVENT_LIMIT \}\)/.test(notifications) &&
     /ORDER BY event_date ASC, id ASC/.test(notifications);
 
   return repositoryContract && pageContract && notificationContract;
@@ -3086,7 +3293,7 @@ function runPublicEventsDateOrderingGate() {
   ok('public /events requests newest-to-oldest dates with a deterministic tie-breaker',
     passes(repository, controller, notificationService));
   ok('notification feed keeps nearest-upcoming events ordered ascending',
-    /contentRepository\.listEvents\(\{ from: today, limit: EVENT_LIMIT \}\)/.test(notificationService) &&
+    /contentRepository\.listEventsForRole\(normalizedRole,\s*\{ from: today, limit: EVENT_LIMIT \}\)/.test(notificationService) &&
     /ORDER BY event_date ASC, id ASC/.test(notificationService));
   ok('fixture: reverting the public page to ascending or dropping its tie-breaker is rejected',
     !passes(repository, controller.replace("sortDirection: 'desc'", "sortDirection: 'asc'"), notificationService) &&
@@ -3096,7 +3303,7 @@ function runPublicEventsDateOrderingGate() {
     !passes(repository, controller, notificationService.replace(
       'ORDER BY event_date ASC, id ASC', 'ORDER BY event_date DESC, id DESC')) &&
     !passes(repository, controller, notificationService.replace(
-      'listEvents({ from: today, limit: EVENT_LIMIT })',
+      'listEventsForRole(normalizedRole, { from: today, limit: EVENT_LIMIT })',
       "listEvents({ from: today, limit: EVENT_LIMIT, sortDirection: 'desc' })")));
   return rec.failures;
 }
@@ -6426,8 +6633,59 @@ function currentPilotAuthorityProblems(value) {
   return problems;
 }
 
+/**
+ * PURE: recognize and validate the current source-only preparation status.
+ *
+ * The release documents may intentionally describe a dirty, uncommitted local
+ * candidate while it is being prepared.  That is a different lifecycle from
+ * the historical pushed/Production status below; treating it as a contradiction
+ * would force the document to make a false deployment claim merely to satisfy
+ * the static authority gate.
+ */
+function isCurrentSourceCandidateStatus(value) {
+  return /\bSOURCE-ONLY CANDIDATE STATUS\b/i.test(String(value == null ? '' : value));
+}
+
+function currentSourceCandidateLifecycleProblems(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const problems = [];
+  if (!isCurrentSourceCandidateStatus(t)) {
+    problems.push('source-only candidate marker is missing');
+  }
+  if (!/\bmain\b[\s\S]{0,220}\b23c55365198198276f17364f15523da2eb233df2\b/i.test(t)) {
+    problems.push('current source candidate does not bind the live main HEAD');
+  }
+  if (!/(?:worktree|candidate)[^.]{0,160}\b(?:dirty|uncommitted|unstaged|unpushed)\b/i.test(t)) {
+    problems.push('source candidate Git state is not explicitly uncommitted/unpushed');
+  }
+  if (!/zero stashes\b/i.test(t)) {
+    problems.push('source candidate stash state is missing');
+  }
+  if (!/no\s+Vercel\/ICTU\s+deployment[\s\S]{0,120}\bpromotion\b[\s\S]{0,120}\bProduction smoke\b[\s\S]{0,160}\bimmutable deployed-byte verification\b/i.test(t)) {
+    problems.push('source-only deployment boundary is missing');
+  }
+  if (!/last independently post-deployment-verified Production baseline[\s\S]{0,120}\bfea3b2e11c6331eddc1ee091b165427d8e0218d7\b/i.test(t)) {
+    problems.push('last independently verified Production baseline is missing');
+  }
+  if (!/source\/local evidence[\s\S]{0,80}\bnot Production evidence\b/i.test(t)) {
+    problems.push('source/local versus Production evidence boundary is missing');
+  }
+  if (!/ready to stage\/commit\/push[\s\S]{0,120}\bseparate owner authorization\b/i.test(t)) {
+    problems.push('owner authorization boundary for staging/commit/push is missing');
+  }
+  if (/\b(?:this|the current) candidate\b[^.]{0,180}\b(?:was|is|has been)\s+(?:deployed|promoted)\b/i.test(t) ||
+      /\bcurrent candidate\b[^.]{0,180}\bProduction smoke\b[^.]{0,80}\b(?:performed|passed|verified|completed)\b/i.test(t) ||
+      /\bimmutable deployed-byte (?:identity|verification)\b[^.]{0,100}\b(?:established|verified|confirmed)\b/i.test(t)) {
+    problems.push('source-only candidate contains a current deployment claim');
+  }
+  return problems;
+}
+
 /** PURE: validate current Git/deployment/promotion/pilot authority. */
 function currentGitLifecycleProblems(value) {
+  if (isCurrentSourceCandidateStatus(value)) {
+    return currentSourceCandidateLifecycleProblems(value);
+  }
   if (currentReleaseContinuityProblems(value, { requireMarkers: false }).length === 0) {
     return [];
   }
@@ -6637,15 +6895,15 @@ const CURRENT_REJECTED_NPM_TEST_SHA256 =
 const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
   'd16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d';
 const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
-  '36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688';
+  '8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64';
 const CURRENT_FREEZE_MANIFEST_SHA256 =
-  '85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c';
+  '9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
   '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
   '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a';
 const CURRENT_CLOSEOUT_PACKAGE_SHA256 =
-  'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768';
+  'f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6741,6 +6999,10 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     if (!/0020_room_schedule_documents\.sql/i.test(t) ||
         !/0021_minimal_instructor_oauth_registration\.sql/i.test(t) ||
         !/0022_user_presence\.sql/i.test(t) ||
+        !/0023_directional_route_edge_geometry\.sql/i.test(t) ||
+        !/0024_vr_hotspot_guest_visibility\.sql/i.test(t) ||
+        !/0025_event_audience\.sql/i.test(t) ||
+        !/0026_admin_instructor_profile_integrity\.sql/i.test(t) ||
         !/owner-applied/i.test(t) ||
         !/must not reapply them/i.test(t) ||
         !/primary\/cascading foreign key/i.test(t) ||
@@ -6752,10 +7014,10 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
       problems.push('owner-applied migration, postflight, or MySQL parity boundary is incomplete');
     }
 
-    if (!/2026-09-02 freeze/i.test(t) ||
+    if (!/2026-09-06 freeze/i.test(t) ||
         !/MySQL remains at 34 buildings[^.]{0,220}44 route nodes[^.]{0,180}100 directed/i.test(t) ||
         !/671 scenes[^.]{0,100}1,397 hotspots[^.]{0,120}one selected schedule hotspot/i.test(t) ||
-        !/Supabase remains at 25 buildings[^.]{0,220}26 route nodes[^.]{0,180}50 directed/i.test(t) ||
+        !/Supabase remains at 25 buildings[^.]{0,220}26 route nodes[^.]{0,180}50 directed[^.]{0,120}25 reverse pairs[^.]{0,100}0 exact reverse geometries/i.test(t) ||
         !/664 scenes[^.]{0,100}1,374 hotspots[^.]{0,120}zero selected schedule hotspots/i.test(t) ||
         !/25 active Guided-VR destinations[^.]{0,120}472 configured steps[^.]{0,120}99 unique/i.test(t) ||
         !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
@@ -6772,7 +7034,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/BE\.6 `?46\/46`?/i.test(t) ||
         !/ICTU Docker `?49\/49`?/i.test(t) ||
         !/package boundary `?74\/74`?/i.test(t) ||
-        !/4809\/4809/i.test(t) || !/QUALITY-GATES OK/i.test(t) ||
+        !/4850\/4850/i.test(t) || !/QUALITY-GATES OK/i.test(t) ||
         !/DB-PERF-GATE OK/i.test(t) || !/\[supabase-smoke\] PASS/i.test(t) ||
         !/IDENTITY-CONSTRAINTS OK/i.test(t) || !/zero audit vulnerabilities/i.test(t) ||
         !/session residue passed `?18\/18`?/i.test(t) || !/git diff --check/i.test(t)) {
@@ -6788,7 +7050,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
       problems.push('Docker, bounded browser, logout, or observational-count evidence is incomplete');
     }
 
-    if (!/196 files[^.]{0,80}7,267,536 bytes/i.test(t) ||
+    if (!/197 files[^.]{0,80}7,299,447 bytes/i.test(t) ||
         !t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) ||
         !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
         !/No post-push Vercel deployment[^.]{0,220}deployed-byte identity/i.test(t) ||
@@ -6866,10 +7128,10 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/Codex did not mutate the database/i.test(t) ||
         !/Academic Building IV Mac Laboratory/i.test(t) ||
         !/intentional and retained/i.test(t) ||
-        !/freeze is dated 2026-09-02/i.test(t) ||
+        !/freeze is dated 2026-09-06/i.test(t) ||
         !/MySQL at 34 buildings[^.]{0,200}44 route nodes[^.]{0,200}100 directed/i.test(t) ||
         !/671 scenes[^.]{0,120}1,397 hotspots[^.]{0,120}one selected schedule hotspot/i.test(t) ||
-        !/Supabase at 25 buildings[^.]{0,200}26 route nodes[^.]{0,200}50 directed/i.test(t) ||
+        !/Supabase at 25 buildings[^.]{0,200}26 route nodes[^.]{0,200}50 directed[^.]{0,80}0 exact reverse pairs/i.test(t) ||
         !/664 scenes[^.]{0,120}1,374 hotspots[^.]{0,120}zero selected schedule hotspots/i.test(t) ||
         !/25 active Guided-VR destinations[^.]{0,120}472 configured steps[^.]{0,120}99 unique/i.test(t) ||
         !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
@@ -7607,7 +7869,7 @@ function reusablePromptIsCurrent(body) {
       t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) &&
       t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) &&
       t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) &&
-      /196 files[^.]{0,80}7,267,536 bytes/i.test(t) &&
+      /197 files[^.]{0,80}7,299,447 bytes/i.test(t) &&
       t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) &&
       t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /git ls-remote/i.test(t) &&
@@ -8082,17 +8344,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 196,
-  bytes: '7,267,536',
-  sha256: 'cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768',
+  files: 197,
+  bytes: '7,301,960',
+  sha256: 'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 196,
-  bytes: '7,288,870',
-  sha256: 'b7dfc58929c6baf1eaf5a2a7a2414e3b4e88f5dae46675eaaee5c339abda29eb',
+  files: 197,
+  bytes: '7,301,960',
+  sha256: 'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -8116,8 +8378,8 @@ function currentPackageInventoryProblems(manifest, expected = EXPECTED_CURRENT_P
    configuration and the evidence document. A coordinated config+docs edit
    therefore cannot silently redefine the reviewed backend/catalog truth. */
 const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
-  mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations',
-  supabase: 'Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations',
+  mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
+  supabase: 'Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
   guidedCatalog: 'the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys',
   be6Result: 'BE.6 freeze remains 46/46',
 });
@@ -8126,8 +8388,8 @@ const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
    complete fail-closed arrival contract. This pin is independent of the demo
    document and the runtime resolver. */
 const EXPECTED_CURRENT_DEMO_ROUTING = Object.freeze({
-  mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations',
-  supabase: 'Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations',
+  mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
+  supabase: 'Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
   guidedCatalog: 'Guided VR covers 25 active destinations, 472 configured steps, and 99 unique scene keys',
   naturalEndpoint: 'the configured natural destination node',
   storedMappings: 'stored start and arrival scene mappings',
@@ -8157,12 +8419,12 @@ const EXPECTED_CURRENT_DEMO_SEQUENCE = Object.freeze([
 /* The exact current candidate total is pinned independently of both evidence
    documents. Adding a check without synchronizing both current npm-test and QA
    dispositions must fail closed instead of leaving neighbouring stale totals. */
-// The current source transcript registers 4,809 checks after the profile-image,
-// presence, ICTU Docker, shared button/theme, and current UI additions. The latest clean run measured 4,809
+// The current source transcript registers 4,850 checks after the event-audience
+// and current route/freeze additions. The latest clean run measured 4,850
 // PASS with the final canonical residue postcondition at 18/18. The narrow
 // documented-session-exception parser remains for an owner-preserved-session
 // run, but it is not the current disposition.
-const EXPECTED_CURRENT_QUALITY_TOTAL = 4809;
+const EXPECTED_CURRENT_QUALITY_TOTAL = 4850;
 
 const REQUIRED_CURRENT_QA_EVIDENCE_MARKERS = Object.freeze([
   'QUALITY-GATES OK',
@@ -8959,7 +9221,7 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
  */
 function analyzeCurrentQaStageMarkers(testEvidenceMd, securityChecklistMd,
   requiredMarkers = REQUIRED_CURRENT_QA_EVIDENCE_MARKERS,
-  expectedTotal = 4809) {
+  expectedTotal = 4850) {
   const specs = [
     {
       label: 'test-evidence current Full QA aggregate',
@@ -9541,8 +9803,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-05';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-05';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-06';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-06';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -9581,17 +9843,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-05)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-05)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
-    'plan.md': '## Current Release Continuity (2026-09-05)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-05)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-05 (Asia/Manila)\n## Current Release Continuity (2026-09-05)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-05)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-05)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-05)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-05)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-06)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-06)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'plan.md': '## Current Release Continuity (2026-09-06)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-06)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-06 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-06)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-06)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-06)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-06)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -10091,7 +10353,7 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 5 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
+  ok('fixture: current September 6 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -10334,6 +10596,8 @@ function runDocsCurrentGate() {
      superseded R5 and premature R7 instructions elsewhere. */
   const CURRENT_M12_STATUS_START = '<!-- M12.P1 CURRENT STATUS START -->';
   const CURRENT_M12_STATUS_END = '<!-- M12.P1 CURRENT STATUS END -->';
+  const OPERATIVE_SOURCE_STATUS_START = '<!-- M12.P1 OPERATIVE SOURCE CANDIDATE START -->';
+  const OPERATIVE_SOURCE_STATUS_END = '<!-- M12.P1 OPERATIVE SOURCE CANDIDATE END -->';
 
   function currentM12Status(value) {
     const text = String(value == null ? '' : value);
@@ -10343,7 +10607,18 @@ function runDocsCurrentGate() {
     const start = text.indexOf(CURRENT_M12_STATUS_START) + CURRENT_M12_STATUS_START.length;
     const end = text.indexOf(CURRENT_M12_STATUS_END, start);
     if (end < start) return null;
-    return text.slice(start, end).replace(/^>\s?/gm, '').replace(/\s+/g, ' ').trim();
+    const body = text.slice(start, end);
+    const operativeStarts = body.split(OPERATIVE_SOURCE_STATUS_START).length - 1;
+    const operativeEnds = body.split(OPERATIVE_SOURCE_STATUS_END).length - 1;
+    if (operativeStarts === 1 && operativeEnds === 1) {
+      const operativeStart = body.indexOf(OPERATIVE_SOURCE_STATUS_START) + OPERATIVE_SOURCE_STATUS_START.length;
+      const operativeEnd = body.indexOf(OPERATIVE_SOURCE_STATUS_END, operativeStart);
+      if (operativeEnd < operativeStart) return null;
+      return body.slice(operativeStart, operativeEnd)
+        .replace(/^>\s?/gm, '').replace(/\s+/g, ' ').trim();
+    }
+    if (operativeStarts !== 0 || operativeEnds !== 0) return null;
+    return body.replace(/^>\s?/gm, '').replace(/\s+/g, ' ').trim();
   }
 
   /* RETARGETED FOR ACCEPTED TECHNICAL PRODUCTION AUTHORITY.
@@ -10352,6 +10627,20 @@ function runDocsCurrentGate() {
      and future manual-promotion boundary must all remain explicit. */
   function declaresR7GoAuthority(value) {
     const t = String(value == null ? '' : value).replace(/\s+/g, ' ');
+    if (isCurrentSourceCandidateStatus(t)) {
+      return (
+        /\bhistorical\s+accepted\s+R1-R7,\s*D1-D5,\s*and\s*expanded\s*D7\s+evidence\b/i.test(t) &&
+        /\bdependency-security remediation\b/i.test(t) &&
+        currentCandidateVerificationProblems(t, EXPECTED_CURRENT_QUALITY_TOTAL).length === 0 &&
+        currentSourceCandidateLifecycleProblems(t).length === 0 &&
+        keepsM12P1NoGo(t) &&
+        !/\bR5\b[^.]{0,180}\b(?:next|not started|unimplemented|awaiting independent Codex (?:re-)?review|no (?:R5 )?(?:Codex )?GO)\b/i.test(t) &&
+        !/\bR6\b[^.]{0,180}\b(?:next|not started|unimplemented|awaiting independent Codex (?:re-)?review)\b/i.test(t) &&
+        !/\bR7\b[^.]{0,180}\b(?:next owner-authorized code section|awaiting independent Codex (?:re-)?review)\b/i.test(t) &&
+        !/\b(?:expanded\s+)?D7\b[^.]{0,180}\b(?:next potential section|not started|awaiting independent Codex (?:re-)?review|blocked by R7 Codex GO)\b/i.test(t) &&
+        !/\bR8\b(?:\s+is)?\s+(?:authorized|may\s+begin|has\s+started|complete|completed)\b/i.test(t)
+      );
+    }
     return (
       /\bR1-R7\b[\s\S]{0,180}\b(?:and\s+)?D1-D5\b[\s\S]{0,160}\b(?:and\s+)?(?:expanded\s+)?D7\b[\s\S]{0,160}\b(complete|completed)\b[\s\S]{0,100}\bCodex GO\b/i.test(t) &&
       /\bdependency-security remediation\b/i.test(t) &&
@@ -11412,14 +11701,14 @@ function runDocsCurrentGate() {
     const M_TAIL = '\n\n## Screenshot And Recording Checklist\n\n| Area | Scenario | Steps | Expected result | Status | Evidence reference |\n| x | y | z | w | Pending | |\n';
 
     const QA_STAGE_EVIDENCE = '`QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities`';
-    const Q_QA_CURRENT = '| Full QA aggregate (ICTU Docker handoff implementation evidence) | `npm run qa` | all five stages green | **4809/4809 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const Q_QA_CURRENT = '| Full QA aggregate (ICTU Docker handoff implementation evidence) | `npm run qa` | all five stages green | **4850/4850 PASS - all five stages, exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
     const Q_QA_PENDING = '| Full QA aggregate | `npm run qa` | all five stages green | Pending | |';
     const Q_QA_HISTORICAL = '| Full QA aggregate (RF.6-era placeholder) - historical/superseded | `npm run qa` | all five stages green | **Historical/superseded - replaced by the current row above** | see the current M12.P1-R8 row; `QUALITY-GATES OK` |';
 
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys |';
+    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys |';
     const M_ROUTE_STALE = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The refreshed BE.6 selected-demo candidate holds at 46/46 with 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 13 routable destinations in both backends |';
     const M_ROUTE_WRONG_MYSQL_COUNT = M_ROUTE_CURRENT.replace('44 route nodes', '43 route nodes');
     const DEMO_OK = [
@@ -11444,27 +11733,27 @@ function runDocsCurrentGate() {
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
     const M_SMOKE_NO_BASELINE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app, baseline not recorded |';
 
-    const SUITE_CURRENT = '| Full contract suite (ICTU Docker handoff implementation evidence) | `npm test` | zero fail | **4809/4809 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
+    const SUITE_CURRENT = '| Full contract suite (ICTU Docker handoff implementation evidence) | `npm test` | zero fail | **4850/4850 PASS - accepted local evidence** | `QUALITY-GATES OK`; replacement verification and separate clean-commit R8 review control release disposition |';
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 196 files, 7,267,536 bytes, aggregate SHA-256 `cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
 
-    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4809/4809 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
-    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4809/4809 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
-    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4806/4806 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4809/4809 appears only in neighbouring prose |';
+    const EXACT_SUITE_OK = '| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | zero fail | **4850/4850 PASS - accepted local evidence** | `QUALITY-GATES OK` |';
+    const EXACT_QA_OK = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4850/4850 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + ' |';
+    const EXACT_QA_MISMATCH = '| Full QA aggregate (M12.P1-D6 accepted local candidate) | `npm run qa` | all green | **4847/4847 PASS - exit 0** | ' + QA_STAGE_EVIDENCE + '; 4850/4850 appears only in neighbouring prose |';
     const SEC_COMMAND_HDR = '| Command | Expected result | Status | Evidence reference |\n| --- | --- | --- | --- |\n';
-    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4809/4809 PASS (automated)** | `QUALITY-GATES OK` |';
-    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4809/4809 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
+    const SEC_NPM_TEST_OK = '| `npm test` | contracts pass | **4850/4850 PASS (automated)** | `QUALITY-GATES OK` |';
+    const SEC_NPM_QA_OK = '| `npm run qa` | aggregate passes | **4850/4850 PASS (automated)** | ' + QA_STAGE_EVIDENCE + ' |';
     const SEC_NPM_QA_BARE = '| `npm run qa` | aggregate passes | **PASS (automated)** | `QUALITY-GATES OK`; a neighbouring historical note says 4998/4998 |';
 
     /* Schedule-audit fixtures are REAL SOURCE SHAPES, because the analyzer is
@@ -12638,8 +12927,11 @@ async function runBoundedAnonymousDenialGate() {
     const minimalInstructorMigration = readIf(path.join('database', 'supabase', '0021_minimal_instructor_oauth_registration.sql'));
     const presenceMigration = readIf(path.join('database', 'supabase', '0022_user_presence.sql'));
     const directionalGeometryMigration = readIf(path.join('database', 'supabase', '0023_directional_route_edge_geometry.sql'));
-    ok('Supabase migration sources are contiguous through prepared 0023 (directional geometry SQL remains owner-applied)',
-      numbers.length === 23 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+    const guestVisibilityMigration = readIf(path.join('database', 'supabase', '0024_vr_hotspot_guest_visibility.sql'));
+    const eventAudienceMigration = readIf(path.join('database', 'supabase', '0025_event_audience.sql'));
+    const adminInstructorMigration = readIf(path.join('database', 'supabase', '0026_admin_instructor_profile_integrity.sql'));
+    ok('Supabase migration sources are contiguous through 0026 (admin instructor-profile SQL source is present)',
+      numbers.length === 26 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
       migrations.includes('0020_room_schedule_documents.sql') &&
       migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
       /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration) &&
@@ -12647,7 +12939,19 @@ async function runBoundedAnonymousDenialGate() {
       /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(presenceMigration) &&
       migrations.includes('0023_directional_route_edge_geometry.sql') &&
       /source-only|owner-applied/i.test(directionalGeometryMigration) &&
-      /app_set_route_edge_geometry_one_way/i.test(directionalGeometryMigration));
+      /app_set_route_edge_geometry_one_way/i.test(directionalGeometryMigration) &&
+      migrations.includes('0024_vr_hotspot_guest_visibility.sql') &&
+      /source-only|owner-applied/i.test(guestVisibilityMigration) &&
+      /guest_visible\s+boolean\s+NOT NULL\s+DEFAULT\s+false/i.test(guestVisibilityMigration) &&
+      migrations.includes('0025_event_audience.sql') &&
+      /prepared for the owner to apply|owner-applied/i.test(eventAudienceMigration) &&
+      /audience\s+IN\s*\('all',\s*'student-cspc',\s*'instructor',\s*'guest',\s*'admin'\)/i.test(eventAudienceMigration) &&
+      migrations.includes('0026_admin_instructor_profile_integrity.sql') &&
+      /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(adminInstructorMigration) &&
+      /app_create_admin_managed_user/i.test(adminInstructorMigration) &&
+      /app_update_admin_managed_user/i.test(adminInstructorMigration) &&
+      /instructor_profiles/i.test(adminInstructorMigration) &&
+      /service_role/i.test(adminInstructorMigration));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',
@@ -13074,6 +13378,13 @@ const NOTIFICATION_PANEL_PROBES = [
   ['notification panel contracts', 'notificationPanel-probe.js'],
 ];
 
+// Role-targeted campus events: the admin form/API, additive dual-backend
+// schema, and every participant-facing event projection stay in sync. This
+// focused source probe is database-free and network-free.
+const EVENT_AUDIENCE_PROBES = [
+  ['event audience contracts', 'eventAudience-probe.js'],
+];
+
 // M12.P1-D4: admin campus-map search/filter — bounded `q` text search with
 // backend-parity metacharacter encoding, additive appliedFilters metadata,
 // stale-response protection, and the repaired route/node/edge and
@@ -13210,6 +13521,12 @@ const USER_PRESENCE_PROBES = [
   ['five-minute user presence contracts', 'userPresence-probe.js'],
 ];
 
+// Admin-managed instructor profile integrity: the minimal instructor identity
+// contract plus migration 0026 and both admin create/role-promotion paths.
+const ADMIN_INSTRUCTOR_PROFILE_PROBES = [
+  ['admin instructor profile contracts', 'instructorMinimalProfile-probe.js'],
+];
+
 /* FINAL gate: after every other spawned probe has run and cleaned up, assert the
    POSTCONDITION directly in the stores — zero unexpired persisted sessions for
    any canonical regression identity. Per-request logout/cookie/replay checks
@@ -13247,6 +13564,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Site settings QA] (admin-managed About/footer projection + allowlist + safe fallbacks)' },
   { key: 'notifications', prefix: 'notifications', probes: NOTIFICATION_PANEL_PROBES,
     heading: '[Notification panel QA] (role-safe announcements + upcoming events + accessible disclosure)' },
+  { key: 'event-audience', prefix: 'event-audience', probes: EVENT_AUDIENCE_PROBES,
+    heading: '[Event audience QA] (admin targeting + dual-backend schema + role-safe participant feeds)' },
   { key: 'vr-hotspot-nav', prefix: 'vr-hotspot-nav', probes: VR_HOTSPOT_NAV_PROBES,
     heading: '[VR hotspot navigation QA] (M12.P1-D3 shared helper + native Pannellum link contract)' },
   { key: 'vr-theme', prefix: 'vr-theme', probes: VR_THEME_PROBES,
@@ -13281,6 +13600,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[ICTU Docker QA] (one app container + external Supabase + health/operations contracts)' },
   { key: 'user-presence', prefix: 'user-presence', probes: USER_PRESENCE_PROBES,
     heading: '[Five-minute user presence QA] (policy + dual-backend schema/write/read + visible heartbeat lifecycle)' },
+  { key: 'admin-instructor-profile', prefix: 'admin-instructor-profile', probes: ADMIN_INSTRUCTOR_PROFILE_PROBES,
+    heading: '[Admin instructor profile QA] (minimal profile on create and role promotion)' },
   /* LAST by construction: every session-creating probe above has finished, so
      the store-level postcondition is meaningful. */
   { key: 'session-residue', prefix: 'session-residue', probes: SESSION_RESIDUE_PROBES,
@@ -14288,6 +14609,7 @@ module.exports = {
   dashboardOmitsNavigateBuildings,
   extractReusablePrompts,
   guestOverviewSummaryCardContract,
+  guestDashboardBuildingCountContract,
   guestDashboardNavigationContract,
   homeCurrentDataContract,
   homeQuickAccessContract,

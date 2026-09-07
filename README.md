@@ -7,6 +7,7 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Server-rendered EJS views with shared partials (`head`, `navbar`, `dash-navbar`, `footer`).
 - Session-based authentication (`express-session` + `bcrypt`) with Google OAuth as a second sign-in path.
 - Role-based access control (`student-cspc`, `instructor`, `admin`, `guest`) via `middleware/roleAuth.js`.
+- Signed-in guests can browse every building and 360 scene; room schedules stay participant-only and VR information hotspots require explicit guest approval.
 - Domain-to-role mapping at OAuth registration (`@my.cspc.edu.ph` → student, `@cspc.edu.ph` → instructor, `@gmail.com` → guest).
 - Admin namespace at `/admin` with JSON CRUD endpoints under `/admin/api/*` for users, news, events, and buildings.
 - MySQL persistence via a shared `mysql2/promise` pool (`config/db.js`).
@@ -73,7 +74,29 @@ If `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is missing, the OAuth flow is si
 
 #### Supabase (cloud data target)
 
-CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0022`; `0001`-`0022` are owner-applied. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the 17-argument OAuth-profile RPC while removing the old instructor-field guard; it must not be reapplied without fresh owner authorization. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp per account; it is not backfilled. See **[docs/deployment.md](docs/deployment.md)** for env vars and apply order. Migrations `0011_supabase_session_store.sql`, `0012_room_schedules.sql`, and `0013_vr_hotspot_schedule_metadata.sql` provide Supabase sessions and the preserved legacy schedule fallback. Owner-applied migrations `0014`-`0019` provide the verified road graph, owner-managed edge geometry, atomic admin geometry writes, the authoritative Guard House topology, the CAS baseline, and selected-demo parity. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The historical route/data freeze remains scoped through `0020` because `0021` is auth-only; the additive presence migration does not change any frozen counts or fingerprints: MySQL is frozen at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, and 50 valid geometries; and the shared catalog at 25 active Guided VR destinations, 472 configured steps, and 99 unique scene keys. `config/selectedDemoFreeze.js` records those backend-specific facts without disabling normal admin edits or future reviewed additions.
+#### Admin-managed instructor profiles (working-tree candidate, 2026-09-07)
+
+Admin user creation and editing now preserve the one-to-one role-profile
+invariant for instructors on both MySQL and Supabase. Creating an instructor,
+or promoting an existing account to instructor, creates exactly one minimal
+`instructor_profiles` row with blank legacy fields and `Active` status when one
+does not already exist. Existing profile values are preserved, and changing a
+role away from instructor does not delete the profile. Supabase migration
+`0026_admin_instructor_profile_integrity.sql` contains the conflict-safe
+backfill and server-only RPCs. The owner has applied it; Codex did not apply or
+reapply it. This auth/profile change does not alter campus, route, VR, event, or
+selected-freeze data.
+
+The current owner-applied route/data baseline spans migrations `0001`-`0020`;
+additive owner-applied migrations `0021`-`0026` follow it. Codex did not apply
+or reapply 0026.
+
+The migration summary in the next paragraph is retained as historical setup
+context; the owner-applied status above is the current authority.
+
+CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0026`; migrations `0001`-`0025` are owner-applied, and Codex did not apply or reapply 0024 or 0025. Source-only `0026_admin_instructor_profile_integrity.sql` is pending one explicit owner application. Do not reapply an owner-applied migration without fresh explicit authorization. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the 17-argument OAuth-profile RPC while removing the old instructor-field guard; it must not be reapplied without fresh owner authorization. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp per account; it is not backfilled. Directional geometry migration `0023_directional_route_edge_geometry.sql` provides the service-role-only independent reverse-geometry save path. Guest visibility migration `0024` adds the explicit `vr_hotspots.guest_visible` policy bit; scene/exit navigation remains guest-visible, schedule hotspots remain private, and only checked information hotspots are guest-visible. Event audience migration `0025` adds role-targeted visibility for events. Migration `0026` adds conflict-safe instructor-profile backfill plus server-only admin create/update functions; it is auth/profile-only and does not alter any freeze data. See **[docs/deployment.md](docs/deployment.md)** for env vars and apply order. Migrations `0011_supabase_session_store.sql`, `0012_room_schedules.sql`, and `0013_vr_hotspot_schedule_metadata.sql` provide Supabase sessions and the preserved legacy schedule fallback. Owner-applied migrations `0014`-`0019` provide the verified road graph, owner-managed edge geometry, atomic admin geometry writes, the authoritative Guard House topology, the CAS baseline, and selected-demo parity. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The historical route/data freeze remains scoped through `0020` because `0021` is auth-only; additive migrations `0022`-`0026` do not change any frozen counts or fingerprints: MySQL is frozen at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 0 exact reverse pairs, 50 valid geometries; and the shared catalog at 25 active Guided VR destinations, 472 configured steps, and 99 unique scene keys. `config/selectedDemoFreeze.js` records those backend-specific facts without disabling normal admin edits or future reviewed additions.
+
+The current route count distinction is explicit: a reverse pair is a pair of directed edges, while an exact reverse geometry is a byte-equivalent mirrored drawing. MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid geometries. Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid geometries. The selected freeze therefore preserves separately authored exits while all 100/50 directed geometries remain valid.
 
 Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary delivery metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room scheduling stores one admin-managed current-semester image per room or facility; this admin-managed data is not SIS, enrollment, assigned-class, or instructor-load simulation. Schedule hotspots link to that stable record. `SCHEDULE_DATA_SOURCE` must match `BUILDING_DATA_SOURCE` for building-linked flows and `VR_DATA_SOURCE` for new schedule hotspots; numeric IDs are never guessed across backends. Admins provide an HTTPS Cloudinary delivery URL; CampuSphere does not upload, transform, or delete the asset. Legacy time rows remain read-only fallback data during transition, and schedule images remain outside offline-guide packages. Offline-guide downloads include separately authored Main Gate entry routes and building-to-Main-Gate exit routes when the reverse geometry is reachable, explicitly drawn, valid, and distinct from the entry path.
 
@@ -173,10 +196,19 @@ The server listens on `PORT` (default `3000`).
 
 ## Deployment
 
+Guest visibility, event-audience, and instructor-profile note: migrations
+`0023_directional_route_edge_geometry.sql`,
+`0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and
+`0026_admin_instructor_profile_integrity.sql` are owner-applied. Codex did not
+apply or reapply 0026. Do not reapply any owner-applied migration without
+fresh explicit authorization.
+
 See **[docs/deployment.md](docs/deployment.md)** for the full deployment and
 environment guide: every required env var, server-only secret handling, the
-Supabase SQL apply order (`0001`–`0022`; `0020`, `0021`, and `0022` are
-owner-applied and must not be reapplied without fresh authorization), MySQL fallback seed steps, production
+Supabase SQL apply order (`0001`–`0025`; all listed migrations are owner-applied),
+`0026` is owner-applied by the owner; Codex did not apply or reapply it.
+MySQL fallback seed steps,
+production
 session/cookie/proxy policy, CSRF/rate-limit/Helmet/PWA boundaries, OAuth
 redirect-URI variants, the QA gates, and troubleshooting. Container packaging is
 provided by `Dockerfile`, `.dockerignore`, the ICTU production

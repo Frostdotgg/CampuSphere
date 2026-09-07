@@ -12,8 +12,7 @@
      - as the seeded student: scheduled+all visible, scheduled+student-cspc
        visible, scheduled+instructor NOT visible, cancelled/completed NOT
        visible, guest-audience NOT visible
-     - as a throwaway guest: scheduled+guest visible, scheduled+student-cspc
-       NOT visible
+     - as a throwaway guest: schedule discovery is denied with HTTP 403
      - rows carry the PUBLIC shape only (no id / building_id /
        created_by_user_id / created_at / updated_at keys)
      - rows ordered by schedule_date ASC, start_time ASC
@@ -272,7 +271,7 @@ async function runMode(mode, base) {
     r = await jfetch(url + windowQs + '&location_type=hallway&location_label=x', { headers: sh });
     check(mode, 'invalid location type -> 400', r.status === 400 && !!r.json && r.json.success === false);
 
-    // ---- guest visibility ----
+    // ---- guest denial ----
     const guest = await login(GUEST_EMAIL, GUEST_PASS);
     check(mode, 'guest login -> 302', guest.ok);
     // NOT registered with the tracker: this is a THROWAWAY probe-created guest
@@ -282,10 +281,8 @@ async function runMode(mode, base) {
     if (guest.ok) guestJar = guest.jar;
     if (guest.ok) {
       r = await jfetch(url + windowQs, { headers: { Cookie: guest.jar.header(), Accept: 'application/json' } });
-      const gTitles = titlesOf(r);
-      check(mode, 'guest sees scheduled + audience guest', r.status === 200 && gTitles.includes(T('F')));
-      check(mode, 'guest sees scheduled + audience all', gTitles.includes(T('A')));
-      check(mode, 'guest does NOT see audience student-cspc', !gTitles.includes(T('B')));
+      check(mode, 'guest is denied room schedules with 403',
+        r.status === 403 && !!r.json && r.json.success === false);
     }
 
     // ---- invalid inputs (as the logged-in student) ----

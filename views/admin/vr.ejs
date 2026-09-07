@@ -291,6 +291,13 @@
                             <option value="schedule">schedule - show room/facility schedule</option>
                         </select>
                     </div>
+                    <div class="form-group" id="vr-hotspot-guest-visibility-group" style="display:none;">
+                        <label for="vr-hotspot-guest-visible" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" name="guest_visible" id="vr-hotspot-guest-visible">
+                            <span>Visible to guests</span>
+                        </label>
+                        <p class="form-hint">Only information hotspots can be approved for guests. Scene and exit hotspots are always visible; schedules are always private.</p>
+                    </div>
                     <div class="form-group">
                         <label for="vr-hotspot-label">Label</label>
                         <input type="text" name="label" id="vr-hotspot-label" class="ui-input" maxlength="150" required placeholder="e.g. Go to Library">

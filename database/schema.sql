@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS events (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL,
+    audience VARCHAR(30) NOT NULL DEFAULT 'all',
     event_date DATE NOT NULL,
     description TEXT,
     location VARCHAR(255),
@@ -194,7 +195,10 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     -- Section 8.8 follow-up: events lists order by event_date. Supabase parity.
-    KEY idx_events_event_date (event_date)
+    KEY idx_events_event_date (event_date),
+    KEY idx_events_audience_event_date (audience, event_date, id),
+    CONSTRAINT chk_events_audience
+        CHECK (audience IN ('all','student-cspc','instructor','guest','admin'))
 );
 
 CREATE TABLE IF NOT EXISTS faqs (
@@ -319,6 +323,10 @@ CREATE TABLE IF NOT EXISTS vr_hotspots (
     hotspot_type VARCHAR(20) NOT NULL DEFAULT 'scene',
     label VARCHAR(150) NOT NULL,
     `text` TEXT,
+    -- Guests see only explicitly approved info hotspots. Scene/exit values
+    -- are canonicalized to visible and schedule values to hidden by the admin
+    -- controller; the default is fail-closed for new rows.
+    guest_visible TINYINT(1) NOT NULL DEFAULT 0,
     -- Milestone 11.8A: optional room/facility schedule target metadata for
     -- VR "door" hotspots. Existing scene/info/exit hotspots keep these NULL.
     schedule_building_id INT NULL,

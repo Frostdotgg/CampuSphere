@@ -1336,7 +1336,7 @@
     <div class="stat-cards">
 
 
-      <div class="stat-card"><div class="stat-card__icon stat-card__icon--blue">🏢</div><div class="stat-card__label">Buildings</div><div class="stat-card__value stat-card__value--sm"><%%= guestBuildings.length %%></div></div>
+      <div class="stat-card"><div class="stat-card__icon stat-card__icon--blue">🏢</div><div class="stat-card__label">Buildings</div><div id="guest-overview-building-count" class="stat-card__value stat-card__value--sm"><%= guestBuildingCount === null ? 'Unavailable' : guestBuildingCount %></div></div>
 
 
       <div class="stat-card"><div class="stat-card__icon stat-card__icon--green">📰</div><div class="stat-card__label">News</div><div class="stat-card__value stat-card__value--sm"><%%= news.length %%></div></div>

@@ -50,7 +50,7 @@ const SCENE_ADMIN_COLS_SQL =
 // MySQL hotspot read-back: editable columns + the target scene_key for display.
 const HOTSPOT_SELECT_SQL =
   'SELECT h.id, h.scene_id, h.target_scene_id, h.hotspot_type, h.label, ' +
-  'h.`text` AS text, h.yaw, h.pitch, h.display_order, ' +
+  'h.`text` AS text, h.guest_visible, h.yaw, h.pitch, h.display_order, ' +
   'h.schedule_building_id, h.schedule_location_type, h.schedule_location_label, h.schedule_floor_label, ' +
   'h.schedule_document_id, ' +
   't.scene_key AS target_scene_key, t.title AS target_title ' +
@@ -162,6 +162,13 @@ function parseOrder(raw) {
     return { ok: true, value: n };
   }
   return { ok: false };
+}
+
+function parseGuestVisible(raw) {
+  if (raw === undefined) return { ok: true, value: false };
+  return typeof raw === 'boolean'
+    ? { ok: true, value: raw }
+    : { ok: false, value: false };
 }
 
 // yaw/pitch: blank -> 0; otherwise a finite number within [min, max]. Accepts
@@ -287,6 +294,17 @@ function validateHotspot(body) {
   const order = parseOrder(body.display_order);
   if (!order.ok) return { ok: false, message: 'Display order must be a whole number between 0 and ' + ORDER_MAX + '.' };
 
+  const guestVisibleInput = parseGuestVisible(body.guest_visible);
+  if (!guestVisibleInput.ok) return { ok: false, message: 'Guest visibility must be a boolean.' };
+  // Scene/exit hotspots are navigation and arrival affordances and are always
+  // visible to guests. Schedules are always private. Only info hotspots use
+  // the administrator-controlled checkbox (default: hidden).
+  const guest_visible = type === 'scene' || type === 'exit'
+    ? true
+    : type === 'info'
+      ? guestVisibleInput.value === true
+      : false;
+
   // 'scene' hotspots require a valid target; other types store NULL.
   let target_scene_id = null;
   if (type === 'scene') {
@@ -314,6 +332,7 @@ function validateHotspot(body) {
       hotspot_type: type,
       label: label.value,
       text: text.value,
+      guest_visible,
       yaw: yaw.value,
       pitch: pitch.value,
       display_order: order.value,
@@ -571,9 +590,10 @@ exports.createHotspot = async (req, res) => {
         }
         await assertScheduleHotspotDocument(v.value, conn);
         const [result] = await conn.query(
-          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order) ' +
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, guest_visible, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order) ' +
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [sceneId, v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
+           v.value.guest_visible,
            v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
            v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order]
         );
@@ -620,8 +640,9 @@ exports.updateHotspot = async (req, res) => {
         }
         await assertScheduleHotspotDocument(v.value, conn);
         await conn.query(
-          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, schedule_building_id = ?, schedule_location_type = ?, schedule_location_label = ?, schedule_floor_label = ?, schedule_document_id = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
+          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, guest_visible = ?, schedule_building_id = ?, schedule_location_type = ?, schedule_location_label = ?, schedule_floor_label = ?, schedule_document_id = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
           [v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
+           v.value.guest_visible,
            v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
            v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order, id]
         );

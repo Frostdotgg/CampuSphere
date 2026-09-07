@@ -154,7 +154,7 @@ async function loadNotificationFeed(role, now = new Date()) {
   if (contentDataSource.isSupabase()) {
     const [announcements, events] = await Promise.all([
       contentRepository.listAnnouncementsForRole(normalizedRole, { limit: ANNOUNCEMENT_LIMIT }),
-      contentRepository.listEvents({ from: today, limit: EVENT_LIMIT })
+      contentRepository.listEventsForRole(normalizedRole, { from: today, limit: EVENT_LIMIT })
     ]);
     return buildNotificationFeed({ announcements, events, role: normalizedRole });
   }
@@ -179,9 +179,10 @@ async function loadNotificationFeed(role, now = new Date()) {
               description, created_at, updated_at
          FROM events
         WHERE event_date >= ?
+          AND ${audienceSql}
         ORDER BY event_date ASC, id ASC
         LIMIT ${EVENT_LIMIT}`,
-      [today]
+      [today, ...audienceParams]
     )
   ]);
 

@@ -12,6 +12,7 @@ const scheduleRepository = require('../repositories/scheduleRepository');
 const routeAvailability = require('../services/routeAvailability');
 const V = require('../utils/adminValidation');
 const { logServerError } = require('../utils/serverLog');
+const { canViewRoomSchedules } = require('../utils/participantVisibility');
 
 // Public schedule window bounds (Milestone 11, Section 11.6; domain contract):
 // default Asia/Manila today through the next 14 days inclusive, max 90 days.
@@ -83,7 +84,8 @@ exports.index = async (req, res, next) => {
       title: 'CampuSphere | Buildings',
       description: 'Explore all campus buildings at Camarines Sur Polytechnic Colleges.',
       activeTab: 'tabBuildings',
-      buildings: decorated.buildings.map(withParticipantDetails)
+      buildings: decorated.buildings.map(withParticipantDetails),
+      canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
     });
   } catch (err) {
     // Delegate to the centralized error handler so this browser page returns the

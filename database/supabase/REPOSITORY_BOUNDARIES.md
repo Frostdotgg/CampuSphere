@@ -100,7 +100,7 @@ reason the boundary exists in the first place.
 | Current callers | `controllers/authController.js` (registerPost, loginPost, googleCallback, completeRegistrationPost, hydrateSessionUser, loadRoleProfileIntoSession, createOAuthUserWithProfile, findUserByEmail, best-effort presence touch), `controllers/profileController.js` (updateProfile), `controllers/dashboardController.js` (student/instructor profile fetch), `controllers/adminController.js` (index - recent users `LIMIT 5` + `COUNT(*)` total users / total students where `role='student-cspc'`; users page - explicit safe user projection, one batched presence read, Online/Offline and new-this-month counts), `controllers/adminUsersController.js` (admin API CRUD cleanup: createUser, updateUser, deleteUser), `controllers/presenceController.js` (authenticated heartbeat and admin-only snapshot). |
 | MySQL tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles`, `user_presence` |
 | Supabase tables | `users`, `student_profiles`, `instructor_profiles`, `guest_profiles` (defined in `0001_initial_schema.sql` section B.1), plus the server-only `user_presence` table from owner-applied migration `0022_user_presence.sql` |
-| Role/security | Local accounts use bcrypt hashes; OAuth accounts carry `oauth_provider='google'` + `oauth_subject`. Admin role creation stays seed-only / direct-DB-only (no public path). The `IMMUTABLE_FIELDS` rule in `profileController.js` (role/email/id/password) must continue to be enforced by the controller; the repository must not provide a way to update those four fields. |
+| Role/security | Local accounts use bcrypt hashes; OAuth accounts carry `oauth_provider='google'` + `oauth_subject`. Admin-managed role creation/update is restricted to the admin-only route and server-only RPC; there is no public path. The `IMMUTABLE_FIELDS` rule in `profileController.js` (role/email/id/password) must continue to be enforced by the controller; the repository must not provide a way to update those four fields. |
 
 Method responsibilities (no implementation; signatures only):
 
@@ -123,6 +123,12 @@ Method responsibilities (no implementation; signatures only):
   `upsertGuestProfile(userId, fields)` -> void. Mirror the existing
   INSERT-if-missing / UPDATE-if-existing pattern in
   `profileController.js`.
+- `createAdminManagedUser(payload)` -> inserted id. Calls the
+  server-only `app_create_admin_managed_user` RPC; migration `0026` ensures an
+  instructor role always receives one minimal profile row.
+- `updateAdminManagedUser(userId, fields)` -> void. Calls the
+  server-only `app_update_admin_managed_user` RPC so an admin role promotion
+  into instructor and its minimal profile are one transaction.
 
 Admin read-only helpers (consumed by `adminController.js`):
 
@@ -160,6 +166,11 @@ Migration notes:
 - Email lookup must remain case-insensitive (current MySQL uses
   `LOWER(TRIM(email)) = ?`). Supabase implementation should mirror
   this, e.g. `.ilike('email', email.trim())` with strict equality.
+- Migration `0026_admin_instructor_profile_integrity.sql` is auth/profile-only:
+  its one-time backfill inserts only missing instructor profiles, preserves
+  existing profile values, and does not remove profiles when a role changes
+  away from instructor. The project owner has applied it; Codex did not apply
+  or reapply it.
 
 ## 6. Boundary 2 - buildings
 
@@ -222,8 +233,8 @@ Migration notes:
 | Proposed file | `repositories/contentRepository.js` |
 | Current callers | `controllers/dashboardController.js` (audience-filtered announcements), `controllers/eventsController.js` (index - public `/events` page; requests `event_date DESC`, then `id DESC`, and reshapes rows into `{id, title, category, dateObj, desc, location, time}` for the EJS template), `controllers/pageController.js` (bounded latest-event projection for `/home`), `controllers/adminContentController.js` (CRUD for news + events), `controllers/adminController.js` (index - recent news `LIMIT 4` ordered by `published_date DESC` + `COUNT(*)` total news on the admin dashboard; news page - full articles list ordered by `created_at DESC`, full events list ordered by `event_date DESC`, plus totalArticles / published / drafts / totalEvents stats). |
 | MySQL tables | `news_announcements`, `events` |
-| Supabase tables | `news_announcements` (with `audience` CHECK), `events` (defined in `0001_initial_schema.sql` section B.2) |
-| Role/security | Read of announcements respects `audience` ('all' or session role). Drafts (`published_date IS NULL`) are never returned to dashboards. Writes are admin-only at the route layer; category/audience allowlists in `adminContentController.js` stay in the controller. |
+| Supabase tables | `news_announcements` (with `audience` CHECK), `events` (with the additive `audience` CHECK from `0025_event_audience.sql`) |
+| Role/security | Participant reads of announcements and events respect `audience` ('all' or session role). Drafts (`published_date IS NULL`) are never returned to dashboards. Writes are admin-only at the route layer; category/audience allowlists in `adminContentController.js` stay in the controller. |
 
 Method responsibilities:
 
@@ -235,8 +246,13 @@ Method responsibilities:
   `deleteAnnouncement(id)`.
 - `listEvents({ from, to, limit, sortDirection } = {})` -> events ordered by
   `event_date ASC`, then `id ASC`, by default; `sortDirection: 'desc'`
-  reverses both keys, and `limit` bounds small projections. Backs
-  `controllers/eventsController.js` and `controllers/pageController.js`; the
+  reverses both keys, `role` restricts results to `all` plus that role, and
+  `limit` bounds small projections. Backs administrative/internal reads;
+  participant callers use the role-scoped wrapper below.
+- `listEventsForRole(role, options)` -> events restricted to `all` plus the
+  supplied session role, preserving the date ordering and limit options.
+  Backs `controllers/eventsController.js`, `controllers/pageController.js`,
+  and the notification feed; the
   events controller continues to reshape rows for its EJS template
   (`dateObj`/`desc`/`time`), so the repository returns DB row
   shapes unchanged.
@@ -256,9 +272,8 @@ Admin read-only helpers (consumed by `adminController.js`):
   drafts split (controller-side `filter(a => a.published_date !== null)`)
   stays in the controller; the repository returns rows.
 - `listEventsForAdmin()` -> full events list ordered by
-  `event_date DESC`. Backs the admin news page events table.
-  (Public consumers continue to use `listEvents({...})` for the
-  ascending order they expect.)
+  `event_date DESC`. Backs the admin news page events table and remains
+  unrestricted so administrators can edit every audience assignment.
 - `countEvents()` -> total event count (admin news page
   `totalEvents` stat).
 
@@ -268,6 +283,9 @@ Migration notes:
   Postgres. The repository returns either a JS `Date` or a string
   depending on driver behaviour; the controller already serialises
   for JSON and EJS, so the contract is "valid input to `new Date(...)`".
+- `events.audience` is `VARCHAR(30)` in MySQL and `text` with a CHECK in
+  Supabase. Existing rows default to `all`; migration `0025_event_audience.sql`
+  and the idempotent MySQL seed step add the column and audience/date index.
 
 ## 8. Boundary 4 - campus routes, graph, and pathfinding
 
@@ -312,7 +330,7 @@ Migration notes:
 | Current callers | `controllers/vrController.js` (`viewer`, `routeViewer`, `apiRoute`, `loadSceneHotspots`, `resolveRouteScenes`). |
 | MySQL tables | `vr_scenes`, `vr_hotspots` |
 | Supabase tables | `vr_scenes` (with `cloudinary_public_id` reserved NULL until later) and `vr_hotspots` (defined in `0001_initial_schema.sql` section B.5). |
-| Role/security | All reads behind `requireLogin`; no admin CRUD for VR scenes / hotspots exists today (HANDOFF.md section 7). Write methods are deliberately omitted from the initial repository surface; add them when an admin VR-CRUD ships. |
+| Role/security | Participant reads are behind `requireLogin`; the three room-schedule endpoints use the allowed student/instructor/admin role set, while guest building and VR navigation remain available. Admin scene/hotspot CRUD is server-only behind the `/admin` role gate. `vr_hotspots.guest_visible` is an explicit admin policy bit: scene/exit values are canonicalized visible, schedule values are private, and only approved info values survive guest filtering. |
 
 Method responsibilities:
 
@@ -322,11 +340,16 @@ Method responsibilities:
 - `listHotspotsForScene(sceneId)` -> ordered hotspots with the LEFT
   JOIN onto target scenes that `loadSceneHotspots` performs today,
   preserving the `target_scene_key` / `target_title` fields the
-  views consume.
+  views consume, plus the internal `guest_visible` policy bit for
+  controller-side filtering.
 - `listScenesForGraphPath({ nodeIds, buildingIds })` -> scenes whose
   `node_id IN (...)` OR `building_id IN (...)`. Replaces the dynamic
   `WHERE` builder in `resolveRouteScenes`. Returns rows; the
   controller continues to do the path-walk de-duplication.
+- `listScenesAdmin`, `findSceneById`, `findSceneIdByKey`,
+  `listHotspotsAdmin`, `findHotspotById`, and the corresponding insert/update/
+  delete helpers -> server-only administrator CRUD. These methods receive
+  controller-validated payloads and never make participant-role decisions.
 
 Migration notes:
 

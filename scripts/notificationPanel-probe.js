@@ -72,7 +72,8 @@ function check(scope, label, ok) {
   check('repository', 'Supabase query limits are optional and do not change existing callers',
     repository.includes('listAnnouncementsForRole(role, options = {})') &&
     repository.includes('query = query.limit(limit)') &&
-    repository.includes("listEvents({ from, to, limit, sortDirection = 'asc' } = {})") &&
+    repository.includes("listEvents({ from, to, limit, sortDirection = 'asc', role } = {})") &&
+    repository.includes('listEventsForRole(role, options = {})') &&
     repository.includes("const descending = sortDirection === 'desc'"));
   check('deep-link', 'dashboard accepts only role-mapped section query values',
     dashboard.includes('requestedDashboardSection') &&

@@ -62,13 +62,19 @@ function requiredString(value) {
 function migrationRecords() {
   return fs.readdirSync(MIGRATION_DIR)
     .filter((name) => name.endsWith('.sql'))
-    // 0021 is the owner-applied auth-only migration and 0022 is the
-    // owner-applied user-presence migration. The historical BE.6 route/data freeze
-    // intentionally pins the 0001-0020 sequence only.
+    // 0021 is the owner-applied auth-only migration, 0022 is the owner-applied
+    // user-presence migration, 0023 is directional route geometry, 0024 is
+    // the guest-visibility policy, 0025 is event audience visibility, and
+    // 0026 is admin instructor-profile integrity. The
+    // historical BE.6 route/data freeze intentionally pins the 0001-0020
+    // sequence only.
     .filter((name) => ![
       '0021_minimal_instructor_oauth_registration.sql',
       '0022_user_presence.sql',
-      '0023_directional_route_edge_geometry.sql'
+      '0023_directional_route_edge_geometry.sql',
+      '0024_vr_hotspot_guest_visibility.sql',
+      '0025_event_audience.sql',
+      '0026_admin_instructor_profile_integrity.sql'
     ].includes(name))
     .sort()
     .map((name) => [

@@ -36,6 +36,7 @@ function section(source, startMarker, endMarker) {
 }
 
 const auth = read('controllers/authController.js');
+const adminUsersController = read('controllers/adminUsersController.js');
 const repository = read('repositories/userRepository.js');
 const profileController = read('controllers/profileController.js');
 const dashboardController = read('controllers/dashboardController.js');
@@ -48,6 +49,8 @@ const privacy = read('views/privacy.ejs');
 const serviceWorker = read('public/sw.js');
 const migrationPath = path.join(ROOT, 'database', 'supabase', '0021_minimal_instructor_oauth_registration.sql');
 const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
+const adminMigrationPath = path.join(ROOT, 'database', 'supabase', '0026_admin_instructor_profile_integrity.sql');
+const adminMigration = fs.existsSync(adminMigrationPath) ? fs.readFileSync(adminMigrationPath, 'utf8') : '';
 
 console.log('\n[instructor identity] OAuth creation contract');
 
@@ -111,6 +114,43 @@ check('migration', 'migration source records that Codex did not apply it and exp
 check('repository', 'fixture: forwarding request metadata to Supabase is rejected',
   !repoOAuth.includes('p_employee_id: trimOrNull(b.employeeId)') ||
   repoOAuth.includes("p_employee_id: role === 'instructor' ? null : trimOrNull(b.employeeId)"));
+
+console.log('\n[instructor identity] admin-managed profile integrity');
+
+const adminCreateFunction = section(
+  adminMigration,
+  'CREATE OR REPLACE FUNCTION public.app_create_admin_managed_user(',
+  'CREATE OR REPLACE FUNCTION public.app_update_admin_managed_user('
+);
+const adminUpdateFunction = section(
+  adminMigration,
+  'CREATE OR REPLACE FUNCTION public.app_update_admin_managed_user(',
+  '-- Reassert the server-only execution boundary'
+);
+check('admin migration', '0026 source exists and keeps the admin-create signature',
+  /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(adminMigration) &&
+  adminCreateFunction.includes('p_username') &&
+  adminCreateFunction.includes('p_phone_number'));
+check('admin migration', 'admin-created instructors always receive a minimal profile',
+  /ELSIF p_role = 'instructor' THEN[\s\S]*?INSERT INTO public\.instructor_profiles[\s\S]*?COALESCE\(p_employee_id, ''\)/.test(adminCreateFunction) &&
+  !/ELSIF p_role = 'instructor' THEN[\s\S]{0,320}AND p_employee_id/.test(adminCreateFunction));
+check('admin migration', 'admin role updates atomically ensure an instructor profile',
+  adminUpdateFunction.includes('app_update_admin_managed_user') &&
+  adminUpdateFunction.includes("RAISE EXCEPTION 'USER_NOT_FOUND'") &&
+  adminUpdateFunction.includes('ON CONFLICT (user_id) DO NOTHING'));
+check('admin migration', '0026 keeps admin RPCs server-only',
+  adminMigration.includes('REVOKE EXECUTE ON FUNCTION public.app_update_admin_managed_user') &&
+  adminMigration.includes('GRANT EXECUTE ON FUNCTION public.app_update_admin_managed_user') &&
+  adminMigration.includes('TO service_role'));
+check('admin controller', 'MySQL admin creation is transactional and ensures instructor profile',
+  adminUsersController.includes('async function ensureMysqlInstructorProfile') &&
+  adminUsersController.includes('await conn.beginTransaction()') &&
+  /if \(value\.role === 'instructor'\) \{[\s\S]*?ensureMysqlInstructorProfile\(conn/.test(adminUsersController));
+check('admin controller', 'MySQL admin updates are transactional and cover role promotion',
+  /exports\.updateUser = async[\s\S]*?await conn\.beginTransaction\(\)[\s\S]*?ensureMysqlInstructorProfile\(conn, userId\)/.test(adminUsersController));
+check('repository', 'Supabase admin updates use the atomic profile-aware RPC',
+  repository.includes("sb.rpc('app_update_admin_managed_user', params)") &&
+  repository.includes('p_password_hash: null'));
 
 console.log('\n[instructor identity] UI and browser projection');
 

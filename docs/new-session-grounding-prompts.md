@@ -1,6 +1,6 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-09-05 (Asia/Manila)
+Last updated: 2026-09-06 (Asia/Manila)
 
 ## Current Handoff Override
 
@@ -48,8 +48,13 @@ course-catalog work, pilot work, or a new GO/NO-GO. Every older prompt and
 pre-promotion snapshot below is historical and must not be used as current
 authority.
 
+The current working-tree candidate also includes admin-managed instructor
+profile integrity: admin creation and role promotion create a minimal
+`instructor_profiles` row on both backends. The project owner has applied
+`0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
+
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-05)
+## Current Release Continuity (2026-09-06)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
@@ -115,32 +120,37 @@ entry path. Existing entry-only downloads remain usable until Update Offline
 Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
-`0021_minimal_instructor_oauth_registration.sql`, and
-`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+`0021_minimal_instructor_oauth_registration.sql`, `0022_user_presence.sql`,
+`0023_directional_route_edge_geometry.sql`,
+`0024_vr_hotspot_guest_visibility.sql`, and `0025_event_audience.sql` are
+owner-applied. Codex did not apply them and must
 not reapply them without new explicit database authorization. Read-only 0022
 postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification.
+was backfilled or altered to obtain verification. The working-tree candidate
+also contains source-only `0026_admin_instructor_profile_integrity.sql`,
+pending one explicit owner application; Codex has not applied it.
 
-The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+The selected data/route freeze is the owner-approved 2026-09-06 freeze after
+the separately authored Supabase exit geometries were verified.
 MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
 reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
 selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
-50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, 664 scenes,
 1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
 active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
 The MySQL building/route SHA-256
 `0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
 the Supabase building/route SHA-256
-`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`;
 the selected VR SHA-256
 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
 the shared Guided-VR catalog SHA-256
 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
 and the freeze-manifest SHA-256
-`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+`9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
 Never change these facts merely to make a gate green.
 
 The required Security -> Performance -> Correctness -> Maintainability ->
@@ -149,7 +159,7 @@ on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
 batched without N+1 reads, and sanitized on failure. Focused evidence includes
 Google profile image `27/27`, presence `34/34`, shared button/theme
 `19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
-`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+`74/74`. The fresh full source suite passed `4850/4850` with zero failures
 and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
 `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
@@ -168,9 +178,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 196 files and 7,267,536 bytes with
+The current Vercel source package is 197 files and 7,299,447 bytes with
 aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -885,8 +895,8 @@ are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
 `a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
-196 files, 7,267,536 bytes, aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+197 files, 7,299,447 bytes, aggregate SHA-256
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 The last independently post-deployment-verified Production baseline remains
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
 new deployed-byte identity.
@@ -917,7 +927,10 @@ server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
 public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
 views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
 views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
+controllers/adminUsersController.js,
+database/supabase/0026_admin_instructor_profile_integrity.sql,
 scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+scripts/instructorMinimalProfile-probe.js,
 scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
 scripts/ictuDockerDeployment-probe.js, and
 scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
@@ -932,14 +945,18 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether current authority is the 2026-09-05 block and whether older blocks
+- whether current authority is the 2026-09-06 block and whether older blocks
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
 - the current four source/product commits and authority HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
-  VR May 28 2026 capture date, and Floors & Rooms wording;
-- owner-applied migrations 0020, 0021, and 0022 without reapplying them;
+  VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
+  visibility with private schedules, directional entry/exit routes, and
+  audience-filtered events, plus the minimal admin instructor-profile
+  invariant on create and role promotion;
+- owner-applied migrations 0020, 0021, 0022, 0023, 0024, 0025, and 0026
+  without reapplying them;
 - the unchanged selected freeze and package pin as recorded, clearly labelled
   recorded evidence unless independently recomputed without executing gates;
 - evidence classes separately: historical, current source/package, localhost,
@@ -980,8 +997,8 @@ are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
 `a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the recorded source package is
-196 files, 7,267,536 bytes, aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+197 files, 7,299,447 bytes, aggregate SHA-256
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 The last independently post-deployment-verified Production baseline remains
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
 new deployed-byte identity.
@@ -1014,7 +1031,10 @@ server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
 public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
 views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
 views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
+controllers/adminUsersController.js,
+database/supabase/0026_admin_instructor_profile_integrity.sql,
 scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+scripts/instructorMinimalProfile-probe.js,
 scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
 scripts/ictuDockerDeployment-probe.js, and
 scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
@@ -1029,14 +1049,18 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether current authority is the 2026-09-05 block and whether older blocks
+- whether current authority is the 2026-09-06 block and whether older blocks
   are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
 - the current four source/product commits and authority HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
-  VR May 28 2026 capture date, and Floors & Rooms wording;
-- owner-applied migrations 0020, 0021, and 0022 without reapplying them;
+  VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
+  visibility with private schedules, directional entry/exit routes, and
+  audience-filtered events, plus the minimal admin instructor-profile
+  invariant on create and role promotion;
+- owner-applied migrations 0020, 0021, 0022, 0023, 0024, 0025, and 0026
+  without reapplying them;
 - the unchanged selected freeze and package pin as recorded, clearly labelled
   recorded evidence unless independently recomputed without executing gates;
 - evidence classes separately: historical, current source/package, localhost,

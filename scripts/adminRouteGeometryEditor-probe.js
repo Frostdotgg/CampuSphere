@@ -63,7 +63,10 @@ function hasExactMigrationSequence(files) {
   const sorted = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
     '0022_user_presence.sql',
-    '0023_directional_route_edge_geometry.sql'
+    '0023_directional_route_edge_geometry.sql',
+    '0024_vr_hotspot_guest_visibility.sql',
+    '0025_event_audience.sql',
+    '0026_admin_instructor_profile_integrity.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -570,7 +573,7 @@ function runStaticSupabaseChecks() {
     sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
   const m23Path = path.join(dir, '0023_directional_route_edge_geometry.sql');
   const m23Exists = fs.existsSync(m23Path);
-  check(scope, '0023_directional_route_edge_geometry.sql is declared source-only', m23Exists);
+  check(scope, '0023_directional_route_edge_geometry.sql is declared owner-applied', m23Exists);
   if (m23Exists) {
     const sql = fs.readFileSync(m23Path, 'utf8');
     check(scope, '0023 one-way RPC locks and updates only the selected edge',

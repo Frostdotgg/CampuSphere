@@ -135,6 +135,11 @@ function optStr(value) {
   const out = String(value).trim();
   return out === '' ? null : out;
 }
+function guestVisible(value) {
+  if (value === true || value === 1 || value === '1') return true;
+  if (value === false || value === 0 || value === '0' || value === null || value === undefined || value === '') return false;
+  return null;
+}
 // Finite number or null — NEVER silently coerces invalid to 0; preserves 0.
 // Reached only AFTER isRawNumericValid has accepted the raw value, so it maps a
 // genuine null/undefined/'' to semantic NULL and a valid numeric to its number.
@@ -242,8 +247,9 @@ function sceneTuple(row, nodeKeyById, buildingNameById) {
   };
 }
 function hotspotTuple(row, allSceneKeyById, buildingNameById) {
+  const type = optStr(row.hotspot_type);
   return {
-    type: optStr(row.hotspot_type),
+    type,
     target_key: row.target_scene_id != null ? (allSceneKeyById.get(positiveInt(row.target_scene_id)) || null) : null,
     schedule_building_canonical: row.schedule_building_id != null
       ? canonicalKey(buildingNameById.get(positiveInt(row.schedule_building_id)) || '') || null
@@ -253,6 +259,11 @@ function hotspotTuple(row, allSceneKeyById, buildingNameById) {
     schedule_floor_label: optStr(row.schedule_floor_label),
     label: optStr(row.label),
     text: optStr(row.text),
+    guest_visible: type === 'scene' || type === 'exit'
+      ? true
+      : type === 'schedule'
+        ? false
+        : guestVisible(row.guest_visible) === true,
     yaw: numOrNull(row.yaw),
     pitch: numOrNull(row.pitch),
     display_order: numOrNull(row.display_order)
@@ -346,6 +357,9 @@ function buildBackendIndex(backend, label, blockers, selectedSet = SELECTED_SET)
     if (!sourceKey || !selectedSet.has(sourceKey)) continue;
     const type = optStr(h.hotspot_type);
     if (!HOTSPOT_TYPES.has(type)) { blockers.push(`${label} hotspot on ${sourceKey}: invalid type.`); continue; }
+    if (guestVisible(h.guest_visible) === null) {
+      blockers.push(`${label} hotspot on ${sourceKey}: invalid guest visibility.`);
+    }
 
     // CORRECTION #4 (Finding 2): strict raw-numeric validation for hotspot fields.
     for (const f of ['yaw', 'pitch', 'display_order']) {
@@ -570,7 +584,7 @@ async function readSupabase(sb) {
     'scene_key', SELECTED_KEYS);
   const sceneIds = scenes.map((s) => positiveInt(s.id)).filter((n) => n !== null);
   const hotspots = sceneIds.length ? await selIn('vr_hotspots',
-    'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order',
+    'id,scene_id,target_scene_id,hotspot_type,label,text,guest_visible,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order',
     'scene_id', sceneIds) : [];
   const nodes = await selAll('route_nodes', 'id,node_key');
   const buildings = await selAll('buildings', 'id,name');
@@ -588,7 +602,7 @@ async function readMysqlSelected(conn) {
   let hotspots = [];
   if (sceneIds.length) {
     const [rows] = await q.query(
-      'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, schedule_building_id, ' +
+      'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, guest_visible, schedule_building_id, ' +
       'schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
       'FROM vr_hotspots WHERE scene_id IN (?)' + (conn ? ' FOR UPDATE' : ''), [sceneIds]);
     hotspots = rows;
@@ -824,7 +838,7 @@ function makeLiveAdapter(sb, pool) {
       let mHot = [];
       if (selectedIds.length) {
         const [rows] = await conn.query(
-          'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, schedule_building_id, ' +
+          'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, guest_visible, schedule_building_id, ' +
           'schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
           'FROM vr_hotspots WHERE scene_id IN (?)', [selectedIds]);
         mHot = rows;
@@ -860,12 +874,12 @@ function makeLiveAdapter(sb, pool) {
         if (h.action === 'update') {
           const id = idByIdentity.get(h.identity);
           if (id == null) throw new SafeSyncError('Planned hotspot update identity not found in transaction.');
-          const [res] = await conn.query('UPDATE vr_hotspots SET target_scene_id=?, hotspot_type=?, label=?, `text`=?, schedule_building_id=?, schedule_location_type=?, schedule_location_label=?, schedule_floor_label=?, yaw=?, pitch=?, display_order=? WHERE id=?',
-            [targetId, e.type, e.label, e.text, scheduleBuildingId, e.schedule_location_type, e.schedule_location_label, e.schedule_floor_label, e.yaw, e.pitch, e.display_order, id]);
+          const [res] = await conn.query('UPDATE vr_hotspots SET target_scene_id=?, hotspot_type=?, label=?, `text`=?, guest_visible=?, schedule_building_id=?, schedule_location_type=?, schedule_location_label=?, schedule_floor_label=?, yaw=?, pitch=?, display_order=? WHERE id=?',
+            [targetId, e.type, e.label, e.text, e.guest_visible, scheduleBuildingId, e.schedule_location_type, e.schedule_location_label, e.schedule_floor_label, e.yaw, e.pitch, e.display_order, id]);
           if (res.affectedRows !== 1) throw new SafeSyncError('Hotspot update affected an unexpected number of rows.');
         } else { // insert
-          const [res] = await conn.query('INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, yaw, pitch, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [sceneId, targetId, e.type, e.label, e.text, scheduleBuildingId, e.schedule_location_type, e.schedule_location_label, e.schedule_floor_label, e.yaw, e.pitch, e.display_order]);
+          const [res] = await conn.query('INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, guest_visible, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, yaw, pitch, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [sceneId, targetId, e.type, e.label, e.text, e.guest_visible, scheduleBuildingId, e.schedule_location_type, e.schedule_location_label, e.schedule_floor_label, e.yaw, e.pitch, e.display_order]);
           if (res.affectedRows !== 1) throw new SafeSyncError('Hotspot insert affected an unexpected number of rows.');
         }
       }

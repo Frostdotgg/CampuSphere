@@ -179,7 +179,7 @@
                             <div class="p-0">
                                 <table class="ui-table">
                                     <thead><tr>
-                                        <th>Event</th><th>Category</th><th>Date</th><th>Time</th><th>Location</th><th style="width:60px;"></th>
+                                        <th>Event</th><th>Category</th><th>Audience</th><th>Date</th><th>Time</th><th>Location</th><th style="width:60px;"></th>
                                     </tr></thead>
                                     <tbody id="events-table-body">
                                         <!-- Rendered by admin-news.js -->
@@ -300,6 +300,17 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="event-audience">Audience</label>
+                        <select name="audience" id="event-audience" required>
+                            <option value="all">Everyone</option>
+                            <option value="student-cspc">Students (CSPC)</option>
+                            <option value="instructor">Instructors</option>
+                            <option value="guest">Guests</option>
+                            <option value="admin">Admins</option>
+                        </select>
+                        <p class="text-xs text-muted-foreground">Choose which signed-in users can see this event.</p>
+                    </div>
+                    <div class="form-group">
                         <label for="event-desc">Description</label>
                         <textarea name="description" id="event-desc" placeholder="Event details..."></textarea>
                     </div>
@@ -342,7 +353,7 @@
 
     <!-- Inject data as JSON -->
     <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
-    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
+    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

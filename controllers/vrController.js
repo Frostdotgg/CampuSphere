@@ -48,6 +48,11 @@ const {
 } = require('../config/guidedVrRoutes');
 const { canonicalKey } = require('../services/routeAvailability');
 const {
+  canViewRoomSchedules,
+  filterHotspotsForRole,
+  isGuestVisible
+} = require('../utils/participantVisibility');
+const {
   resolveStartNode,
   resolveGuidedDestinationPolicyByName,
   isResolvedMediaArrival,
@@ -782,7 +787,10 @@ function normalizeHotspots(rows) {
     schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
     schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
     schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
-    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id
+    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id,
+    // Internal policy bit. filterHotspotsForRole strips it before a view or
+    // inline JSON payload is rendered.
+    guest_visible: isGuestVisible(h.guest_visible)
   }));
 }
 
@@ -797,7 +805,8 @@ async function loadSceneHotspots(sceneId) {
             h.target_scene_id, t.scene_key AS target_scene_key,
             t.title AS target_title,
             h.schedule_building_id, h.schedule_location_type,
-            h.schedule_location_label, h.schedule_floor_label, h.schedule_document_id
+            h.schedule_location_label, h.schedule_floor_label, h.schedule_document_id,
+            h.guest_visible
        FROM vr_hotspots h
        LEFT JOIN vr_scenes t ON t.id = h.target_scene_id
       WHERE h.scene_id = ?
@@ -817,7 +826,8 @@ exports.routeViewer = async (req, res) => {
   const baseLocals = {
     title: 'CampuSphere | VR Route',
     description: 'Guided 360-degree campus route walkthrough for CSPC.',
-    activeTab: 'tabMap'
+    activeTab: 'tabMap',
+    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
 
   try {
@@ -900,7 +910,10 @@ exports.routeViewer = async (req, res) => {
     const nextUrl = !isLastScene ? `${base}?step=${step + 1}` : null;
 
     // FIX 3: derive each scene hotspot's own navigation from its target_scene_key.
-    const hotspots = attachHotspotNav(rawHotspots, scenes, step, isFinal, prevUrl, nextUrl);
+    const hotspots = attachHotspotNav(
+      filterHotspotsForRole(rawHotspots, req.session && req.session.user),
+      scenes, step, isFinal, prevUrl, nextUrl
+    );
 
     res.status(200).render('vr-route', {
       ...baseLocals,
@@ -1002,7 +1015,8 @@ exports.destinationViewer = async (req, res) => {
   const baseLocals = {
     title: 'CampuSphere | VR Route',
     description: 'Guided 360-degree campus route walkthrough for CSPC.',
-    activeTab: 'tabMap'
+    activeTab: 'tabMap',
+    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
 
   try {
@@ -1078,7 +1092,10 @@ exports.destinationViewer = async (req, res) => {
     const nextUrl = !isLastScene ? `${base}?step=${step + 1}` : null;
 
     // FIX 3: derive each scene hotspot's own navigation from its target_scene_key.
-    const hotspots = attachHotspotNav(rawHotspots, scenes, step, isFinal, prevUrl, nextUrl);
+    const hotspots = attachHotspotNav(
+      filterHotspotsForRole(rawHotspots, req.session && req.session.user),
+      scenes, step, isFinal, prevUrl, nextUrl
+    );
 
     res.status(200).render('vr-route', {
       ...baseLocals,
@@ -1171,7 +1188,8 @@ exports.viewer = async (req, res) => {
   const baseLocals = {
     title: 'CampuSphere | VR Campus Tour',
     description: 'Browse 360-degree campus scenes for CSPC.',
-    activeTab: 'tabMap'
+    activeTab: 'tabMap',
+    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
 
   try {
@@ -1236,6 +1254,7 @@ exports.viewer = async (req, res) => {
     const hotspots = useSupabase
       ? normalizeHotspots(await vrRepository.listHotspotsForScene(current.id))
       : await loadSceneHotspots(current.id);
+    const visibleHotspots = filterHotspotsForRole(hotspots, req.session && req.session.user);
     const sceneIndex =
       sceneRows.findIndex((s) => s.scene_key === current.scene_key) + 1;
 
@@ -1253,7 +1272,7 @@ exports.viewer = async (req, res) => {
         initial_pitch: toNum(current.initial_pitch, 0)
       },
       scenes,
-      hotspots,
+      hotspots: visibleHotspots,
       sceneIndex,
       sceneCount: sceneRows.length,
       notice

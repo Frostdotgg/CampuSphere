@@ -48,7 +48,7 @@ const SCENE_FIELDS = [
 ];
 
 const HOTSPOT_FIELDS = [
-  'scene_id', 'target_scene_id', 'hotspot_type', 'label', 'text',
+  'scene_id', 'target_scene_id', 'hotspot_type', 'label', 'text', 'guest_visible',
   'schedule_building_id', 'schedule_location_type',
   'schedule_location_label', 'schedule_floor_label', 'schedule_document_id',
   'yaw', 'pitch', 'display_order'
@@ -82,6 +82,12 @@ function optionalString(value) {
   if (value === undefined || value === null) return null;
   const out = String(value).trim();
   return out === '' ? null : out;
+}
+
+function guestVisible(value) {
+  if (value === true || value === 1 || value === '1') return true;
+  if (value === false || value === 0 || value === '0' || value === null || value === undefined || value === '') return false;
+  return null;
 }
 
 function requiredString(value, max) {
@@ -154,6 +160,7 @@ function sameField(field, left, right) {
   if (['initial_yaw', 'initial_pitch', 'yaw', 'pitch'].includes(field)) {
     return a === null && b === null ? true : Number(a) === Number(b);
   }
+  if (field === 'guest_visible') return guestVisible(a) === guestVisible(b);
   return a === b;
 }
 
@@ -211,6 +218,7 @@ function validateHotspotRow(row, sourceSceneKey, context, blockers) {
   if (displayOrder === null) blockers.push(`${context}: invalid display_order.`);
   if (angle(row.yaw, -180, 180) === null) blockers.push(`${context}: invalid yaw.`);
   if (angle(row.pitch, -90, 90) === null) blockers.push(`${context}: invalid pitch.`);
+  if (guestVisible(row.guest_visible) === null) blockers.push(`${context}: invalid guest_visible.`);
 
   const text = optionalString(row.text);
   if (text !== null && text.length > 5000) blockers.push(`${context}: text exceeds 5000 characters.`);
@@ -265,7 +273,7 @@ async function readMysql() {
       ),
       db.query(
         'SELECT id, scene_id, target_scene_id, hotspot_type, label, `text` AS text, ' +
-        'schedule_building_id, schedule_location_type, schedule_location_label, ' +
+        'guest_visible, schedule_building_id, schedule_location_type, schedule_location_label, ' +
         'schedule_floor_label, schedule_document_id, yaw, pitch, display_order ' +
         'FROM vr_hotspots ORDER BY id ASC'
       ),
@@ -308,7 +316,7 @@ async function readSupabase(client = null) {
     readAllSupabase(sb, 'vr_scenes',
       'id,scene_key,title,description,image_url,cloudinary_public_id,node_id,building_id,initial_yaw,initial_pitch,display_order,created_at,updated_at'),
     readAllSupabase(sb, 'vr_hotspots',
-      'id,scene_id,target_scene_id,hotspot_type,label,text,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order,created_at,updated_at'),
+      'id,scene_id,target_scene_id,hotspot_type,label,text,guest_visible,schedule_building_id,schedule_location_type,schedule_location_label,schedule_floor_label,schedule_document_id,yaw,pitch,display_order,created_at,updated_at'),
     readAllSupabase(sb, 'buildings', 'id,name'),
     readAllSupabase(sb, 'route_nodes', 'id,node_key'),
     readAllSupabase(sb, 'room_schedule_documents', 'id,building_id,location_key')
@@ -507,6 +515,7 @@ function buildPlan(source, target) {
     const sourceScene = sourceSceneById.get(positiveInt(row.scene_id));
     const sourceSceneKey = sourceScene ? sceneKey(sourceScene.scene_key) : null;
     const context = `hotspot ${sourceSceneKey || '<orphan>'}/${row.display_order}`;
+    const type = optionalString(row.hotspot_type);
     if (!sourceScene) blockers.push(`${context}: orphaned MySQL source scene reference.`);
 
     const slot = validateHotspotRow(row, sourceSceneKey, context, blockers);
@@ -583,6 +592,11 @@ function buildPlan(source, target) {
       hotspot_type: optionalString(row.hotspot_type),
       label: requiredString(row.label, 150),
       text: optionalString(row.text),
+      guest_visible: type === 'scene' || type === 'exit'
+        ? true
+        : type === 'schedule'
+          ? false
+          : guestVisible(row.guest_visible) === true,
       schedule_building_id: scheduleBuildingId,
       schedule_location_type: optionalString(row.schedule_location_type),
       schedule_location_label: optionalString(row.schedule_location_label),

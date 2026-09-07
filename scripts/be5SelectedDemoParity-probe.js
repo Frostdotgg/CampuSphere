@@ -432,7 +432,10 @@ function runMigrationTests() {
   const freezeFiles = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
     '0022_user_presence.sql',
-    '0023_directional_route_edge_geometry.sql'
+    '0023_directional_route_edge_geometry.sql',
+    '0024_vr_hotspot_guest_visibility.sql',
+    '0025_event_audience.sql',
+    '0026_admin_instructor_profile_integrity.sql'
   ].includes(file));
   check(section, 'route-data freeze migration source list remains contiguous 0001-0020',
     freezeFiles.length === 20 &&

@@ -661,7 +661,10 @@ function historicalSelectedCasParity(mysql, supabase) {
     const ownerSqlFiles = sqlFiles.filter((f) => ![
       '0021_minimal_instructor_oauth_registration.sql',
       '0022_user_presence.sql',
-      '0023_directional_route_edge_geometry.sql'
+      '0023_directional_route_edge_geometry.sql',
+      '0024_vr_hotspot_guest_visibility.sql',
+      '0025_event_audience.sql',
+      '0026_admin_instructor_profile_integrity.sql'
     ].includes(f));
     const m17Path = path.join(dir, '0017_route_topology_guard_house.sql');
     const m17Exists = fs.existsSync(m17Path);
@@ -672,7 +675,7 @@ function historicalSelectedCasParity(mysql, supabase) {
       sqlFiles.some((f) => f === '0018_cas_building_baseline.sql'));
     check('static', '0019_be5_selected_demo_parity.sql is declared for owner review',
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
-    check('static', '0023_directional_route_edge_geometry.sql is declared source-only',
+    check('static', '0023_directional_route_edge_geometry.sql is declared owner-applied',
       sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
     check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
       ownerSqlFiles.length === 20 &&

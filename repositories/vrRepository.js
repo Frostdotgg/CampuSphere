@@ -4,11 +4,10 @@
    CampuSphere - VR Repository (Supabase reads)
    Milestone 5, Section 5.3.
 
-   Supabase-backed READ methods for the `vr_scenes` and `vr_hotspots`
-   tables. No write methods and no admin VR CRUD exist yet (see
-   database/supabase/REPOSITORY_BOUNDARIES.md Boundary 5); add them
-   only when an admin VR UI ships. No controller consumes this module
-   until Sections 5.4/5.5.
+   Supabase-backed scene/hotspot reads plus the server-only admin VR CRUD
+   used by the current administrator editor. Participant visibility remains
+   a controller/view policy; the `guest_visible` hotspot bit is returned only
+   to trusted admin code and is stripped before public rendering.
 
    Boundary rules (REPOSITORY_BOUNDARIES.md Boundary 5):
    - Imports `config/supabase.js` ONLY (getSupabaseClient). It does NOT
@@ -25,7 +24,7 @@
        graph scene   : id, scene_key, title, description, image_url,
                        node_id, building_id, initial_yaw, initial_pitch,
                        display_order
-       hotspot       : hotspot_type, label, text, yaw, pitch,
+       hotspot       : hotspot_type, label, text, yaw, pitch, guest_visible,
                        target_scene_id, target_scene_key, target_title,
                        schedule_building_id, schedule_location_type,
                        schedule_location_label, schedule_floor_label
@@ -55,7 +54,7 @@ const GUIDED_SCENE_COLUMNS =
 // target_scene_id FK. The embed is flattened into target_scene_key /
 // target_title below; the nested object itself is never returned.
 const HOTSPOT_SELECT =
-  'hotspot_type, label, text, yaw, pitch, target_scene_id, ' +
+  'hotspot_type, label, text, yaw, pitch, target_scene_id, guest_visible, ' +
   'schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, ' +
   'schedule_document_id, ' +
   'target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
@@ -170,6 +169,7 @@ async function listHotspotsForScene(sceneId) {
       yaw: h.yaw,
       pitch: h.pitch,
       target_scene_id: h.target_scene_id,
+      guest_visible: h.guest_visible === true,
       target_scene_key: t ? t.scene_key : null,
       target_title: t ? t.title : null,
       schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
@@ -327,7 +327,7 @@ const SCENE_ADMIN_COLUMNS =
 // Admin hotspot shape: editable columns plus the embedded target scene_key for
 // display. The nested target object is flattened and never returned raw.
 const HOTSPOT_ADMIN_SELECT =
-  'id, scene_id, target_scene_id, hotspot_type, label, text, yaw, pitch, ' +
+  'id, scene_id, target_scene_id, hotspot_type, label, text, guest_visible, yaw, pitch, ' +
   'display_order, schedule_building_id, schedule_location_type, schedule_location_label, ' +
   'schedule_floor_label, schedule_document_id, target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
 
@@ -341,6 +341,7 @@ function flattenHotspot(h) {
     hotspot_type: h.hotspot_type,
     label: h.label,
     text: h.text,
+    guest_visible: h.guest_visible === true,
     yaw: h.yaw,
     pitch: h.pitch,
     display_order: h.display_order,
@@ -520,6 +521,7 @@ async function insertHotspot(payload) {
       hotspot_type: payload.hotspot_type,
       label: payload.label,
       text: payload.text,
+      guest_visible: payload.guest_visible === true,
       schedule_building_id: payload.schedule_building_id,
       schedule_location_type: payload.schedule_location_type,
       schedule_location_label: payload.schedule_location_label,
@@ -545,6 +547,7 @@ async function updateHotspotById(id, payload) {
       hotspot_type: payload.hotspot_type,
       label: payload.label,
       text: payload.text,
+      guest_visible: payload.guest_visible === true,
       schedule_building_id: payload.schedule_building_id,
       schedule_location_type: payload.schedule_location_type,
       schedule_location_label: payload.schedule_location_label,

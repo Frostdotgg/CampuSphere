@@ -16,7 +16,9 @@
     <title>CampuSphere | Campus Buildings</title>
 
     <link rel="stylesheet" href="/css/styles.css?v=11">
+    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
+    <% } %>
 
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
@@ -231,6 +233,7 @@
 
                     </div>
 
+                    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
                     <!-- Room & facility schedules (Milestone 11, Section 11.6).
                      Real admin-managed entries only; rendered with
                      createElement/textContent — never unescaped HTML. -->
@@ -245,6 +248,7 @@
                             hidden>Unable to load schedules.</p>
                         <ul class="info-list" id="scheduleList" hidden></ul>
                     </div>
+                    <% } %>
 
                 </div>
 
@@ -428,10 +432,6 @@
 
                 empty.style.display = 'none';
 
-                const role = window.__SESSION_USER && window.__SESSION_USER.role ? window.__SESSION_USER.role : 'anonymous';
-
-                const isLimitedVisitor = role === 'guest' || role === 'anonymous';
-
                 grid.innerHTML = filtered.map(b => `
 
         <div class="bldg-card${b.route_available === true ? '' : ' bldg-card--route-unavailable'}" data-id="${Number(b.id)}"${b.route_available === true ? '' : ' data-route-unavailable="true"'}>
@@ -441,8 +441,6 @@
                 <img src="${escapeHtml(safeUrl(b.img))}" alt="${escapeHtml(b.name)}" loading="lazy">
 
                 <span class="bldg-card__tag ${TAG_CLASS[b.category] || ''}">${escapeHtml(b.category)}</span>
-
-                ${isLimitedVisitor && !b.guestAccess ? '<span class="bldg-card__restricted-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Restricted</span>' : ''}
 
                 ${b.route_available === true ? '' : `<span class="bldg-card__route-badge">${escapeHtml(routeUnavailableLabel(b))}</span>`}
 
@@ -602,9 +600,10 @@
 
                     : '<li style="color:var(--gray-500)">No additional info.</li>';
 
+                <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
                 // Room/facility schedules (Milestone 11, Section 11.6)
-
                 loadBuildingSchedules(b.id);
+                <% } %>
 
                 document.getElementById('modalOverlay').classList.add('open');
 
@@ -614,11 +613,13 @@
 
 
 
+            <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
             function loadBuildingSchedules(buildingId) {
                 if (window.CampuSphereBuildingSchedules) {
                     window.CampuSphereBuildingSchedules.load(buildingId);
                 }
             }
+            <% } %>
 
 
 
@@ -665,35 +666,11 @@
 
                 if (!b) return;
 
-                const role = window.__SESSION_USER && window.__SESSION_USER.role ? window.__SESSION_USER.role : 'anonymous';
-
-                const isLimitedVisitor = role === 'guest' || role === 'anonymous';
-
-                const restricted = isLimitedVisitor && !b.guestAccess;
-
                 document.getElementById('routeModalTitle').textContent = 'Routes to ' + b.name;
 
                 document.getElementById('routeModalSubtitle').textContent = 'Walking directions from Main Gate • ' + (b.walkTime || '~5 min');
 
                 let html = '';
-
-                if (restricted) {
-
-                    html += `<div class="route-restricted-warning">
-
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-
-                    <div class="route-restricted-warning__text">
-
-                        <strong>Restricted Access — Guests Cannot Enter</strong>
-
-                        This building is restricted to authorized personnel (students, faculty, or staff) only. You may view the exterior and surroundings but entry is not permitted for guests.
-
-                    </div>
-
-                </div>`;
-
-                }
 
                 html += '<div class="route-info-label">Walking Directions</div>';
 
@@ -823,10 +800,11 @@
 
         </script>
 
+        <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
         <%- include('partials/room-schedule-viewer') %>
-
         <script src="/js/room-schedule-viewer.js"></script>
         <script src="/js/building-room-schedules.js"></script>
+        <% } %>
 
         <!-- Edit Profile Script -->
 

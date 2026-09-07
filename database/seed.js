@@ -34,7 +34,7 @@ async function seed() {
 
         // ---- Idempotent migrations (for existing databases) ----
         // CREATE TABLE IF NOT EXISTS does not add new columns to a table that
-        // already exists, so add news_announcements.audience if it is missing.
+        // already exists, so add the audience columns if they are missing.
         // Existing rows safely default to 'all'.
         console.log('Running migrations...');
         const [audienceCol] = await connection.query(
@@ -51,6 +51,22 @@ async function seed() {
             console.log('  Added news_announcements.audience column (existing rows default to "all").');
         } else {
             console.log('  news_announcements.audience already present.');
+        }
+
+        const [eventAudienceCol] = await connection.query(
+            `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'events'
+               AND COLUMN_NAME = 'audience'`
+        );
+        if (eventAudienceCol.length === 0) {
+            await connection.query(
+                `ALTER TABLE events
+                 ADD COLUMN audience VARCHAR(30) NOT NULL DEFAULT 'all' AFTER category`
+            );
+            console.log('  Added events.audience column (existing rows default to "all").');
+        } else {
+            console.log('  events.audience already present.');
         }
 
         // R8: MySQL identity/profile uniqueness parity with Supabase. Existing
@@ -149,6 +165,7 @@ async function seed() {
             ['news_announcements', 'idx_news_published_date', 'published_date'],
             ['news_announcements', 'idx_news_created_at', 'created_at'],
             ['events', 'idx_events_event_date', 'event_date'],
+            ['events', 'idx_events_audience_event_date', 'audience, event_date, id'],
             ['faqs', 'idx_faqs_display_order', 'display_order, id'],
             ['campus_route_steps', 'idx_route_steps_route_order', 'route_id, step_order'],
             ['route_nodes', 'idx_route_nodes_display_order', 'display_order, id'],
@@ -210,9 +227,34 @@ async function seed() {
             console.log(`  Added foreign key ${constraintName}.`);
         }
 
+        async function ensureCheckConstraint(table, constraintName, expression) {
+            const [constraint] = await connection.query(
+                `SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                  WHERE CONSTRAINT_SCHEMA = DATABASE()
+                    AND TABLE_NAME = ?
+                    AND CONSTRAINT_NAME = ?
+                    AND CONSTRAINT_TYPE = 'CHECK'
+                  LIMIT 1`,
+                [table, constraintName]
+            );
+            if (constraint.length > 0) {
+                console.log(`  Check constraint ${constraintName} already present.`);
+                return;
+            }
+            await connection.query(
+                `ALTER TABLE ${table} ADD CONSTRAINT ${constraintName} CHECK (${expression})`
+            );
+            console.log(`  Added check constraint ${constraintName}.`);
+        }
+
         await ensureColumn('buildings', 'image_url', 'VARCHAR(255) NULL AFTER details');
         await ensureColumn('buildings', 'cloudinary_public_id', 'VARCHAR(255) NULL AFTER image_url');
         await ensureColumn('vr_scenes', 'cloudinary_public_id', 'VARCHAR(255) NULL AFTER image_url');
+        await ensureCheckConstraint(
+            'events',
+            'chk_events_audience',
+            "audience IN ('all','student-cspc','instructor','guest','admin')"
+        );
 
         // ---- VR hotspot schedule metadata parity (Milestone 11, Section 11.8A) ----
         // Existing MySQL databases need the nullable schedule-target columns for
@@ -223,6 +265,19 @@ async function seed() {
         await ensureColumn('vr_hotspots', 'schedule_location_label', 'VARCHAR(120) NULL AFTER schedule_location_type');
         await ensureColumn('vr_hotspots', 'schedule_floor_label', 'VARCHAR(80) NULL AFTER schedule_location_label');
         await ensureColumn('vr_hotspots', 'schedule_document_id', 'INT NULL AFTER schedule_floor_label');
+        // Guest visibility policy (0024). Existing info rows remain fail-closed
+        // unless explicitly approved by an administrator; navigation/exit rows
+        // are visible and schedule rows are private.
+        await ensureColumn('vr_hotspots', 'guest_visible', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER `text`');
+        // Keep the stored bit canonical on every seed run: navigation/exit is
+        // visible and schedule is private. Information rows are intentionally
+        // preserved so an administrator's explicit guest approval is not erased.
+        await connection.query(
+            "UPDATE vr_hotspots SET guest_visible = 1 WHERE hotspot_type IN ('scene','exit')"
+        );
+        await connection.query(
+            "UPDATE vr_hotspots SET guest_visible = 0 WHERE hotspot_type = 'schedule'"
+        );
 
         // ---- Route edge drawing geometry (Pre-Milestone-12 RF.2) ----
         // Existing MySQL databases need the nullable path_geometry column for
@@ -1073,14 +1128,14 @@ async function seed() {
             if (ex.length === 0) {
                 await connection.query(`
                     INSERT INTO vr_hotspots
-                    (scene_id, target_scene_id, hotspot_type, label, \`text\`, yaw, pitch, display_order)
-                    VALUES (?, ?, 'scene', ?, NULL, ?, ?, ?)
+                    (scene_id, target_scene_id, hotspot_type, label, \`text\`, guest_visible, yaw, pitch, display_order)
+                    VALUES (?, ?, 'scene', ?, NULL, 1, ?, ?, ?)
                 `, [sceneId, targetId, label, yaw, pitch, order]);
                 vrHotspotsInserted++;
             } else {
                 await connection.query(`
                     UPDATE vr_hotspots
-                       SET label = ?, \`text\` = NULL, yaw = ?, pitch = ?, display_order = ?
+                       SET label = ?, \`text\` = NULL, guest_visible = 1, yaw = ?, pitch = ?, display_order = ?
                      WHERE scene_id = ? AND target_scene_id = ?
                 `, [label, yaw, pitch, order, sceneId, targetId]);
                 vrHotspotsUpdated++;
@@ -1102,16 +1157,16 @@ async function seed() {
             if (ex.length === 0) {
                 await connection.query(`
                     INSERT INTO vr_hotspots
-                    (scene_id, target_scene_id, hotspot_type, label, \`text\`, yaw, pitch, display_order)
-                    VALUES (?, NULL, ?, ?, ?, ?, ?, ?)
-                `, [sceneId, type, label, text, yaw, pitch, order]);
+                    (scene_id, target_scene_id, hotspot_type, label, \`text\`, guest_visible, yaw, pitch, display_order)
+                    VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                `, [sceneId, type, label, text, type === 'exit' ? 1 : 0, yaw, pitch, order]);
                 vrHotspotsInserted++;
             } else {
                 await connection.query(`
                     UPDATE vr_hotspots
-                       SET \`text\` = ?, yaw = ?, pitch = ?, display_order = ?
+                       SET \`text\` = ?, guest_visible = ?, yaw = ?, pitch = ?, display_order = ?
                      WHERE scene_id = ? AND hotspot_type = ? AND target_scene_id IS NULL AND label = ?
-                `, [text, yaw, pitch, order, sceneId, type, label]);
+                `, [text, type === 'exit' ? 1 : 0, yaw, pitch, order, sceneId, type, label]);
                 vrHotspotsUpdated++;
             }
         }
@@ -1209,9 +1264,9 @@ async function seed() {
             const [rows] = await connection.query('SELECT id FROM events WHERE title = ?', [ev.title]);
             if (rows.length === 0) {
                 await connection.query(`
-                    INSERT INTO events (title, category, event_date, description, location, event_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `, [ev.title, ev.category, ev.event_date, ev.description, ev.location, ev.event_time]);
+                    INSERT INTO events (title, category, audience, event_date, description, location, event_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `, [ev.title, ev.category, ev.audience || 'all', ev.event_date, ev.description, ev.location, ev.event_time]);
             }
         }
 

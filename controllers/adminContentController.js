@@ -27,7 +27,7 @@ const ALLOWED_AUDIENCES = ['all', 'student-cspc', 'instructor', 'guest', 'admin'
 const ALLOWED_NEWS_STATUS = ['published', 'draft'];
 const EVENT_CATEGORIES = ['Academic', 'Sports', 'Cultural'];
 const NEWS_KEYS = ['title', 'category', 'excerpt', 'content', 'status', 'audience'];
-const EVENT_KEYS = ['title', 'category', 'event_date', 'event_time', 'location', 'description'];
+const EVENT_KEYS = ['title', 'category', 'event_date', 'event_time', 'location', 'description', 'audience'];
 const NEWS_MAX_TITLE = 150;
 const NEWS_MAX_EXCERPT = 500;
 const NEWS_MAX_CONTENT = 10000;
@@ -76,8 +76,8 @@ function validateNewsPayload(body) {
 
 /**
  * Validate + normalize an event create/update body. Returns { ok, value } with
- * exactly { title, category, event_date, description, location, event_time }
- * or { ok:false, message }. No DB work, no extras.
+ * exactly { title, category, event_date, description, location, event_time,
+ * audience } or { ok:false, message }. No DB work, no extras.
  */
 function validateEventPayload(body) {
   const shape = V.validateBody(body, EVENT_KEYS);
@@ -96,7 +96,14 @@ function validateEventPayload(body) {
   const time = V.optionalString(body.event_time, 'Event time', EVENT_MAX_TIME);
   if (!time.ok) return time;
 
-  return { ok: true, value: { title: title.value, category: category.value, event_date: date.value, description: description.value, location: location.value, event_time: time.value } };
+  let audience = 'all';
+  if (body.audience !== undefined && body.audience !== null && String(body.audience).trim() !== '') {
+    const a = V.allowedValue(body.audience, 'audience', ALLOWED_AUDIENCES);
+    if (!a.ok) return a;
+    audience = a.value;
+  }
+
+  return { ok: true, value: { title: title.value, category: category.value, event_date: date.value, description: description.value, location: location.value, event_time: time.value, audience } };
 }
 
 // Best-effort audit of a successful admin mutation. Fire-and-forget: it never
@@ -316,7 +323,7 @@ exports.createEvent = async (req, res) => {
   if (!check.ok) {
     return res.status(400).json({ success: false, message: check.message });
   }
-  const value = check.value; // { title, category, event_date, description, location, event_time }
+  const value = check.value; // { title, category, event_date, description, location, event_time, audience }
 
   try {
     // Supabase path: same validated values; the repository keeps event_date
@@ -325,6 +332,7 @@ exports.createEvent = async (req, res) => {
       const event = await contentRepository.createEvent({
         title: value.title,
         category: value.category,
+        audience: value.audience,
         event_date: value.event_date,
         description: value.description,
         location: value.location,
@@ -339,9 +347,9 @@ exports.createEvent = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `INSERT INTO events (title, category, event_date, description, location, event_time)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [value.title, value.category, value.event_date, value.description, value.location, value.event_time]
+      `INSERT INTO events (title, category, audience, event_date, description, location, event_time)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time]
     );
 
     const [newEvent] = await db.query('SELECT * FROM events WHERE id = ?', [result.insertId]);
@@ -381,6 +389,7 @@ exports.updateEvent = async (req, res) => {
       const event = await contentRepository.updateEvent(id, {
         title: value.title,
         category: value.category,
+        audience: value.audience,
         event_date: value.event_date,
         description: value.description,
         location: value.location,
@@ -404,9 +413,9 @@ exports.updateEvent = async (req, res) => {
 
     await db.query(
       `UPDATE events
-       SET title = ?, category = ?, event_date = ?, description = ?, location = ?, event_time = ?, updated_at = NOW()
+       SET title = ?, category = ?, audience = ?, event_date = ?, description = ?, location = ?, event_time = ?, updated_at = NOW()
        WHERE id = ?`,
-      [value.title, value.category, value.event_date, value.description, value.location, value.event_time, id]
+      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time, id]
     );
 
     const [updated] = await db.query('SELECT * FROM events WHERE id = ?', [id]);

@@ -81,9 +81,64 @@ const {
   resolveFreeRoamUrl,
   decoratePannellumHotspot,
 } = helper;
+const visibility = require(path.join(ROOT, 'utils/participantVisibility.js'));
 const LOC = { href: 'http://127.0.0.1/vr/to/1?step=24', origin: 'http://127.0.0.1' };
 const guided = (nav_url) => ({ hotspot_type: 'scene', nav_url });
 const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key });
+
+/* ---------------- 1b. participant guest-visibility policy ---------------- */
+{
+  const rows = [
+    { hotspot_type: 'scene', label: 'Scene', guest_visible: false },
+    { hotspot_type: 'exit', label: 'Exit', guest_visible: false },
+    { hotspot_type: 'info', label: 'Approved info', guest_visible: true },
+    { hotspot_type: 'info', label: 'Private info', guest_visible: false },
+    { hotspot_type: 'schedule', label: 'Room schedule', guest_visible: true },
+  ];
+  const guestRows = visibility.filterHotspotsForRole(rows, 'guest');
+  const studentRows = visibility.filterHotspotsForRole(rows, 'student-cspc');
+  check('guest-visibility', 'schedule access is limited to student, instructor, and admin roles',
+    visibility.canViewRoomSchedules('student-cspc') &&
+    visibility.canViewRoomSchedules('instructor') &&
+    visibility.canViewRoomSchedules('admin') &&
+    !visibility.canViewRoomSchedules('guest') &&
+    !visibility.canViewRoomSchedules('anonymous'));
+  check('guest-visibility', 'guest keeps scene/exit and approved info hotspots only',
+    guestRows.map((row) => row.hotspot_type).join(',') === 'scene,exit,info' &&
+    guestRows[2].label === 'Approved info');
+  check('guest-visibility', 'guest payload strips the internal policy field',
+    guestRows.every((row) => !Object.prototype.hasOwnProperty.call(row, 'guest_visible')));
+  check('guest-visibility', 'privileged roles preserve schedules but also strip policy metadata',
+    studentRows.length === rows.length &&
+    studentRows.some((row) => row.hotspot_type === 'schedule') &&
+    studentRows.every((row) => !Object.prototype.hasOwnProperty.call(row, 'guest_visible')));
+  const routes = read('routes/buildings.js');
+  const buildingView = read('views/buildings.ejs');
+  const vrView = read('views/vr.ejs');
+  const vrRouteView = read('views/vr-route.ejs');
+  const adminView = read('views/admin/vr.ejs');
+  const adminClient = read('public/js/admin/admin-vr.js');
+  const vrController = read('controllers/vrController.js');
+  const migration = read('database/supabase/0024_vr_hotspot_guest_visibility.sql');
+  check('guest-visibility', 'schedule API routes use the shared allowed-role middleware',
+    routes.includes('requireRole') && routes.includes('SCHEDULE_VIEW_ROLES') &&
+    (routes.match(/requireRole\(\.\.\.SCHEDULE_VIEW_ROLES\)/g) || []).length === 3);
+  check('guest-visibility', 'VR controllers filter hotspots before rendering',
+    vrController.includes('filterHotspotsForRole') &&
+    (vrController.match(/filterHotspotsForRole\(/g) || []).length >= 3);
+  check('guest-visibility', 'guest building UI has no legacy restricted-entry warning',
+    !/Guests Cannot Enter|route-restricted-warning/.test(buildingView) &&
+    buildingView.includes('canViewRoomSchedules'));
+  check('guest-visibility', 'guest VR views conditionally omit schedule UI assets',
+    vrView.includes('typeof canViewRoomSchedules') &&
+    vrRouteView.includes('typeof canViewRoomSchedules'));
+  check('guest-visibility', 'admin hotspot editor exposes and submits guest_visible',
+    adminView.includes('id="vr-hotspot-guest-visible"') &&
+    adminClient.includes('guest_visible: type ==='));
+  check('guest-visibility', 'Supabase migration adds a fail-closed guest visibility column',
+    migration.includes('guest_visible boolean NOT NULL DEFAULT false') &&
+    migration.includes("hotspot_type IN ('scene', 'exit')"));
+}
 
 /* ---------------- 2. accepted guided/Free-Roam navigation ---------------- */
 {

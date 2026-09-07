@@ -126,9 +126,12 @@ check('routes', 'all admin schedule-image routes sit behind the admin role, CSRF
 check('routes', 'legacy schedule rows are read-only during transition',
   /router\.get\('\/api\/schedules'/.test(adminRoutes) &&
   !/router\.(?:post|put|delete)\('\/api\/schedules/.test(adminRoutes));
-check('routes', 'building-list and exact-document endpoints require login',
-  /router\.get\('\/api\/buildings\/:id\/room-schedule-documents',\s*requireLogin/.test(buildingRoutes) &&
-  /router\.get\('\/api\/room-schedule-documents\/:id',\s*requireLogin/.test(buildingRoutes));
+check('routes', 'building-list and exact-document endpoints require an allowed participant role',
+  buildingRoutes.includes("requireRole(...SCHEDULE_VIEW_ROLES)") &&
+  /router\.get\('\/api\/buildings\/:id\/schedules',\s*requireRole\(\.\.\.SCHEDULE_VIEW_ROLES\)/.test(buildingRoutes) &&
+  /router\.get\('\/api\/buildings\/:id\/room-schedule-documents',\s*requireRole\(\.\.\.SCHEDULE_VIEW_ROLES\)/.test(buildingRoutes) &&
+  /router\.get\('\/api\/room-schedule-documents\/:id',\s*requireRole\(\.\.\.SCHEDULE_VIEW_ROLES\)/.test(buildingRoutes) &&
+  /SCHEDULE_VIEW_ROLES[\s\S]{0,200}student-cspc[\s\S]{0,100}instructor[\s\S]{0,100}admin/.test(read('utils/participantVisibility.js')));
 check('controller', 'public schedule responses are private and uncached',
   publicController.includes("res.set('Cache-Control', 'private, no-store')") &&
   publicController.includes("res.set('Pragma', 'no-cache')"));

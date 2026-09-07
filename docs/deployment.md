@@ -27,8 +27,8 @@ the owner-controlled SQL Editor remains the authority for catalog metadata.
 Supabase heartbeat writes and reads are available, while login/navigation stay
 best-effort and non-blocking on a presence failure.
 
-Closeout verification (2026-09-05): fresh `npm test` registered `4809/4809`
-checks and produced `4,809 PASS` with `QUALITY-GATES OK`; the final canonical
+Closeout verification (2026-09-06): fresh `npm test` registered `4850/4850`
+checks and produced `4,850 PASS` with `QUALITY-GATES OK`; the final canonical
 session-residue postcondition is `18/18`. Focused profile-image `27/27`,
 presence `34/34`, BE.6 `46/46`, ICTU Docker `49/49`, package `74/74`,
 `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and
@@ -41,8 +41,28 @@ commits are `fdb0c8c`, `621d72e`, `b8e7ffb`, and `a5a6cee`; the authority synchr
 live `HEAD` after delivery. This owner-authorized push is source delivery only;
 no Vercel/ICTU deployment, promotion, or Production smoke is included.
 
+## Guest building/VR visibility policy (working-tree candidate)
+
+Signed-in guests may browse every building, 2D route, and 360 scene. Room
+schedules are limited to `student-cspc`, `instructor`, and `admin`; scene/exit
+hotspots remain guest-visible, information hotspots require explicit admin
+approval, and schedule hotspots are always hidden. Supabase migration
+`0024_vr_hotspot_guest_visibility.sql` is owner-applied; Codex did not apply or
+reapply it. The selected freeze is unchanged.
+
+## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+
+Admin creation and role promotion now create one minimal instructor profile
+when missing on both backends. MySQL performs the ensure in the user
+transaction; Supabase migration `0026_admin_instructor_profile_integrity.sql`
+contains the conflict-safe backfill and server-only admin create/update RPCs.
+Existing profile values are preserved and role changes away from instructor do
+not delete profiles. The project owner has applied migration 0026; Codex did
+not apply or reapply it. Rebuild the application container after source changes
+before running runtime checks.
+
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-05)
+## Current Release Continuity (2026-09-06)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
@@ -108,32 +128,37 @@ entry path. Existing entry-only downloads remain usable until Update Offline
 Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
-`0021_minimal_instructor_oauth_registration.sql`, and
-`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+`0021_minimal_instructor_oauth_registration.sql`, `0022_user_presence.sql`,
+`0023_directional_route_edge_geometry.sql`,
+`0024_vr_hotspot_guest_visibility.sql`, and `0025_event_audience.sql` are
+owner-applied. Codex did not apply them and must
 not reapply them without new explicit database authorization. Read-only 0022
 postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification.
+was backfilled or altered to obtain verification. The working-tree candidate
+also contains source-only `0026_admin_instructor_profile_integrity.sql`,
+pending one explicit owner application; Codex has not applied it.
 
-The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+The selected data/route freeze is the owner-approved 2026-09-06 freeze after
+the separately authored Supabase exit geometries were verified.
 MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
 reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
 selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
-50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, 664 scenes,
 1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
 active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
 The MySQL building/route SHA-256
 `0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
 the Supabase building/route SHA-256
-`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`;
 the selected VR SHA-256
 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
 the shared Guided-VR catalog SHA-256
 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
 and the freeze-manifest SHA-256
-`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+`9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
 Never change these facts merely to make a gate green.
 
 The required Security -> Performance -> Correctness -> Maintainability ->
@@ -142,7 +167,7 @@ on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
 batched without N+1 reads, and sanitized on failure. Focused evidence includes
 Google profile image `27/27`, presence `34/34`, shared button/theme
 `19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
-`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+`74/74`. The fresh full source suite passed `4850/4850` with zero failures
 and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
 `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
@@ -161,9 +186,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 196 files and 7,267,536 bytes with
+The current Vercel source package is 197 files and 7,299,447 bytes with
 aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -1926,13 +1951,17 @@ project owner in the Supabase SQL editor.
 0020_room_schedule_documents.sql
 0021_minimal_instructor_oauth_registration.sql
 0022_user_presence.sql
+0023_directional_route_edge_geometry.sql
+0024_vr_hotspot_guest_visibility.sql
+0025_event_audience.sql
+0026_admin_instructor_profile_integrity.sql
 ```
 
 **Existing project** — apply only the migrations not yet run, in ascending order.
 All migrations are written to be idempotent/additive where practical
 (`CREATE ... IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
-> **Production GO gate:** migrations through `0021_minimal_instructor_oauth_registration.sql`
+> **Production GO gate:** migrations through `0026_admin_instructor_profile_integrity.sql`
 > **must be applied before final production GO** — including
 > `0010_performance_indexes.sql` (DB performance/index parity, required by
 > `npm run qa:db`), `0011_supabase_session_store.sql` (the server-only
@@ -1942,9 +1971,16 @@ All migrations are written to be idempotent/additive where practical
 > owner-applied), plus `0013_vr_hotspot_schedule_metadata.sql` (nullable
 > schedule-target metadata on VR hotspots for the legacy room-door fallback),
 > plus `0020_room_schedule_documents.sql` (one current semester image record per
-> room/facility and the direct `vr_hotspots.schedule_document_id` link).
-> Migration `0020` is recorded as owner-applied for this implementation. Any
-> future schema change requires separate owner operational authorization.
+> room/facility and the direct `vr_hotspots.schedule_document_id` link); separate owner operational authorization covers its
+> recorded application,
+> `0022_user_presence.sql`, `0023_directional_route_edge_geometry.sql`, and
+> `0024_vr_hotspot_guest_visibility.sql` (the guest visibility policy bit),
+> `0025_event_audience.sql` (role-targeted events), and
+> `0026_admin_instructor_profile_integrity.sql` (minimal instructor profiles
+> for admin create/role-promotion). Migrations `0020` through `0026` are
+> recorded as owner-applied for this implementation. Codex did not apply or
+> reapply 0026. Any future schema
+> change requires separate owner operational authorization.
 > Room schedules are real **admin-managed** room/facility data - not SIS,
 > enrollment, or instructor-load simulation. Migrations `0014` through `0019`
 > are also owner-applied and provide the verified campus route graph,
@@ -1952,10 +1988,16 @@ All migrations are written to be idempotent/additive where practical
 > the authoritative Guard House topology, CAS baseline, and selected-demo
 > parity.
 
-Migration `0022_user_presence.sql` is the current additive presence candidate.
-It must be reviewed and then applied by the owner in Supabase before enabling
-or claiming Supabase Online/Offline runtime evidence; it is not a data-freeze
-refresh and does not backfill `users`.
+Migration `0022_user_presence.sql` is owner-applied presence history. Migration
+`0023_directional_route_edge_geometry.sql` is also owner-applied and provides
+the service-role-only independent reverse-geometry save path. Migration
+`0024_vr_hotspot_guest_visibility.sql` is the owner-applied guest policy
+migration. Codex did not apply or reapply it. Supabase-mode VR/admin hotspot
+reads and writes now use `guest_visible`; it is not a data-freeze refresh and
+does not backfill users.
+Migration `0026_admin_instructor_profile_integrity.sql` is auth/profile-only,
+preserves existing instructor-profile values, and is owner-applied. Codex did
+not apply or reapply it.
 
 The current expanded candidate is backend-specific: MySQL contains 34
 buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, and 100
@@ -2414,9 +2456,13 @@ cannot be produced by any agent:
   CampuSphere adds no feedback table, API mutation, or migration.
 
 Also apply migration `0011_supabase_session_store.sql` to the Supabase project
-before the first deploy. Migrations `0001` through `0019` are recorded as
+before the first deploy. Migrations `0001` through `0025` are recorded as
 owner-applied; `0020_room_schedule_documents.sql` must be separately authorized,
-applied, and verified before deploying the semester-image schedule flow.
+applied, and verified before deploying the semester-image schedule flow, and
+`0024_vr_hotspot_guest_visibility.sql` must be separately authorized, applied,
+and verified before deploying Supabase-mode guest VR visibility, and
+`0026_admin_instructor_profile_integrity.sql` must be separately authorized,
+applied, and verified before deploying the admin instructor-profile flow.
 
 #### Fail-closed Vercel production profile (M12.P1-R2)
 
@@ -2572,13 +2618,13 @@ because inside the app container `localhost` is the container itself.
 | Symptom | Cause & fix |
 | --- | --- |
 | Server exits at startup: "SESSION_SECRET is required / must be ≥32 chars / must not be a placeholder" | Production requires a strong `SESSION_SECRET`. Set a 32+ char random value (and apply the same bar to every `SESSION_SECRET_PREVIOUS`). |
-| Server exits: "SESSION_STORE=memory is not allowed in production" | Use `SESSION_STORE=supabase` (preferred - set `SUPABASE_*` and apply migration `0011`) or `SESSION_STORE=mysql` (fallback - provide `DB_*`). For full Supabase data mode, also apply `0012_room_schedules.sql`, `0013_vr_hotspot_schedule_metadata.sql`, and `0020_room_schedule_documents.sql`. Memory store is dev-only. |
+| Server exits: "SESSION_STORE=memory is not allowed in production" | Use `SESSION_STORE=supabase` (preferred - set `SUPABASE_*` and apply migration `0011`) or `SESSION_STORE=mysql` (fallback - provide `DB_*`). For full Supabase data mode, also apply `0012_room_schedules.sql`, `0013_vr_hotspot_schedule_metadata.sql`, `0020_room_schedule_documents.sql`, `0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and `0026_admin_instructor_profile_integrity.sql`. Memory store is dev-only. |
 | Login appears to succeed but you are immediately logged out (prod) | The Secure `__Host-` cookie was not sent: you are serving over HTTP, or the proxy isn't forwarding `X-Forwarded-Proto=https`. Terminate TLS and set `TRUST_PROXY` (§5). Or, for a non-HTTPS rehearsal, run with `NODE_ENV` unset/development. |
 | `/auth/google` redirects to `/auth?error=oauth_failed` | `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` missing. OAuth is optional; local login still works. |
 | Google `redirect_uri_mismatch` | `GOOGLE_REDIRECT_URI` doesn't exactly match an Authorized redirect URI in Google Cloud. Register the exact scheme/host/port/path (§7). |
 | App can't reach MySQL in Docker (`ECONNREFUSED`/timeout) | `DB_HOST` points at `localhost` inside the container. In Compose use `DB_HOST=mysql` (the service name); standalone, point it at the reachable host. |
-| Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply authorized migrations through `0022` in order; `0011` is required for Supabase sessions, `0012`-`0013` for the legacy schedule fallback, `0014`-`0019` for road-following routing/CAS/admin geometry, `0020` for semester schedule images/direct VR links, and `0022` for presence. Verify with `npm run qa:smoke` and the focused probes. |
-| `npm run qa:db` fails on a missing index or route-geometry count | After authorization, apply the Supabase migrations through `0020` (§3) and run `node database/seed.js` for MySQL. Re-measure the selected backend rather than assuming parity: the current candidate freezes MySQL at 44 nodes / 100 edges / 50 reverse pairs / 100 geometries and Supabase at 26 / 50 / 25 / 50. |
+| Supabase mode errors / smoke FAIL | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` unset or wrong, or migrations not applied. Apply authorized migrations through `0026` in order; `0011` is required for Supabase sessions, `0012`-`0013` for the legacy schedule fallback, `0014`-`0019` for road-following routing/CAS/admin geometry, `0020` for semester schedule images/direct VR links, `0022` for presence, `0023` for directional geometry, `0024` for guest hotspot visibility, `0025` for event audiences, and `0026` for admin instructor-profile integrity. Verify with `npm run qa:smoke` and the focused probes. |
+| `npm run qa:db` fails on a missing index or route-geometry count | After authorization, apply the route/data migrations through `0020` (§3) and run `node database/seed.js` for MySQL. If Supabase VR guest visibility is also being tested, apply `0024` separately. Re-measure the selected backend rather than assuming parity: the current candidate freezes MySQL at 44 nodes / 100 edges / 50 reverse pairs / 100 geometries and Supabase at 26 / 50 / 25 / 50. |
 | `npm test` / `npm run qa` fails | Ensure MySQL is running and seeded; Supabase portions SKIP cleanly only when no Supabase runtime is selected. Selected Supabase runtimes fail closed when credentials or required migrations are missing. Re-run the named focused probe or gate for detail. |
 
 ---

@@ -8,19 +8,34 @@ const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
 const { logServerError } = require('../utils/serverLog');
 
+const EVENT_AUDIENCE_ROLES = new Set(['student-cspc', 'instructor', 'admin', 'guest']);
+
+function sessionAudienceRole(req) {
+    const role = req && req.session && req.session.user && req.session.user.role;
+    return EVENT_AUDIENCE_ROLES.has(role) ? role : '';
+}
+
 /**
  * GET /events — Events & News
  */
 exports.index = async (req, res) => {
     try {
+        const role = sessionAudienceRole(req);
         // The public events page presents the newest calendar date first.
         // Keep this direction explicit so the notification feed can continue
         // using listEvents' default nearest-upcoming ASC order.
         let rows;
         if (contentDataSource.isSupabase()) {
-            rows = await contentRepository.listEvents({ sortDirection: 'desc' });
+            rows = await contentRepository.listEventsForRole(role, { sortDirection: 'desc' });
         } else {
-            [rows] = await db.query('SELECT * FROM events ORDER BY event_date DESC, id DESC');
+            const audienceSql = role ? '(audience = ? OR audience = ?)' : 'audience = ?';
+            const audienceParams = role ? ['all', role] : ['all'];
+            [rows] = await db.query(
+                `SELECT * FROM events
+                  WHERE ${audienceSql}
+                  ORDER BY event_date DESC, id DESC`,
+                audienceParams
+            );
         }
 
         // Map rows to match the expected format

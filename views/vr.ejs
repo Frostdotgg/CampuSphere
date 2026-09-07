@@ -17,7 +17,9 @@
         })();
     </script>
     <link rel="stylesheet" href="/css/styles.css?v=11">
+    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
+    <% } %>
     <link rel="icon" type="image/png" href="/img/cspc-logo.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -238,13 +240,17 @@
             <% } %>
         </div>
 
+        <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
         <%- include('partials/room-schedule-viewer') %>
+        <% } %>
     </main>
 
     <%- include('partials/theme-toggle') %>
 
+    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
     <script src="/js/room-schedule-viewer.js"></script>
     <script src="/js/vr-schedule.js"></script>
+    <% } %>
     <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
         inline viewer initialization below. %>
     <script src="/js/vr-hotspot-navigation.js"></script>
@@ -262,7 +268,10 @@
             var stagePano = document.getElementById('vrPano');
             var fallback = document.getElementById('vrFallback');
             var scene = data.scene;
-            var scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
+            var scheduleUi = null;
+            <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
+            scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
+            <% } %>
             var hotspotNav = window.CampuSphereVrHotspotNavigation || null;
 
             // No scene or no image: leave the server-rendered fallback visible.

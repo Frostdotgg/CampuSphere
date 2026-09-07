@@ -26,13 +26,13 @@
          upsertGuestProfile           -> app_upsert_guest_profile
      - Admin-managed user CRUD implemented (Section 2.10):
          createAdminManagedUser       -> app_create_admin_managed_user
-         updateAdminManagedUser       -> direct UPDATE on public.users
+         updateAdminManagedUser       -> app_update_admin_managed_user
          deleteUserById               -> direct DELETE on public.users
            (role-profile rows are removed by ON DELETE CASCADE declared
             in database/supabase/0001_initial_schema.sql section B.1)
 
-   This module is not imported by any controller, route, middleware,
-   view, or anything under public/ yet. Section 2.6 onward wires it in.
+   This module is imported by Supabase-capable controllers only; the admin
+   user controller keeps the public API shape independent of this boundary.
 
    Security
      - Server-only. Obtains the Supabase client via config/supabase.js
@@ -79,7 +79,8 @@ const KNOWN_RPC_ERRORS = new Set([
   'MISSING_GUEST',
   'MISSING_OAUTH_SUBJECT',
   'INVALID_ROLE',
-  'INVALID_ROLE_FOR_PUBLIC_REGISTRATION'
+  'INVALID_ROLE_FOR_PUBLIC_REGISTRATION',
+  'USER_NOT_FOUND'
 ]);
 
 function ensureNoError(error, method) {
@@ -360,7 +361,9 @@ async function countCreatedInMonth(arg) {
  */
 async function createLocalUser(payload) {
   const p = payload || {};
-  const username = typeof p.username === 'string' ? p.username.trim() : '';
+  // The users table stores username in varchar(50). Keep this repository
+  // boundary safe even if a future caller supplies a longer email local-part.
+  const username = typeof p.username === 'string' ? p.username.trim().slice(0, 50) : '';
   const email = typeof p.email === 'string' ? p.email.trim() : '';
   const passwordHash = typeof p.passwordHash === 'string' ? p.passwordHash : '';
   const role = typeof p.role === 'string' ? p.role.trim() : '';
@@ -700,29 +703,26 @@ async function updateUserProfileAtomic(userId, plan) {
 // (routes/admin.js -> router.use(requireRole('admin'))).
 //
 // createAdminManagedUser uses the app_create_admin_managed_user SQL function
-// from 0003 so users + optional role profile are created atomically. The
+// from 0003 (updated by the additive 0026 migration) so users + applicable
+// role profile are created atomically. The
 // admin form today only collects {first_name, last_name, email, password,
-// role}, so the profile parameters are typically blank/NULL; the SQL
-// function then skips the role-profile insert and only writes a users row
-// (mirrors the current MySQL controller, which also only writes users).
+// role}; the updated SQL function supplies the minimal instructor profile when
+// those profile parameters are blank. MySQL mirrors that invariant locally.
 //
-// updateAdminManagedUser and deleteUserById use direct .update()/.delete()
-// against public.users:
-//   - update is single-table (the admin form only edits users-row fields),
-//     so no multi-table atomicity wrapper is needed; this matches the
-//     existing controllers/profileController.js update path that also uses
-//     a direct UPDATE for users.
-//   - delete relies on the ON DELETE CASCADE foreign keys on
-//     student_profiles.user_id / instructor_profiles.user_id /
-//     guest_profiles.user_id (0001 section B.1) to clean up role-profile
-//     rows in the same transaction. The MySQL controller manually deletes
-//     student_profiles first because MySQL CASCADE rules are not declared
-//     in database/schema.sql; that manual step is not needed here.
+// updateAdminManagedUser calls the additive atomic admin-update RPC so a role
+// change into instructor cannot leave a users row without its profile. The
+// delete path remains a direct users delete and relies on the existing
+// ON DELETE CASCADE foreign keys:
+//   student_profiles.user_id / instructor_profiles.user_id /
+//   guest_profiles.user_id (0001 section B.1) to clean up role-profile rows
+//   in the same transaction. The MySQL controller manually deletes
+//   student_profiles first because MySQL CASCADE rules are not declared in
+//   database/schema.sql; that manual step is not needed here.
 // See database/supabase/0003_auth_profile_functions.sql notes (bottom) and
 // REPOSITORY_BOUNDARIES.md section 10.1 for the atomicity rationale.
 
 /**
- * Atomically create an admin-managed user (and an optional role profile)
+ * Atomically create an admin-managed user (and any applicable role profile)
  * via public.app_create_admin_managed_user. Accepts all four canonical
  * roles including 'admin'; intended ONLY to be called from an admin-only
  * route (routes/admin.js).
@@ -732,7 +732,7 @@ async function updateUserProfileAtomic(userId, plan) {
  *
  * payload: {
  *   username, email, passwordHash, role, first_name, last_name,
- *   profile?: {  // all fields optional; blank/missing => skip profile insert
+ *   profile?: {  // all fields optional; blank instructor values are supported
  *     // role='student-cspc'
  *     student_id_number?, course?, year_level?, semester?,
  *     // role='instructor'
@@ -791,18 +791,17 @@ async function createAdminManagedUser(payload) {
 }
 
 /**
- * Update mutable fields on a users row via direct .update(). Only the
+ * Update mutable fields on a users row through the atomic admin-update RPC.
  * fields explicitly present on `fields` are patched; everything else is
- * left untouched. `updated_at` is always refreshed.
+ * read from the current users row. The SQL function refreshes `updated_at`.
  *
  * Allowed fields: username, email, role, first_name, last_name, passwordHash.
  * The repository validates `role` against the canonical four-role set
  * (defense in depth; the controller already validates). All other inputs
  * are coerced to strings and passed through.
  *
- * Returns void. Throws an Error with code 'INVALID_ROLE' if a role is
- * passed that is not one of the canonical four; throws a wrapped Error on
- * any Supabase-side failure.
+ * Returns void. Throws an Error with code 'INVALID_ROLE' or 'USER_NOT_FOUND'
+ * for those server-side conditions; other Supabase failures are wrapped.
  */
 async function updateAdminManagedUser(userId, fields) {
   if (userId === null || userId === undefined || userId === '') {
@@ -810,38 +809,41 @@ async function updateAdminManagedUser(userId, fields) {
   }
   const f = fields || {};
   const VALID_ROLES = ['student-cspc', 'instructor', 'admin', 'guest'];
+  const existing = await findUserById(userId);
+  if (!existing) {
+    const e = new Error('USER_NOT_FOUND');
+    e.code = 'USER_NOT_FOUND';
+    throw e;
+  }
 
-  const patch = { updated_at: new Date().toISOString() };
-  if (Object.prototype.hasOwnProperty.call(f, 'username')) {
-    patch.username = f.username == null ? '' : String(f.username);
+  const has = (name) => Object.prototype.hasOwnProperty.call(f, name);
+  const valueOrExisting = (name) => (has(name) ? f[name] : existing[name]);
+  const role = String(valueOrExisting('role') == null ? '' : valueOrExisting('role')).trim();
+  if (!VALID_ROLES.includes(role)) {
+    const e = new Error('INVALID_ROLE');
+    e.code = 'INVALID_ROLE';
+    throw e;
   }
-  if (Object.prototype.hasOwnProperty.call(f, 'email')) {
-    patch.email = f.email == null ? '' : String(f.email);
-  }
-  if (Object.prototype.hasOwnProperty.call(f, 'role')) {
-    const r = String(f.role == null ? '' : f.role).trim();
-    if (!VALID_ROLES.includes(r)) {
-      const e = new Error('INVALID_ROLE');
-      e.code = 'INVALID_ROLE';
-      throw e;
-    }
-    patch.role = r;
-  }
-  if (Object.prototype.hasOwnProperty.call(f, 'first_name')) {
-    patch.first_name = f.first_name == null ? '' : String(f.first_name);
-  }
-  if (Object.prototype.hasOwnProperty.call(f, 'last_name')) {
-    patch.last_name = f.last_name == null ? '' : String(f.last_name);
-  }
-  if (Object.prototype.hasOwnProperty.call(f, 'passwordHash')
+
+  const params = {
+    p_user_id: userId,
+    p_username: String(valueOrExisting('username') == null ? '' : valueOrExisting('username')).slice(0, 50),
+    p_email: String(valueOrExisting('email') == null ? '' : valueOrExisting('email')),
+    p_role: role,
+    p_first_name: String(valueOrExisting('first_name') == null ? '' : valueOrExisting('first_name')),
+    p_last_name: String(valueOrExisting('last_name') == null ? '' : valueOrExisting('last_name')),
+    p_password_hash: null
+  };
+
+  if (has('passwordHash')
       && typeof f.passwordHash === 'string'
       && f.passwordHash.length > 0) {
-    patch.password = f.passwordHash;
+    params.p_password_hash = f.passwordHash;
   }
 
   const sb = client();
-  const { error } = await sb.from(USERS).update(patch).eq('id', userId);
-  ensureNoError(error, 'updateAdminManagedUser');
+  const { error } = await sb.rpc('app_update_admin_managed_user', params);
+  if (error) throwRpcError(error, 'updateAdminManagedUser');
 }
 
 /**

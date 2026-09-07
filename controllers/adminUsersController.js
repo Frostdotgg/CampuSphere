@@ -8,7 +8,8 @@
 
    The Supabase branch routes writes through the user repository, which
    wraps multi-table inserts in the app_create_admin_managed_user SQL
-   function (database/supabase/0003_auth_profile_functions.sql) and lets
+   function (database/supabase/0003_auth_profile_functions.sql, refined by
+   migration 0026) and lets
    the ON DELETE CASCADE foreign keys on student_profiles /
    instructor_profiles / guest_profiles handle role-profile cleanup on
    delete. Validation, role allowlist, duplicate-email response, JSON
@@ -37,6 +38,20 @@ const { revokeUserSessions } = require('../services/sessionRevocation');
 const V = require('../utils/adminValidation');
 
 const SALT_ROUNDS = 10;
+
+// The admin user form does not collect the retired instructor fields. Keep a
+// minimal MySQL role-profile row in the same transaction as the users write;
+// the unique user_id key makes repeated edits a no-op and preserves any
+// existing profile values.
+async function ensureMysqlInstructorProfile(conn, userId) {
+  await conn.query(
+     `INSERT INTO instructor_profiles
+       (user_id, employee_id, department, position, status)
+     VALUES (?, '', '', '', 'Active')
+     ON DUPLICATE KEY UPDATE id = id`,
+    [userId]
+  );
+}
 
 // R7: canonical role set + per-operation key allowlists. The admin user form
 // only collects these fields; role-profile fields are intentionally rejected.
@@ -152,7 +167,9 @@ exports.createUser = async (req, res) => {
       }
 
       const sbHashedPassword = await bcrypt.hash(value.password, SALT_ROUNDS);
-      const sbUsername = String(value.email).split('@')[0];
+       // The database keeps username at varchar(50); email local-parts may be
+       // longer, so keep the admin path aligned with the OAuth/local paths.
+       const sbUsername = String(value.email).split('@')[0].slice(0, 50);
 
       let sbUserId;
       try {
@@ -163,8 +180,8 @@ exports.createUser = async (req, res) => {
           role: value.role,
           first_name: value.first_name,
           last_name: value.last_name
-          // No `profile`: the admin form does not collect role-specific
-          // fields, so the SQL function will only insert the users row.
+          // The SQL function supplies the minimal instructor profile when
+          // the admin form's role-specific fields are absent.
         });
       } catch (err) {
         if (err && err.code === 'INVALID_ROLE') {
@@ -183,33 +200,53 @@ exports.createUser = async (req, res) => {
     }
 
     // ===== MySQL branch (default) =====
-    // Check if email already exists
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [value.email]);
-    if (existing.length > 0) {
-      return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
-    }
-
-    // Hash password
+    // Keep the users insert and the minimal instructor profile in one
+    // transaction. This also closes the duplicate-email race that existed
+    // between the old pre-check and insert.
     const hashedPassword = await bcrypt.hash(value.password, SALT_ROUNDS);
+     const username = value.email.split('@')[0].slice(0, 50);
+    let conn = null;
+    let committed = false;
+    try {
+      conn = await db.getConnection();
+      await conn.beginTransaction();
 
-    // Generate username from email
-    const username = value.email.split('@')[0];
+      const [existing] = await conn.query('SELECT id FROM users WHERE email = ? FOR UPDATE', [value.email]);
+      if (existing.length > 0) {
+        await conn.rollback();
+        return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
+      }
 
-    // Insert user
-    const [result] = await db.query(
-      'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, value.email, hashedPassword, value.role, value.first_name, value.last_name]
-    );
+      const [result] = await conn.query(
+        'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
+        [username, value.email, hashedPassword, value.role, value.first_name, value.last_name]
+      );
 
-    // Fetch the newly created user to return it
-    const [newUser] = await db.query('SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?', [result.insertId]);
+      if (value.role === 'instructor') {
+        await ensureMysqlInstructorProfile(conn, result.insertId);
+      }
 
-    auditAdminMutation(req, 'admin.user.create', 'user', result.insertId, 'Admin created a user.');
-    return res.status(201).json({
-      success: true,
-      message: 'User created successfully.',
-      user: newUser[0]
-    });
+      const [newUser] = await conn.query(
+        'SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
+        [result.insertId]
+      );
+      await conn.commit();
+      committed = true;
+
+      auditAdminMutation(req, 'admin.user.create', 'user', result.insertId, 'Admin created a user.');
+      return res.status(201).json({
+        success: true,
+        message: 'User created successfully.',
+        user: newUser[0]
+      });
+    } catch (err) {
+      if (conn && !committed) {
+        try { await conn.rollback(); } catch (_) { /* preserve original error */ }
+      }
+      throw err;
+    } finally {
+      if (conn) conn.release();
+    }
 
   } catch (error) {
     console.error('Error creating user: unexpected failure.');
@@ -254,7 +291,7 @@ exports.updateUser = async (req, res) => {
         return res.status(409).json({ success: false, message: 'This email is already used by another account.' });
       }
 
-      const sbUsername = String(value.email).split('@')[0];
+       const sbUsername = String(value.email).split('@')[0].slice(0, 50);
       const sbPatch = {
         username: sbUsername,
         email: value.email,
@@ -271,6 +308,9 @@ exports.updateUser = async (req, res) => {
       } catch (err) {
         if (err && err.code === 'INVALID_ROLE') {
           return res.status(400).json({ success: false, message: 'Invalid role specified.' });
+        }
+        if (err && err.code === 'USER_NOT_FOUND') {
+          return res.status(404).json({ success: false, message: 'User not found.' });
         }
         throw err;
       }
@@ -298,42 +338,73 @@ exports.updateUser = async (req, res) => {
     }
 
     // ===== MySQL branch (default) =====
-    // Check if user exists (select role too, to detect a role change for M1).
-    const [existingUser] = await db.query('SELECT id, role FROM users WHERE id = ?', [userId]);
-    if (existingUser.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-
-    // M1: a role change or a password change must invalidate the target's live
-    // sessions after the update commits (below).
-    const roleChanged = String(existingUser[0].role) !== String(value.role);
+    // Keep the user update and any instructor-profile creation in one
+    // transaction. Session revocation remains after commit, matching the
+    // existing M1 behavior.
+    const passwordHash = value.password
+      ? await bcrypt.hash(value.password, SALT_ROUNDS)
+      : null;
+     const username = value.email.split('@')[0].slice(0, 50);
+    let conn = null;
+    let committed = false;
+    let roleChanged = false;
     const passwordChanged = Boolean(value.password);
+    let updatedUser = [];
+    try {
+      conn = await db.getConnection();
+      await conn.beginTransaction();
 
-    // Check if email is taken by another user
-    const [emailCheck] = await db.query('SELECT id FROM users WHERE email = ? AND id != ?', [value.email, userId]);
-    if (emailCheck.length > 0) {
-      return res.status(409).json({ success: false, message: 'This email is already used by another account.' });
-    }
+      const [existingUser] = await conn.query('SELECT id, role FROM users WHERE id = ? FOR UPDATE', [userId]);
+      if (existingUser.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: 'User not found.' });
+      }
 
-    // Generate updated username from email
-    const username = value.email.split('@')[0];
+      roleChanged = String(existingUser[0].role) !== String(value.role);
 
-    // Build update query — include password only if provided
-    if (value.password) {
-      const hashedPassword = await bcrypt.hash(value.password, SALT_ROUNDS);
-      await db.query(
-        'UPDATE users SET username = ?, email = ?, password = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
-        [username, value.email, hashedPassword, value.role, value.first_name, value.last_name, userId]
+      // Check if email is taken by another user while the update transaction is
+      // open, so the following user/profile writes remain atomic.
+      const [emailCheck] = await conn.query(
+        'SELECT id FROM users WHERE email = ? AND id != ? FOR UPDATE',
+        [value.email, userId]
       );
-    } else {
-      await db.query(
-        'UPDATE users SET username = ?, email = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
-        [username, value.email, value.role, value.first_name, value.last_name, userId]
-      );
-    }
+      if (emailCheck.length > 0) {
+        await conn.rollback();
+        return res.status(409).json({ success: false, message: 'This email is already used by another account.' });
+      }
 
-    // Fetch updated user
-    const [updatedUser] = await db.query('SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?', [userId]);
+      // Build update query — include password only if provided
+      if (passwordHash) {
+        await conn.query(
+          'UPDATE users SET username = ?, email = ?, password = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
+          [username, value.email, passwordHash, value.role, value.first_name, value.last_name, userId]
+        );
+      } else {
+        await conn.query(
+          'UPDATE users SET username = ?, email = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
+          [username, value.email, value.role, value.first_name, value.last_name, userId]
+        );
+      }
+
+      if (value.role === 'instructor') {
+        await ensureMysqlInstructorProfile(conn, userId);
+      }
+
+      // Fetch updated user
+      [updatedUser] = await conn.query(
+        'SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
+        [userId]
+      );
+      await conn.commit();
+      committed = true;
+    } catch (err) {
+      if (conn && !committed) {
+        try { await conn.rollback(); } catch (_) { /* preserve original error */ }
+      }
+      throw err;
+    } finally {
+      if (conn) conn.release();
+    }
 
     // M1: revoke the target's live sessions when role/password changed. The
     // update already committed; a revocation failure returns a sanitized 500

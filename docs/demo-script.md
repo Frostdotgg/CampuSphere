@@ -3,8 +3,27 @@
 Milestone 8, Section 8.10. This script is for a controlled defense/demo using
 seeded data. Do not use real secrets or private production data on screen.
 
+## Guest building/VR visibility policy (working-tree candidate)
+
+Signed-in guests may browse every building, 2D route, and 360 scene. Room
+schedules are limited to `student-cspc`, `instructor`, and `admin`; scene/exit
+hotspots remain guest-visible, information hotspots require explicit admin
+approval, and schedule hotspots are always hidden. Supabase migration
+`0024_vr_hotspot_guest_visibility.sql` is owner-applied; Codex did not apply or
+reapply it. The selected freeze is unchanged.
+
+## Admin-managed instructor profile integrity (working-tree candidate, 2026-09-07)
+
+When demonstrating Admin > Users, creating an Instructor or promoting an
+existing account to Instructor now creates its minimal role profile
+automatically. The profile keeps blank legacy fields and Active status, and
+existing values are preserved. Supabase migration
+The project owner has applied Supabase migration
+`0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply
+it, so the demo may exercise the live Supabase path.
+
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-05)
+## Current Release Continuity (2026-09-06)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
@@ -70,32 +89,38 @@ entry path. Existing entry-only downloads remain usable until Update Offline
 Map is selected while connected.
 
 Supabase migrations `0020_room_schedule_documents.sql`,
-`0021_minimal_instructor_oauth_registration.sql`, and
-`0022_user_presence.sql` are owner-applied. Codex did not apply them and must
+`0021_minimal_instructor_oauth_registration.sql`, `0022_user_presence.sql`,
+`0023_directional_route_edge_geometry.sql`,
+`0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and
+`0026_admin_instructor_profile_integrity.sql` are owner-applied. Codex did not
+apply them and must
 not reapply them without new explicit database authorization. Read-only 0022
 postflight confirmed the presence table, primary/cascading foreign key,
 last-seen index, RLS, fixed function search path, `SECURITY INVOKER`, revoked
 browser-role access, and `service_role` execution. The matching additive
 MySQL presence table is applied locally. No user/account/profile/campus record
-was backfilled or altered to obtain verification.
+was backfilled or altered to obtain verification. Migration 0026 is
+auth/profile-only; its owner application does not alter the selected campus,
+route, VR, event, or freeze data.
 
-The selected data/route freeze remains the owner-approved 2026-09-02 freeze.
+The selected data/route freeze is the owner-approved 2026-09-06 freeze after
+the separately authored Supabase exit geometries were verified.
 MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
 reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
 selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
-50 directed edges, 25 exact reverse pairs, 50 valid geometries, 664 scenes,
+50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, 664 scenes,
 1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
 active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
 The MySQL building/route SHA-256
 `0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`;
 the Supabase building/route SHA-256
-`36cbf55cbdd8b88415f939cf8f9d818744b3154770b8ddf31b9c0b8df1785688`;
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`;
 the selected VR SHA-256
 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`;
 the shared Guided-VR catalog SHA-256
 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`;
 and the freeze-manifest SHA-256
-`85b999ee54625997ad55908ea478ee462b8d6470bb97f67c76fa17b97187298c`.
+`9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
 Never change these facts merely to make a gate green.
 
 The required Security -> Performance -> Correctness -> Maintainability ->
@@ -104,7 +129,7 @@ on MySQL, service-role-only on Supabase, atomically throttled, index-supported,
 batched without N+1 reads, and sanitized on failure. Focused evidence includes
 Google profile image `27/27`, presence `34/34`, shared button/theme
 `19/19`, BE.6 `46/46`, ICTU Docker `49/49`, and package boundary
-`74/74`. The fresh full source suite passed `4809/4809` with zero failures
+`74/74`. The fresh full source suite passed `4850/4850` with zero failures
 and `QUALITY-GATES OK`; all five `npm run qa` stages passed with
 `QUALITY-GATES OK`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`,
 `IDENTITY-CONSTRAINTS OK`, and zero audit vulnerabilities. Final canonical
@@ -123,9 +148,9 @@ verification was ended through the normal application Logout before the final
 residue gate. Counts are observational and may change; no account email belongs
 in authority evidence.
 
-The current Vercel source package is 196 files and 7,267,536 bytes with
+The current Vercel source package is 197 files and 7,299,447 bytes with
 aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`.
+`f018f2e8aabd63850d5827cd17f0e908aed37df56af7a02cafa1e4b367b4f074`.
 Authority documents and scripts are outside that allowlisted package. No
 post-push Vercel deployment, Ready state, promotion, Production smoke, or
 immutable deployed-byte identity was inspected or established. Technical
@@ -891,10 +916,11 @@ do not expose stacks, SQL, or secrets.
 
 Expected: map search is capped and sanitized, road geometry renders in graph
 order, and VR navigation uses admin-managed non-private data. MySQL freezes 34
-buildings, 44 route nodes, 100 directed edges, 50 exact reverse pairs, 100 valid
-geometries, and 33 routable destinations; Supabase freezes 25 buildings, 26
-route nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries,
-and 25 routable destinations; Guided VR covers 25 active destinations, 472
+buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact
+reverse geometries, 100 valid geometries, and 33 routable destinations;
+Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 reverse
+pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable
+destinations; Guided VR covers 25 active destinations, 472
 configured steps, and 99 unique scene keys.
 
 Arrival requires the configured natural destination node, stored start and
