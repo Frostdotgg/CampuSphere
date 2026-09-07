@@ -44,6 +44,11 @@ changes away from instructor do not delete a profile. Codex did not apply or
 reapply 0026. It does not change campus, route, VR, event, or selected-freeze
 data.
 
+The current runtime/source release is `5d505e9`; pushed authority successor
+`d294cfd` was the clean synchronized `main` HEAD at the start of the 2026-09-07
+authority update. The owner's later Vercel-promotion report does not change
+migration status and is not independent database or deployed-byte evidence.
+
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their
 migration counts differ.

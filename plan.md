@@ -1,6 +1,6 @@
 # Milestone 11 and Pre-Milestone-12 Delivery Plan
 
-## Pushed Room Schedule Image Candidate (2026-08-26)
+## Historical Pushed Room Schedule Image Candidate (2026-08-26; superseded)
 
 The authorized implementation is verified, reviewed, committed, and pushed as
 `e481d03`. It replaces legacy time-row
@@ -40,13 +40,15 @@ server-only atomic admin RPCs in migration
 applied. Codex did not apply or reapply it. This auth/profile change does not alter the selected campus,
 route, VR, event, or freeze data.
 
-The completed source release is Git commit `5d505e97e990ad82df6c858e28d48542deb8bf2c`
-(`5d505e9`), pushed to `main`; local `HEAD`, `origin/main`, and remote `main`
-were confirmed equal and the worktree is clean. The current Vercel package is
+The completed runtime/source release is Git commit
+`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`), pushed to
+`main`; pushed authority successor `d294cfd` was the clean synchronized
+HEAD at the start of this authority update. The reviewed Vercel package is
 197 files, 7,301,960 bytes, aggregate SHA-256
 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-No Vercel deployment, promotion, Production smoke, or immutable deployed-byte
-verification has been performed.
+The owner reports manually promoting a Vercel deployment after `d294cfd`,
+while exact deployment identity, Production smoke, and immutable deployed-byte
+verification remain pending independent evidence.
 
 ## Summary
 
@@ -55,7 +57,81 @@ Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Desti
 Supabase migration sources are contiguous from `0001` through `0026`; the historical route/data freeze remains scoped through `0020`; migrations `0014` through `0019` are owner-applied and verified, owner-applied `0020_room_schedule_documents.sql` is recorded before this verification, and `0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and `0026_admin_instructor_profile_integrity.sql` are owner-applied by the project owner. Codex did not apply or reapply them. Migration 0026 is auth/profile-only. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-06)
+## Current Release Continuity (2026-09-07)
+
+At the start of this owner-authorized authority synchronization, Git branch
+`main` had local `HEAD`, `origin/main`, and remote `main` equal at Git
+commit SHA-1 `d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`), with
+a clean index/worktree and zero stashes. The runtime/product release is Git
+commit SHA-1 `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`);
+`d294cfd` is its pushed authority-document successor. The owner authorized
+this authority-only synchronization, one commit, and a push to `main`. It
+does not authorize or perform application changes, database/session mutation,
+another Vercel promotion, Production smoke, or GO/NO-GO. The final authority
+commit contains this block, so fresh sessions must recompute its full SHA.
+
+The current lineage also includes Dashboard Google-image repair `fdb0c8c`,
+five-minute presence `621d72e`, campus UI refinement `b8e7ffb`, dependency
+security `a5a6cee`, presence authority `5776236`, and directional online/
+offline routing `23c5536`. The cancelled automatic Distance/Walktime proposal
+was not implemented and the route-creation setup was not replaced.
+
+Current behavior includes validated Dashboard Google profile images;
+five-minute presence; stylesheet `v11` and service-worker `v40`; the guest
+`2D and 360 View` label; admin destination search; the May 28, 2026 VR
+capture date; Floors & Rooms wording; separately authored online and offline
+entry/exit routes; all-building guest access with private schedules and
+administrator-approved information hotspots; a dynamic guest Dashboard
+building count; role-filtered event audiences `all`, `guest`,
+`student-cspc`, `instructor`, and `admin`; and a minimal
+`instructor_profiles` row for admin-created or promoted instructors.
+
+Supabase migrations `0020` through `0026` are owner-applied. Codex did not
+apply or reapply them; do not reapply them without fresh explicit database
+authorization. The selected 2026-09-06 freeze remains recorded evidence:
+MySQL 34 buildings/44 route nodes/100 directed edges/50 reverse pairs/50 exact
+reverse geometries/100 valid geometries/671 scenes/1,397 hotspots/one selected
+schedule hotspot; Supabase 25/26/50/25/0/50/664/1,374/zero; shared Guided VR
+25 destinations/472 steps/99 scene keys. Recorded values remain MySQL SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`,
+Supabase SHA-256 `8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`,
+VR SHA-256 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`,
+Guided VR SHA-256 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`,
+and manifest SHA-256 `9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
+
+The reviewed source package is 197 files and 7,301,960 bytes with aggregate
+SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`;
+authority documents and probes are outside that allowlist. Recorded local
+evidence includes focused instructor-profile `38/38`, event-audience PASS,
+package boundary `74/74`, full `npm test` `QUALITY-GATES OK`, all five
+`npm run qa` stages green, final canonical session residue `18/18`, and
+`git diff --check`. The Supabase-backed Docker test app was rebuilt using the
+external `C:\campusphere-secrets\campusphere-local-supabase.env` file and
+returned HTTP 200 from `/healthz`; no env value was read or recorded.
+
+Fresh standalone R1 was rerun read-only after the instructor-profile repair
+and owner-applied `0026`. It exited red with exactly two current findings: the
+temporary instructor and guest regression accounts still accept a
+repository-known former default password. Their profile rows and zero-session
+checks now pass. The owner accepts those two credential findings for testing;
+both temporary accounts must be removed before client handoff. Four intentional
+audience UAT events remain owner-managed test content.
+
+The owner reports manually promoting a Vercel deployment after `d294cfd` was
+pushed. This is owner-observed vendor evidence only: the exact deployment SHA,
+Ready/Current state, Production behavior, and immutable deployed bytes have not
+been independently verified. Technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` therefore remains the last
+independently post-deployment-verified baseline. There is still no real CSPC
+instructor Gmail end-to-end OAuth observation.
+
+Fresh Codex and Claude Code sessions must perform grounding-only, recompute
+live Git and authority truth, report discrepancies and evidence classes, then
+wait. The next separately authorized operational move is to verify the
+owner-promoted Vercel deployment identity and Ready/Current state, then run a
+bounded Production smoke before recording any new deployed baseline.
+
+## Historical Release Continuity (2026-09-06; superseded)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1

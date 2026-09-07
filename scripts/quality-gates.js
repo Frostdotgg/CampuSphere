@@ -6904,6 +6904,12 @@ const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
   '8db237eecd6946c8ced5a9a65a770e94f05b0ecc34f29b57ee71231a5f26764a';
 const CURRENT_CLOSEOUT_PACKAGE_SHA256 =
   'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1';
+const CURRENT_DIRECTIONAL_ROUTE_COMMIT_SHA =
+  '23c55365198198276f17364f15523da2eb233df2';
+const CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA =
+  '5d505e97e990ad82df6c858e28d48542deb8bf2c';
+const CURRENT_AUTHORITY_PREDECESSOR_SHA =
+  'd294cfd40a4b4a3b49e5768df1ca594a662184a0';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6949,123 +6955,106 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 5 handoff. This branch is deliberately first so older
+  /* Current September 7 handoff. This branch is deliberately first so older
      freeze/performance continuity cannot satisfy the live closeout contract. */
-  if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
-    if (!t.includes(CURRENT_CLOSEOUT_START_COMMIT_SHA) ||
-        !t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) ||
-        !t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) ||
-        !t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) ||
+  if (t.includes(CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA)) {
+    if (!t.includes(CURRENT_AUTHORITY_PREDECESSOR_SHA) ||
+        !t.includes(CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA) ||
+        !/23c5536/i.test(t) ||
+        !/fdb0c8c/i.test(t) ||
+        !/621d72e/i.test(t) ||
+        !/b8e7ffb/i.test(t) ||
+        !/a5a6cee/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}ecc9793/i.test(t) ||
-        !/index was empty/i.test(t) ||
-        !/65 tracked paths were modified/i.test(t) ||
-        !/nine paths were untracked/i.test(t) ||
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}d294cfd/i.test(t) ||
+        !/clean index\/worktree/i.test(t) ||
         !/zero stashes/i.test(t) ||
-        !/four planned logical commits[^.]{0,120}one audit-driven dependency-security commit/i.test(t) ||
-        !/pushing `?main`?/i.test(t)) {
-      problems.push('September 5 Git start truth, product lineage, or bounded delivery authority is incomplete');
+        !/authority-only synchronization[^.]{0,120}one commit[^.]{0,100}push to `?main`?/i.test(t) ||
+        !/final authority commit[^.]{0,140}recompute its full SHA/i.test(t)) {
+      problems.push('September 7 Git start truth, product lineage, or authority-only delivery boundary is incomplete');
     }
 
-    if (!/text-encoding damage[^.]{0,140}repaired/i.test(t) ||
-        !/package-lock\.json[^.]{0,220}refreshed[^.]{0,180}semver ranges/i.test(t) ||
-        !/did not inspect or record `?\.env`? contents/i.test(t) ||
-        !/authority synchronization commit[^.]{0,180}live `?HEAD`? after delivery/i.test(t)) {
-      problems.push('encoding, lockfile, secret, or authority-HEAD boundary is incomplete');
+    if (!/cancelled automatic Distance\/Walktime proposal[^.]{0,120}not implemented/i.test(t) ||
+        !/route-creation setup was not replaced/i.test(t)) {
+      problems.push('cancelled distance/walktime decision or preserved route-setup boundary is incomplete');
     }
 
-    if (!/Dashboard Personal Info[^.]{0,180}Google profile-image/i.test(t) ||
-        !/no-referrer/i.test(t) || !/SVG fallback/i.test(t) ||
-        !/visible authenticated pages[^.]{0,180}60-second intervals/i.test(t) ||
-        !/hidden\/closed pages stop/i.test(t) ||
-        !/Online[^.]{0,80}inclusive[^.]{0,100}300 seconds/i.test(t) ||
-        !/one batched[^.]{0,160}30 seconds/i.test(t) ||
-        !/no IP, device, session id, activity history/i.test(t) ||
-        !/Presence never changes `?users\.updated_at`?/i.test(t)) {
-      problems.push('profile-image or five-minute-presence behavior is incomplete');
-    }
-
-    if (!/stylesheet key[^.]{0,80}`?v11`?/i.test(t) ||
-        !/service worker[^.]{0,80}`?v40`?/i.test(t) ||
+    if (!/Dashboard Google profile images/i.test(t) ||
+        !/five-minute presence/i.test(t) ||
+        !/stylesheet `?v11`?/i.test(t) ||
+        !/service-worker `?v40`?/i.test(t) ||
         !/2D and 360 View/i.test(t) ||
-        !/Destination Building filter/i.test(t) ||
+        !/admin destination search/i.test(t) ||
         !/May 28, 2026/i.test(t) ||
         !/Floors & Rooms/i.test(t) ||
-        !/Rooms & Facilities/i.test(t) ||
-        !/per keystroke/i.test(t)) {
-      problems.push('current campus UI behavior or search-performance boundary is incomplete');
+        !/online and offline entry\/exit routes/i.test(t) ||
+        !/all-building guest access[^.]{0,120}private schedules/i.test(t) ||
+        !/dynamic guest Dashboard building count/i.test(t) ||
+        !/event audiences `?all`?[^.]{0,120}`?guest`?[^.]{0,120}`?student-cspc`?[^.]{0,120}`?instructor`?[^.]{0,120}`?admin`?/i.test(t) ||
+        !/minimal `?instructor_profiles`? row/i.test(t)) {
+      problems.push('current profile, presence, campus UI, routing, guest, event, or instructor behavior is incomplete');
     }
 
-    if (!/0020_room_schedule_documents\.sql/i.test(t) ||
-        !/0021_minimal_instructor_oauth_registration\.sql/i.test(t) ||
-        !/0022_user_presence\.sql/i.test(t) ||
-        !/0023_directional_route_edge_geometry\.sql/i.test(t) ||
-        !/0024_vr_hotspot_guest_visibility\.sql/i.test(t) ||
-        !/0025_event_audience\.sql/i.test(t) ||
-        !/0026_admin_instructor_profile_integrity\.sql/i.test(t) ||
-        !/owner-applied/i.test(t) ||
-        !/must not reapply them/i.test(t) ||
-        !/primary\/cascading foreign key/i.test(t) ||
-        !/fixed function search path/i.test(t) ||
-        !/SECURITY INVOKER/i.test(t) ||
-        !/revoked browser-role access/i.test(t) ||
-        !/service_role[^.]{0,80}execution/i.test(t) ||
-        !/MySQL presence table is applied locally/i.test(t)) {
-      problems.push('owner-applied migration, postflight, or MySQL parity boundary is incomplete');
+    if (!/migrations `?0020`? through `?0026`? are owner-applied/i.test(t) ||
+        !/did not apply or reapply them/i.test(t) ||
+        !/do not reapply them[^.]{0,120}explicit database authorization/i.test(t)) {
+      problems.push('owner-applied migration and no-reapplication boundary is incomplete');
     }
 
     if (!/2026-09-06 freeze/i.test(t) ||
-        !/MySQL remains at 34 buildings[^.]{0,220}44 route nodes[^.]{0,180}100 directed/i.test(t) ||
-        !/671 scenes[^.]{0,100}1,397 hotspots[^.]{0,120}one selected schedule hotspot/i.test(t) ||
-        !/Supabase remains at 25 buildings[^.]{0,220}26 route nodes[^.]{0,180}50 directed[^.]{0,120}25 reverse pairs[^.]{0,100}0 exact reverse geometries/i.test(t) ||
-        !/664 scenes[^.]{0,100}1,374 hotspots[^.]{0,120}zero selected schedule hotspots/i.test(t) ||
-        !/25 active Guided-VR destinations[^.]{0,120}472 configured steps[^.]{0,120}99 unique/i.test(t) ||
+        !/MySQL 34 buildings\/44 route nodes\/100 directed edges\/50 reverse pairs\/50 exact reverse geometries\/100 valid geometries\/671 scenes\/1,397 hotspots\/one selected schedule hotspot/i.test(t) ||
+        !/Supabase 25\/26\/50\/25\/0\/50\/664\/1,374\/zero/i.test(t) ||
+        !/Guided VR 25 destinations\/472 steps\/99 scene keys/i.test(t) ||
         !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
-        !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
-        !/Never change these facts merely to make a gate green/i.test(t)) {
-      problems.push('selected freeze counts, fingerprints, or no-normalization rule is incomplete');
+        !t.includes(CURRENT_FREEZE_MANIFEST_SHA256)) {
+      problems.push('selected freeze counts or fingerprints are incomplete');
     }
 
-    if (!/Security -> Performance -> Correctness -> Maintainability -> Testing/i.test(t) ||
-        !/no open blocker/i.test(t) ||
-        !/Google profile image `?27\/27`?/i.test(t) ||
-        !/presence `?34\/34`?/i.test(t) ||
-        !/shared button\/theme `?19\/19`?/i.test(t) ||
-        !/BE\.6 `?46\/46`?/i.test(t) ||
-        !/ICTU Docker `?49\/49`?/i.test(t) ||
+    if (!/instructor-profile `?38\/38`?/i.test(t) ||
+        !/event-audience PASS/i.test(t) ||
         !/package boundary `?74\/74`?/i.test(t) ||
-        !/4850\/4850/i.test(t) || !/QUALITY-GATES OK/i.test(t) ||
-        !/DB-PERF-GATE OK/i.test(t) || !/\[supabase-smoke\] PASS/i.test(t) ||
-        !/IDENTITY-CONSTRAINTS OK/i.test(t) || !/zero audit vulnerabilities/i.test(t) ||
-        !/session residue passed `?18\/18`?/i.test(t) || !/git diff --check/i.test(t)) {
-      problems.push('review, focused, full-suite, QA, or residue evidence is incomplete');
+        !/npm test[^.]{0,100}QUALITY-GATES OK/i.test(t) ||
+        !/all five `?npm run qa`? stages green/i.test(t) ||
+        !/session residue `?18\/18`?/i.test(t) || !/git diff --check/i.test(t)) {
+      problems.push('focused, full-suite, QA, or residue evidence is incomplete');
     }
 
-    if (!/HTTP 200[^.]{0,80}`?\/healthz`?/i.test(t) ||
-        !/non-root uid 1000/i.test(t) ||
-        !/no `?\.env`?[^.]{0,120}Git metadata[^.]{0,120}database dump[^.]{0,120}deployment documentation/i.test(t) ||
-        !/138 total users[^.]{0,100}one Online[^.]{0,100}137 Offline/i.test(t) ||
-        !/normal application Logout/i.test(t) ||
-        !/Counts are observational and may change/i.test(t)) {
-      problems.push('Docker, bounded browser, logout, or observational-count evidence is incomplete');
+    if (!/Supabase-backed Docker test app/i.test(t) ||
+        !/campusphere-local-supabase\.env/i.test(t) ||
+        !/HTTP 200[^.]{0,80}`?\/healthz`?/i.test(t) ||
+        !/no env value was read or recorded/i.test(t)) {
+      problems.push('Supabase-backed Docker, health, or secret-value boundary is incomplete');
     }
 
     if (!/197 files[^.]{0,80}7,301,960 bytes/i.test(t) ||
         !t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) ||
-        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
-        !/No post-push Vercel deployment[^.]{0,220}deployed-byte identity/i.test(t) ||
-        !/no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
-        !/Source, localhost[^.]{0,200}separate/i.test(t)) {
-      problems.push('package, Production, instructor-OAuth, or evidence-class boundary is incomplete');
+        !/authority documents and probes are outside that allowlist/i.test(t)) {
+      problems.push('package identity or allowlist boundary is incomplete');
     }
 
-    if (!/inventory available tools\/MCP\/skills/i.test(t) ||
-        !/recompute live Git truth using read-only commands/i.test(t) ||
-        !/then stop and wait/i.test(t) ||
-        !/Grounding authorizes no review, test, edit/i.test(t) ||
-        !/independent read-only review of the exact pushed commit/i.test(t) ||
-        !/owner-controlled/i.test(t)) {
-      problems.push('fresh-session grounding or next-owner boundary is incomplete');
+    if (!/Fresh standalone R1 was rerun read-only/i.test(t) ||
+        !/exited red with exactly two current findings/i.test(t) ||
+        !/temporary instructor and guest regression accounts/i.test(t) ||
+        !/profile rows and zero-session checks now pass/i.test(t) ||
+        !/owner accepts those two credential findings for testing/i.test(t) ||
+        !/temporary accounts must be removed before client handoff/i.test(t) ||
+        !/Four intentional audience UAT events remain owner-managed test content/i.test(t)) {
+      problems.push('current R1, temporary-account exception, or UAT-content boundary is incomplete');
+    }
+
+    if (!/owner reports manually promoting a Vercel deployment[^.]{0,120}d294cfd/i.test(t) ||
+        !/owner-observed vendor evidence only/i.test(t) ||
+        !/exact deployment SHA[^.]{0,220}have not been independently verified/i.test(t) ||
+        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+        !/no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t)) {
+      problems.push('owner promotion, independent Production, or instructor-OAuth boundary is incomplete');
+    }
+
+    if (!/Fresh Codex and Claude Code sessions[^.]{0,160}grounding-only/i.test(t) ||
+        !/recompute live Git and authority truth/i.test(t) ||
+        !/verify the owner-promoted Vercel deployment identity and Ready\/Current state/i.test(t) ||
+        !/bounded Production smoke/i.test(t)) {
+      problems.push('fresh-session grounding or next operational move is incomplete');
     }
     return problems;
   }
@@ -7849,13 +7838,29 @@ function reusablePromptIsCurrent(body) {
       'docs/security-checklist.md', 'docs/test-evidence.md',
       'docs/demo-script.md', 'docs/offline-map-refresh.md',
       'database/supabase/README.md', 'database/supabase/REPOSITORY_BOUNDARIES.md',
-      'config/selectedDemoFreeze.js', 'database/schema.sql',
-      '0020', '0021', '0022', 'controllers/dashboardController.js',
+      'package-lock.json', 'config/selectedDemoFreeze.js', 'database/schema.sql',
+      '0020', '0021', '0022', '0023', '0024', '0025', '0026',
+      'controllers/dashboardController.js',
       'controllers/presenceController.js', 'services/userPresenceService.js',
       'utils/userPresence.js', 'public/js/user-presence.js',
       'public/js/admin/admin-users.js', 'public/js/admin/admin-map-graph.js',
-      'public/css/styles.css', 'public/sw.js', 'scripts/be6DatasetFreeze-probe.js',
-      'scripts/vercelPackageBoundary-probe.js'
+      'controllers/mapController.js', 'controllers/adminRouteController.js',
+      'services/routeAvailability.js', 'services/offlineGuideService.js',
+      'repositories/routeRepository.js', 'utils/routeGeometry.js',
+      'public/js/offline-guide-manager.js', 'public/offline.html', 'views/map.ejs',
+      'controllers/eventsController.js', 'controllers/adminContentController.js',
+      'controllers/vrController.js', 'controllers/adminVrController.js',
+      'repositories/contentRepository.js', 'repositories/vrRepository.js',
+      'utils/participantVisibility.js', 'public/js/admin/admin-news.js',
+      'public/js/admin/admin-vr.js', 'views/admin/news.ejs', 'views/admin/vr.ejs',
+      'public/css/styles.css', 'public/sw.js',
+      'scripts/googleProfileImage-probe.js', 'scripts/userPresence-probe.js',
+      'scripts/instructorMinimalProfile-probe.js', 'scripts/eventAudience-probe.js',
+      'scripts/sharedButtonTheme-probe.js', 'scripts/routeGeometryData-probe.js',
+      'scripts/routeGeometryApi-probe.js', 'scripts/adminRouteGeometryEditor-probe.js',
+      'scripts/offline2dNavigation-probe.js', 'scripts/be6DatasetFreeze-probe.js',
+      'scripts/ictuDockerDeployment-probe.js', 'scripts/pilotCredentialSafety-probe.js',
+      'scripts/probeSessionResidue-probe.js', 'scripts/vercelPackageBoundary-probe.js'
     ];
     return /senior reviewer, senior developer\/engineer, security\/DB\/UI quality gate, handoff owner, and delivery coordinator/i.test(t) &&
       /SESSION RESTRICTION[^.]{0,100}grounding-only and read-only/i.test(t) &&
@@ -7869,14 +7874,24 @@ function reusablePromptIsCurrent(body) {
       t.includes(CURRENT_USER_PRESENCE_COMMIT_SHA) &&
       t.includes(CURRENT_CAMPUS_UI_COMMIT_SHA) &&
       t.includes(CURRENT_RUNTIME_DEPENDENCY_COMMIT_SHA) &&
+      t.includes(CURRENT_DIRECTIONAL_ROUTE_COMMIT_SHA) &&
+      t.includes(CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA) &&
+      t.includes(CURRENT_AUTHORITY_PREDECESSOR_SHA) &&
       /197 files[^.]{0,80}7,301,960 bytes/i.test(t) &&
       t.includes(CURRENT_CLOSEOUT_PACKAGE_SHA256) &&
       t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
-      /no Vercel\/ICTU deployment/i.test(t) &&
+      /owner reports manually promoting a Vercel deployment/i.test(t) &&
+      /exact deployment identity[^.]{0,220}independently unverified/i.test(t) &&
+      /campusphere-local-supabase\.env/i.test(t) &&
+      /fresh read-only R1 result after 0026[^.]{0,180}exactly two owner-accepted temporary/i.test(t) &&
+      /profile and zero-session checks passing/i.test(t) &&
+      /remove those accounts before client handoff/i.test(t) &&
+      /automatic Distance\/Walktime filling was cancelled/i.test(t) &&
       /no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) &&
-      /independent read-only review of the exact pushed commit/i.test(t) &&
+      /verification of the owner-promoted Vercel deployment identity/i.test(t) &&
+      /bounded Production smoke/i.test(t) &&
       /stop and wait/i.test(t) &&
       !declaresStaleOrPrematureAuthority(t);
   }
@@ -9803,7 +9818,7 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-06';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-07';
   const EXPECTED_LAST_UPDATED_DATE = '2026-09-07';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
@@ -9843,17 +9858,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-06)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-06)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
-    'plan.md': '## Current Release Continuity (2026-09-06)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-06)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-06)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-06)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-06)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-06)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-06)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-07)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-07)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
+    'plan.md': '## Current Release Continuity (2026-09-07)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-07)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-07)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-07)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-07)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-07)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -10340,7 +10355,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 5 product closeout and current evidence boundary`,
+    ok(`${name} records the September 7 authority handoff and current evidence boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -10353,16 +10368,16 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 6 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
+  ok('fixture: current September 7 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_DASHBOARD_IMAGE_COMMIT_SHA,
+      CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_USER_PRESENCE_COMMIT_SHA,
-      'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')).length > 0 &&
+      '621d72e',
+      'eeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       CURRENT_CLOSEOUT_PACKAGE_SHA256,
@@ -10373,20 +10388,20 @@ function runDocsCurrentGate() {
       'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_CAMPUS_UI_COMMIT_SHA,
-      'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')).length > 0 &&
+      'b8e7ffb',
+      'ddddddd')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      'nine paths were untracked',
-      'ten paths were untracked')).length > 0 &&
+      'zero stashes',
+      'one stash')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /0022_user_presence\.sql/i,
-      '0023_unreviewed.sql')).length > 0 &&
+      /0020`? through `?0026/i,
+      '0020 through 0027')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /No\s+post-push Vercel deployment/i,
-      'A confirmed post-push Vercel deployment')).length > 0 &&
+      /owner reports manually promoting a Vercel deployment/i,
+      'No owner promotion was reported')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 

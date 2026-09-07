@@ -1,18 +1,20 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-09-05): the Dashboard-image, five-minute-presence,
+Current handoff note (2026-09-07): the Dashboard-image, five-minute-presence,
 and campus-UI commits do not change the offline publisher, bounds, release
 center, opening camera, Drive workflow, IndexedDB activation, or
 user-controlled update model. The service-worker shell is now `v40` for the
 offline entry/exit route UI and package support (following the shared
 button/theme correction and stylesheet key `v11`); that cache revision does
-not change the PMTiles release rectangle or publisher. The current full
-source package is 196 files, 7,267,536 bytes, aggregate SHA-256
-`cd4c9b700b744cd0c02f971e0f413cb4362d769a70cac3293c952b4a4bbfe768`
+not change the PMTiles release rectangle or publisher. The current reviewed
+source package is 197 files, 7,301,960 bytes, aggregate SHA-256
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`
 with package boundary `74/74`. Keep this current full-package evidence separate
 from the historical offline-specific `c4de5ab` package evidence below. No
-Vercel deployment/Ready state, promotion, Production smoke, or immutable
-deployed-byte identity was inspected or established in this closeout.
+independent Vercel deployment identity, Production smoke, or immutable
+deployed-byte identity was established. The owner reports manually promoting
+a deployment after authority commit `d294cfd`; that is owner-observed vendor
+evidence only.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps
@@ -62,8 +64,9 @@ target is `[longitude, latitude] = [123.374590, 13.405872]` (user order
 pitch `0`, minimum zoom `12`, and maximum zoom `19`. The recenter control
 continues to use the offline guide's route origin. Commit `c4de5ab` advanced
 the service-worker shell cache to `v34` so a stale camera script was replaced;
-the later current product batch advances the shell cache to `v36` without
-changing the offline camera or release metadata.
+a later intermediate product batch advanced it to `v36`, and the current
+entry/exit route package uses `v40`, without changing the offline camera or
+release metadata.
 
 The archive is a whole bounded campus basemap, not an OSM-to-CampuSphere data
 import. A new CSPC building footprint in the selected OSM snapshot becomes a

@@ -8,26 +8,34 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Session-based authentication (`express-session` + `bcrypt`) with Google OAuth as a second sign-in path.
 - Role-based access control (`student-cspc`, `instructor`, `admin`, `guest`) via `middleware/roleAuth.js`.
 - Signed-in guests can browse every building and 360 scene; room schedules stay participant-only and VR information hotspots require explicit guest approval.
+- Events are filtered server-side by the administrator-selected audience:
+  everyone, guest, CSPC student, instructor, or admin.
 - Domain-to-role mapping at OAuth registration (`@my.cspc.edu.ph` → student, `@cspc.edu.ph` → instructor, `@gmail.com` → guest).
 - Admin namespace at `/admin` with JSON CRUD endpoints under `/admin/api/*` for users, news, events, and buildings.
-- MySQL persistence via a shared `mysql2/promise` pool (`config/db.js`).
+- Dual-backend repository persistence: Supabase/PostgreSQL in Production and a
+  shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
 ## Current pushed source release (2026-09-07)
 
 The role-aware guest visibility, event-audience, and admin instructor-profile
-integrity changes are pushed in Git commit SHA-1 `5d505e97e990ad82df6c858e28d48542deb8bf2c`
-(`5d505e9`) on `main`. The current Vercel package is 197 files, 7,301,960 bytes,
-aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-No Vercel deployment, promotion, Production smoke, or immutable deployed-byte
-verification has been performed for this source release.
+integrity changes are pushed in runtime/source Git commit SHA-1
+`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). Pushed
+authority successor `d294cfd` was the clean synchronized `main` HEAD at the
+start of the current authority update. The reviewed Vercel package is 197
+files, 7,301,960 bytes, aggregate SHA-256
+`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
+The owner reports manually promoting a Vercel deployment after `d294cfd`;
+its exact deployment identity, Production behavior, and immutable bytes have
+not been independently verified.
 
 ## Tech Stack
 
 - **Runtime:** Node.js
 - **Server:** Express 5
 - **Views:** EJS
-- **Database:** MySQL (`mysql2/promise`)
+- **Database:** Supabase/PostgreSQL in Production; MySQL
+  (`mysql2/promise`) for local development, fallback, and rehearsal
 - **Auth:** `express-session`, `bcrypt`, Google OAuth 2.0
 - **Config:** `dotenv`
 
@@ -51,7 +59,7 @@ verification has been performed for this source release.
 ### Prerequisites
 
 - Node.js (LTS recommended)
-- MySQL running locally (or reachable via env vars)
+- MySQL for local/fallback work and/or an owner-configured Supabase project
 
 ### Installation
 
@@ -214,8 +222,8 @@ fresh explicit authorization.
 
 See **[docs/deployment.md](docs/deployment.md)** for the full deployment and
 environment guide: every required env var, server-only secret handling, the
-Supabase SQL apply order (`0001`–`0025`; all listed migrations are owner-applied),
-`0026` is owner-applied by the owner; Codex did not apply or reapply it.
+Supabase SQL apply order (`0001`–`0026`; all listed migrations are owner-applied
+and must not be reapplied without fresh authorization),
 MySQL fallback seed steps,
 production
 session/cookie/proxy policy, CSRF/rate-limit/Helmet/PWA boundaries, OAuth

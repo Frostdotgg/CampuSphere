@@ -4,16 +4,20 @@ Last updated: 2026-09-07 (Asia/Manila)
 
 ## Current Handoff Override
 
-The current pushed source release is `5d505e97e990ad82df6c858e28d48542deb8bf2c`
-(`5d505e9`) on `main`, with local `HEAD`, `origin/main`, and remote `main`
-confirmed equal. It contains the guest visibility, event-audience, and admin
-instructor-profile integrity changes. The source package is 197 files,
+The runtime/source release is
+`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`) on `main`.
+At the start of the current authority synchronization, local `HEAD`,
+`origin/main`, and remote `main` were equal at pushed authority successor
+`d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`), with a clean
+tree and zero stashes. The final authority commit containing this file must be
+recomputed by the fresh session. The reviewed source package is 197 files,
 7,301,960 bytes, aggregate SHA-256
 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-The owner has not authorized Vercel promotion, Production smoke, or immutable
-deployed-byte verification. The two current copy-paste prompts below authorize
-grounding only. A fresh session must recompute Git truth, report the requested
-context, and wait for the owner.
+The owner reports manually promoting a Vercel deployment after `d294cfd`;
+exact deployment identity, Ready/Current state, Production behavior, and
+immutable bytes remain independently unverified. The two current copy-paste
+prompts below authorize grounding only. A fresh session must recompute Git
+truth, report the requested context, and wait for the owner.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -50,13 +54,87 @@ course-catalog work, pilot work, or a new GO/NO-GO. Every older prompt and
 pre-promotion snapshot below is historical and must not be used as current
 authority.
 
-The current pushed source release also includes admin-managed instructor profile
+The current runtime/source release also includes admin-managed instructor profile
 integrity: admin creation and role promotion create a minimal
 `instructor_profiles` row on both backends. The project owner has applied
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-06)
+## Current Release Continuity (2026-09-07)
+
+At the start of this owner-authorized authority synchronization, Git branch
+`main` had local `HEAD`, `origin/main`, and remote `main` equal at Git
+commit SHA-1 `d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`), with
+a clean index/worktree and zero stashes. The runtime/product release is Git
+commit SHA-1 `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`);
+`d294cfd` is its pushed authority-document successor. The owner authorized
+this authority-only synchronization, one commit, and a push to `main`. It
+does not authorize or perform application changes, database/session mutation,
+another Vercel promotion, Production smoke, or GO/NO-GO. The final authority
+commit contains this block, so fresh sessions must recompute its full SHA.
+
+The current lineage also includes Dashboard Google-image repair `fdb0c8c`,
+five-minute presence `621d72e`, campus UI refinement `b8e7ffb`, dependency
+security `a5a6cee`, presence authority `5776236`, and directional online/
+offline routing `23c5536`. The cancelled automatic Distance/Walktime proposal
+was not implemented and the route-creation setup was not replaced.
+
+Current behavior includes validated Dashboard Google profile images;
+five-minute presence; stylesheet `v11` and service-worker `v40`; the guest
+`2D and 360 View` label; admin destination search; the May 28, 2026 VR
+capture date; Floors & Rooms wording; separately authored online and offline
+entry/exit routes; all-building guest access with private schedules and
+administrator-approved information hotspots; a dynamic guest Dashboard
+building count; role-filtered event audiences `all`, `guest`,
+`student-cspc`, `instructor`, and `admin`; and a minimal
+`instructor_profiles` row for admin-created or promoted instructors.
+
+Supabase migrations `0020` through `0026` are owner-applied. Codex did not
+apply or reapply them; do not reapply them without fresh explicit database
+authorization. The selected 2026-09-06 freeze remains recorded evidence:
+MySQL 34 buildings/44 route nodes/100 directed edges/50 reverse pairs/50 exact
+reverse geometries/100 valid geometries/671 scenes/1,397 hotspots/one selected
+schedule hotspot; Supabase 25/26/50/25/0/50/664/1,374/zero; shared Guided VR
+25 destinations/472 steps/99 scene keys. Recorded values remain MySQL SHA-256
+`0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff`,
+Supabase SHA-256 `8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64`,
+VR SHA-256 `1ec674e497cbe8fd36234368f9c0a679c05bd68c8002c3f9724e7b3f0de0810c`,
+Guided VR SHA-256 `ed02ec95d5c642cd082f48c0b3c5b98d0707ffd5866f8f90b196793ecfe963d6`,
+and manifest SHA-256 `9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995`.
+
+The reviewed source package is 197 files and 7,301,960 bytes with aggregate
+SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`;
+authority documents and probes are outside that allowlist. Recorded local
+evidence includes focused instructor-profile `38/38`, event-audience PASS,
+package boundary `74/74`, full `npm test` `QUALITY-GATES OK`, all five
+`npm run qa` stages green, final canonical session residue `18/18`, and
+`git diff --check`. The Supabase-backed Docker test app was rebuilt using the
+external `C:\campusphere-secrets\campusphere-local-supabase.env` file and
+returned HTTP 200 from `/healthz`; no env value was read or recorded.
+
+Fresh standalone R1 was rerun read-only after the instructor-profile repair
+and owner-applied `0026`. It exited red with exactly two current findings: the
+temporary instructor and guest regression accounts still accept a
+repository-known former default password. Their profile rows and zero-session
+checks now pass. The owner accepts those two credential findings for testing;
+both temporary accounts must be removed before client handoff. Four intentional
+audience UAT events remain owner-managed test content.
+
+The owner reports manually promoting a Vercel deployment after `d294cfd` was
+pushed. This is owner-observed vendor evidence only: the exact deployment SHA,
+Ready/Current state, Production behavior, and immutable deployed bytes have not
+been independently verified. Technical Production baseline
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` therefore remains the last
+independently post-deployment-verified baseline. There is still no real CSPC
+instructor Gmail end-to-end OAuth observation.
+
+Fresh Codex and Claude Code sessions must perform grounding-only, recompute
+live Git and authority truth, report discrepancies and evidence classes, then
+wait. The next separately authorized operational move is to verify the
+owner-promoted Vercel deployment identity and Ready/Current state, then run a
+bounded Production smoke before recording any new deployed baseline.
+
+## Historical Release Continuity (2026-09-06; superseded)
 
 At the start of this owner-authorized closeout, Git branch `main` had local
 `HEAD`, `origin/main`, and remote `main` all at Git commit SHA-1
@@ -893,17 +971,24 @@ values. After the report, stop and wait for an explicit owner task.
 Repository:
 C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-Recorded checkpoint to verify, not blindly repeat: earlier source/product commits
-are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
+Recorded checkpoint to verify, not blindly repeat: earlier source/product
+commits are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
-`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the current role-aware source
-release is `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). The current
-source package is 197 files, 7,301,960 bytes, aggregate SHA-256
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; directional online/offline
+routing is `23c55365198198276f17364f15523da2eb233df2` (`23c5536`); and the
+runtime/role-aware source release is
+`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). Pushed authority
+successor `d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`) was the clean,
+synchronized HEAD before the authority commit containing this prompt; recompute
+the final full HEAD. The reviewed source package is 197 files, 7,301,960 bytes,
+aggregate SHA-256
 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-The last independently post-deployment-verified Production baseline remains
-`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
-new deployed-byte identity.
+The owner reports manually promoting a Vercel deployment after `d294cfd` was
+pushed, but exact deployment identity, Ready/Current state, Production behavior,
+and immutable bytes remain independently unverified. The last independently
+post-deployment-verified Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
 
 First inventory the tools, MCP servers/connectors, browser surfaces, and skills
 actually available in this session. If a campusphere-readonly-grounding skill
@@ -921,25 +1006,40 @@ Read the current authority in this order:
    database/supabase/REPOSITORY_BOUNDARIES.md.
 
 Then inspect, read-only, the minimum current implementation surfaces needed to
-verify the authority rather than repeat it: package.json, .vercelignore,
-vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
-.dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
-migrations 0020-0026, controllers/dashboardController.js,
-controllers/presenceController.js, services/userPresenceService.js,
-utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
-server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
-public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
-views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
-views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
-controllers/adminUsersController.js, controllers/eventsController.js,
-repositories/contentRepository.js,
-database/supabase/0026_admin_instructor_profile_integrity.sql,
-scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
-scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
-scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
-scripts/ictuDockerDeployment-probe.js, and
-scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
-executing it is not.
+verify the authority rather than repeat it:
+- package.json, package-lock.json, .vercelignore, vercel.json, Dockerfile,
+  docker-compose.yml, docker-compose.testing.yml, .dockerignore,
+  config/selectedDemoFreeze.js, database/schema.sql, and Supabase migrations
+  0020-0026;
+- presence/profile surfaces: controllers/dashboardController.js,
+  controllers/presenceController.js, controllers/adminUsersController.js,
+  services/userPresenceService.js, utils/userPresence.js,
+  repositories/userRepository.js, public/js/user-presence.js,
+  public/js/admin/admin-users.js, views/dashboard.ejs, and
+  views/admin/users.ejs;
+- directional/offline routing surfaces: controllers/mapController.js,
+  controllers/adminRouteController.js, services/routeAvailability.js,
+  services/offlineGuideService.js, repositories/routeRepository.js,
+  utils/routeGeometry.js, public/js/admin/admin-map-graph.js,
+  public/js/offline-guide-manager.js, public/offline.html, public/sw.js,
+  views/map.ejs, and views/admin/campus-map.ejs;
+- guest/event/VR surfaces: controllers/buildingsController.js,
+  controllers/eventsController.js, controllers/adminContentController.js,
+  controllers/vrController.js, controllers/adminVrController.js,
+  repositories/contentRepository.js, repositories/vrRepository.js,
+  utils/participantVisibility.js, public/js/admin/admin-news.js,
+  public/js/admin/admin-vr.js, views/buildings.ejs, views/admin/news.ejs,
+  views/admin/vr.ejs, views/vr.ejs, and views/vr-route.ejs;
+- middleware/rateLimit.js, server.js, public/css/styles.css, and focused probe
+  sources scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+  scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
+  scripts/sharedButtonTheme-probe.js, scripts/routeGeometryData-probe.js,
+  scripts/routeGeometryApi-probe.js, scripts/adminRouteGeometryEditor-probe.js,
+  scripts/offline2dNavigation-probe.js, scripts/be6DatasetFreeze-probe.js,
+  scripts/ictuDockerDeployment-probe.js, scripts/pilotCredentialSafety-probe.js,
+  scripts/probeSessionResidue-probe.js, and
+  scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
+  executing it is not.
 
 Recompute live Git truth using read-only commands only:
 - current branch and full HEAD SHA;
@@ -950,31 +1050,44 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether the 2026-09-07 pushed-release block is current and whether older blocks
-  are explicitly historical/superseded;
+- whether the 2026-09-07 release-continuity block is current and whether older
+  blocks are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
-- the current role-aware source release, earlier product/security commits, and
-  authority HEAD;
+- the current runtime/source release, directional-route commit, earlier
+  product/security commits, pre-sync authority successor, and final authority
+  HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
-  visibility with private schedules, directional entry/exit routes, and
-  audience-filtered events, plus the minimal admin instructor-profile
-  invariant on create and role promotion;
+  visibility with private schedules, the dynamic guest building count,
+  directional entry/exit routes online and offline, audience-filtered events,
+  and the minimal admin instructor-profile invariant on create and role
+  promotion; also report that automatic Distance/Walktime filling was cancelled
+  and not implemented;
 - owner-applied migrations 0020, 0021, 0022, 0023, 0024, 0025, and 0026
   without reapplying them;
 - the unchanged selected freeze and package pin as recorded, clearly labelled
   recorded evidence unless independently recomputed without executing gates;
+- the recorded Supabase-backed Docker rebuild using the external
+  C:\campusphere-secrets\campusphere-local-supabase.env file and HTTP 200
+  health result, without opening that file or rerunning Docker;
+- the fresh read-only R1 result after 0026: exactly two owner-accepted temporary
+  test-account password findings, with profile and zero-session checks passing,
+  plus the requirement to remove those accounts before client handoff and the
+  four owner-managed audience UAT events;
 - evidence classes separately: historical, current source/package, localhost,
   owner-observed vendor/Production, independently verified Production, and
   external milestone disposition;
-- the explicit boundary that this closeout performed no Vercel/ICTU deployment,
-  promotion, Production smoke, or immutable deployed-byte verification;
+- the explicit boundary between the owner's reported manual Vercel promotion
+  and the still-missing independent deployment identity, Ready/Current check,
+  Production smoke, and immutable deployed-byte verification; this authority
+  synchronization performed no additional Vercel/ICTU action;
 - remaining limitations, including no real CSPC instructor Gmail end-to-end
   OAuth observation.
 
 Recommend no action during this turn. State that the next separately authorized
-move is an independent read-only review of the exact pushed commit, or another
+move is verification of the owner-promoted Vercel deployment identity and
+Ready/Current state followed by a bounded Production smoke, or another
 owner-selected task. Then stop and wait.
 ```
 
@@ -998,17 +1111,24 @@ values. After the report, stop and wait for an explicit owner task.
 Repository:
 C:\Users\FROST.GG\Desktop\CampuSphere v1
 
-Recorded checkpoint to verify, not blindly repeat: earlier source/product commits
-are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
+Recorded checkpoint to verify, not blindly repeat: earlier source/product
+commits are `fdb0c8c23f96214dfb19219ea282230eedcc3ee0`,
 `621d72ead6df26bcdfb8d9c143fff871f3996456`, and
 `b8e7ffbb2150f916829b98fd22595f40ae54ca89`, plus dependency-security commit
-`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; the current role-aware source
-release is `5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). The current
-source package is 197 files, 7,301,960 bytes, aggregate SHA-256
+`a5a6ceec1779bf110639c3038e72f47db1e7c82a`; directional online/offline
+routing is `23c55365198198276f17364f15523da2eb233df2` (`23c5536`); and the
+runtime/role-aware source release is
+`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). Pushed authority
+successor `d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`) was the clean,
+synchronized HEAD before the authority commit containing this prompt; recompute
+the final full HEAD. The reviewed source package is 197 files, 7,301,960 bytes,
+aggregate SHA-256
 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-The last independently post-deployment-verified Production baseline remains
-`fea3b2e11c6331eddc1ee091b165427d8e0218d7`; this closeout establishes no
-new deployed-byte identity.
+The owner reports manually promoting a Vercel deployment after `d294cfd` was
+pushed, but exact deployment identity, Ready/Current state, Production behavior,
+and immutable bytes remain independently unverified. The last independently
+post-deployment-verified Production baseline remains
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
 
 First inventory the tools, MCP servers/connectors, browser surfaces, subagent
 capabilities, and skills actually available in this session. If a
@@ -1028,25 +1148,40 @@ Read the current authority in this order:
    database/supabase/REPOSITORY_BOUNDARIES.md.
 
 Then inspect, read-only, the minimum current implementation surfaces needed to
-verify the authority rather than repeat it: package.json, .vercelignore,
-vercel.json, Dockerfile, docker-compose.yml, docker-compose.testing.yml,
-.dockerignore, config/selectedDemoFreeze.js, database/schema.sql, Supabase
-migrations 0020-0026, controllers/dashboardController.js,
-controllers/presenceController.js, services/userPresenceService.js,
-utils/userPresence.js, repositories/userRepository.js, middleware/rateLimit.js,
-server.js, public/js/user-presence.js, public/js/admin/admin-users.js,
-public/js/admin/admin-map-graph.js, public/css/styles.css, public/sw.js,
-views/dashboard.ejs, views/admin/users.ejs, views/admin/campus-map.ejs,
-views/buildings.ejs, views/vr.ejs, views/vr-route.ejs,
-controllers/adminUsersController.js, controllers/eventsController.js,
-repositories/contentRepository.js,
-database/supabase/0026_admin_instructor_profile_integrity.sql,
-scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
-scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
-scripts/sharedButtonTheme-probe.js, scripts/be6DatasetFreeze-probe.js,
-scripts/ictuDockerDeployment-probe.js, and
-scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
-executing it is not.
+verify the authority rather than repeat it:
+- package.json, package-lock.json, .vercelignore, vercel.json, Dockerfile,
+  docker-compose.yml, docker-compose.testing.yml, .dockerignore,
+  config/selectedDemoFreeze.js, database/schema.sql, and Supabase migrations
+  0020-0026;
+- presence/profile surfaces: controllers/dashboardController.js,
+  controllers/presenceController.js, controllers/adminUsersController.js,
+  services/userPresenceService.js, utils/userPresence.js,
+  repositories/userRepository.js, public/js/user-presence.js,
+  public/js/admin/admin-users.js, views/dashboard.ejs, and
+  views/admin/users.ejs;
+- directional/offline routing surfaces: controllers/mapController.js,
+  controllers/adminRouteController.js, services/routeAvailability.js,
+  services/offlineGuideService.js, repositories/routeRepository.js,
+  utils/routeGeometry.js, public/js/admin/admin-map-graph.js,
+  public/js/offline-guide-manager.js, public/offline.html, public/sw.js,
+  views/map.ejs, and views/admin/campus-map.ejs;
+- guest/event/VR surfaces: controllers/buildingsController.js,
+  controllers/eventsController.js, controllers/adminContentController.js,
+  controllers/vrController.js, controllers/adminVrController.js,
+  repositories/contentRepository.js, repositories/vrRepository.js,
+  utils/participantVisibility.js, public/js/admin/admin-news.js,
+  public/js/admin/admin-vr.js, views/buildings.ejs, views/admin/news.ejs,
+  views/admin/vr.ejs, views/vr.ejs, and views/vr-route.ejs;
+- middleware/rateLimit.js, server.js, public/css/styles.css, and focused probe
+  sources scripts/googleProfileImage-probe.js, scripts/userPresence-probe.js,
+  scripts/instructorMinimalProfile-probe.js, scripts/eventAudience-probe.js,
+  scripts/sharedButtonTheme-probe.js, scripts/routeGeometryData-probe.js,
+  scripts/routeGeometryApi-probe.js, scripts/adminRouteGeometryEditor-probe.js,
+  scripts/offline2dNavigation-probe.js, scripts/be6DatasetFreeze-probe.js,
+  scripts/ictuDockerDeployment-probe.js, scripts/pilotCredentialSafety-probe.js,
+  scripts/probeSessionResidue-probe.js, and
+  scripts/vercelPackageBoundary-probe.js. Reading probe source is allowed;
+  executing it is not.
 
 Recompute live Git truth using read-only commands only:
 - current branch and full HEAD SHA;
@@ -1057,31 +1192,44 @@ Recompute live Git truth using read-only commands only:
 Do not fetch, pull, reset, clean, switch, restore, commit, or push.
 
 Verify and report, with discrepancies called out instead of normalized:
-- whether the 2026-09-07 pushed-release block is current and whether older blocks
-  are explicitly historical/superseded;
+- whether the 2026-09-07 release-continuity block is current and whether older
+  blocks are explicitly historical/superseded;
 - exact Git equality or divergence and whether the tree is clean;
-- the current role-aware source release, earlier product/security commits, and
-  authority HEAD;
+- the current runtime/source release, directional-route commit, earlier
+  product/security commits, pre-sync authority successor, and final authority
+  HEAD;
 - current behavior: Dashboard Google image, five-minute presence, v11/v40
   button/theme correction, guest 2D and 360 wording, admin destination search,
   VR May 28 2026 capture date, Floors & Rooms wording, guest building/VR
-  visibility with private schedules, directional entry/exit routes, and
-  audience-filtered events, plus the minimal admin instructor-profile
-  invariant on create and role promotion;
+  visibility with private schedules, the dynamic guest building count,
+  directional entry/exit routes online and offline, audience-filtered events,
+  and the minimal admin instructor-profile invariant on create and role
+  promotion; also report that automatic Distance/Walktime filling was cancelled
+  and not implemented;
 - owner-applied migrations 0020, 0021, 0022, 0023, 0024, 0025, and 0026
   without reapplying them;
 - the unchanged selected freeze and package pin as recorded, clearly labelled
   recorded evidence unless independently recomputed without executing gates;
+- the recorded Supabase-backed Docker rebuild using the external
+  C:\campusphere-secrets\campusphere-local-supabase.env file and HTTP 200
+  health result, without opening that file or rerunning Docker;
+- the fresh read-only R1 result after 0026: exactly two owner-accepted temporary
+  test-account password findings, with profile and zero-session checks passing,
+  plus the requirement to remove those accounts before client handoff and the
+  four owner-managed audience UAT events;
 - evidence classes separately: historical, current source/package, localhost,
   owner-observed vendor/Production, independently verified Production, and
   external milestone disposition;
-- the explicit boundary that this closeout performed no Vercel/ICTU deployment,
-  promotion, Production smoke, or immutable deployed-byte verification;
+- the explicit boundary between the owner's reported manual Vercel promotion
+  and the still-missing independent deployment identity, Ready/Current check,
+  Production smoke, and immutable deployed-byte verification; this authority
+  synchronization performed no additional Vercel/ICTU action;
 - remaining limitations, including no real CSPC instructor Gmail end-to-end
   OAuth observation.
 
 Recommend no action during this turn. State that the next separately authorized
-move is an independent read-only review of the exact pushed commit, or another
+move is verification of the owner-promoted Vercel deployment identity and
+Ready/Current state followed by a bounded Production smoke, or another
 owner-selected task. Then stop and wait.
 ```
 
