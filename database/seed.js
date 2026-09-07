@@ -8,7 +8,9 @@ const data = require('../models/data');
 const {
     validatePathGeometry,
     reversePathGeometry,
-    buildPathGeometry
+    buildPathGeometry,
+    polylineMeters,
+    walkSeconds
 } = require('../utils/routeGeometry');
 
 async function seed() {
@@ -830,24 +832,6 @@ async function seed() {
         // established haversine + ~1.2 m/s convention, applied to the polyline
         // the map actually draws rather than the straight node-to-node chord.
         // Edges untouched by this repair keep their existing hand-set values.
-        const EARTH_RADIUS_M = 6371000;
-        function haversineMeters(p, q) {
-            const toRad = (d) => (d * Math.PI) / 180;
-            const dLat = toRad(q.lat - p.lat);
-            const dLng = toRad(q.lng - p.lng);
-            const h = Math.sin(dLat / 2) ** 2 +
-                Math.cos(toRad(p.lat)) * Math.cos(toRad(q.lat)) * Math.sin(dLng / 2) ** 2;
-            return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
-        }
-        function polylineMeters(points) {
-            let total = 0;
-            for (let i = 1; i < points.length; i++) total += haversineMeters(points[i - 1], points[i]);
-            return Math.round(total);
-        }
-        function walkSeconds(meters) {
-            return Math.round(meters / 1.2);
-        }
-
         const edgeDefs = [
             // Guard House / Main Gate approach, rebuilt for the authoritative
             // gate coordinate: the forward shape starts at the exact new

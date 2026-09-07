@@ -66,7 +66,8 @@ function hasExactMigrationSequence(files) {
     '0023_directional_route_edge_geometry.sql',
     '0024_vr_hotspot_guest_visibility.sql',
     '0025_event_audience.sql',
-    '0026_admin_instructor_profile_integrity.sql'
+    '0026_admin_instructor_profile_integrity.sql',
+    '0027_route_edge_geometry_metrics.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -549,8 +550,23 @@ function runStaticSupabaseChecks() {
     /NODE_GEOMETRY_ATTACHED[\s\S]{0,160}status\(409\)/.test(ctrl));
   check(scope, 'controller enforces immutable edge endpoints (409)',
     /Edge endpoints cannot be changed after creation/.test(ctrl));
-  check(scope, 'controller uses the one-way geometry repository write',
-    /adminSetEdgeGeometry\(id, payload\)/.test(ctrl));
+  check(scope, 'controller uses the one-way geometry + metrics repository write',
+    /adminSetEdgeGeometryMetrics\(id, prepared\.geometry, metrics\)/.test(ctrl) &&
+    /adminSetEdgeGeometry\(id, prepared\.geometry\)/.test(ctrl));
+  const m27Path = path.join(dir, '0027_route_edge_geometry_metrics.sql');
+  const m27Exists = fs.existsSync(m27Path);
+  check(scope, '0027 source-only atomic geometry metrics RPC is declared', m27Exists);
+  if (m27Exists) {
+    const sql = fs.readFileSync(m27Path, 'utf8');
+    check(scope, '0027 locks the selected edge/endpoints and validates positive metrics',
+      /app_set_route_edge_geometry_metrics_one_way/i.test(sql) &&
+      /FOR\s+UPDATE/i.test(sql) && /p_distance_meters[\s\S]{0,160}<\s*1/i.test(sql) &&
+      /p_walk_time_seconds[\s\S]{0,160}<\s*1/i.test(sql));
+    check(scope, '0027 is SECURITY INVOKER with service-role-only grants',
+      /SECURITY\s+INVOKER/i.test(sql) && /SET\s+search_path\s*=\s*pg_catalog,\s*public/i.test(sql) &&
+      /REVOKE\s+EXECUTE[\s\S]*FROM\s+PUBLIC/i.test(sql) &&
+      /GRANT\s+EXECUTE[\s\S]*TO\s+service_role/i.test(sql));
+  }
 
   // 0014 + 0015 immutable. 0017, 0018, and 0019 are owner-applied.
   const migrationHash = (file) => crypto.createHash('sha256')

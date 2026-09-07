@@ -664,7 +664,8 @@ function historicalSelectedCasParity(mysql, supabase) {
       '0023_directional_route_edge_geometry.sql',
       '0024_vr_hotspot_guest_visibility.sql',
       '0025_event_audience.sql',
-      '0026_admin_instructor_profile_integrity.sql'
+      '0026_admin_instructor_profile_integrity.sql',
+      '0027_route_edge_geometry_metrics.sql'
     ].includes(f));
     const m17Path = path.join(dir, '0017_route_topology_guard_house.sql');
     const m17Exists = fs.existsSync(m17Path);
@@ -677,6 +678,12 @@ function historicalSelectedCasParity(mysql, supabase) {
       sqlFiles.some((f) => f === '0019_be5_selected_demo_parity.sql'));
     check('static', '0023_directional_route_edge_geometry.sql is declared owner-applied',
       sqlFiles.some((f) => f === '0023_directional_route_edge_geometry.sql'));
+    const m27Path = path.join(dir, '0027_route_edge_geometry_metrics.sql');
+    const m27 = fs.existsSync(m27Path) ? fs.readFileSync(m27Path, 'utf8') : '';
+    check('static', '0027 directional geometry metrics RPC is source-only and service-role-only',
+      /app_set_route_edge_geometry_metrics_one_way/i.test(m27) &&
+      /source-only until the owner explicitly applies/i.test(m27) &&
+      /SECURITY\s+INVOKER/i.test(m27) && /GRANT\s+EXECUTE[\s\S]*TO\s+service_role/i.test(m27));
     check('static', `route-data freeze migration source list is contiguous 0001-0020 (20 files, found ${ownerSqlFiles.length})`,
       ownerSqlFiles.length === 20 &&
       ownerSqlFiles.every((file, index) => file.startsWith(String(index + 1).padStart(4, '0') + '_')) &&

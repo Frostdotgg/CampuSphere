@@ -111,6 +111,10 @@ function runStaticChecks() {
     view.includes('aria-describedby="route-dest-count"') &&
     view.includes('id="route-dest-count"') &&
     graph.includes('fieldsForRoute') && graph.includes('fieldsForNode') && graph.includes('fieldsForEdge'));
+  check('static', 'edge creation exposes drawn geometry and calculated/custom metric controls',
+    view.includes('id="edge-geometry-section"') && view.includes('id="edge-metrics-badge"') &&
+    view.includes('id="edge-use-calculated"') && graph.includes('metrics_mode') &&
+    graph.includes('path_geometry') && graph.includes('geoMetricForPoints'));
   check('static', 'graph client renders backend values through text APIs',
     !/\binnerHTML\s*=|insertAdjacentHTML|document\.write/.test(graph));
   check('static', 'graph controls and schedule controls retain keyboard-sized targets',

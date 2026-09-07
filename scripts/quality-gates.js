@@ -8368,8 +8368,8 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 197,
-  bytes: '7,301,960',
-  sha256: 'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1',
+  bytes: '7,318,566',
+  sha256: '8faa9fed4121c562d80f86b3aa5e455928c6287816a550f6dec635dd040a97a1',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -12945,8 +12945,9 @@ async function runBoundedAnonymousDenialGate() {
     const guestVisibilityMigration = readIf(path.join('database', 'supabase', '0024_vr_hotspot_guest_visibility.sql'));
     const eventAudienceMigration = readIf(path.join('database', 'supabase', '0025_event_audience.sql'));
     const adminInstructorMigration = readIf(path.join('database', 'supabase', '0026_admin_instructor_profile_integrity.sql'));
-    ok('Supabase migration sources are contiguous through 0026 (admin instructor-profile SQL source is present)',
-      numbers.length === 26 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+    const routeMetricsMigration = readIf(path.join('database', 'supabase', '0027_route_edge_geometry_metrics.sql'));
+    ok('Supabase migration sources are contiguous through 0027 (route metric RPC source is present)',
+      numbers.length === 27 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
       migrations.includes('0020_room_schedule_documents.sql') &&
       migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
       /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration) &&
@@ -12966,7 +12967,12 @@ async function runBoundedAnonymousDenialGate() {
       /app_create_admin_managed_user/i.test(adminInstructorMigration) &&
       /app_update_admin_managed_user/i.test(adminInstructorMigration) &&
       /instructor_profiles/i.test(adminInstructorMigration) &&
-      /service_role/i.test(adminInstructorMigration));
+      /service_role/i.test(adminInstructorMigration) &&
+      migrations.includes('0027_route_edge_geometry_metrics.sql') &&
+      /source-only until the owner explicitly applies/i.test(routeMetricsMigration) &&
+      /app_set_route_edge_geometry_metrics_one_way/i.test(routeMetricsMigration) &&
+      /SECURITY INVOKER/i.test(routeMetricsMigration) &&
+      /GRANT EXECUTE[\s\S]*TO service_role/i.test(routeMetricsMigration));
 
     const schema = readIf(path.join('database', 'schema.sql'));
     ok('no anonymous-denial table was added to the MySQL schema',

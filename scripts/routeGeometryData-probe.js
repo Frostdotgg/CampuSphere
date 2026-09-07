@@ -110,7 +110,8 @@ function hasExactMigrationSequence(files) {
     '0023_directional_route_edge_geometry.sql',
     '0024_vr_hotspot_guest_visibility.sql',
     '0025_event_audience.sql',
-    '0026_admin_instructor_profile_integrity.sql'
+    '0026_admin_instructor_profile_integrity.sql',
+    '0027_route_edge_geometry_metrics.sql'
   ].includes(file)).slice().sort();
 
   return (
@@ -406,6 +407,22 @@ function normalizePoints(points) {
         /ORDER\s+BY\s+id\s+FOR\s+UPDATE/i.test(sql) &&
         /SECURITY\s+INVOKER/i.test(sql) &&
         /SET\s+search_path\s*=\s*pg_catalog,\s*public/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+PUBLIC/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+anon/i.test(sql) &&
+        /REVOKE\s+EXECUTE[\s\S]*FROM\s+authenticated/i.test(sql) &&
+        /GRANT\s+EXECUTE[\s\S]*TO\s+service_role/i.test(sql));
+    }
+
+    const m27Path = path.join(root, 'database', 'supabase', '0027_route_edge_geometry_metrics.sql');
+    const m27Exists = fs.existsSync(m27Path);
+    check('0027 directional geometry + metrics migration exists (source-only; owner apply required)', m27Exists);
+    if (m27Exists) {
+      const sql = fs.readFileSync(m27Path, 'utf8');
+      check('0027 declares the atomic one-way geometry metrics RPC',
+        /FUNCTION\s+public\.app_set_route_edge_geometry_metrics_one_way\s*\(/i.test(sql) &&
+        /p_distance_meters/i.test(sql) && /p_walk_time_seconds/i.test(sql));
+      check('0027 uses SECURITY INVOKER, pinned search_path, and service-role-only grants',
+        /SECURITY\s+INVOKER/i.test(sql) && /SET\s+search_path\s*=\s*pg_catalog,\s*public/i.test(sql) &&
         /REVOKE\s+EXECUTE[\s\S]*FROM\s+PUBLIC/i.test(sql) &&
         /REVOKE\s+EXECUTE[\s\S]*FROM\s+anon/i.test(sql) &&
         /REVOKE\s+EXECUTE[\s\S]*FROM\s+authenticated/i.test(sql) &&

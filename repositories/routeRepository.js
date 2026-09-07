@@ -794,11 +794,13 @@ async function adminFindEdgeIdByPair(fromId, toId, excludeId) {
 }
 async function adminCreateEdge(p) {
   const sb = getSupabaseClient();
-  const { data, error } = await sb.from('route_edges').insert({
+  const row = {
     from_node_id: p.from_node_id, to_node_id: p.to_node_id,
     distance_meters: p.distance_meters, walk_time_seconds: p.walk_time_seconds,
     path_label: p.path_label, is_accessible: !!p.is_accessible
-  }).select(ADMIN_EDGE_COLUMNS).single();
+  };
+  if (p.path_geometry !== undefined) row.path_geometry = p.path_geometry;
+  const { data, error } = await sb.from('route_edges').insert(row).select(ADMIN_EDGE_COLUMNS).single();
   if (error) throw fail('adminCreateEdge', error);
   const nodeMap = await loadNodeMap(sb, 'adminCreateEdge');
   return shapeEdge(data, nodeMap);
@@ -897,6 +899,24 @@ async function adminSetEdgeGeometry(edgeId, geometryOrNull) {
   return Number(val) || 0;
 }
 
+// Atomic one-direction geometry + metric write supplied by Supabase migration
+// 0027. The controller computes the canonical metrics (or validates an
+// administrator override); this service-role-only RPC repeats row-lock and
+// endpoint/positive-value checks before updating the selected edge.
+async function adminSetEdgeGeometryMetrics(edgeId, geometryOrNull, metrics) {
+  const sb = getSupabaseClient();
+  const m = metrics || {};
+  const { data, error } = await sb.rpc('app_set_route_edge_geometry_metrics_one_way', {
+    p_edge_id: Number(edgeId),
+    p_geometry: geometryOrNull,
+    p_distance_meters: Number(m.distance_meters),
+    p_walk_time_seconds: Number(m.walk_time_seconds)
+  });
+  if (error) throw fail('adminSetEdgeGeometryMetrics', error);
+  const val = Array.isArray(data) ? (data[0] != null ? data[0] : 0) : (data != null ? data : 0);
+  return Number(val) || 0;
+}
+
 // True when any directed edge touching this node stores non-null geometry.
 // Backs the node-move guard (RF.4 decision 12): a coordinate change is
 // rejected 409 while attached geometry exists. Server-only, read-only.
@@ -951,6 +971,7 @@ module.exports = {
   adminGetEdge,
   adminGetEdgeWithGeometry,
   adminSetEdgeGeometry,
+  adminSetEdgeGeometryMetrics,
   adminSetEdgeGeometryPair,
   adminNodeHasAttachedGeometry,
   adminFindEdgeIdByPair,

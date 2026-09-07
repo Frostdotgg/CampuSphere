@@ -30,6 +30,12 @@
 const MAX_PATH_GEOMETRY_POINTS = 200;
 const MIN_PATH_GEOMETRY_POINTS = 2;
 const ENDPOINT_EPSILON = 1e-6;
+// Route-edge metrics use the same simple, deterministic convention in the
+// seed, admin editor, MySQL controller, and Supabase controller path.  The
+// distance is the length of the drawn polyline (not the straight chord), and
+// walking time assumes a conservative 1.2 metres per second.
+const EARTH_RADIUS_M = 6371000;
+const WALK_SPEED_MPS = 1.2;
 
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -60,6 +66,53 @@ function nodePoint(node) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
   return { lat, lng };
+}
+
+function haversineMeters(a, b) {
+  const from = nodePoint(a);
+  const to = nodePoint(b);
+  if (!from || !to) return null;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(to.lat - from.lat);
+  const dLng = toRad(to.lng - from.lng);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Measure an ordered route polyline in metres.  Invalid input returns null;
+ * callers that accept user input should validate the geometry first.
+ */
+function polylineMeters(points) {
+  if (!Array.isArray(points) || points.length < MIN_PATH_GEOMETRY_POINTS) return null;
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const segment = haversineMeters(points[i - 1], points[i]);
+    if (segment === null) return null;
+    total += segment;
+  }
+  return Math.round(total);
+}
+
+function walkSeconds(meters) {
+  const n = Number(meters);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.max(1, Math.round(n / WALK_SPEED_MPS));
+}
+
+/**
+ * Return the canonical positive scalar metrics for a validated or otherwise
+ * point-like polyline.  The minimum of one metre/one second keeps the existing
+ * positive route-edge database contract intact for coincident coordinates.
+ */
+function calculateRouteMetrics(points) {
+  const measured = polylineMeters(points);
+  if (measured === null) return null;
+  const distance_meters = Math.max(1, measured);
+  const walk_time_seconds = walkSeconds(distance_meters);
+  if (walk_time_seconds === null) return null;
+  return { distance_meters, walk_time_seconds };
 }
 
 /**
@@ -325,7 +378,13 @@ module.exports = {
   MAX_PATH_GEOMETRY_POINTS,
   MIN_PATH_GEOMETRY_POINTS,
   ENDPOINT_EPSILON,
+  EARTH_RADIUS_M,
+  WALK_SPEED_MPS,
   validatePathGeometry,
+  haversineMeters,
+  polylineMeters,
+  walkSeconds,
+  calculateRouteMetrics,
   reversePathGeometry,
   isReversePathGeometry,
   buildPathGeometry,

@@ -559,6 +559,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   wireEndpointSearch('edge-from-search', 'edge-from', 'edge-from-count');
   wireEndpointSearch('edge-to-search', 'edge-to', 'edge-to-count');
+  function nodeForId(id) {
+    const n = toId(id);
+    return n === null ? null : state.nodes.find((row) => Number(row.id) === n) || null;
+  }
+  function geoSetCreateEndpoints(initial) {
+    const fromId = toId($('edge-from') && $('edge-from').value);
+    const toIdValue = toId($('edge-to') && $('edge-to').value);
+    if (fromId === null || toIdValue === null || fromId === toIdValue) {
+      const section = $('edge-geometry-section'); if (section) section.style.display = 'none';
+      geoTeardownDraft();
+      if (fromId !== null && toIdValue !== null && fromId === toIdValue) geoStatus('An edge cannot connect a node to itself.');
+      return;
+    }
+    if (!initial && geo.fromId !== null && (geo.fromId !== fromId || geo.toId !== toIdValue) &&
+        (geo.waypoints.length > 0 || geo.cleared || geo.metricsMode === 'manual') &&
+        typeof window.confirm === 'function' && !window.confirm('Changing an endpoint resets the drawn path and calculated metrics. Continue?')) {
+      if ($('edge-from')) $('edge-from').value = geo.fromId;
+      if ($('edge-to')) $('edge-to').value = geo.toId;
+      return;
+    }
+    const from = nodeForId(fromId), to = nodeForId(toIdValue);
+    geoTeardownDraft();
+    geo.fromId = fromId; geo.toId = toIdValue;
+    geo.from = from ? { lat: Number(from.lat), lng: Number(from.lng), label: str(from.label) || str(from.node_key) } : null;
+    geo.to = to ? { lat: Number(to.lat), lng: Number(to.lng), label: str(to.label) || str(to.node_key) } : null;
+    const section = $('edge-geometry-section');
+    if (!geo.from || !geo.to || !inRange(geo.from.lat, geo.from.lng) || !inRange(geo.to.lat, geo.to.lng)) {
+      if (section) section.style.display = '';
+      geo.ready = false;
+      geoStatus('Both selected nodes need valid coordinates before a path can be drawn.');
+      return;
+    }
+    geo.ready = true; geo.cleared = false; geo.waypoints = [];
+    const ep = $('edge-geo-endpoints'); if (ep) ep.textContent = geo.from.label + ' → ' + geo.to.label;
+    if (section) section.style.display = '';
+    const saveButton = $('edge-geo-save'); if (saveButton) saveButton.style.display = 'none';
+    const map = geoEnsureMap();
+    geoRender(); geoAutoCalculate(); geoStatus('Draw the path, then review the calculated distance and walk time before creating the edge.');
+    if (map) setTimeout(() => { try { map.invalidateSize(); geoFitBounds(); } catch (e) {} }, 60);
+  }
+  $('edge-from') && $('edge-from').addEventListener('change', () => { if (state.edgeMode === 'create') geoSetCreateEndpoints(false); });
+  $('edge-to') && $('edge-to').addEventListener('change', () => { if (state.edgeMode === 'create') geoSetCreateEndpoints(false); });
   async function openEdgeModal(mode, edge) {
     const m = $('edge-modal'); const form = $('edge-form'); if (!form) return;
     await ensureNodes();
@@ -594,7 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endpointNote) endpointNote.hidden = !editing;
     $('edge-modal-title').textContent = mode === 'edit' ? 'Edit Edge' : 'Add Edge';
     $('edge-submit-label').textContent = mode === 'edit' ? 'Save Changes' : 'Create Edge';
-    // RF.4: road-geometry editor is available only when editing an existing edge.
+    // The same geometry editor is used for Add (after both endpoints are
+    // selected) and Edit (for the existing directed edge).
     const geoSection = $('edge-geometry-section');
     if (mode === 'edit' && edge && toId(edge.id) !== null) {
       if (geoSection) geoSection.style.display = '';
@@ -606,14 +649,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add Edge focuses the From-node SEARCH first (D4), so an admin can
       // narrow a long node list straight from the keyboard.
       openModal(m, fromSearch || $('edge-from'));
+      if (seededFrom !== null && seededTo !== null) geoSetCreateEndpoints(true);
     }
   }
   $('add-edge-btn') && $('add-edge-btn').addEventListener('click', () => openEdgeModal('create', null));
   $('edge-form') && $('edge-form').addEventListener('submit', async (e) => {
     e.preventDefault(); if (state.busy) return; const m = $('edge-modal'); const form = e.target; clearErr(m);
-    const payload = { from_node_id: form.from_node_id.value.trim(), to_node_id: form.to_node_id.value.trim(), distance_meters: form.distance_meters.value.trim(), walk_time_seconds: form.walk_time_seconds.value.trim(), path_label: form.path_label.value.trim(), is_accessible: !!form.is_accessible.checked };
+    const editing = state.edgeMode === 'edit';
+    const payload = { from_node_id: form.from_node_id.value.trim(), to_node_id: form.to_node_id.value.trim(), distance_meters: form.distance_meters.value.trim(), walk_time_seconds: form.walk_time_seconds.value.trim(), metrics_mode: editing ? 'manual' : geo.metricsMode, path_label: form.path_label.value.trim(), is_accessible: !!form.is_accessible.checked };
     if (!payload.from_node_id || !payload.to_node_id) return showErr(m, 'Both from-node and to-node are required.');
     if (payload.from_node_id === payload.to_node_id) return showErr(m, 'An edge cannot connect a node to itself.');
+    if (!editing) {
+      if (!geo.ready || !geo.from || !geo.to || geo.cleared) return showErr(m, 'Choose both endpoints and draw a path before creating the edge.');
+      const points = geoFullPoints();
+      if (points.length < 2) return showErr(m, 'The route path needs both locked endpoints.');
+      payload.path_geometry = points;
+    }
     const url = state.edgeMode === 'edit' ? '/admin/api/route-edges/' + state.edgeEditId : '/admin/api/route-edges';
     const method = state.edgeMode === 'edit' ? 'PUT' : 'POST';
     await submitForm(m, url, method, payload, 'edge', () => { closeModal(m); showToast(state.edgeMode === 'edit' ? 'Edge updated.' : 'Edge created.'); loadEdges(); });
@@ -630,6 +681,8 @@ document.addEventListener('DOMContentLoaded', () => {
     map: null, editId: null,
     from: null, to: null,               // { lat, lng, label }
     waypoints: [], cleared: false,
+    metricsMode: 'calculated',
+    syncingMetrics: false,
     history: [],
     layers: { from: null, to: null, mid: [], line: null },
     busy: false, ready: false,
@@ -638,6 +691,55 @@ document.addEventListener('DOMContentLoaded', () => {
     // discarded and can never overwrite a newer session's state.
     loadToken: 0
   };
+  const GEO_EARTH_RADIUS_M = 6371000;
+  const GEO_WALK_SPEED_MPS = 1.2;
+  function geoMetricForPoints(points) {
+    if (!Array.isArray(points) || points.length < 2) return null;
+    const toPoint = (p) => {
+      const lat = Number(p && p.lat), lng = Number(p && p.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+        ? { lat, lng } : null;
+    };
+    const toRad = (d) => (d * Math.PI) / 180;
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = toPoint(points[i - 1]), b = toPoint(points[i]);
+      if (!a || !b) return null;
+      const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+      total += 2 * GEO_EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+    const distance_meters = Math.max(1, Math.round(total));
+    return { distance_meters, walk_time_seconds: Math.max(1, Math.round(distance_meters / GEO_WALK_SPEED_MPS)) };
+  }
+  function geoSetMetricsBadge(mode) {
+    geo.metricsMode = mode === 'manual' ? 'manual' : 'calculated';
+    const badge = $('edge-metrics-badge');
+    if (badge) badge.textContent = geo.metricsMode === 'manual' ? 'Custom metrics' : 'Calculated metrics';
+    const use = $('edge-use-calculated');
+    if (use) use.disabled = geo.metricsMode === 'calculated';
+  }
+  function geoSetMetricInputs(metrics) {
+    if (!metrics) return;
+    const dist = $('edge-dist'), time = $('edge-time');
+    geo.syncingMetrics = true;
+    if (dist) dist.value = String(metrics.distance_meters);
+    if (time) time.value = String(metrics.walk_time_seconds);
+    geo.syncingMetrics = false;
+  }
+  function geoAutoCalculate() {
+    if (!geo.ready || !geo.from || !geo.to) return null;
+    const metrics = geoMetricForPoints(geoFullPoints());
+    if (!metrics) { geoSetMetricsBadge('manual'); geoStatus('The path could not be measured. Check every waypoint coordinate.'); return null; }
+    geoSetMetricInputs(metrics); geoSetMetricsBadge('calculated');
+    return metrics;
+  }
+  function geoMetricInputs() {
+    const distance_meters = Number($('edge-dist') && $('edge-dist').value);
+    const walk_time_seconds = Number($('edge-time') && $('edge-time').value);
+    return Number.isInteger(distance_meters) && distance_meters > 0 && Number.isInteger(walk_time_seconds) && walk_time_seconds > 0
+      ? { distance_meters, walk_time_seconds } : null;
+  }
   function geoLeaflet() { return (typeof L !== 'undefined') ? L : null; }
   function edgeModalOpen() { const m = $('edge-modal'); return !!m && m.classList.contains('modal--open'); }
   // A pending async result is still valid only if its captured token, the
@@ -656,14 +758,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Invalidate any in-flight load/save of a previous session, then reset all
     // draft + UI state (ready/busy/endpoints/waypoints/clear/history/status/layers).
     geo.loadToken += 1;
-    geo.editId = null; geo.from = null; geo.to = null;
+    geo.editId = null; geo.from = null; geo.to = null; geo.fromId = null; geo.toId = null;
     geo.waypoints = []; geo.cleared = false; geo.history = [];
+    geo.metricsMode = 'calculated'; geo.syncingMetrics = false;
     geo.ready = false; geo.busy = false;
     geoClearLayers();
     const list = $('edge-geo-list'); if (list) while (list.firstChild) list.removeChild(list.firstChild);
     geoStatus('');
     const ep = $('edge-geo-endpoints'); if (ep) ep.textContent = '';
-    const btn = $('edge-geo-save'); if (btn) btn.disabled = false;
+    const btn = $('edge-geo-save'); if (btn) { btn.disabled = false; btn.style.display = 'none'; }
+    geoSetMetricsBadge('calculated');
   }
   function geoClearLayers() {
     const map = geo.map; if (!map) return;
@@ -706,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stored = Array.isArray(edge.path_geometry) ? edge.path_geometry : null;
     geo.waypoints = stored && stored.length > 2 ? cloneWps(stored.slice(1, -1)) : [];
     geo.cleared = false;
+    geo.metricsMode = 'calculated';
     geo.history = [];
     const ep = $('edge-geo-endpoints');
     if (ep) ep.textContent = geo.from.label + ' → ' + geo.to.label;
@@ -714,9 +819,15 @@ document.addEventListener('DOMContentLoaded', () => {
       geo.ready = false; return;
     }
     geo.ready = true;
+    const saveButton = $('edge-geo-save');
+    if (saveButton) { saveButton.style.display = ''; saveButton.disabled = false; }
     const map = geoEnsureMap();
     if (!map) { geoStatus('Map could not be initialised. The waypoint list still works.'); }
     geoRender();
+    const calculated = geoMetricForPoints(geoFullPoints());
+    const current = { distance_meters: Number(edge.distance_meters), walk_time_seconds: Number(edge.walk_time_seconds) };
+    geoSetMetricsBadge(calculated && current.distance_meters === calculated.distance_meters && current.walk_time_seconds === calculated.walk_time_seconds
+      ? 'calculated' : 'manual');
     if (map) {
       // The container just became visible inside the modal; recompute size
       // and fit the endpoints (avoids a blank/garbled first paint). Guarded so
@@ -728,6 +839,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function geoFullPoints() {
     if (!geo.from || !geo.to) return [];
     return [{ lat: geo.from.lat, lng: geo.from.lng }].concat(cloneWps(geo.waypoints), [{ lat: geo.to.lat, lng: geo.to.lng }]);
+  }
+  function geoGeometryChanged(message) {
+    geoAutoCalculate();
+    geoRender();
+    if (message) geoStatus(message);
   }
   function geoFitBounds() {
     const L = geoLeaflet(); if (!L || !geo.map) return;
@@ -757,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ll = dm.getLatLng();
         if (!inRange(ll.lat, ll.lng)) { dm.setLatLng([w.lat, w.lng]); return; }
         geoPushHistory(); geo.waypoints[i] = { lat: ll.lat, lng: ll.lng }; geo.cleared = false;
-        geoRenderLine(); geoRenderList(); geoStatus('Waypoint ' + (i + 1) + ' moved.');
+        geoGeometryChanged('Waypoint ' + (i + 1) + ' moved; metrics recalculated.');
       });
       dm.addTo(map);
       geo.layers.mid.push(dm);
@@ -793,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const la = Number(latI.value), ln = Number(lngI.value);
         if (!inRange(la, ln)) { geoStatus('Waypoint ' + (i + 1) + ': latitude must be -90..90 and longitude -180..180.'); latI.value = String(geo.waypoints[i].lat); lngI.value = String(geo.waypoints[i].lng); return; }
         geoPushHistory(); geo.waypoints[i] = { lat: la, lng: ln }; geo.cleared = false;
-        geoRenderMarkers(); geoRenderLine(); geoStatus('Waypoint ' + (i + 1) + ' updated.');
+        geoGeometryChanged('Waypoint ' + (i + 1) + ' updated; metrics recalculated.');
       }
       latI.addEventListener('change', commit); lngI.addEventListener('change', commit);
       const up = mkGeoBtn('↑', () => geoMove(i, -1)); up.setAttribute('aria-label', 'Move waypoint ' + (i + 1) + ' up');
@@ -812,29 +928,30 @@ document.addEventListener('DOMContentLoaded', () => {
       la = (a.lat + b.lat) / 2; ln = (a.lng + b.lng) / 2;
     }
     geoPushHistory(); geo.cleared = false; geo.waypoints.push({ lat: la, lng: ln });
-    geoRender(); geoStatus('Waypoint ' + geo.waypoints.length + ' added.');
+    geoGeometryChanged('Waypoint ' + geo.waypoints.length + ' added; metrics recalculated.');
   }
   function geoMove(i, dir) {
     const j = i + dir; if (j < 0 || j >= geo.waypoints.length) return;
     geoPushHistory(); const t = geo.waypoints[i]; geo.waypoints[i] = geo.waypoints[j]; geo.waypoints[j] = t;
-    geoRender(); geoStatus('Waypoint order changed.');
+    geoGeometryChanged('Waypoint order changed; metrics recalculated.');
   }
   function geoRemove(i) {
     if (i < 0 || i >= geo.waypoints.length) return;
     geoPushHistory(); geo.waypoints.splice(i, 1); geo.cleared = false;
-    geoRender(); geoStatus('Waypoint removed.');
+    geoGeometryChanged('Waypoint removed; metrics recalculated.');
   }
   function geoUndo() {
     if (!geo.history.length) { geoStatus('Nothing to undo.'); return; }
     const prev = geo.history.pop(); geo.waypoints = cloneWps(prev.waypoints); geo.cleared = !!prev.cleared;
-    geoRender(); geoStatus('Undid last change.');
+    geoGeometryChanged('Undid last change; metrics recalculated.');
   }
   function geoReset() {
     geoPushHistory(); geo.waypoints = []; geo.cleared = false;
-    geoRender(); geoFitBounds(); geoStatus('Reset to the straight endpoint line (saves the two endpoints).');
+    geoGeometryChanged('Reset to the straight endpoint line; metrics recalculated.'); geoFitBounds();
   }
   function geoClear() {
     geoPushHistory(); geo.waypoints = []; geo.cleared = true;
+    geoAutoCalculate();
     geoRender(); geoStatus('Marked for clearing — save to remove geometry from this direction.');
   }
   function geoPreview() { geoRender(); geoFitBounds(); geoStatus('Preview updated.'); }
@@ -843,9 +960,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!geo.ready && !geo.cleared) { geoStatus('Geometry editing is unavailable for this edge.'); return; }
     const token = geo.loadToken, id = geo.editId;   // this session's generation + edge
     const wasCleared = geo.cleared;
-    let payload;
-    if (wasCleared) payload = { path_geometry: null };
-    else payload = { path_geometry: geoFullPoints() };
+    const metrics = geo.metricsMode === 'calculated' ? geoMetricForPoints(geoFullPoints()) : geoMetricInputs();
+    if (!metrics) { geoStatus('Enter positive whole-number distance and walk-time overrides, or use calculated values.'); return; }
+    const payload = {
+      path_geometry: wasCleared ? null : geoFullPoints(),
+      metrics_mode: geo.metricsMode,
+      distance_meters: metrics.distance_meters,
+      walk_time_seconds: metrics.walk_time_seconds
+    };
     geo.busy = true; const btn = $('edge-geo-save'); if (btn) btn.disabled = true;
     geoStatus('Saving…');
     let result = null;
@@ -859,9 +981,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!geoStillCurrent(token, id)) return;
     geo.busy = false; if (btn) btn.disabled = false;
     if (result && result.status === 200 && result.json && result.json.success) {
-      showToast(wasCleared ? 'Geometry cleared.' : 'Geometry saved.');
-      geoStatus(wasCleared ? 'Geometry cleared for this direction.' : 'Geometry saved for this direction.');
+      showToast(wasCleared ? 'Geometry cleared and metrics saved.' : 'Geometry and metrics saved.');
+      geoStatus(wasCleared ? 'Geometry cleared; endpoint fallback metrics saved for this direction.' : 'Geometry and metrics saved for this direction.');
       if (wasCleared) { geo.cleared = false; geo.waypoints = []; geoRender(); }
+      if (state.loaded.edges) loadEdges();
       // Clearing geometry can make a destination unroutable (and re-adding it can
       // restore routability), so the building cards must re-evaluate.
       emitGraphChanged();
@@ -877,6 +1000,20 @@ document.addEventListener('DOMContentLoaded', () => {
   $('edge-geo-clear') && $('edge-geo-clear').addEventListener('click', geoClear);
   $('edge-geo-preview') && $('edge-geo-preview').addEventListener('click', geoPreview);
   $('edge-geo-save') && $('edge-geo-save').addEventListener('click', geoSave);
+  ['edge-dist', 'edge-time'].forEach((id) => {
+    const input = $(id);
+    if (!input) return;
+    input.addEventListener('input', () => {
+      if (geo.syncingMetrics || !geo.ready) return;
+      geoSetMetricsBadge('manual');
+      geoStatus('Custom metric override entered. Use calculated values to return to the drawn-path measurement.');
+    });
+  });
+  $('edge-use-calculated') && $('edge-use-calculated').addEventListener('click', () => {
+    if (!geo.ready) return;
+    const metrics = geoAutoCalculate();
+    if (metrics) geoStatus('Calculated distance and walk time restored from the drawn path.');
+  });
 
   /* ---------- shared submit + delete ---------- */
   async function submitForm(m, url, method, payload, kind, onOk) {

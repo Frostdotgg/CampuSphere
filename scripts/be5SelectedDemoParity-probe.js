@@ -428,7 +428,11 @@ function runMigrationTests() {
   const dir = path.join(root, 'database', 'supabase');
   const migrationName = '0019_be5_selected_demo_parity.sql';
   const migrationPath = path.join(dir, migrationName);
-  const files = fs.readdirSync(dir).filter((file) => file.endsWith('.sql')).sort();
+  // 0027 is a source-only route-metrics RPC and is deliberately outside the
+  // owner-applied 0001-0020 data-freeze continuity check.
+  const files = fs.readdirSync(dir)
+    .filter((file) => file.endsWith('.sql') && file !== '0027_route_edge_geometry_metrics.sql')
+    .sort();
   const freezeFiles = files.filter((file) => ![
     '0021_minimal_instructor_oauth_registration.sql',
     '0022_user_presence.sql',

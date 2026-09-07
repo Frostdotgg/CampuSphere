@@ -39,7 +39,10 @@ const {
   normalizeStoredPathGeometry,
   assembleRouteGeometry,
   reversePathGeometry,
-  isReversePathGeometry
+  isReversePathGeometry,
+  haversineMeters,
+  polylineMeters,
+  calculateRouteMetrics
 } = require('../utils/routeGeometry');
 
 // M12.P1-R1: regression identities come from the shared TEST-ONLY loader —
@@ -222,6 +225,16 @@ function runPureHelperChecks() {
   });
   check(scope, 'start-equals-destination with an out-of-range node yields empty geometry with incomplete state',
     trivialBad.geometry.length === 0 && trivialBad.incomplete === true);
+
+  // Canonical admin metric convention: the drawn polyline is measured segment
+  // by segment, then walk time is rounded at 1.2 m/s and never falls below one.
+  const metricLine = [{ lat: 13.405, lng: 123.374 }, { lat: 13.4055, lng: 123.3745 }, { lat: 13.406, lng: 123.374 }];
+  const metrics = calculateRouteMetrics(metricLine);
+  check(scope, 'Haversine helper returns finite segment distance', Number.isFinite(haversineMeters(metricLine[0], metricLine[1])));
+  check(scope, 'polyline measurement sums the drawn segments', metrics && metrics.distance_meters === polylineMeters(metricLine));
+  check(scope, 'walk time uses the shared 1.2 m/s convention with positive minimums',
+    !!metrics && metrics.walk_time_seconds === Math.max(1, Math.round(metrics.distance_meters / 1.2)));
+  check(scope, 'invalid metric geometry fails closed', calculateRouteMetrics([{ lat: 0, lng: 0 }]) === null);
 }
 
 /* ---------------- Part 2: runtime API checks (both modes) ---------------- */

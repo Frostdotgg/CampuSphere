@@ -30,7 +30,8 @@ const auditService = require('../services/auditService');
 const {
   validatePathGeometry,
   normalizeStoredPathGeometry,
-  ENDPOINT_EPSILON
+  ENDPOINT_EPSILON,
+  calculateRouteMetrics
 } = require('../utils/routeGeometry');
 
 /* ---------- field limits / allowed values (mirror the schema) ---------- */
@@ -142,6 +143,9 @@ function handleErr(res, e, label) {
   }
   if (e && typeof e.message === 'string' && e.message.indexOf('INVALID_GEOMETRY') !== -1) {
     return res.status(400).json({ success: false, message: 'The submitted road geometry is invalid.' });
+  }
+  if (e && typeof e.message === 'string' && e.message.indexOf('INVALID_METRICS') !== -1) {
+    return res.status(400).json({ success: false, message: 'Distance and walk time must be positive whole numbers.' });
   }
   console.error('adminRouteController.' + label + ': unexpected failure.');
   return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
@@ -320,15 +324,69 @@ function validateEdge(body) {
   const to = optId(body.to_node_id);
   if (!to.ok || to.value === null) return { ok: false, message: 'A valid to-node is required.' };
   if (from.value === to.value) return { ok: false, message: 'An edge cannot connect a node to itself.' };
-  const dist = parsePosInt(body.distance_meters);
-  if (!dist.ok) return { ok: false, message: 'Distance (meters) must be a positive whole number.' };
-  const time = parsePosInt(body.walk_time_seconds);
-  if (!time.ok) return { ok: false, message: 'Walk time (seconds) must be a positive whole number.' };
+  const modeRaw = body.metrics_mode === undefined || body.metrics_mode === null || body.metrics_mode === ''
+    ? 'manual' : String(body.metrics_mode).trim().toLowerCase();
+  if (modeRaw !== 'manual' && modeRaw !== 'calculated') {
+    return { ok: false, message: 'Metrics mode must be calculated or manual.' };
+  }
+  let distance_meters = null, walk_time_seconds = null;
+  if (modeRaw === 'manual') {
+    const dist = parsePosInt(body.distance_meters);
+    if (!dist.ok) return { ok: false, message: 'Distance (meters) must be a positive whole number.' };
+    const time = parsePosInt(body.walk_time_seconds);
+    if (!time.ok) return { ok: false, message: 'Walk time (seconds) must be a positive whole number.' };
+    distance_meters = dist.value;
+    walk_time_seconds = time.value;
+  }
   const label = optStr(body.path_label, EDGE_PATHLABEL_MAX);
   if (!label.ok) return { ok: false, message: 'Path label must be ' + EDGE_PATHLABEL_MAX + ' characters or fewer.' };
   const access = parseBool(body.is_accessible, true);
   if (!access.ok) return { ok: false, message: 'Accessible must be true or false.' };
-  return { ok: true, value: { from_node_id: from.value, to_node_id: to.value, distance_meters: dist.value, walk_time_seconds: time.value, path_label: label.value, is_accessible: access.value } };
+  return {
+    ok: true,
+    value: {
+      from_node_id: from.value, to_node_id: to.value,
+      distance_meters, walk_time_seconds, metrics_mode: modeRaw,
+      path_geometry: Object.prototype.hasOwnProperty.call(body, 'path_geometry') ? body.path_geometry : undefined,
+      path_label: label.value, is_accessible: access.value
+    }
+  };
+}
+
+function endpointLine(fromNode, toNode) {
+  const fromLat = Number(fromNode && fromNode.lat), fromLng = Number(fromNode && fromNode.lng);
+  const toLat = Number(toNode && toNode.lat), toLng = Number(toNode && toNode.lng);
+  if (![fromLat, fromLng, toLat, toLng].every(Number.isFinite) ||
+      fromLat < -90 || fromLat > 90 || toLat < -90 || toLat > 90 ||
+      fromLng < -180 || fromLng > 180 || toLng < -180 || toLng > 180) return null;
+  return [{ lat: fromLat, lng: fromLng }, { lat: toLat, lng: toLng }];
+}
+
+function prepareEdgeGeometry(rawGeometry, fromNode, toNode, allowNull) {
+  const fallback = endpointLine(fromNode, toNode);
+  if (!fallback) throw new ApiError(400, 'Edge endpoint coordinates are unavailable.');
+  const clearing = rawGeometry === null && allowNull === true;
+  const candidate = rawGeometry === undefined ? fallback : rawGeometry;
+  let geometry = null;
+  if (!clearing) {
+    const v = validatePathGeometry(candidate, {
+      fromNode, toNode, allowNull: false, snapEndpoints: true
+    });
+    if (!v.ok) throw new ApiError(400, v.message);
+    geometry = v.value;
+  }
+  // A cleared drawing falls back to the exact endpoint chord for route
+  // selection, so its metrics remain synchronized with what the public map
+  // actually renders.
+  const metrics = calculateRouteMetrics(geometry || fallback);
+  if (!metrics) throw new ApiError(400, 'The route geometry could not be measured.');
+  return { geometry, metrics, clearing };
+}
+
+function chooseEdgeMetrics(value, measured) {
+  return value.metrics_mode === 'calculated'
+    ? measured
+    : { distance_meters: value.distance_meters, walk_time_seconds: value.walk_time_seconds };
 }
 
 /* ============================================================
@@ -668,20 +726,38 @@ exports.getEdge = async (req, res) => {
 };
 
 /* RF.4: PUT /admin/api/route-edges/:id/geometry
-   Strict allowlist { path_geometry }. null clears only the selected directed
-   row; a non-null value validates against its current from/to nodes (2-200
-   points, ranged lat/lng, exact keys, endpoint epsilon, snapEndpoints) and
-   writes only that row atomically (MySQL transaction or Supabase service-role
-   RPC). The reverse edge is deliberately independent so entry and exit paths
-   can differ. Missing edge 404; invalid 400; unexpected sanitized 500. Never
-   returns or logs raw geometry. */
+   Geometry saves accept { path_geometry, metrics_mode, distance_meters,
+   walk_time_seconds }. Calculated mode derives both scalars from the drawn
+   polyline; manual mode preserves positive administrator overrides. The
+   geometry and scalars are written atomically for the selected direction. A
+   geometry-only legacy request remains accepted for old tooling and updates
+   only path_geometry until that tooling adopts the metric contract. */
 exports.updateEdgeGeometry = async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) return res.status(400).json({ success: false, message: 'Invalid edge id.' });
   if (!isPlainObject(req.body)) return res.status(400).json({ success: false, message: 'Request body must be a JSON object.' });
   const keys = Object.keys(req.body);
   if (keys.indexOf('path_geometry') === -1) return res.status(400).json({ success: false, message: 'path_geometry is required.' });
-  if (keys.length !== 1) return res.status(400).json({ success: false, message: 'Only path_geometry may be provided.' });
+  const allowed = ['path_geometry', 'metrics_mode', 'distance_meters', 'walk_time_seconds'];
+  if (keys.some((key) => allowed.indexOf(key) === -1)) {
+    return res.status(400).json({ success: false, message: 'Only path_geometry and route metrics may be provided.' });
+  }
+  const metricContract = keys.some((key) => key !== 'path_geometry');
+  const mode = metricContract
+    ? (req.body.metrics_mode === undefined || req.body.metrics_mode === null || req.body.metrics_mode === ''
+      ? 'calculated' : String(req.body.metrics_mode).trim().toLowerCase())
+    : 'legacy';
+  if (metricContract && mode !== 'calculated' && mode !== 'manual') {
+    return res.status(400).json({ success: false, message: 'Metrics mode must be calculated or manual.' });
+  }
+  let manualDistance = null, manualTime = null;
+  if (mode === 'manual') {
+    const dist = parsePosInt(req.body.distance_meters);
+    if (!dist.ok) return res.status(400).json({ success: false, message: 'Distance (meters) must be a positive whole number.' });
+    const time = parsePosInt(req.body.walk_time_seconds);
+    if (!time.ok) return res.status(400).json({ success: false, message: 'Walk time (seconds) must be a positive whole number.' });
+    manualDistance = dist.value; manualTime = time.value;
+  }
   const rawGeom = req.body.path_geometry;
   const clearing = rawGeom === null;
   if (!clearing && !Array.isArray(rawGeom)) {
@@ -692,20 +768,19 @@ exports.updateEdgeGeometry = async (req, res) => {
     if (isSupabase()) {
       const edge = await routeRepository.adminGetEdgeWithGeometry(id);
       if (!edge) throw new ApiError(404, 'Edge not found.');
-      let payload = null;
-      if (!clearing) {
-        const v = validatePathGeometry(rawGeom, {
-          fromNode: { lat: edge.from_lat, lng: edge.from_lng },
-          toNode: { lat: edge.to_lat, lng: edge.to_lng },
-          allowNull: false, snapEndpoints: true
-        });
-        if (!v.ok) throw new ApiError(400, v.message);
-        payload = v.value;
+      const prepared = prepareEdgeGeometry(rawGeom,
+        { lat: edge.from_lat, lng: edge.from_lng },
+        { lat: edge.to_lat, lng: edge.to_lng }, true);
+      if (mode === 'legacy') {
+        // Compatibility for pre-0027 callers. The new admin UI always sends
+        // metrics_mode and therefore takes the atomic metric RPC below.
+        await routeRepository.adminSetEdgeGeometry(id, prepared.geometry);
+      } else {
+        const metrics = mode === 'calculated'
+          ? prepared.metrics
+          : { distance_meters: manualDistance, walk_time_seconds: manualTime };
+        await routeRepository.adminSetEdgeGeometryMetrics(id, prepared.geometry, metrics);
       }
-      // One service-role RPC updates only the selected directed row (or clears
-      // it). The owner must apply migration 0023 before enabling this path in
-      // Supabase; the old pair RPC remains historical compatibility only.
-      await routeRepository.adminSetEdgeGeometry(id, payload);
     } else {
       await withTx(async (conn) => {
         const [sel] = await conn.query(
@@ -717,19 +792,23 @@ exports.updateEdgeGeometry = async (req, res) => {
         const byId = new Map(nodes.map((n) => [n.id, n]));
         const fromNode = byId.get(fromId), toNode = byId.get(toId);
         if (!fromNode || !toNode) throw new ApiError(404, 'Edge endpoint node not found.');
-        let geometryJson = null;
-        if (!clearing) {
-          const v = validatePathGeometry(rawGeom, {
-            fromNode: { lat: Number(fromNode.lat), lng: Number(fromNode.lng) },
-            toNode: { lat: Number(toNode.lat), lng: Number(toNode.lng) },
-            allowNull: false, snapEndpoints: true
-          });
-          if (!v.ok) throw new ApiError(400, v.message);
-          geometryJson = JSON.stringify(v.value);
-        }
+        const prepared = prepareEdgeGeometry(rawGeom,
+          { lat: Number(fromNode.lat), lng: Number(fromNode.lng) },
+          { lat: Number(toNode.lat), lng: Number(toNode.lng) }, true);
+        const geometryJson = prepared.geometry === null ? null : JSON.stringify(prepared.geometry);
         // One directed row only: the reverse edge keeps its own geometry and
         // can be edited separately for an independent exit path.
-        await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [geometryJson, id]);
+        if (mode === 'legacy') {
+          await conn.query('UPDATE route_edges SET path_geometry = ? WHERE id = ?', [geometryJson, id]);
+        } else {
+          const metrics = mode === 'calculated'
+            ? prepared.metrics
+            : { distance_meters: manualDistance, walk_time_seconds: manualTime };
+          await conn.query(
+            'UPDATE route_edges SET path_geometry = ?, distance_meters = ?, walk_time_seconds = ? WHERE id = ?',
+            [geometryJson, metrics.distance_meters, metrics.walk_time_seconds, id]
+          );
+        }
       });
     }
     invalidateRouteReadFlights();
@@ -745,21 +824,36 @@ exports.createEdge = async (req, res) => {
   try {
     let edge;
     if (isSupabase()) {
-      if (!(await routeRepository.adminNodeExists(v.value.from_node_id))) throw new ApiError(404, 'From-node not found.');
-      if (!(await routeRepository.adminNodeExists(v.value.to_node_id))) throw new ApiError(404, 'To-node not found.');
+      const fromNode = await routeRepository.adminGetNode(v.value.from_node_id);
+      const toNode = await routeRepository.adminGetNode(v.value.to_node_id);
+      if (!fromNode) throw new ApiError(404, 'From-node not found.');
+      if (!toNode) throw new ApiError(404, 'To-node not found.');
       if ((await routeRepository.adminFindEdgeIdByPair(v.value.from_node_id, v.value.to_node_id)) !== null) throw new ApiError(409, 'A directed edge between these nodes already exists.');
-      edge = await routeRepository.adminCreateEdge(v.value);
+      const prepared = prepareEdgeGeometry(v.value.path_geometry, fromNode, toNode, false);
+      const metrics = chooseEdgeMetrics(v.value, prepared.metrics);
+      edge = await routeRepository.adminCreateEdge(Object.assign({}, v.value, {
+        path_geometry: prepared.geometry,
+        distance_meters: metrics.distance_meters,
+        walk_time_seconds: metrics.walk_time_seconds
+      }));
     } else {
       edge = await withTx(async (conn) => {
-        const [f] = await conn.query('SELECT id FROM route_nodes WHERE id = ? LIMIT 1', [v.value.from_node_id]);
-        if (!f.length) throw new ApiError(404, 'From-node not found.');
-        const [t] = await conn.query('SELECT id FROM route_nodes WHERE id = ? LIMIT 1', [v.value.to_node_id]);
-        if (!t.length) throw new ApiError(404, 'To-node not found.');
+        const [nodes] = await conn.query(
+          'SELECT id, lat, lng FROM route_nodes WHERE id IN (?, ?) ORDER BY id FOR UPDATE',
+          [v.value.from_node_id, v.value.to_node_id]
+        );
+        const byId = new Map(nodes.map((n) => [Number(n.id), n]));
+        const fromNode = byId.get(v.value.from_node_id), toNode = byId.get(v.value.to_node_id);
+        if (!fromNode) throw new ApiError(404, 'From-node not found.');
+        if (!toNode) throw new ApiError(404, 'To-node not found.');
         const [dup] = await conn.query('SELECT id FROM route_edges WHERE from_node_id = ? AND to_node_id = ? LIMIT 1', [v.value.from_node_id, v.value.to_node_id]);
         if (dup.length) throw new ApiError(409, 'A directed edge between these nodes already exists.');
+        const prepared = prepareEdgeGeometry(v.value.path_geometry, fromNode, toNode, false);
+        const metrics = chooseEdgeMetrics(v.value, prepared.metrics);
         const [result] = await conn.query(
-          'INSERT INTO route_edges (from_node_id, to_node_id, distance_meters, walk_time_seconds, path_label, is_accessible) VALUES (?, ?, ?, ?, ?, ?)',
-          [v.value.from_node_id, v.value.to_node_id, v.value.distance_meters, v.value.walk_time_seconds, v.value.path_label, v.value.is_accessible ? 1 : 0]
+          'INSERT INTO route_edges (from_node_id, to_node_id, distance_meters, walk_time_seconds, path_label, is_accessible, path_geometry) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [v.value.from_node_id, v.value.to_node_id, metrics.distance_meters, metrics.walk_time_seconds,
+            v.value.path_label, v.value.is_accessible ? 1 : 0, JSON.stringify(prepared.geometry)]
         );
         const [rows] = await conn.query(EDGE_SELECT_SQL + ' WHERE e.id = ?', [result.insertId]);
         return rows[0];
@@ -776,6 +870,9 @@ exports.updateEdge = async (req, res) => {
   if (id === null) return res.status(400).json({ success: false, message: 'Invalid edge id.' });
   const v = validateEdge(req.body);
   if (!v.ok) return res.status(400).json({ success: false, message: v.message });
+  if (v.value.metrics_mode !== 'manual') {
+    return res.status(400).json({ success: false, message: 'Calculated metrics require a path geometry save.' });
+  }
   try {
     let edge;
     if (isSupabase()) {

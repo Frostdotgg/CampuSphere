@@ -4,9 +4,10 @@ Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
 ## Current migration status (2026-09-07)
 
-Migration sources are contiguous from `0001` through `0026`. Migrations
-`0001`-`0026` are owner-applied; Codex did not apply or reapply 0024, 0025, or
-0026.
+Migration sources are contiguous from `0001` through `0027`. Migrations
+`0001`-`0026` are owner-applied; `0027` is source-only pending a separate
+owner application. Codex did not apply or reapply 0024, 0025, or 0026, and must
+not apply 0027 without fresh explicit database authorization.
 Do not reapply an owner-applied migration without fresh explicit database authorization.
 `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates
@@ -186,6 +187,9 @@ Apply order (each file once, in sequence, against the target project):
 14. `0026_admin_instructor_profile_integrity.sql` (owner-applied; repairs
     missing instructor profiles and installs the profile-aware admin
     create/update functions).
+15. `0027_route_edge_geometry_metrics.sql` (source-only until the owner
+    explicitly applies it; adds the service-role-only atomic directional
+    geometry + distance/walk-time RPC used by the new admin edge editor).
 
 ## 5. Auth decision
 

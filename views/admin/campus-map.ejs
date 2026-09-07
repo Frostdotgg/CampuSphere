@@ -442,10 +442,11 @@
                     <div class="form-group"><label for="edge-label">Path label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="path_label" id="edge-label" class="ui-input" maxlength="150" placeholder="e.g. Main pathway"></div>
                     <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;"><input type="checkbox" name="is_accessible" id="edge-access" checked style="width:auto;"><label for="edge-access" style="margin:0;">Accessible</label></div>
 
-                    <!-- RF.4 road-geometry editor: shown only when editing an existing edge -->
+                    <!-- Route geometry editor: shown after endpoints are chosen on Add,
+                         and for the stored direction on Edit. -->
                     <div id="edge-geometry-section" style="display:none;margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
-                            <label style="margin:0;font-weight:600;">Road geometry (drawing only)</label>
+                            <label style="margin:0;font-weight:600;">Road geometry and metrics</label>
                             <span id="edge-geo-endpoints" class="text-muted-foreground" style="font-size:0.78rem;"></span>
                         </div>
                         <p class="text-muted-foreground" style="font-size:0.76rem;margin:0.25rem 0 0.5rem;line-height:1.4;">
@@ -463,8 +464,13 @@
                         </div>
                         <ol id="edge-geo-list" aria-label="Ordered waypoints" style="list-style:none;margin:0.5rem 0 0;padding:0;display:flex;flex-direction:column;gap:0.4rem;"></ol>
                         <p id="edge-geo-status" class="text-muted-foreground" style="font-size:0.78rem;margin:0.5rem 0 0;" aria-live="polite"></p>
+                        <p class="text-muted-foreground" style="font-size:0.76rem;margin:0.35rem 0 0;line-height:1.4;">Distance uses the Haversine length of this path; walk time uses 1.2 m/s. You may override either field after reviewing the calculation.</p>
+                        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+                            <span id="edge-metrics-badge" class="ui-badge ui-badge-outline" aria-live="polite">Calculated metrics</span>
+                            <button type="button" id="edge-use-calculated" class="ui-button ui-button-outline ui-button-size-sm">Use calculated values</button>
+                        </div>
                         <div style="margin-top:0.5rem;">
-                            <button type="button" id="edge-geo-save" class="ui-button ui-button-default ui-button-size-sm">Save geometry</button>
+                            <button type="button" id="edge-geo-save" class="ui-button ui-button-default ui-button-size-sm" style="display:none;">Save geometry and metrics</button>
                         </div>
                     </div>
                 </div>
