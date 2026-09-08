@@ -64,8 +64,8 @@
       CSS/JS are now same-origin; its built stylesheet embeds every control
       image as a data: URI, so it has no relative image dependency.
       This does NOT change the media policy: panorama IMAGES are still loaded
-      at runtime from owner-controlled Cloudinary delivery (or a local /img/vr
-      fallback), and Milestone 6 offline scope remains offline DEMO navigation
+      at runtime from owner-controlled Cloudinary or Google Drive delivery (or a
+      local /img/vr fallback), and Milestone 6 offline scope remains offline DEMO navigation
       only — no panorama mirroring or bundling.
     -->
     <link rel="stylesheet" href="/vendor/pannellum/pannellum.css">
@@ -783,6 +783,7 @@
     <%- include('partials/theme-toggle') %>
 
     <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
+    <script src="/js/media-url.js"></script>
     <script src="/js/room-schedule-viewer.js"></script>
     <script src="/js/vr-schedule.js"></script>
     <% } %>

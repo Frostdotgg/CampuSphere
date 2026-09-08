@@ -22,6 +22,7 @@
     <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/user-presence.js" defer></script>
     <script src="/js/admin/main.js" defer></script>
+    <script src="/js/media-url.js" defer></script>
     <script src="/js/admin/admin-vr.js" defer></script>
     <style nonce="<%= cspNonce %>">
         /* Modal / toast styles (same classes as the other admin pages) */
@@ -228,13 +229,18 @@
                     </div>
                     <div class="form-group">
                         <label for="vr-scene-image">Image URL <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label>
-                        <input type="text" name="image_url" id="vr-scene-image" class="ui-input" maxlength="255" placeholder="/img/vr/scene-library.jpg or https://res.cloudinary.com/...">
-                        <p class="form-hint">Local <code>/img/</code> path or an <code>https://res.cloudinary.com/...</code> URL.</p>
+                        <input type="text" name="image_url" id="vr-scene-image" class="ui-input" maxlength="255" placeholder="/img/vr/scene-library.jpg, Cloudinary URL, or Google Drive file link">
+                        <p class="form-hint">Use one source: a local <code>/img/</code> path, an <code>https://res.cloudinary.com/...</code> URL, or an exact Google Drive file-share URL.</p>
                     </div>
                     <div class="form-group">
-                        <label for="vr-scene-cloudinary-id">Cloudinary Public ID <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label>
+                        <label for="vr-scene-cloudinary-id">Cloudinary Public ID <span class="text-muted-foreground" style="font-weight:400;">(optional; Cloudinary only)</span></label>
                         <input type="text" name="cloudinary_public_id" id="vr-scene-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. campus/vr/library">
-                        <p class="form-hint">Letters, numbers, <code>/ . _ - ~</code> only. Leave blank if unused.</p>
+                        <p class="form-hint">Letters, numbers, <code>/ . _ - ~</code> only. Leave blank for local or Google Drive media.</p>
+                    </div>
+                    <div id="vr-scene-image-preview" class="schedule-image-preview" hidden>
+                        <p class="schedule-image-preview__label">Image preview</p>
+                        <img id="vr-scene-image-preview-img" alt="Selected 360 scene preview" loading="lazy" referrerpolicy="no-referrer">
+                        <p id="vr-scene-image-preview-error" class="form-error" role="alert"></p>
                     </div>
                     <div class="form-row">
                         <div class="form-group">

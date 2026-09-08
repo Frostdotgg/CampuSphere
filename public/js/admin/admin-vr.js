@@ -29,6 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sceneForm = document.getElementById('vr-scene-form');
   const sceneSubmitBtn = document.getElementById('vr-scene-submit-btn');
   const sceneSubmitLabel = document.getElementById('vr-scene-submit-label');
+  const sceneImageInput = document.getElementById('vr-scene-image');
+  const sceneCloudinaryIdInput = document.getElementById('vr-scene-cloudinary-id');
+  const sceneImagePreview = document.getElementById('vr-scene-image-preview');
+  const sceneImagePreviewImg = document.getElementById('vr-scene-image-preview-img');
+  const sceneImagePreviewError = document.getElementById('vr-scene-image-preview-error');
 
   const hotspotModal = document.getElementById('vr-hotspot-modal');
   const hotspotModalTitle = document.getElementById('vr-hotspot-modal-title');
@@ -70,6 +75,45 @@ document.addEventListener('DOMContentLoaded', () => {
   let roomScheduleDocuments = [];
   const SCHEDULE_PAGE_SIZE = 200;
   const SCHEDULE_MAX_ROWS = 2000;
+
+  function setSceneImagePreview(value) {
+    if (!sceneImagePreview || !sceneImagePreviewImg || !sceneImagePreviewError) return;
+    const helper = window.CampuSphereMedia;
+    const safe = helper && typeof helper.safeMediaUrl === 'function'
+      ? helper.safeMediaUrl(value)
+      : null;
+    const candidate = typeof value === 'string' ? value.trim() : '';
+    sceneImagePreview.hidden = !candidate;
+    sceneImagePreviewError.textContent = '';
+    sceneImagePreviewImg.hidden = true;
+    sceneImagePreviewImg.removeAttribute('src');
+    if (!candidate) return;
+    if (!safe) {
+      sceneImagePreviewError.textContent = 'Paste an approved local, Cloudinary, or Google Drive image link to preview it.';
+      return;
+    }
+    sceneImagePreviewImg.onload = function () {
+      sceneImagePreviewImg.hidden = false;
+      sceneImagePreviewError.textContent = '';
+    };
+    sceneImagePreviewImg.onerror = function () {
+      sceneImagePreviewImg.hidden = true;
+      sceneImagePreviewError.textContent = 'The image could not be loaded. Check the link and Drive sharing permission.';
+    };
+    sceneImagePreviewImg.src = safe;
+  }
+
+  function clearSceneCloudinaryIdForNonCloudinarySource() {
+    if (!sceneImageInput || !sceneCloudinaryIdInput) return;
+    const helper = window.CampuSphereMedia;
+    const isCloudinary = helper && typeof helper.safeCloudinaryUrl === 'function' &&
+      !!helper.safeCloudinaryUrl(sceneImageInput.value);
+    if (!isCloudinary) sceneCloudinaryIdInput.value = '';
+  }
+  if (sceneImageInput) sceneImageInput.addEventListener('input', function () {
+    clearSceneCloudinaryIdForNonCloudinarySource();
+    setSceneImagePreview(sceneImageInput.value);
+  });
 
   // ---- Small helpers ----
   function showToast(message, type) {
@@ -502,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sceneMode = 'create';
       editingSceneId = null;
       if (sceneForm) sceneForm.reset();
+      setSceneImagePreview('');
       clearFormError(sceneModal);
       if (sceneModalTitle) sceneModalTitle.textContent = 'Add Scene';
       if (sceneSubmitLabel) sceneSubmitLabel.textContent = 'Create Scene';
@@ -522,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sceneForm.image_url.value = str(scene.image_url);
     // Section 10.6: Cloudinary public id (set via .value DOM API — never innerHTML).
     if (sceneForm.cloudinary_public_id) sceneForm.cloudinary_public_id.value = str(scene.cloudinary_public_id);
+    setSceneImagePreview(sceneForm.image_url.value);
     sceneForm.node_id.value = scene.node_id == null ? '' : String(numOf(scene.node_id));
     sceneForm.building_id.value = scene.building_id == null ? '' : String(numOf(scene.building_id));
     sceneForm.initial_yaw.value = String(numOf(scene.initial_yaw));
@@ -550,6 +596,11 @@ document.addEventListener('DOMContentLoaded', () => {
         initial_pitch: sceneForm.initial_pitch.value.trim(),
         display_order: sceneForm.display_order.value.trim()
       };
+      if (sceneForm.cloudinary_public_id &&
+          (!window.CampuSphereMedia || !window.CampuSphereMedia.safeCloudinaryUrl ||
+           !window.CampuSphereMedia.safeCloudinaryUrl(payload.image_url))) {
+        payload.cloudinary_public_id = '';
+      }
       if (!payload.scene_key) { showFormError(sceneModal, 'Scene key is required.'); return; }
       if (!payload.title) { showFormError(sceneModal, 'Title is required.'); return; }
 

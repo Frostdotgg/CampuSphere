@@ -13,6 +13,12 @@
         !parsed.username && !parsed.password && !parsed.port ? candidate : null;
     } catch (error) { return null; }
   }
+  function safeMediaUrl(value) {
+    if (window.CampuSphereMedia && typeof window.CampuSphereMedia.safeMediaUrl === 'function') {
+      return window.CampuSphereMedia.safeMediaUrl(value);
+    }
+    return safeCloudinaryUrl(value);
+  }
 
   function setState(name) {
     const loading = document.getElementById('scheduleLoading');
@@ -44,7 +50,7 @@
       thumbnail.hidden = true;
       thumbnailError.hidden = false;
     });
-    const thumbnailUrl = safeCloudinaryUrl(documentRow.image_url);
+    const thumbnailUrl = safeMediaUrl(documentRow.image_url);
     if (thumbnailUrl) thumbnail.src = thumbnailUrl;
     else {
       thumbnail.hidden = true;

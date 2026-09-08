@@ -83,10 +83,10 @@ CREATE TABLE IF NOT EXISTS buildings (
     lat DECIMAL(10,8) NOT NULL,
     lng DECIMAL(11,8) NOT NULL,
     details TEXT,
-    -- Milestone 10 (Cloudinary media metadata; nullable, additive). image_url
-    -- mirrors the public building image (the seed backfills it from details.img);
-    -- cloudinary_public_id is reserved for Cloudinary delivery and stays NULL
-    -- until a later Milestone 10 section. Every building read tolerates NULL.
+    -- Milestone 10 (Cloudinary/Google Drive media metadata; nullable, additive).
+    -- image_url mirrors the public building image (the seed backfills it from
+    -- details.img); cloudinary_public_id is reserved for Cloudinary delivery
+    -- and stays NULL for Drive/local media. Every building read tolerates NULL.
     image_url VARCHAR(255),
     cloudinary_public_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -299,9 +299,9 @@ CREATE TABLE IF NOT EXISTS vr_scenes (
     title VARCHAR(150) NOT NULL,
     description TEXT,
     image_url VARCHAR(255),
-    -- Milestone 10: Cloudinary delivery metadata for VR panoramas (nullable,
-    -- additive; no runtime consumer yet). Scenes tolerate cloudinary_public_id
-    -- = NULL and keep using image_url / the /img/vr/*.jpg placeholder fallback.
+    -- Milestone 10: Cloudinary/Google Drive delivery metadata for VR panoramas
+    -- (nullable, additive). Scenes tolerate cloudinary_public_id = NULL for
+    -- Drive/local media and keep using image_url / the /img/vr/*.jpg fallback.
     cloudinary_public_id VARCHAR(255),
     node_id INT NULL,
     building_id INT NULL,

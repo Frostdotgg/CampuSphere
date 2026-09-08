@@ -15,6 +15,12 @@
         ? candidate : null;
     } catch (error) { return null; }
   }
+  function safeMediaUrl(value) {
+    if (window.CampuSphereMedia && typeof window.CampuSphereMedia.safeMediaUrl === 'function') {
+      return window.CampuSphereMedia.safeMediaUrl(value);
+    }
+    return safeCloudinaryUrl(value);
+  }
 
   function init() {
     const overlay = document.getElementById('roomScheduleViewer');
@@ -87,7 +93,7 @@
 
     function openDocument(documentRow, trigger) {
       resetContent();
-      const url = safeCloudinaryUrl(documentRow && documentRow.image_url);
+      const url = safeMediaUrl(documentRow && documentRow.image_url);
       title.textContent = text(documentRow && documentRow.location_label) || 'Room schedule';
       meta.textContent = [
         text(documentRow && documentRow.building_name),
@@ -96,7 +102,7 @@
         text(documentRow && documentRow.school_year)
       ].filter(Boolean).join(' · ');
       show(trigger);
-      if (!url) { setStatus('This schedule image is unavailable. Ask an administrator to verify its Cloudinary URL.'); return; }
+      if (!url) { setStatus('This schedule image is unavailable. Ask an administrator to verify its image link.'); return; }
       setStatus('Loading schedule image…');
       frame.hidden = false;
       image.hidden = false;

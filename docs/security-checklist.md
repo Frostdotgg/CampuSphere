@@ -27,6 +27,24 @@ authority commit `d294cfd`. This is owner-observed vendor evidence only;
 exact deployment identity, Production behavior, and immutable bytes remain
 independently unverified.
 
+## Dual media-provider policy (current source candidate, 2026-09-08)
+
+Building pictures, 360-degree VR scenes, and semester room-schedule documents
+accept one approved `image_url`: either a Cloudinary delivery URL or an exact
+Google Drive single-file share URL. Drive images are never loaded directly from
+an arbitrary browser origin; runtime consumers receive the authenticated
+same-origin `/api/media/google-drive/:fileId` proxy. That read-only controller
+allows only HTTPS Google hosts/redirects, enforces a 50 MiB response cap and
+image signature/MIME agreement, and returns `nosniff` plus private cache
+headers. It uses no Drive OAuth credential and has no upload, edit, delete, or
+vendor-management path. `cloudinary_public_id` is accepted only for
+Cloudinary and is cleared when Drive/local media is selected. Existing
+`image_url` columns are reused; no media migration is required. Drive and
+schedule media remain online-only and are excluded from offline-guide storage.
+
+This section describes the current source candidate only. It is not a
+Production deployment, vendor-dashboard, or immutable-byte verification claim.
+
 <!-- M12 RELEASE CONTINUITY START -->
 ## Current Release Continuity (2026-09-07)
 

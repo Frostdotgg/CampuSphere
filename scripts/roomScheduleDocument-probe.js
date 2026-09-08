@@ -2,8 +2,8 @@
 
 /*
  * Focused, database-free contract probe for semester room schedule images.
- * This probe never starts the server, opens a browser, calls Cloudinary, or
- * accesses either database. Runtime CRUD parity remains gated until migration
+ * This probe never starts the server, opens a browser, calls an external media
+ * provider, or accesses either database. Runtime CRUD parity remains gated until migration
  * 0020 is separately authorized and applied to the selected test backends.
  */
 
@@ -146,9 +146,10 @@ check('controller', 'admin payload validation has a fixed body allowlist and val
   adminController.includes('V.validateBody(body, BODY_KEYS)') &&
   /\^\(\\d\{4\}\)-\(\\d\{4\}\)\$/.test(adminController) &&
   adminController.includes('second !== first + 1'));
-check('controller', 'only HTTPS Cloudinary delivery URLs and conservative public IDs are accepted',
+check('controller', 'only approved Cloudinary or Google Drive delivery URLs and conservative public IDs are accepted',
   adminController.includes('validateImageUrlField') &&
-  adminController.includes("startsWith('https://')") &&
+  adminController.includes('isCloudinaryDeliveryUrl') &&
+  adminController.includes('isGoogleDriveFileUrl') &&
   adminController.includes('validateCloudinaryPublicId'));
 check('controller', 'duplicate rooms and linked deletes fail with conflict responses',
   /status\(409\)/.test(adminController) &&
@@ -206,9 +207,10 @@ check('admin UI', 'the new form accepts URL metadata only and has no file upload
   adminView.includes('name="image_url" id="schedule-image-url"') &&
   adminView.includes('name="cloudinary_public_id"') &&
   !/<input[^>]+type="file"[^>]+schedule/i.test(adminView));
-check('admin UI', 'client never calls a Cloudinary upload, delete, or management endpoint',
-  !/api\.cloudinary\.com|upload_preset|destroy|unsigned_upload/i.test(adminScheduleClient) &&
-  adminScheduleClient.includes('The Cloudinary image will not be deleted.'));
+check('admin UI', 'client never calls a Cloudinary or Google Drive upload, delete, or management endpoint',
+   !/api\.cloudinary\.com|upload_preset|destroy|unsigned_upload/i.test(adminScheduleClient) &&
+   adminScheduleClient.includes('The Cloudinary image will not be deleted.') &&
+   adminScheduleClient.includes('Google Drive files are not deleted either.'));
 check('admin UI', 'stored values render through DOM text APIs and image URLs use an explicit property',
   adminScheduleClient.includes('document.createElement') &&
   adminScheduleClient.includes('.textContent') &&
@@ -217,9 +219,11 @@ check('admin UI', 'admin schedule lists paginate to an exact bounded total inste
   adminScheduleClient.includes('MAX_LOADED_DOCUMENTS = 2000') &&
   adminScheduleClient.includes('listUrl(documents.length)') &&
   adminScheduleClient.includes('documents.length !== total'));
-check('admin UI', 'admin and building thumbnails revalidate the exact Cloudinary host before loading',
-  adminScheduleClient.includes("parsed.hostname === 'res.cloudinary.com'") &&
-  buildingClient.includes("parsed.hostname === 'res.cloudinary.com'"));
+check('admin UI', 'admin and building thumbnails revalidate approved Cloudinary or Drive media before loading',
+   adminScheduleClient.includes('safeMediaUrl(') &&
+   buildingClient.includes('safeMediaUrl(') &&
+   adminScheduleClient.includes("parsed.hostname === 'res.cloudinary.com'") &&
+   buildingClient.includes("parsed.hostname === 'res.cloudinary.com'"));
 check('viewer', 'one labelled dialog has close, status, image, and full-size fallback controls',
   viewerPartial.includes('role="dialog"') && viewerPartial.includes('aria-modal="true"') &&
   viewerPartial.includes('id="roomScheduleViewerClose"') &&
@@ -237,8 +241,9 @@ check('viewer', 'viewer exposes an accessible fit/zoom toggle for loaded images'
   viewerCss.includes('width: min(200%, 1600px)'));
 check('viewer fixture', 'a missing zoom control is rejected by the viewer contract',
   !viewerPartial.replace('id="roomScheduleViewerZoom"', 'id="roomScheduleViewerZoomMissing"').includes('id="roomScheduleViewerZoom"'));
-check('viewer', 'viewer enforces exact Cloudinary HTTPS host and safe text rendering',
-  viewerClient.includes("parsed.hostname === 'res.cloudinary.com'") &&
+check('viewer', 'viewer enforces approved Cloudinary or Drive media and safe text rendering',
+   viewerClient.includes('safeMediaUrl(') &&
+   viewerClient.includes("parsed.hostname === 'res.cloudinary.com'") &&
   viewerClient.includes("parsed.protocol === 'https:'") &&
   !/innerHTML|insertAdjacentHTML|document\.write/.test(viewerClient));
 check('viewer', 'viewer supports loading/error states, Escape, Tab trapping, and focus return',

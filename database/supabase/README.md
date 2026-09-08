@@ -79,13 +79,15 @@ migration. It currently covers:
   `instructor_profiles`, `guest_profiles` (Section B.1, plan Section 2.2).
 - Content and settings tables: `news_announcements`, `events`, `faqs`,
   `system_settings`, `team_members` (Section B.2, plan Section 2.3).
-- `buildings` with `jsonb` details, `lat`/`lng`, Cloudinary-ready fields
-  (`image_url`, `cloudinary_public_id`), and PostGIS `location`
+- `buildings` with `jsonb` details, `lat`/`lng`, shared media-reference fields
+  (`image_url`, optional `cloudinary_public_id`; `image_url` may hold an
+  approved Cloudinary or Google Drive link), and PostGIS `location`
   (Section B.3, plan Section 2.4).
 - Campus routes and graph: `campus_routes`, `campus_route_steps`,
   `route_nodes` (with PostGIS `location`), `route_edges` (directed rows,
   unique `(from_node_id, to_node_id)`) (Section B.4, plan Section 2.5).
-- VR scenes and hotspots: `vr_scenes` (with `cloudinary_public_id`),
+- VR scenes and hotspots: `vr_scenes` (with shared `image_url` media references
+  and optional `cloudinary_public_id`),
   `vr_hotspots` (Section B.5, plan Section 2.5).
 
 If later phases need to add tables, add numbered follow-up files
@@ -248,6 +250,6 @@ Still out of scope for this folder:
 
 - Supabase Auth (Express sessions + bcrypt + Google OAuth remain the only
   sign-in paths),
-- Cloudinary runtime uploads,
+- Cloudinary or Google Drive runtime uploads/vendor management,
 - replacing `database/schema.sql` / `database/seed.js` (MySQL stays the
   default and the rollback baseline).

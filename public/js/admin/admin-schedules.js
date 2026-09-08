@@ -45,6 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
         !parsed.username && !parsed.password && !parsed.port ? candidate : null;
     } catch (error) { return null; }
   }
+  function safeMediaUrl(value) {
+    if (window.CampuSphereMedia && typeof window.CampuSphereMedia.safeMediaUrl === 'function') {
+      return window.CampuSphereMedia.safeMediaUrl(value);
+    }
+    return safeCloudinaryUrl(value);
+  }
   function positiveId(value) {
     const number = Number(value);
     return Number.isInteger(number) && number > 0 ? number : null;
@@ -143,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         image.hidden = true;
         thumbnailError.hidden = false;
       });
-      const thumbnailUrl = safeCloudinaryUrl(documentRow.image_url);
+      const thumbnailUrl = safeMediaUrl(documentRow.image_url);
       if (thumbnailUrl) image.src = thumbnailUrl;
       else {
         image.hidden = true;
@@ -254,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showPreview(url) {
     const value = stringValue(url).trim();
-    const safeUrl = safeCloudinaryUrl(value);
+    const safeUrl = safeMediaUrl(value);
     if (!preview || !previewImage || !previewError) return;
     preview.hidden = !value;
     previewError.style.display = 'none';
@@ -262,11 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!value) { previewImage.removeAttribute('src'); return; }
     if (!safeUrl) {
       previewImage.removeAttribute('src');
-      previewError.textContent = 'Paste an HTTPS Cloudinary delivery URL to preview the image.';
+      previewError.textContent = 'Paste an approved Cloudinary or Google Drive image link to preview the image.';
       previewError.style.display = 'block';
       return;
     }
     previewImage.src = safeUrl;
+  }
+
+  function clearScheduleCloudinaryIdForDrive() {
+    const imageField = form && form.elements && form.elements.image_url;
+    const idField = form && form.elements && form.elements.cloudinary_public_id;
+    const helper = window.CampuSphereMedia;
+    if (!imageField || !idField || !helper || typeof helper.safeCloudinaryUrl !== 'function') return;
+    if (!helper.safeCloudinaryUrl(imageField.value)) idField.value = '';
   }
 
   function openModal(target, focusTarget) {
@@ -366,9 +380,11 @@ document.addEventListener('DOMContentLoaded', () => {
       image_url: form.elements.image_url.value.trim(),
       cloudinary_public_id: form.elements.cloudinary_public_id.value.trim()
     };
+    clearScheduleCloudinaryIdForDrive();
+    payload.cloudinary_public_id = form.elements.cloudinary_public_id.value.trim();
     if (!payload.building_id || !payload.location_label) return formError('Building and room/facility name are required.');
     if (!validateSchoolYear(payload.school_year)) return formError('School year must contain consecutive years in YYYY-YYYY format.');
-    if (!safeCloudinaryUrl(payload.image_url)) return formError('Paste an HTTPS Cloudinary delivery URL.');
+    if (!safeMediaUrl(payload.image_url)) return formError('Paste an approved Cloudinary or Google Drive image link.');
     state.busy = true;
     submitButton.disabled = true;
     submitButton.setAttribute('aria-busy', 'true');
@@ -396,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openDelete(documentRow) {
     state.deleteId = positiveId(documentRow.id);
     const text = byId('schedule-delete-text');
-    if (text) text.textContent = `Delete ${documentLabel(documentRow)}? The Cloudinary image will not be deleted.`;
+    if (text) text.textContent = `Delete ${documentLabel(documentRow)}? The Cloudinary image will not be deleted. Google Drive files are not deleted either.`;
     openModal(deleteModal, byId('schedule-cancel-delete'));
   }
 
@@ -426,9 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
   populateBuildingSelect();
   filterBuildingOptions();
   byId('schedule-building-search').addEventListener('input', filterBuildingOptions);
-  byId('schedule-image-url').addEventListener('input', (event) => showPreview(event.target.value));
+  byId('schedule-image-url').addEventListener('input', (event) => {
+    clearScheduleCloudinaryIdForDrive();
+    showPreview(event.target.value);
+  });
   previewImage.addEventListener('error', () => {
-    previewError.textContent = 'The image preview could not be loaded. Verify the Cloudinary delivery URL.';
+    previewError.textContent = 'The image preview could not be loaded. Verify the Cloudinary or Google Drive link and sharing permission.';
     previewError.style.display = 'block';
   });
   form.addEventListener('submit', submitDocument);

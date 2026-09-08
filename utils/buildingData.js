@@ -4,7 +4,7 @@
    building rows from MySQL.
    ======================================== */
 
-const { normalizeMediaUrl } = require('./mediaUrl');
+const { resolveMediaUrlForBrowser } = require('./mediaUrl');
 
 const DEFAULT_IMG = '/img/Camarines-sur-polytechnic-colleges.png';
 
@@ -61,11 +61,11 @@ function normalizeBuildingRow(row) {
     lng:         toCoord(row.lng),
     // Milestone 10 (Section 10.4): prefer a validated row.image_url (the 10.3
     // parity column, possibly a Cloudinary delivery URL), then a validated
-    // details.img, then the local default. normalizeMediaUrl only passes safe
-    // local /img/ paths or https://res.cloudinary.com URLs, so an unsafe or
-    // malformed stored value falls through to the next option instead of
+    // details.img, then the local default. Drive URLs are converted to the
+    // authenticated same-origin media proxy here; Cloudinary/local values stay
+    // unchanged. An unsafe or malformed stored value falls through instead of
     // rendering. Output key stays `img` so views / public JS are unaffected.
-    img:         normalizeMediaUrl(row.image_url) || normalizeMediaUrl(details.img) || DEFAULT_IMG,
+    img:         resolveMediaUrlForBrowser(row.image_url) || resolveMediaUrlForBrowser(details.img) || DEFAULT_IMG,
     guestAccess: details.guestAccess ?? false,
   };
 }

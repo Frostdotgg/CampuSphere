@@ -1,7 +1,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const { normalizeMediaUrl } = require('./mediaUrl');
+const {
+  resolveMediaUrlForBrowser,
+  isCloudinaryDeliveryUrl,
+  isGoogleDriveFileUrl
+} = require('./mediaUrl');
 
 const SEMESTER_LABELS = Object.freeze({
   'first-semester': 'First Semester',
@@ -31,8 +35,11 @@ function semesterLabel(value) {
 }
 
 function normalizeScheduleImageUrl(value) {
-  const normalized = normalizeMediaUrl(value);
-  return normalized && normalized.startsWith('https://') ? normalized : null;
+  // Schedule documents are external image assets only. Local paths remain
+  // invalid for this flow; Cloudinary and approved Drive links are both
+  // rendered through their safe browser URL (Drive becomes same-origin).
+  if (!isCloudinaryDeliveryUrl(value) && !isGoogleDriveFileUrl(value)) return null;
+  return resolveMediaUrlForBrowser(value);
 }
 
 function toPublicDocument(document) {

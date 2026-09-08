@@ -19,6 +19,50 @@ document.addEventListener('DOMContentLoaded', () => {
   const addBtn = document.getElementById('add-building-btn');
   const buildingsGrid = document.getElementById('buildings-grid');
   const toast = document.getElementById('admin-toast');
+  const buildingImageInput = document.getElementById('building-image-url');
+  const buildingCloudinaryIdInput = document.getElementById('building-cloudinary-id');
+  const buildingImagePreview = document.getElementById('building-image-preview');
+  const buildingImagePreviewImg = document.getElementById('building-image-preview-img');
+  const buildingImagePreviewError = document.getElementById('building-image-preview-error');
+
+  function setBuildingImagePreview(value) {
+    if (!buildingImagePreview || !buildingImagePreviewImg || !buildingImagePreviewError) return;
+    const helper = window.CampuSphereMedia;
+    const safe = helper && typeof helper.safeMediaUrl === 'function'
+      ? helper.safeMediaUrl(value)
+      : null;
+    const candidate = typeof value === 'string' ? value.trim() : '';
+    buildingImagePreview.hidden = !candidate;
+    buildingImagePreviewError.textContent = '';
+    buildingImagePreviewImg.hidden = true;
+    buildingImagePreviewImg.removeAttribute('src');
+    if (!candidate) return;
+    if (!safe) {
+      buildingImagePreviewError.textContent = 'Paste an approved local, Cloudinary, or Google Drive image link to preview it.';
+      return;
+    }
+    buildingImagePreviewImg.onload = function () {
+      buildingImagePreviewImg.hidden = false;
+      buildingImagePreviewError.textContent = '';
+    };
+    buildingImagePreviewImg.onerror = function () {
+      buildingImagePreviewImg.hidden = true;
+      buildingImagePreviewError.textContent = 'The image could not be loaded. Check the link and Drive sharing permission.';
+    };
+    buildingImagePreviewImg.src = safe;
+  }
+
+  function clearCloudinaryIdForNonCloudinarySource() {
+    if (!buildingImageInput || !buildingCloudinaryIdInput) return;
+    const helper = window.CampuSphereMedia;
+    const isCloudinary = helper && typeof helper.safeCloudinaryUrl === 'function' &&
+      !!helper.safeCloudinaryUrl(buildingImageInput.value);
+    if (!isCloudinary) buildingCloudinaryIdInput.value = '';
+  }
+  if (buildingImageInput) buildingImageInput.addEventListener('input', function () {
+    clearCloudinaryIdForNonCloudinarySource();
+    setBuildingImagePreview(buildingImageInput.value);
+  });
 
   // Modals
   const buildingModal = document.getElementById('building-modal');
@@ -352,6 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openCreateBuilding(){
     const form=document.getElementById('building-form'); if(form)form.reset();
     form.removeAttribute('data-edit-id');
+    setBuildingImagePreview('');
     // Fresh empty structured editor. A clear() failure fails closed so the
     // modal opens showing the fixed error and cannot be saved.
     if(detailsEditor){ try { detailsEditor.clear(); } catch(e){ markDetailsEditorUnavailable(); } }
@@ -383,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Section 10.6: media metadata (set via .value DOM API — never innerHTML).
     if(form.image_url) form.image_url.value=b.image_url||'';
     if(form.cloudinary_public_id) form.cloudinary_public_id.value=b.cloudinary_public_id||'';
+    setBuildingImagePreview(form.image_url ? form.image_url.value : '');
     document.getElementById('building-modal-title').textContent='Edit Building';
     document.getElementById('building-submit-btn').innerHTML='<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
     clearFormErrors(buildingModal); syncDetailsBlockedState();
@@ -444,6 +490,13 @@ document.addEventListener('DOMContentLoaded', () => {
       image_url:buildingForm.image_url?buildingForm.image_url.value.trim():'',
       cloudinary_public_id:buildingForm.cloudinary_public_id?buildingForm.cloudinary_public_id.value.trim():''
     };
+    // A record chooses one provider. The server repeats this guard, while the
+    // client clears stale Cloudinary metadata as soon as Drive/local is chosen.
+    if (buildingForm.cloudinary_public_id && buildingForm.image_url &&
+        (!window.CampuSphereMedia || !window.CampuSphereMedia.safeCloudinaryUrl ||
+         !window.CampuSphereMedia.safeCloudinaryUrl(data.image_url))) {
+      data.cloudinary_public_id = '';
+    }
     if(!data.name||!data.category||!data.lat||!data.lng){showFormError(buildingModal,'Name, category, lat, and lng are required.');return;}
 
     const btn=document.getElementById('building-submit-btn');

@@ -41,7 +41,7 @@ const mapRuntime = require('../config/mapRuntime');
 const vrRepository = require('../repositories/vrRepository');
 const routeRepository = require('../repositories/routeRepository');
 const { logServerError } = require('../utils/serverLog');
-const { normalizeMediaUrl } = require('../utils/mediaUrl');
+const { normalizeMediaUrl, resolveMediaUrlForBrowser } = require('../utils/mediaUrl');
 const {
   GUIDED_VR_ROUTES,
   DEFERRED_GUIDED_VR_DESTINATIONS
@@ -87,8 +87,8 @@ function requestSources() {
    local same-origin /img/... path is then resolved under the
    repo public/ directory and becomes null when the file does
    not exist (the seeded /img/vr/*.jpg placeholders are
-   intentionally absent). A valid Cloudinary delivery URL
-   passes through unchanged. Filesystem existence check only —
+   intentionally absent). A valid Cloudinary delivery URL or approved Drive
+   passes through browser-safe resolution. Filesystem existence check only —
    no network, no HEAD requests. The policy guarantees the
    local path has no scheme, no '//', and no '..' traversal,
    so the public/ join cannot escape the directory.
@@ -101,7 +101,7 @@ function resolveSceneImageUrl(raw) {
   if (safe.charAt(0) === '/') {
     return fs.existsSync(path.join(PUBLIC_DIR, safe)) ? safe : null;
   }
-  return safe;
+  return resolveMediaUrlForBrowser(safe);
 }
 
 function toNum(v, fallback = 0) {
@@ -409,7 +409,8 @@ async function resolveGraphScenes(route, sources) {
         // Section 10.5 + pre-11.8C guard: sanitize the panorama URL at the
         // guided-route source (feeds /vr/routes/:routeId, /api/vr/routes/:routeId,
         // /vr/to/:buildingId, /api/vr/to/:buildingId) so only a safe local /img/
-        // path THAT EXISTS under public/ or an https://res.cloudinary.com URL is
+        // path THAT EXISTS under public/, an approved Cloudinary URL, or an
+        // approved Drive link mapped to the authenticated same-origin proxy is
         // emitted; unsafe/malformed/missing-file values become null -> readable
         // fallback with no browser request.
         image_url: resolveSceneImageUrl(s.image_url),
@@ -642,8 +643,8 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
   }
 
   // FIX 2 (BE.4 NO-GO repair): the pure, media-aware verifier admits a scene
-  // to the prefix only when it resolves uniquely, carries an approved
-  // Cloudinary delivery URL, and both directional links to the previous scene
+  // to the prefix only when it resolves uniquely, carries approved Cloudinary
+  // metadata or a Drive file link, and both directional links to the previous scene
   // resolve exactly once. `complete` requires ALL configured scenes verified
   // and the last verified key to equal the configured arrival scene key.
   const chain = verifyGuidedChain({
@@ -1265,8 +1266,9 @@ exports.viewer = async (req, res) => {
         title: current.title,
         description: current.description || '',
         // Section 10.5 + pre-11.8C guard: only a sanitized panorama URL (safe
-        // local /img/ path that exists under public/, or an
-        // https://res.cloudinary.com URL) or null reaches the scene browser.
+        // local /img/ path that exists under public/, an approved Cloudinary
+        // URL, or an approved Drive proxy path) or null reaches the scene
+        // browser.
         image_url: resolveSceneImageUrl(current.image_url),
         initial_yaw: toNum(current.initial_yaw, 0),
         initial_pitch: toNum(current.initial_pitch, 0)

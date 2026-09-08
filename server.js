@@ -71,6 +71,7 @@ const adminRoutes = require('./routes/admin');
 const profileController = require('./controllers/profileController');
 const offlineMapController = require('./controllers/offlineMapController');
 const presenceController = require('./controllers/presenceController');
+const mediaController = require('./controllers/mediaController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -265,6 +266,12 @@ app.use(attachCsrfToken);
 
 /* ---- Custom Middleware ---- */
 app.use(logger);
+
+// Drive-backed campus media is read-only and authentication-bound. The admin
+// fields store an exact share URL; browser consumers use this same-origin route
+// so the controller can enforce redirect, size, MIME, and signature checks
+// without widening CSP or exposing Drive links in public HTML.
+app.get('/api/media/google-drive/:fileId', requireLogin, mediaController.googleDrive);
 
 /* ---- Routes ---- */
 app.use('/', indexRoutes);

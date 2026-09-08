@@ -1835,6 +1835,8 @@ function runMediaUrlPolicyGate() {
     '/img/Camarines-sur-polytechnic-colleges.png',
     '/img/vr/main-gate.jpg',
     'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+    'https://drive.google.com/file/d/1AbC_def-123/view?usp=sharing',
+    'https://drive.google.com/open?id=1AbC_def-123&resourcekey=resource-key_1',
   ];
   const reject = [
     'http://res.cloudinary.com/demo/image/upload/sample.jpg',
@@ -1847,6 +1849,11 @@ function runMediaUrlPolicyGate() {
     'https://res.cloudinary.com:443/demo/image/upload/sample.jpg', // explicit default port
     'https://res.cloudinary.com:444/demo/image/upload/sample.jpg', // explicit non-default port
     '/img/../admin/secret.png',                             // traversal
+    'https://drive.google.com/file/d/1AbC_def-123/view?usp=sharing&foo=bar', // unapproved query
+    'https://drive.google.com/file/d/1AbC_def-123/view?id=other', // duplicate id channel
+    'https://drive.google.com/drive/folders/1AbC_def-123',       // folder, not a file
+    'https://drive.google.com/file/d/1AbC_def-123/view#fragment', // fragment is not canonical
+    'https://drive.google.com.evil.com/file/d/1AbC_def-123/view', // look-alike host
   ];
   for (const u of accept) ok(`accept ${u}`, isSafeMediaUrl(u) && normalizeMediaUrl(u) === u);
   for (const u of reject) ok(`reject ${u}`, !isSafeMediaUrl(u) && normalizeMediaUrl(u) === null);
@@ -8367,9 +8374,9 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 197,
-  bytes: '7,318,566',
-  sha256: '8faa9fed4121c562d80f86b3aa5e455928c6287816a550f6dec635dd040a97a1',
+  files: 199,
+  bytes: '7,343,428',
+  sha256: '5fb5e6dd013ce961f41ba7df79eb60b4a615106b94277280036b01c17c822515',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */

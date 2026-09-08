@@ -82,10 +82,11 @@ records, markers, routes, VR links, and schedule relationships. MySQL remains
 the local-development, fallback, and rehearsal store. Protomaps/OpenStreetMap
 supplies only the visual basemap polygons used by this offline package.
 
-The current phase changes only this offline-map path. VR panoramas and room
-schedules remain on their existing Cloudinary delivery path and are not put in
-IndexedDB. A future Drive-media migration is a separate design and capacity
-decision.
+The current phase changes only this offline-map path. VR panoramas, building
+pictures, and room schedules remain online media references: they may use the
+approved Cloudinary path or the authenticated Google Drive media proxy, and
+they are not put in IndexedDB. Drive-backed media is deliberately online-only;
+the offline-map download never fetches or caches those image bytes.
 
 ## Drive boundary
 

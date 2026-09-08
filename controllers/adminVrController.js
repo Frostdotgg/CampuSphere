@@ -26,7 +26,11 @@ const vrDataSource = require('../config/vrDataSource');
 const scheduleDataSource = require('../config/scheduleDataSource');
 const vrRepository = require('../repositories/vrRepository');
 const auditService = require('../services/auditService');
-const { normalizeMediaUrl, validateCloudinaryPublicId } = require('../utils/mediaUrl');
+const {
+  normalizeMediaUrl,
+  validateCloudinaryPublicId,
+  isCloudinaryDeliveryUrl
+} = require('../utils/mediaUrl');
 
 /* ---------- field limits / allowed values (mirror the schema) ---------- */
 
@@ -206,11 +210,10 @@ function validateSceneKey(raw) {
 }
 
 // image_url: optional. Delegates to the shared media URL policy
-// (utils/mediaUrl.js): accepts a safe local /img/ path (covers the
-// /img/vr/*.jpg placeholders) or an https://res.cloudinary.com delivery URL,
-// and rejects http:, javascript:, data:, protocol-relative, traversal,
-// arbitrary HTTPS hosts, and malformed URLs. Length is bounded by IMG_MAX
-// (the VARCHAR(255) column) so the 400 message stays accurate.
+// (utils/mediaUrl.js): accepts a safe local /img/ path, an
+// https://res.cloudinary.com delivery URL, or an exact Google Drive file-share
+// URL. Drive media is rendered through the authenticated same-origin proxy.
+// Length is bounded by IMG_MAX (the VARCHAR(255) column).
 function validateImageUrl(raw) {
   if (raw === undefined || raw === null) return { ok: true, value: null };
   if (typeof raw !== 'string') return { ok: false };
@@ -235,7 +238,7 @@ function validateScene(body) {
   if (!description.ok) return { ok: false, message: 'Description must be ' + DESC_MAX + ' characters or fewer.' };
 
   const image = validateImageUrl(body.image_url);
-  if (!image.ok) return { ok: false, message: 'Image URL must be a local /img/ path or an https://res.cloudinary.com URL (max ' + IMG_MAX + ' chars).' };
+  if (!image.ok) return { ok: false, message: 'Image URL must be a local /img/ path, an https://res.cloudinary.com URL, or an approved Google Drive file link (max ' + IMG_MAX + ' chars).' };
 
   // Section 10.6: optional Cloudinary public id (delivery metadata only).
   const publicId = validateCloudinaryPublicId(body.cloudinary_public_id);
@@ -263,7 +266,9 @@ function validateScene(body) {
       title: title.value,
       description: description.value,
       image_url: image.value,
-      cloudinary_public_id: publicId.value,
+      cloudinary_public_id: image.value && isCloudinaryDeliveryUrl(image.value)
+        ? publicId.value
+        : null,
       node_id: node.value,
       building_id: building.value,
       initial_yaw: yaw.value,

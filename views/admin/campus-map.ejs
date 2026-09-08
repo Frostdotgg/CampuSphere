@@ -32,6 +32,7 @@
     <%# M12.P1-D5: the structured building-details editor must load BEFORE
         admin-buildings.js, which mounts it into the Building modal. %>
     <script src="/js/admin/building-details-editor.js" defer></script>
+    <script src="/js/media-url.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
     <script src="/js/admin/admin-schedules.js" defer></script>
@@ -315,13 +316,18 @@
                     </div>
                     <div class="form-group">
                         <label for="building-image-url">Image URL (optional)</label>
-                        <input type="text" name="image_url" id="building-image-url" class="ui-input" maxlength="255" placeholder="/img/your-image.jpg  or  https://res.cloudinary.com/...">
-                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Local <code>/img/</code> path or an <code>https://res.cloudinary.com/...</code> URL. Leave blank to use the default.</small>
+                        <input type="text" name="image_url" id="building-image-url" class="ui-input" maxlength="255" placeholder="/img/your-image.jpg, Cloudinary URL, or Google Drive file link">
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Use a local <code>/img/</code> path, Cloudinary delivery URL, or exact Google Drive file-share URL. Leave blank to use the default.</small>
                     </div>
                     <div class="form-group">
-                        <label for="building-cloudinary-id">Cloudinary Public ID (optional)</label>
+                        <label for="building-cloudinary-id">Cloudinary Public ID (optional; Cloudinary only)</label>
                         <input type="text" name="cloudinary_public_id" id="building-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. campus/main-building">
-                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Letters, numbers, <code>/ . _ - ~</code> only. Leave blank if unused.</small>
+                        <small style="display:block;margin-top:0.25rem;font-size:0.75rem;color:var(--muted-foreground);">Letters, numbers, <code>/ . _ - ~</code> only. Leave blank for local or Google Drive media.</small>
+                    </div>
+                    <div id="building-image-preview" class="schedule-image-preview" hidden>
+                        <p class="schedule-image-preview__label">Image preview</p>
+                        <img id="building-image-preview-img" alt="Selected building preview" loading="lazy" referrerpolicy="no-referrer">
+                        <p id="building-image-preview-error" class="form-error" role="alert"></p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -514,8 +520,8 @@
                         <div class="form-group"><label for="schedule-semester">Semester</label><select name="semester" id="schedule-semester" required><option value="first-semester">First Semester</option><option value="second-semester">Second Semester</option><option value="midyear">Midyear</option></select></div>
                         <div class="form-group"><label for="schedule-school-year">School year</label><input type="text" name="school_year" id="schedule-school-year" class="ui-input" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" required placeholder="2026-2027" aria-describedby="schedule-school-year-hint"><small id="schedule-school-year-hint">Use consecutive years in YYYY-YYYY format.</small></div>
                     </div>
-                    <div class="form-group"><label for="schedule-image-url">Cloudinary schedule image URL</label><input type="url" name="image_url" id="schedule-image-url" class="ui-input" maxlength="1000" required placeholder="https://res.cloudinary.com/…" aria-describedby="schedule-image-hint"><small id="schedule-image-hint">Prepare an approved, participant-PII-free image in Cloudinary first, then paste its HTTPS delivery URL and public ID. CampuSphere does not upload or delete Cloudinary assets.</small></div>
-                    <div class="form-group"><label for="schedule-cloudinary-id">Cloudinary public ID <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="cloudinary_public_id" id="schedule-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. CampuSphere/room-schedules/ab4-cslab"></div>
+                    <div class="form-group"><label for="schedule-image-url">Schedule image URL</label><input type="url" name="image_url" id="schedule-image-url" class="ui-input" maxlength="1000" required placeholder="Cloudinary URL or Google Drive file link" aria-describedby="schedule-image-hint"><small id="schedule-image-hint">Use either a Cloudinary delivery URL or a Google Drive file shared as “Anyone with the link · Viewer”. Keep the image free of participant PII. CampuSphere stores the link and does not upload or delete external assets.</small></div>
+                    <div class="form-group"><label for="schedule-cloudinary-id">Cloudinary public ID <span class="text-muted-foreground" style="font-weight:400;">(optional; Cloudinary only)</span></label><input type="text" name="cloudinary_public_id" id="schedule-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. CampuSphere/room-schedules/ab4-cslab"><small class="form-hint">Leave blank when the image uses Google Drive.</small></div>
                     <div class="schedule-image-preview" id="schedule-image-preview" hidden>
                         <p class="schedule-image-preview__label">Image preview</p>
                         <img id="schedule-image-preview-img" alt="Selected room schedule preview" loading="lazy" referrerpolicy="no-referrer">

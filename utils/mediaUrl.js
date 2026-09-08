@@ -16,9 +16,11 @@
      - ACCEPT an absolute HTTPS URL whose host is EXACTLY the Cloudinary delivery
        host (config/cloudinary.js -> CLOUDINARY_DELIVERY_HOST,
        i.e. res.cloudinary.com), with no embedded credentials (user:pass@).
+     - ACCEPT an exact Google Drive single-file sharing URL. Drive media is
+       rendered through an authenticated same-origin proxy at runtime.
      - REJECT everything else: http:, javascript:, data:, blob:, file:,
        protocol-relative ("//host"), traversal ("/img/../.."), arbitrary HTTPS
-       hosts (example.com), look-alike hosts (res.cloudinary.com.evil.com),
+        hosts (example.com), look-alike hosts (res.cloudinary.com.evil.com),
        userinfo tricks (user@res.cloudinary.com), and malformed URLs.
 
    Boundary: pure + server-only. Imports config/cloudinary.js for the host
@@ -63,6 +65,72 @@ function isCloudinaryDeliveryUrl(v) {
   return true;
 }
 
+// Google Drive single-file share links accepted by the admin media fields.
+// The original URL is stored, but runtime consumers convert it to the
+// authenticated same-origin proxy below. Only scalar, allowlisted parameters
+// are accepted; folders, docs, fragments, userinfo, ports, and arbitrary
+// hosts are rejected before any network request can be made.
+const GOOGLE_DRIVE_HOSTS = new Set(['drive.google.com', 'www.drive.google.com']);
+const GOOGLE_DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]{1,200}$/;
+const GOOGLE_DRIVE_RESOURCE_KEY_RE = /^[A-Za-z0-9_-]{1,200}$/;
+const GOOGLE_DRIVE_USP_RE = /^[A-Za-z0-9._~-]{1,80}$/;
+const GOOGLE_DRIVE_QUERY_KEYS = new Set(['id', 'resourcekey', 'usp']);
+
+function scalarDriveParam(url, name, pattern) {
+  const values = url.searchParams.getAll(name);
+  if (values.length > 1) return null;
+  if (values.length === 0) return '';
+  return pattern.test(values[0]) ? values[0] : null;
+}
+
+function parseGoogleDriveFileUrl(raw) {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (value === '' || value.length > MEDIA_URL_MAX) return null;
+
+  let url;
+  try { url = new URL(value); } catch (error) { return null; }
+  if (url.protocol !== 'https:' || !GOOGLE_DRIVE_HOSTS.has(url.hostname)) return null;
+  if (url.username !== '' || url.password !== '' || url.port !== '' || url.hash !== '') return null;
+
+  for (const key of new Set(url.searchParams.keys())) {
+    if (!GOOGLE_DRIVE_QUERY_KEYS.has(key)) return null;
+  }
+  const resourceKey = scalarDriveParam(url, 'resourcekey', GOOGLE_DRIVE_RESOURCE_KEY_RE);
+  const usp = scalarDriveParam(url, 'usp', GOOGLE_DRIVE_USP_RE);
+  if (resourceKey === null || usp === null) return null;
+
+  let fileId = '';
+  const filePath = /^\/file\/d\/([^/]+)\/view\/?$/.exec(url.pathname);
+  if (filePath) {
+    try { fileId = decodeURIComponent(filePath[1]); } catch (error) { return null; }
+    // The file-link form carries its id in the path, never in ?id=.
+    if (url.searchParams.has('id')) return null;
+  } else if (url.pathname === '/open' || url.pathname === '/open/') {
+    const id = scalarDriveParam(url, 'id', GOOGLE_DRIVE_FILE_ID_RE);
+    if (id === null || id === '') return null;
+    fileId = id;
+  } else {
+    return null;
+  }
+
+  if (!GOOGLE_DRIVE_FILE_ID_RE.test(fileId)) return null;
+  return { fileId, resourceKey: resourceKey || null };
+}
+
+function isGoogleDriveFileUrl(raw) {
+  return parseGoogleDriveFileUrl(raw) !== null;
+}
+
+function googleDriveProxyPath(raw) {
+  const parsed = parseGoogleDriveFileUrl(raw);
+  if (!parsed) return null;
+  const key = parsed.resourceKey
+    ? '?resourcekey=' + encodeURIComponent(parsed.resourceKey)
+    : '';
+  return '/api/media/google-drive/' + encodeURIComponent(parsed.fileId) + key;
+}
+
 /**
  * Validate + normalize a media URL against the policy above.
  * @returns the safe (trimmed, unchanged) string when acceptable, else null.
@@ -73,7 +141,16 @@ function normalizeMediaUrl(raw) {
   const v = raw.trim();
   if (v === '' || v.length > MEDIA_URL_MAX) return null;
   if (v.charAt(0) === '/') return isLocalImgPath(v) ? v : null;
-  return isCloudinaryDeliveryUrl(v) ? v : null;
+  return isCloudinaryDeliveryUrl(v) || isGoogleDriveFileUrl(v) ? v : null;
+}
+
+// Convert a validated stored URL into a browser-safe URL. Local and Cloudinary
+// media remain unchanged; Google Drive media always uses the authenticated
+// same-origin proxy so browser requests cannot follow an arbitrary share link.
+function resolveMediaUrlForBrowser(raw) {
+  const safe = normalizeMediaUrl(raw);
+  if (safe === null) return null;
+  return isGoogleDriveFileUrl(safe) ? googleDriveProxyPath(safe) : safe;
 }
 
 /** Boolean convenience wrapper around normalizeMediaUrl. */
@@ -132,9 +209,16 @@ function validateCloudinaryPublicId(raw) {
 
 module.exports = {
   normalizeMediaUrl,
+  resolveMediaUrlForBrowser,
   isSafeMediaUrl,
+  isCloudinaryDeliveryUrl,
+  parseGoogleDriveFileUrl,
+  isGoogleDriveFileUrl,
+  googleDriveProxyPath,
   validateImageUrlField,
   validateCloudinaryPublicId,
   MEDIA_URL_MAX,
   PUBLIC_ID_MAX,
+  GOOGLE_DRIVE_FILE_ID_RE,
+  GOOGLE_DRIVE_RESOURCE_KEY_RE,
 };

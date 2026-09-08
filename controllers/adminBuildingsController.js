@@ -13,7 +13,11 @@ const roomScheduleDocumentRepository = require('../repositories/roomScheduleDocu
 const auditService = require('../services/auditService');
 const routeAvailability = require('../services/routeAvailability');
 const V = require('../utils/adminValidation');
-const { validateImageUrlField, validateCloudinaryPublicId } = require('../utils/mediaUrl');
+const {
+  validateImageUrlField,
+  validateCloudinaryPublicId,
+  isCloudinaryDeliveryUrl
+} = require('../utils/mediaUrl');
 
 // R7: building category allowlist mirrors the admin UI option set
 // (views/admin/campus-map.ejs). Field caps mirror the schema / spec.
@@ -103,12 +107,12 @@ function validateBuildingPayload(body) {
   const details = V.validateDetails(body.details);
   if (!details.ok) return details;
 
-  // Section 10.6: optional Cloudinary media metadata. image_url runs the shared
-  // media URL policy (local /img/ or https://res.cloudinary.com only);
-  // cloudinary_public_id runs the conservative public-id policy. Both are
-  // optional (blank -> null). Fixed sanitized messages; never echo the value.
+  // Media is admin-managed by reference: a local /img/ path, Cloudinary URL,
+  // or approved Google Drive share URL. Cloudinary public-id metadata belongs
+  // only to a Cloudinary URL; selecting Drive/local clears stale metadata so
+  // one record never advertises two providers.
   const imageUrl = validateImageUrlField(body.image_url, BUILDING_MEDIA_MAX);
-  if (!imageUrl.ok) return { ok: false, message: 'Image URL must be a local /img/ path or an https://res.cloudinary.com URL (max ' + BUILDING_MEDIA_MAX + ' chars).' };
+  if (!imageUrl.ok) return { ok: false, message: 'Image URL must be a local /img/ path, an https://res.cloudinary.com URL, or an approved Google Drive file link (max ' + BUILDING_MEDIA_MAX + ' chars).' };
   const publicId = validateCloudinaryPublicId(body.cloudinary_public_id);
   if (!publicId.ok) return { ok: false, message: 'Cloudinary public ID may use only letters, numbers, "/", ".", "_", "-", "~" (max ' + BUILDING_MEDIA_MAX + ' chars).' };
 
@@ -122,7 +126,9 @@ function validateBuildingPayload(body) {
       lng: lng.value,
       details: details.value,
       image_url: imageUrl.value,
-      cloudinary_public_id: publicId.value
+      cloudinary_public_id: imageUrl.value && isCloudinaryDeliveryUrl(imageUrl.value)
+        ? publicId.value
+        : null
     }
   };
 }

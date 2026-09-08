@@ -19,6 +19,7 @@ const { getRegressionCredentials } = require('./regressionCredentials');
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 
 const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
+const DRIVE_PROXY_RE = /^\/api\/media\/google-drive\/[A-Za-z0-9_-]{1,200}(?:\?resourcekey=[A-Za-z0-9_-]{1,200})?$/;
 const ARRIVAL_MARKERS = ['Route complete', 'You have arrived'];
 const failures = [];
 
@@ -32,6 +33,11 @@ function normName(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+}
+
+function isApprovedSceneMedia(value) {
+  return typeof value === 'string' &&
+    (value.startsWith(CLOUDINARY_PREFIX) || DRIVE_PROXY_RE.test(value));
 }
 
 function cookieJar() {
@@ -155,9 +161,9 @@ async function runMode(scope, base, authSource) {
       check(scope, `${key}: stored start and arrival node mappings are exposed truthfully`,
         scenes.length === route.scene_keys.length && scenes[0].node_key === 'main-gate' &&
         scenes[scenes.length - 1].node_key === key);
-      check(scope, `${key}: every scene has approved Cloudinary delivery URL`,
+      check(scope, `${key}: every scene has approved Cloudinary or Google Drive media URL`,
         scenes.length === route.scene_keys.length && scenes.every((scene) =>
-          typeof scene.image_url === 'string' && scene.image_url.startsWith(CLOUDINARY_PREFIX)));
+          isApprovedSceneMedia(scene.image_url)));
       check(scope, `${key}: arrival is true only after complete catalog coverage`,
         payload.destination_reached === true &&
         !(typeof payload.message === 'string' && payload.message.includes('VR coverage ends')));

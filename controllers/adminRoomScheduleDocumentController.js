@@ -5,7 +5,12 @@ const scheduleDataSource = require('../config/scheduleDataSource');
 const mapRuntime = require('../config/mapRuntime');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
-const { validateImageUrlField, validateCloudinaryPublicId } = require('../utils/mediaUrl');
+const {
+  validateImageUrlField,
+  validateCloudinaryPublicId,
+  isCloudinaryDeliveryUrl,
+  isGoogleDriveFileUrl
+} = require('../utils/mediaUrl');
 const { SEMESTER_LABELS, locationKey } = require('../utils/roomScheduleDocument');
 const { normalizeSearchQuery } = require('../utils/scheduleSearch');
 const { logServerError } = require('../utils/serverLog');
@@ -66,8 +71,9 @@ function validateSchoolYear(raw) {
 
 function validateCloudinaryImage(raw) {
   const result = validateImageUrlField(raw, IMAGE_URL_MAX);
-  if (!result.ok || !result.value || !result.value.startsWith('https://')) {
-    return { ok: false, message: 'Schedule image URL must be an HTTPS Cloudinary delivery URL.' };
+  if (!result.ok || !result.value ||
+      (!isCloudinaryDeliveryUrl(result.value) && !isGoogleDriveFileUrl(result.value))) {
+    return { ok: false, message: 'Schedule image URL must be an HTTPS Cloudinary or approved Google Drive file link.' };
   }
   return result;
 }
@@ -105,7 +111,7 @@ function validatePayload(body) {
       semester: semester.value,
       school_year: schoolYear.value,
       image_url: image.value,
-      cloudinary_public_id: publicId.value
+      cloudinary_public_id: isCloudinaryDeliveryUrl(image.value) ? publicId.value : null
     }
   };
 }

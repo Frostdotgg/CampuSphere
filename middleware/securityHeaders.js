@@ -27,7 +27,8 @@
    - api.iconify.design — icon DATA fetched by the self-hosted Iconify
      component (connect-src only; its SCRIPT host is gone).
    - res.cloudinary.com — owner-controlled campus/panorama media delivery
-     (img/media/connect only).
+     (img/media/connect only). Google Drive media is proxied same-origin, so
+     no Drive origin is needed in CSP.
    No broad wildcard origins.
    ======================================== */
 
@@ -100,7 +101,8 @@ const directives = {
   // CLOUDINARY_DELIVERY_HOST) for campus building images and 360 VR panoramas.
   // Allowed for MEDIA DELIVERY ONLY — img-src/media-src for <img>/Image()
   // loads, plus connect-src because Pannellum fetches the panorama JPG via
-  // XHR/fetch at runtime. NEVER script-src.
+  // XHR/fetch at runtime. Google Drive assets use the authenticated same-origin
+  // proxy and therefore do not widen CSP. NEVER script-src.
   // R6: cdn.jsdelivr.net and unpkg.com are gone. `data:` stays because the
   // self-hosted Pannellum and MapLibre stylesheets embed every control image as
   // a data: URI; `blob:` stays for canvas/panorama rendering. Leaflet's marker

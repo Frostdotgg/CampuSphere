@@ -18,7 +18,11 @@
    (non-navigating / not-arrived) result rather than a guessed one.
    ======================================== */
 
-const { normalizeMediaUrl, validateCloudinaryPublicId } = require('../utils/mediaUrl');
+const {
+  normalizeMediaUrl,
+  validateCloudinaryPublicId,
+  isGoogleDriveFileUrl
+} = require('../utils/mediaUrl');
 const { CLOUDINARY_DELIVERY_ORIGIN } = require('../config/cloudinary');
 
 const START_NODE_KEY = 'main-gate';
@@ -141,18 +145,18 @@ function isResolvedMediaArrival(lastScene, destinationNodeKey) {
 
 /* ---------------------------------------------------------
    FIX 2 — media-aware guided coverage.
-   A guided scene is usable only when its STORED image_url normalizes to an
-   approved HTTPS Cloudinary delivery URL. A null, rejected, malformed,
-   missing-local, or local-fallback URL is NOT usable. This is stored delivery
-   metadata validation only — no Cloudinary network/API request is made. The
-   stored public ID is inspected internally and is never added to public
+   A guided scene is usable only when its STORED image_url carries approved
+   Cloudinary metadata or an approved Google Drive file link. A null, rejected,
+   malformed, missing-local, or local-fallback URL is NOT usable. This is stored
+   delivery metadata validation only — no vendor network/API request is made.
+   The stored public ID is inspected internally and is never added to public
    Guided-VR response objects.
 --------------------------------------------------------- */
 function isApprovedCloudinaryUrl(raw) {
   const safe = normalizeMediaUrl(raw);
   if (safe === null) return false;
-  // normalizeMediaUrl accepts BOTH local /img paths and Cloudinary delivery
-  // URLs; the guided contract requires the Cloudinary delivery form only.
+  // normalizeMediaUrl accepts local /img paths, Cloudinary delivery URLs, and
+  // approved Drive links; this branch requires the Cloudinary delivery form.
   return safe.indexOf(CLOUDINARY_DELIVERY_ORIGIN + '/') === 0;
 }
 
@@ -160,6 +164,19 @@ function hasApprovedCloudinaryMetadata(row) {
   if (!row || !isApprovedCloudinaryUrl(row.image_url)) return false;
   const publicId = validateCloudinaryPublicId(row.cloudinary_public_id);
   return publicId.ok === true && typeof publicId.value === 'string' && publicId.value !== '';
+}
+
+// Drive-backed guided scenes use the same stored image_url column but carry no
+// Cloudinary public id. The exact share URL is validated by mediaUrl.js and is
+// converted to the authenticated proxy only when the public response is built.
+function hasApprovedGoogleDriveMetadata(row) {
+  if (!row || !isGoogleDriveFileUrl(row.image_url)) return false;
+  const publicId = validateCloudinaryPublicId(row.cloudinary_public_id);
+  return publicId.ok === true && publicId.value === null;
+}
+
+function hasApprovedMediaMetadata(row) {
+  return hasApprovedCloudinaryMetadata(row) || hasApprovedGoogleDriveMetadata(row);
 }
 
 /**
@@ -175,14 +192,16 @@ function hasApprovedCloudinaryMetadata(row) {
  *                                   (hotspot_type='scene' only; ids already
  *                                   translated to keys within the VR backend)
  * @param {Function} [input.mediaOk] override the media predicate (test hook);
- *                                   defaults to approved URL + public-ID metadata
+ *                                   defaults to approved Cloudinary metadata or
+ *                                   an approved Google Drive file link
  *
  * @returns {Object} { verified: [sceneRow,...], verifiedKeys: [key,...],
  *                     complete: boolean, stoppedBefore: string|null }
  *
  * Rules (all fail closed):
  *   - every expected key must resolve to exactly ONE scene row;
- *   - every scene admitted must have approved Cloudinary delivery metadata;
+ *   - every scene admitted must have approved Cloudinary metadata or an
+ *     approved Google Drive file link;
  *   - stored first/final node keys must match the configured natural endpoints;
  *   - every adjacent pair needs exactly ONE forward and ONE reverse link;
  *   - the first failing condition stops the prefix BEFORE that scene;
@@ -196,7 +215,7 @@ function verifyGuidedChain(input) {
   const links = Array.isArray(input && input.links) ? input.links : [];
   const mediaOk = typeof (input && input.mediaOk) === 'function'
     ? input.mediaOk
-    : hasApprovedCloudinaryMetadata;
+    : hasApprovedMediaMetadata;
   const startNodeKey = input && typeof input.startNodeKey === 'string'
     ? input.startNodeKey.trim()
     : '';
@@ -300,6 +319,8 @@ module.exports = {
   isResolvedMediaArrival,
   isApprovedCloudinaryUrl,
   hasApprovedCloudinaryMetadata,
+  hasApprovedGoogleDriveMetadata,
+  hasApprovedMediaMetadata,
   verifyGuidedChain,
   deriveHotspotNav
 };

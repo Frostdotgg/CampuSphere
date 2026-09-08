@@ -2,7 +2,7 @@
 
 Milestone 8, Section 8.9 (updated in Milestone 9, Section 9.7 for the Supabase
 session store). This document covers environment variables, secret handling,
-Supabase migration order, administrator-pasted Cloudinary media metadata, MySQL fallback setup, production session policy
+Supabase migration order, administrator-pasted Cloudinary/Google Drive media metadata, MySQL fallback setup, production session policy
 (Supabase-preferred, MySQL fallback), the security middleware, OAuth redirect
 URIs, Docker packaging, the Vercel demo/UAT target, the QA gates, and
 troubleshooting.
@@ -1532,11 +1532,17 @@ Required for any MySQL data-source (`*_DATA_SOURCE=mysql`) or fallback, and for
 and additionally requires migration `0011_supabase_session_store.sql` (the
 server-only `public.app_sessions` table) to be applied. **Supabase Auth is not used.**
 
-### Cloudinary (media delivery and admin-pasted asset metadata)
+### Media delivery (Cloudinary or Google Drive)
 
-Cloudinary is an optional delivery host for campus images and 360-degree VR panoramas. Administrators paste a validated HTTPS delivery URL and public ID; approved media is served from `https://res.cloudinary.com`, and CampuSphere does not upload, delete, transform, or manage Cloudinary assets. Manual profile-photo upload is deferred and excluded from this candidate; Google-managed profile photos remain read-only.
+Cloudinary and Google Drive are optional delivery providers for building pictures, semester room-schedule images, and 360-degree VR panoramas. Administrators paste one validated provider link in the relevant `image_url` field. A `cloudinary_public_id` is accepted only with a Cloudinary URL; it is metadata, not a lookup or upload credential. Manual profile-photo upload is deferred and excluded from this candidate; Google-managed profile photos remain read-only.
 
-The URL boundary is enforced by `utils/mediaUrl.js`: approved Cloudinary delivery URLs and local `/img/*` / `/img/vr/*` fallbacks are accepted, while other external origins are rejected. `cloudinary_public_id` is administrator/server metadata and never appears in public/runtime responses. No Cloudinary credential is read by the application, and no browser direct-upload, unsigned-upload preset, SDK write, or Cloudinary Admin API flow exists.
+The URL boundary is enforced by `utils/mediaUrl.js`: approved Cloudinary delivery URLs, exact Google Drive single-file share URLs, and local `/img/*` / `/img/vr/*` fallbacks are accepted, while other external origins are rejected. `cloudinary_public_id` is administrator/server metadata and never appears in public/runtime responses. No Cloudinary credential is read by the application, and no browser direct-upload, unsigned-upload preset, SDK write, or Cloudinary Admin API flow exists.
+
+#### Google Drive operating rules
+
+For a Drive-backed image, an administrator pastes an HTTPS `drive.google.com/file/d/<id>/view` or `drive.google.com/open?id=<id>` link into the Building Image URL, VR Scene Image URL, or Schedule image URL field. The file must be shared **Anyone with the link · Viewer** and must be an image; folder links and arbitrary query parameters are not accepted. The existing `image_url` columns are reused, so this feature requires no new table or migration and does not change route, VR, or schedule records.
+
+The browser receives an authenticated same-origin `/api/media/google-drive/:fileId` URL rather than the stored Drive link. The server uses no Drive OAuth token: it fetches the public file, follows only approved HTTPS Google redirects, caps the response at 50 MiB, verifies the image signature against the response MIME type, and returns `private` cache headers with `nosniff`. The endpoint is read-only and requires a logged-in session. CampuSphere never uploads, edits, deletes, or manages Drive files. Drive links are online-only; they are not added to offline-guide IndexedDB or service-worker caches. When changing a record from Cloudinary to Drive, leave the Cloudinary public-ID field blank; the server also clears stale metadata.
 
 ### Runtime data-source switches (consumed today)
 
