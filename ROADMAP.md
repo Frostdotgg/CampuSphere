@@ -253,9 +253,10 @@ panoramas. Drive bytes pass through authenticated same-origin endpoint
 HEIC/HEIF must be converted. Drive media remains online-only. The owner reports
 the feature working and the temporary manual-test content removed.
 
-Evidence classes remain separate. Commits `918f721` and `83f247a` are
-current pushed source, and the red-exit route-color change is the current
-uncommitted release candidate until its final commit SHA is recomputed. The
+Evidence classes remain separate. Commits `918f721` and `83f247a` remain
+current pushed source; the red-exit route-color implementation is now part of
+the current pushed source. Its full commit SHA must be recomputed from live Git
+rather than copied into this self-referential snapshot. The
 migration/postflight, 50-edge correction, route UAT, Drive test, cleanup, and
 manual Vercel promotions are owner-supplied or owner-observed evidence. They
 do not independently establish deployment identity, Ready/Current state, a
