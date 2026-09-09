@@ -6,16 +6,18 @@ outside the repo unless they have been reviewed and explicitly approved.
 
 ## Current route/media evidence boundary (2026-09-09)
 
-Current pushed source ends at `8e6053e` after `918f721`, `83f247a`, `86b92eb`,
-and `3d0a2b6`. The exact pre-push route-color tree passed package `74/74`, BE.6
-`46/46`, public road-route rendering, offline 2D `49/49`, shared button/theme
-`19/19`, OFF.2 `145/145`, Node syntax, and `git diff --check`. Its full gate
-ended `QUALITY-GATES FAILED: 1` solely because the final SELECT-only residue
-check found exactly one unexpired Supabase administrator session; no cleanup
-was performed. Applied-`0027` postflight, route/data UAT, Drive test/cleanup,
-and promotion remain owner-supplied or owner-observed evidence. None of this is
-an independent post-promotion Production smoke or immutable deployed-byte
-proof. See `docs/current-authority.md` for the exact evidence classes.
+Current pushed source ends at `7b4e818` after `918f721`, `83f247a`, `86b92eb`,
+and `3d0a2b6`. The earlier focused route-color checks remain recorded. A fresh
+full `npm test` exited `0` with `QUALITY-GATES OK`, completed both MySQL and
+Supabase session-store legs, and ended with canonical residue `18/18`.
+Deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently verified as
+Ready/Production/Current for full source commit `7b4e818`, and the corrected
+bounded anonymous Production smoke passed `127/127`. Applied-`0027` postflight,
+route/data UAT, Drive test/cleanup, and manual promotions remain owner-supplied
+or owner-observed evidence. Four sampled deployed assets matched Git exactly;
+that does not establish complete immutable deployed-package equality. See
+`docs/current-authority.md` for the exact evidence classes and the discarded
+ad hoc checker scope mismatch.
 
 ## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
@@ -40,7 +42,82 @@ authority commit `d294cfd`. This is owner-observed vendor evidence, not an
 independent deployment-identity or Production-behavior result.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09)
+## Current Release Continuity (2026-09-09 post-deployment verification)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+Current pushed lineage includes role-aware source `5d505e9`, directional
+routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
+handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
+and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
+applied, all 50 directed-edge metrics were corrected in place, and the owner
+confirmed the later redrawn routes as final and visually correct. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
+cache key remains `v41`. Migration `0027` and final routes must not be
+reapplied or changed without separate explicit authorization.
+
+A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
+snapshot: fingerprint SHA-256
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
+and expanded-freeze manifest SHA-256
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The route-color source package remains 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+These are recorded route/source-package evidence, not runtime write locks or
+complete deployed-byte proof.
+
+Independent Vercel inspection established deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
+and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
+`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
+session-store legs completed and final canonical session residue passed
+`18/18`.
+
+The corrected bounded anonymous, read-only, GET-only Production smoke passed
+`127/127`. Public routes and health responded as expected, protected HTML
+redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
+application responses set no cookie and retained their expected security
+headers. Remote bytes exactly matched Git `7b4e818` blobs for
+`public/js/offline-guide-manager.js`, `public/sw.js`,
+`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
+evidence confirms the deployed route colors and `v41`, but it does not prove
+immutable equality for the entire deployed package.
+
+The first ad hoc Production checker exited nonzero because it required
+`X-Frame-Options: DENY` instead of the established CSP
+`frame-ancestors 'none'` control, expected dynamic Helmet headers on
+Vercel-served static files, and searched `public/sw.js` for color literals
+owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
+negatives, not application failures; the corrected `127/127` result is the
+accepted bounded smoke.
+
+Evidence classes remain separate. Source/local QA, owner-observed migration and
+route/media UAT, independently verified Vercel deployment metadata, bounded
+Production behavior, sampled deployed bytes, and external client/milestone
+acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
+technical Production baseline and is independently post-deployment verified;
+the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
+did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete immutable package equality. There is still no
+recorded real CSPC instructor Gmail end-to-end OAuth observation.
+
+Fresh owner and portable teammate prompts in
+`docs/new-session-grounding-prompts.md` must discover the repository root,
+ground read-only, recompute live truth, preserve evidence classes, and stop for
+a focused task. The immediate authority track is review and separate
+commit/push authorization for this synchronization. Afterward, the next product
+move is an owner-selected bug fix or feature. If any future verification or
+smoke fails, stop and ask the owner rather than automatically rolling back,
+patching, promoting, or redeploying.
+
+## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this
@@ -1442,7 +1519,7 @@ do not establish a Production capacity or deployment-byte claim.
 | VR route | Guided scene coverage and hotspots | Open a fully mapped route and a partially mapped destination | Hotspots work; arrival requires the configured natural destination, stored endpoint mappings, approved delivery metadata, and exact bidirectional adjacent-scene links; any incomplete contract ends with an explicit notice | **PASS (clean bounded matrix + named automated probes)** | M12.P1-R8 clean bounded exposure matrix confirmed truthful Free Roam responses in both runtime modes. The catalog-wide Guided-VR probes establish the configured natural destination node, stored start/arrival mappings, approved Cloudinary URL/public-ID metadata, exact forward/reverse adjacent links, and fail-closed incomplete-route behavior; `vrScheduleHotspot` separately covers schedule hotspot behavior, empty states, leak boundaries, and cleanup |
 | PWA/offline | OFF.2-OFF.6 accepted local 2D implementation | Verify install/update lifecycle, explicit integrity-checked download, normal local campus map, Main Gate routes, node/list details, privacy exclusions, logout removal, and fallback behavior | Authenticated HTML remains network-only; no schedule/VR/media/private data enters offline storage; the verified implementation is pushed, while promotion and deployment remain separate owner decisions | **Codex GO.** Focused evidence: OFF.2 `145/145`, 2D offline navigation `35/35`, package boundary `74/74`. Browser acceptance covered every current MySQL and Supabase destination/available route, desktop/mobile, search, keyboard, offline restart/rendering, interrupted-update preservation, neutral protected-route fallback, forbidden-data absence, and supported logout deletion. The unchanged 40-file candidate passed replacement `npm test` at `4998/4998` with `QUALITY-GATES OK`, D6 `266/266`, BE.6 `46/46`, and embedded residue `18/18`. | The service worker caches only the exact reviewed shell/static allowlist; every same-origin API and every cross-origin request is network-only. Offline data is the explicit integrity-checked 2D guide/PMTiles record only. Historical rejected runs and correction detail remain documented in the authority handoffs. |
 | Mobile layout | Phone viewport | Check auth, dashboard, map, admin key screens at mobile width | No broken overflow or blocked primary actions | **PARTIAL — PASS for `/dashboard`, `/map`, and `/admin`; the anonymous `/auth` surface was not separately measured for mobile overflow** | M12.P1-R8 clean bounded exposure matrix, both runtime modes: `/dashboard`, `/map`, and `/admin` showed no horizontal overflow, zero CSP violations, and zero console errors at 1440x900 and 390x844. The matrix did not record `/auth` as a distinct mobile-overflow measurement, so that screen is not claimed |
-| Deployment smoke | Production hostname | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets retain expected contracts; protected surfaces deny anonymous access | **PASS (bounded anonymous read-only GET-only post-deployment verification; owner-observed deployment identity)** | SEC-51 continuity: the bounded checks ran against `https://campusphere-cspc.vercel.app` on deployed technical Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Public pages/assets returned expected responses, sampled bytes matched pushed source, protected HTML redirected to `/auth`, protected JSON returned `401`, and checked responses set no cookie. `/auth` was deliberately avoided; no authenticated login or schedule auditing was exercised. Historical/superseded: before this deployment, anonymous smoke `31/31` ran on `0627bf78228148e3f989275810c333c16a1f3356`; the earlier detailed browser smoke ran on `d422b54393f659125912ec5c84ae7927c2533288` |
+| Deployment smoke | Production hostname | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets retain expected contracts; protected surfaces deny anonymous access | **PASS (127/127 bounded anonymous read-only GET-only post-deployment verification; independently verified deployment identity)** | SEC-51 continuity: the corrected checks ran against `https://campusphere-cspc.vercel.app` on deployed technical Production baseline `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2`, deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs`, Ready/Production/Current. Public pages/assets returned expected responses, four sampled bytes matched Git, protected HTML redirected to `/auth`, protected JSON returned `401`, and checked application responses set no cookie. `/auth` was deliberately avoided; no authenticated UI, OAuth, real Drive file, schedule, or administrator-write path was exercised, and sampled bytes are not complete immutable package proof. Historical/superseded: before this deployment, the earlier baselines were `fea3b2e11c6331eddc1ee091b165427d8e0218d7`, `0627bf78228148e3f989275810c333c16a1f3356`, and `d422b54393f659125912ec5c84ae7927c2533288` |
 
 **Manual checklist status labelling.** Every row above states HOW it was proven,
 and no row is left unrecorded.

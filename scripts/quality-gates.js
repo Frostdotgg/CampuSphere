@@ -6927,6 +6927,10 @@ const CURRENT_ROUTE_COLOR_COMMIT_SHA =
   '3d0a2b6226accaaf95fc58a03338093f721ce501';
 const CURRENT_PUSHED_AUTHORITY_COMMIT_SHA =
   '8e6053e52b5e1feaa643f4f0ec1931d68d9bd550';
+const CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA =
+  '7b4e818e7a84c60cb49b4a14889a98c3c7c528a2';
+const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
+  'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_ROUTE_COLOR_PACKAGE_SHA256 =
   '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
@@ -6974,105 +6978,95 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 9 route-color + owner-continuity authority. This branch
-     is deliberately first so superseded sections cannot satisfy current docs. */
-  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
+  /* Current September 9 independently verified Production authority. */
+  if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
         !t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA.slice(0, 7)) ||
+        !t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA.slice(0, 7)) ||
         !/5d505e9/i.test(t) || !/23c5536/i.test(t) ||
-        !/d294cfd/i.test(t) || !/217f077/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}8e6053e/i.test(t) ||
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}7b4e818/i.test(t) ||
         !/clean index\/worktree/i.test(t) || !/zero stashes/i.test(t) ||
         !/final documentation commit[^.]{0,160}recompute its full SHA/i.test(t)) {
-      problems.push('September 9 canonical authority, Git truth, or source lineage is incomplete');
+      problems.push('verified September 9 authority, Git truth, or source lineage is incomplete');
     }
 
-    if (!/cancelled Distance\/Walktime proposal is superseded/i.test(t) ||
-        !/implemented admin edge workflow/i.test(t) ||
-        !/Haversine length/i.test(t) || !/1\.2 m\/s/i.test(t) ||
-        !/Entry and exit directions remain independently drawn/i.test(t)) {
-      problems.push('implemented route-metric and directional-geometry behavior is incomplete');
-    }
-
-    if (!/entry lines are blue/i.test(t) || !/#2563eb/i.test(t) ||
-        !/exit lines are red/i.test(t) || !/#dc2626/i.test(t) ||
-        !/online and offline route views/i.test(t) ||
-        !/written direction labels remain the primary cue/i.test(t) ||
-        !/service-worker cache key is `?v41`?/i.test(t)) {
-      problems.push('current entry/exit color and service-worker behavior is incomplete');
-    }
-
-    if (!/migration sources are contiguous through `?0027`?/i.test(t) ||
-        !/migrations `?0001`? through `?0027`? applied/i.test(t) ||
-        !/service-role-only atomic directional geometry\/metric RPC/i.test(t) ||
-        !/26 route nodes[^.]{0,100}50 directed edges[^.]{0,100}50 stored geometries/i.test(t) ||
-        !/zero null or invalid geometries[^.]{0,80}zero invalid metrics/i.test(t) ||
-        !/postflight_pass = true/i.test(t) ||
-        !/50 existing edge metrics were corrected in place/i.test(t) ||
-        !/owner confirmed the current route drawings as final and visually correct/i.test(t) ||
-        !/must not reapply an owner-applied migration/i.test(t)) {
-      problems.push('owner-applied 0027, postflight, in-place correction, or no-reapply boundary is incomplete');
+    if (!/Migration `?0027`? remains owner-applied/i.test(t) ||
+        !/50 directed-edge metrics were corrected in place/i.test(t) ||
+        !/owner confirmed[^.]{0,120}routes as final and visually correct/i.test(t) ||
+        !/entry routes remain blue/i.test(t) || !/#2563eb/i.test(t) ||
+        !/exit routes red/i.test(t) || !/#dc2626/i.test(t) ||
+        !/service-worker cache key remains `?v41`?/i.test(t) ||
+        !/must not be reapplied or changed without separate explicit authorization/i.test(t)) {
+      problems.push('route metric, migration, final-route, or color boundary is incomplete');
     }
 
     if (!t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
         !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
-        !/historical recorded QA evidence/i.test(t) ||
-        !/not a current live Supabase fingerprint/i.test(t) ||
-        !/SELECT-only double-read/i.test(t) ||
-        !/refreshed the current Supabase route fingerprint/i.test(t)) {
-      problems.push('historical route-freeze and refreshed-current-fingerprint boundary is incomplete');
-    }
-
-    if (!/Google Drive support is reference-based/i.test(t) ||
-        !/not an upload or vendor-management integration/i.test(t) ||
-        !/\/api\/media\/google-drive\/:fileId/i.test(t) ||
-        !/JPEG, PNG, and WebP/i.test(t) || !/HEIC\/HEIF must be converted/i.test(t) ||
-        !/temporary manual-test content removed/i.test(t)) {
-      problems.push('Google Drive reference/proxy/media-format boundary is incomplete');
-    }
-
-    if (!/current pushed source/i.test(t) ||
-        !/owner-supplied or owner-observed evidence/i.test(t) ||
-        !/owner now reports promoting `?8e6053e`?/i.test(t) ||
-        !/no independent post-promotion check/i.test(t) ||
-        !/Ready\/Current state/i.test(t) ||
-        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
         !/199 files[^.]{0,80}7,344,623 bytes/i.test(t) ||
         !t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) ||
-        !/not current deployed-byte proof/i.test(t) ||
-        !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t)) {
-      problems.push('source, owner-observed, Production, package, or OAuth evidence classes are incomplete');
+        !/not runtime write locks or complete deployed-byte proof/i.test(t)) {
+      problems.push('route snapshot or source-package evidence boundary is incomplete');
     }
 
-    if (!/exact route-color tree passed package boundary `?74\/74`?/i.test(t) ||
-        !/BE\.6 `?46\/46`?/i.test(t) ||
-        !/offline 2D `?49\/49`?/i.test(t) ||
-        !/shared button\/theme `?19\/19`?/i.test(t) ||
-        !/OFF\.2 PWA lifecycle `?145\/145`?/i.test(t) ||
-        !/QUALITY-GATES FAILED: 1/i.test(t) ||
-        !/exactly one unexpired Supabase administrator session/i.test(t) ||
-        !/no session or database row was changed/i.test(t)) {
-      problems.push('current-tree focused checks or one-session residue boundary is incomplete');
+    if (!t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) ||
+        !/branch `?main`?[^.]{0,160}full source commit/i.test(t) ||
+        !/`?Ready`?[^.]{0,80}`?Production`?[^.]{0,80}`?Current`?/i.test(t) ||
+        !/https:\/\/campusphere-cspc\.vercel\.app/i.test(t) ||
+        !/full local `?npm test`? exited `?0`? with `?QUALITY-GATES OK`?/i.test(t) ||
+        !/MySQL and Supabase session-store legs completed/i.test(t) ||
+        !/session residue passed `?18\/18`?/i.test(t)) {
+      problems.push('deployment identity, Ready/Production/Current, or full-gate evidence is incomplete');
     }
 
-    if (!/current owner prompts/i.test(t) ||
-        !/Portable source-only teammate prompts/i.test(t) ||
-        !/discover the repository root/i.test(t) ||
-        !/ground read-only/i.test(t) || !/recompute live truth/i.test(t) ||
-        !/independent verification of the owner-promoted `?8e6053e`? deployment identity/i.test(t) ||
-        !/supported Logout or normal expiry/i.test(t) ||
-        !/authorized residue\/full-gate rerun/i.test(t) ||
-        !/bounded Production smoke/i.test(t) ||
+    if (!/corrected bounded anonymous[^.]{0,100}Production smoke passed `?127\/127`?/i.test(t) ||
+        !/protected HTML redirected to `?\/auth`?/i.test(t) ||
+        !/protected JSON returned fixed `?401`? JSON/i.test(t) ||
+        !/set no cookie/i.test(t) ||
+        !/public\/js\/offline-guide-manager\.js/i.test(t) ||
+        !/public\/sw\.js/i.test(t) ||
+        !/public\/css\/styles\.css/i.test(t) ||
+        !/public\/js\/public-nav\.js/i.test(t) ||
+        !/sampled-byte evidence[^.]{0,160}does not prove immutable equality for the entire deployed package/i.test(t)) {
+      problems.push('bounded Production smoke or sampled-byte boundary is incomplete');
+    }
+
+    if (!/first ad hoc Production checker exited nonzero/i.test(t) ||
+        !/X-Frame-Options: DENY/i.test(t) ||
+        !/frame-ancestors 'none'/i.test(t) ||
+        !/Vercel-served static files/i.test(t) ||
+        !/verifier-scope false negatives, not application failures/i.test(t)) {
+      problems.push('discarded checker scope correction is incomplete');
+    }
+
+    if (!/Evidence classes remain separate/i.test(t) ||
+        !/current deployed technical Production baseline[^;]{0,100}independently post-deployment verified/i.test(t) ||
+        !/fea3b2e11c6331eddc1ee091b165427d8e0218d7[^.]{0,80}historical/i.test(t) ||
+        !/did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules/i.test(t) ||
+        !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
+        !/next product move is an owner-selected bug fix or feature/i.test(t) ||
         !/stop and ask the owner/i.test(t) ||
         !/automatically rolling back, patching, promoting, or redeploying/i.test(t)) {
-      problems.push('owner grounding, teammate prompt, or next-move boundaries are incomplete');
+      problems.push('evidence classes, smoke limitations, baseline, or next-move boundary is incomplete');
+    }
+
+    if (/no independent post-promotion check/i.test(t) ||
+        /QUALITY-GATES FAILED: 1/i.test(t) ||
+        /exactly one unexpired Supabase administrator session/i.test(t) ||
+        /fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently/i.test(t)) {
+      problems.push('obsolete pre-verification authority remains operative');
     }
     return problems;
+  }
+
+  /* The pre-verification 8e6053e block is retained in documents only as
+     explicitly superseded history and may no longer satisfy current truth. */
+  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
+    return ['pre-verification 8e6053e authority is historical, not current'];
   }
 
   /* Historical September 7 handoff. This branch is deliberately first so older
@@ -7951,7 +7945,7 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
-  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
+  if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
       'docs/thesis-teammate-handoff.md', 'CODEX_HANDOFF.md',
@@ -7991,10 +7985,11 @@ function reusablePromptIsCurrent(body) {
       t.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA) &&
       t.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
       t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
+      t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA) &&
+      t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) &&
       t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) &&
       t.includes(CURRENT_FREEZE_MANIFEST_SHA256) &&
       t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) &&
-      t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /migration sources 0001-0027[^.]{0,80}owner-applied/i.test(t) &&
       /old 2026-09-06 Supabase route fingerprint is historical/i.test(t) &&
       /entry lines are blue[^.]{0,100}exit lines are red/i.test(t) &&
@@ -8002,9 +7997,14 @@ function reusablePromptIsCurrent(body) {
       /Google Drive[^.]{0,120}authenticated same-origin proxy/i.test(t) &&
       /JPEG, PNG,\s*and WebP/i.test(t) &&
       /not HEIC\/HEIF/i.test(t) &&
-      /owner reports promoting 8e6053e/i.test(t) &&
-      /QUALITY-GATES FAILED: 1/i.test(t) &&
-      /one unexpired Supabase administrator session/i.test(t) &&
+      /Ready\/Production\/Current/i.test(t) &&
+      /full npm test exited 0 with QUALITY-GATES OK/i.test(t) &&
+      /final canonical session residue passed 18\/18/i.test(t) &&
+      /Production smoke passed 127\/127/i.test(t) &&
+      /sampled assets matched Git exactly/i.test(t) &&
+      /without proving complete immutable deployed-package equality/i.test(t) &&
+      /7b4e818[^.]{0,120}current independently post-deployment-verified technical Production baseline/i.test(t) &&
+      /fea3b2e[^.]{0,80}historical/i.test(t) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
       /evidence classes/i.test(t) && /Stop and wait/i.test(t) &&
@@ -8226,7 +8226,7 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
+  if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
       /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
@@ -8277,7 +8277,7 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
+  if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
       /no delegated task may exceed this boundary/i.test(t) &&
@@ -8862,7 +8862,7 @@ function analyzeDemoReadinessSequence(md, expectedSteps) {
    must bind the production host to the exact accepted technical baseline. */
 const EXPECTED_SEC51_PRODUCTION_HOST = 'campusphere-cspc.vercel.app';
 const EXPECTED_SEC51_DEPLOYED_BASELINE =
-  'fea3b2e11c6331eddc1ee091b165427d8e0218d7';
+  '7b4e818e7a84c60cb49b4a14889a98c3c7c528a2';
 const EXPECTED_CURRENT_AUTHORITY_COMMIT =
   'db05b549807535840968bf28cdefac4154a6d59d';
 const EXPECTED_SEC51_PREVIOUS_BASELINE =
@@ -9033,6 +9033,16 @@ function documentConflictingDeployedShaProblems(text) {
   return problems;
 }
 
+/** Keep live-document deployment checks out of explicitly superseded blocks. */
+function currentDeploymentAuthorityScope(text) {
+  const raw = String(text == null ? '' : text);
+  const marker = raw.indexOf(CURRENT_RELEASE_CONTINUITY_START);
+  if (marker < 0) return raw;
+  const historical = raw.indexOf('## Historical Release Continuity', marker);
+  if (historical < 0) return raw;
+  return raw.slice(0, marker) + raw.slice(marker, historical);
+}
+
 /** PURE: split text into independent claims at cell, line, sentence, and
  *  semicolon boundaries, with whitespace normalized.
  *  @returns {string[]} */
@@ -9201,9 +9211,10 @@ function declaresStalePilotSurfaceDeploymentClaim(text) {
  * @returns {boolean}
  */
 function deploymentDocumentClaimsAreCurrent(text) {
+  const current = currentDeploymentAuthorityScope(text);
   return typeof text === 'string' && text !== '' &&
-    !declaresStalePilotSurfaceDeploymentClaim(text) &&
-    documentConflictingDeployedShaProblems(text).length === 0;
+    !declaresStalePilotSurfaceDeploymentClaim(current) &&
+    documentConflictingDeployedShaProblems(current).length === 0;
 }
 
 /** PURE: per-claim staleness inside one already-topic-matched scope. */
@@ -9232,7 +9243,7 @@ function scopeDeclaresStaleClaim(scope) {
  */
 function supersededBaselineAlwaysMarkedHistorical(text) {
   if (typeof text !== 'string') return false;
-  return supersededBaselineClaimProblems(text).length === 0;
+  return supersededBaselineClaimProblems(currentDeploymentAuthorityScope(text)).length === 0;
 }
 
 /* The preceding SEC-51 evidence commit, pinned independently of every
@@ -9251,16 +9262,25 @@ const CLAIM_NON_RUNTIME_RE =
  */
 function recordsPostDeploymentAuthority(text) {
   if (typeof text !== 'string' || text === '') return false;
+  const current = currentDeploymentAuthorityScope(text);
   /* Claim-scoped: the current SHA must be BOUND to the deployed result by a
      non-historical claim. Naming it only inside a historical label — while the
      old SHA is presented as current — no longer satisfies this. */
-  const bindsCurrent = claimsBindingCurrentDeployedBaseline(text).length > 0;
-  const oldStaysHistorical = supersededBaselineClaimProblems(text).length === 0;
+  const bindsCurrent = claimsBindingCurrentDeployedBaseline(current).length > 0;
+  const oldStaysHistorical = supersededBaselineClaimProblems(current).length === 0;
   /* A valid binding elsewhere must not excuse a contradictory deployment claim
      in the same scope. */
-  const noConflict = documentConflictingDeployedShaProblems(text).length === 0;
+  const noConflict = documentConflictingDeployedShaProblems(current).length === 0;
+  const t = current.replace(/\s+/g, ' ');
+  if (t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID)) {
+    return bindsCurrent && oldStaysHistorical && noConflict &&
+      /Ready[^.]{0,80}Production[^.]{0,80}Current/i.test(t) &&
+      /corrected[^.]{0,120}anonymous[^.]{0,120}read-only[^.]{0,120}GET-only[^.]{0,120}(?:smoke|verification)[^.]{0,80}(?:passed|PASS)[^.]{0,40}127\/127/i.test(t) &&
+      /sampled[^.]{0,120}(?:not complete immutable package proof|not complete immutable deployed-package equality|does not prove immutable equality for the entire deployed package)/i.test(t) &&
+      !/verification remains pending|immutable (?:deployed-)?package equality (?:was|is) (?:proved|verified|established)/i.test(t);
+  }
   return bindsCurrent && oldStaysHistorical && noConflict &&
-    currentGitLifecycleProblems(text).length === 0;
+    currentGitLifecycleProblems(current).length === 0;
 }
 
 /**
@@ -10560,7 +10580,7 @@ function runDocsCurrentGate() {
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-09)');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-09 post-deployment verification)');
     const historical = raw.indexOf('## Historical Release Continuity', start);
     if (start < 0 || historical <= start) return '';
     return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
@@ -10579,13 +10599,15 @@ function runDocsCurrentGate() {
     currentAuthority.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA) &&
     currentAuthority.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
     currentAuthority.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) &&
     /migrations `?0001`?-`?0027`? are owner-applied/i.test(currentAuthority) &&
     /Evidence Classes/i.test(currentAuthority) &&
     /historical evidence/i.test(currentAuthority) &&
     /must not be described as the current live Supabase route fingerprint/i.test(currentAuthority) &&
-    /immediate authority track/i.test(currentAuthority) && /product-quality sequence/i.test(currentAuthority) &&
-    /supported Logout or normal expiry/i.test(currentAuthority) &&
-    /QUALITY-GATES FAILED: 1/i.test(currentAuthority));
+    /immediate authority track/i.test(currentAuthority) && /next product move/i.test(currentAuthority) &&
+    /QUALITY-GATES OK/i.test(currentAuthority) && /127\/127/i.test(currentAuthority) &&
+    /four sampled assets[^.]{0,60}do not prove immutable equality/i.test(currentAuthority));
   ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
     /Node\.js `?>=22`?/i.test(teammateHandoff) && /npm ci/i.test(teammateHandoff) &&
     /Repository Map/i.test(teammateHandoff) && /Technology and Security Model/i.test(teammateHandoff) &&
@@ -10600,11 +10622,11 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 9 continuity is accepted and Git, route, migration, freeze, QA, owner-promotion, scope, and marker drift fail closed',
+  ok('fixture: current September 9 verified continuity is accepted and Git, route, deployment, QA, smoke, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_PUSHED_AUTHORITY_COMMIT_SHA,
+      CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -10618,18 +10640,18 @@ function runDocsCurrentGate() {
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       'zero stashes',
       'one stash')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID,
+      'dpl_wrong')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /migrations `?0001`? through `?0027`? applied/i,
-      'migrations 0001 through 0026 applied')).length > 0 &&
+      /QUALITY-GATES OK/i,
+      'QUALITY-GATES FAILED: 1')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /HEIC\/HEIF must be converted/i,
-      'HEIC is accepted')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /QUALITY-GATES FAILED: 1/i,
-      'QUALITY-GATES OK')).length > 0 &&
+      /127\/127/i,
+      '126/127')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 
@@ -11969,8 +11991,8 @@ function runDocsCurrentGate() {
       '',
       'Remaining sequence: ' + EXPECTED_CURRENT_DEMO_SEQUENCE.join(' -> ') + '.',
     ].join('\n');
-    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
-    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; historical/superseded: before that deployment, the earlier baseline was 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const M_SMOKE_OK = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 |';
+    const M_SMOKE_OK_WITH_HISTORY = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2; historical/superseded: before that deployment, the earlier baseline was fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
     const M_SMOKE_STALE_BASELINE = '| Deployment smoke | Production hostname | exercise production read-only | boots fail-closed | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
     const M_SMOKE_DEFERRED = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **DEFERRED - SEC-51, separate owner deployment decision; not counted as passing** | tracked as SEC-51 |';
     const M_SMOKE_NO_CASE = '| Deployment smoke | Production hostname | deploy and exercise | boots fail-closed | **PASS (externally executed)** | no case reference, no host, no baseline |';
@@ -12332,10 +12354,10 @@ function runDocsCurrentGate() {
 
     /* ---- fixtures: pinned independently of the live documents ---- */
     const SEC51_HDR = '| Case | Title | Steps | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
-    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
-    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; historical/superseded: before that deployment, the earlier baseline was 0627bf78228148e3f989275810c333c16a1f3356 |';
+    const SEC51_OK = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 |';
+    const SEC51_WITH_HISTORY = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2; historical/superseded: before that deployment, the earlier baseline was fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
     const SEC51_ONLY_OLD = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline 0627bf78228148e3f989275810c333c16a1f3356 |';
-    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
+    const SEC51_NO_HOST = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | on deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 |';
     const SEC51_NO_SHA = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app |';
     const SEC51_DEFERRED = '| SEC-51 | Vercel production smoke | exercise production | boots fail-closed | **DEFERRED - separate owner deployment decision** | not executed |';
 
@@ -12366,13 +12388,11 @@ function runDocsCurrentGate() {
       'Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +
       'Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
     const PROSE_OK =
-      'Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. ' +
-      'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. ' +
-      'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
-      'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
-      'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. ' +
-      'The exact 19-file implementation d786bdcb83a196c7263dceae668417d3ced3e95a is committed and pushed. Its manifest SHA-256 92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642 covers 19 files and 2,072,400 bytes; replacement verification passed at 4998/4998 with QUALITY-GATES OK, five-stage QA, bounded Chrome acceptance in both supported backends, and ordered postconditions 24/24 -> 18/18 -> 46/46. The package pin is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. ' +
-      'The clean-commit independent R8 review returned NO-GO solely for stale operative lifecycle authority; final Milestone 12 disposition remains external and no promotion or deployment is authorized. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356.';
+      'Production at https://campusphere-cspc.vercel.app serves deployed technical Production baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. ' +
+      'Vercel deployment dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs is independently verified Ready, Production, and Current. ' +
+      'The corrected bounded anonymous read-only GET-only post-deployment smoke passed 127/127. ' +
+      'Four sampled assets matched Git; this is sampled-byte evidence, not complete immutable deployed-package equality. ' +
+      'Historical/superseded: before this deployment, the earlier technical Production baseline was fea3b2e11c6331eddc1ee091b165427d8e0218d7.';
     const PROSE_HISTORICAL_OLD = 'Historical/superseded: before the current deployment, the earlier SEC-51 production baseline was 0627bf78228148e3f989275810c333c16a1f3356.';
     ok('fixture: the superseded baseline is accepted only with same-claim history and past-bounding, and rejected when unbounded or current',
       supersededBaselineAlwaysMarkedHistorical(PROSE_HISTORICAL_OLD) === true &&
@@ -12384,27 +12404,17 @@ function runDocsCurrentGate() {
       recordsPostDeploymentAuthority(PROSE_OK) === true);
     ok('fixture: post-deployment authority missing or contradicting the SHA, staged state, pilot, trigger, verification, or promotion control is rejected',
       recordsPostDeploymentAuthority(
-        PROSE_OK.replace('fea3b2e11c6331eddc1ee091b165427d8e0218d7', 'baseline-redacted')) === false &&
+        PROSE_OK.replace('7b4e818e7a84c60cb49b4a14889a98c3c7c528a2', 'baseline-redacted')) === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK.replace('automatically triggered Vercel Production', 'was pushed')) === false &&
+        PROSE_OK.replace('dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs', 'deployment-redacted')) === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK.replace('Post-deployment verification passed within bounded anonymous read-only GET-only scope.', 'Verification was discussed.')) === false &&
+        PROSE_OK.replace('Ready, Production, and Current', 'Ready only')) === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK.replace('Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion.', 'Git settings were reviewed.')) === false &&
+        PROSE_OK.replace('smoke passed 127/127', 'smoke was discussed')) === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK + ' The separately authorized push did not automatically trigger Vercel Production.') === false &&
+        PROSE_OK.replace('not complete immutable deployed-package equality', 'complete immutable deployed-package equality was established')) === false &&
       recordsPostDeploymentAuthority(
-        PROSE_OK + ' Post-deployment verification remains pending.') === false &&
-      recordsPostDeploymentAuthority(
-        PROSE_OK + ' Auto-assign Custom Production Domains is enabled.') === false &&
-      recordsPostDeploymentAuthority(
-        PROSE_OK + ' Future main deployments automatically replace the live alias.') === false &&
-      recordsPostDeploymentAuthority(
-        PROSE_OK.replace('db05b549807535840968bf28cdefac4154a6d59d', 'authority-commit-redacted')) === false &&
-      recordsPostDeploymentAuthority(
-        PROSE_OK + ' Human pilot evidence remains open.') === false &&
-      recordsPostDeploymentAuthority(
-        PROSE_OK + ' The tested build identity was independently verified.') === false);
+        PROSE_OK + ' Post-deployment verification remains pending.') === false);
     ok('fixture: each stale undeployed pilot-surface claim is rejected',
       declaresStalePilotSurfaceDeploymentClaim(
         'The SEC-51 pilot-surface correction is not deployed.') === true &&
@@ -12427,10 +12437,10 @@ function runDocsCurrentGate() {
        deployment claim elsewhere in the same row or paragraph. Each case below
        satisfies every substring check (both SHAs and the host are present) and
        was accepted before the analyzers became claim-scoped. ---- */
-    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
-    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7 |';
+    const SWAP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 |';
+    const SWAP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on the current deployed baseline d422b54393f659125912ec5c84ae7927c2533288; historical/superseded: 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 |';
     const MIXED_STALE_PARAGRAPH = 'Historical/superseded: the earlier accepted baseline was d422b54393f659125912ec5c84ae7927c2533288. The SEC-51 pilot-surface correction is not deployed.';
-    const SWAP_PROSE = 'Production currently serves d422b54393f659125912ec5c84ae7927c2533288. Historical/superseded: fea3b2e11c6331eddc1ee091b165427d8e0218d7. The evidence synchronization is not a runtime deployment.';
+    const SWAP_PROSE = 'Production currently serves d422b54393f659125912ec5c84ae7927c2533288. Historical/superseded: 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a semantic baseline swap inside a row is rejected even though both SHAs, the host, and a historical marker are present',
       analyzeDeploymentSmokeRow(M_HDR + SWAP_SMOKE_ROW + M_TAIL).length > 0 &&
@@ -12447,9 +12457,9 @@ function runDocsCurrentGate() {
        DIFFERENT SHA as the deployed baseline while mentioning the expected SHA
        for comparison. Each is asserted separately. ---- */
     const FAKE_SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
-    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with fea3b2e11c6331eddc1ee091b165427d8e0218d7 for reference |';
-    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with fea3b2e11c6331eddc1ee091b165427d8e0218d7 for reference |';
-    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than fea3b2e11c6331eddc1ee091b165427d8e0218d7. The evidence synchronization is not a runtime deployment.';
+    const CMP_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 for reference |';
+    const CMP_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline ' + FAKE_SHA + ', compared with 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 for reference |';
+    const CMP_PROSE = 'Production currently serves ' + FAKE_SHA + ' rather than 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. The evidence synchronization is not a runtime deployment.';
 
     ok('fixture: a stale claim after a semicolon is rejected even though only the FIRST clause names the topic',
       declaresStalePilotSurfaceDeploymentClaim(
@@ -12468,14 +12478,14 @@ function runDocsCurrentGate() {
        PERFECTLY VALID binding claim for the expected SHA, alongside a
        neighbouring claim asserting production serves a different SHA. Requiring
        only "at least one valid binding" accepted all three. ---- */
-    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7; production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production currently serves ' + FAKE_SHA + ' |';
-    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
+    const CONFLICT_SEC51_ROW = '| SEC-51 | Vercel production smoke | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2; production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_SMOKE_ROW = '| Deployment smoke | Production hostname | exercise | boots | **PASS (externally executed)** | SEC-51 against https://campusphere-cspc.vercel.app on deployed baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. Production currently serves ' + FAKE_SHA + ' |';
+    const CONFLICT_PROSE = 'SEC-51 ran against deployed baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. Production currently serves ' + FAKE_SHA + '. This evidence synchronization is not a runtime deployment.';
     /* Scope-skipping attack: the contradictory claim sits in its OWN paragraph
        with no SEC-51 / pilot-surface wording, so a topic-gated document scan
        never audited it. Every scope is audited now. */
     const CONFLICT_SEPARATE_PARAGRAPH =
-      'SEC-51 ran against deployed baseline fea3b2e11c6331eddc1ee091b165427d8e0218d7. This evidence synchronization is not a runtime deployment.' +
+      'SEC-51 ran against deployed baseline 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. This evidence synchronization is not a runtime deployment.' +
       '\n\nProduction currently serves ' + FAKE_SHA + '.';
     /* History framing WITHOUT an explicit past boundary must not license a
        wrong deployed SHA; the same claim, properly past-bounded, still may. */

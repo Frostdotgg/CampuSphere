@@ -52,14 +52,91 @@ Cloudinary and is cleared when Drive/local media is selected. Existing
 `image_url` columns are reused; no media migration is required. Drive and
 schedule media remain online-only and are excluded from offline-guide storage.
 
-The media source is `83f247a`; current pushed authority ends at `8e6053e` after
-route-color implementation `3d0a2b6`. The owner reports `8e6053e` promoted and
-the media feature working. That remains owner-observed evidence, not an
-independent post-promotion Ready/Current check, Production smoke, exact
-deployment-identity, vendor-dashboard, or immutable-byte verification.
+The media source is `83f247a`; current pushed authority ends at `7b4e818` after
+route-color implementation `3d0a2b6`. Exact deployment identity and
+Ready/Production/Current state are independently verified, and the corrected
+bounded anonymous Production smoke passed `127/127`. Application responses use
+CSP `frame-ancestors 'none'` as the framing control; Vercel-served static files
+are not required to carry every dynamic Helmet header. Four sampled static
+assets matched Git exactly, which is not complete immutable-package proof.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09)
+## Current Release Continuity (2026-09-09 post-deployment verification)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+Current pushed lineage includes role-aware source `5d505e9`, directional
+routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
+handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
+and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
+applied, all 50 directed-edge metrics were corrected in place, and the owner
+confirmed the later redrawn routes as final and visually correct. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
+cache key remains `v41`. Migration `0027` and final routes must not be
+reapplied or changed without separate explicit authorization.
+
+A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
+snapshot: fingerprint SHA-256
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
+and expanded-freeze manifest SHA-256
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The route-color source package remains 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+These are recorded route/source-package evidence, not runtime write locks or
+complete deployed-byte proof.
+
+Independent Vercel inspection established deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
+and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
+`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
+session-store legs completed and final canonical session residue passed
+`18/18`.
+
+The corrected bounded anonymous, read-only, GET-only Production smoke passed
+`127/127`. Public routes and health responded as expected, protected HTML
+redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
+application responses set no cookie and retained their expected security
+headers. Remote bytes exactly matched Git `7b4e818` blobs for
+`public/js/offline-guide-manager.js`, `public/sw.js`,
+`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
+evidence confirms the deployed route colors and `v41`, but it does not prove
+immutable equality for the entire deployed package.
+
+The first ad hoc Production checker exited nonzero because it required
+`X-Frame-Options: DENY` instead of the established CSP
+`frame-ancestors 'none'` control, expected dynamic Helmet headers on
+Vercel-served static files, and searched `public/sw.js` for color literals
+owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
+negatives, not application failures; the corrected `127/127` result is the
+accepted bounded smoke.
+
+Evidence classes remain separate. Source/local QA, owner-observed migration and
+route/media UAT, independently verified Vercel deployment metadata, bounded
+Production behavior, sampled deployed bytes, and external client/milestone
+acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
+technical Production baseline and is independently post-deployment verified;
+the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
+did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete immutable package equality. There is still no
+recorded real CSPC instructor Gmail end-to-end OAuth observation.
+
+Fresh owner and portable teammate prompts in
+`docs/new-session-grounding-prompts.md` must discover the repository root,
+ground read-only, recompute live truth, preserve evidence classes, and stop for
+a focused task. The immediate authority track is review and separate
+commit/push authorization for this synchronization. Afterward, the next product
+move is an owner-selected bug fix or feature. If any future verification or
+smoke fails, stop and ask the owner rather than automatically rolling back,
+patching, promoting, or redeploying.
+
+## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this
@@ -1642,7 +1719,7 @@ adherence.
 
 | SEC-49 | Local authenticated exposure matrix | Drive the full authenticated surface in BOTH runtime modes with a separate fresh browser context per role | For administrator, student, instructor, and guest: each context starts with zero carried-over cookies and zero carried-over web storage; sign-in works through the real form; role denial is correct (`/admin` 403 HTML and `/admin/api/*` 403 JSON for non-admins, 200 for the administrator; 302/401 for anonymous); registration trust refuses `admin`/`instructor`/`student-cspc` escalation; the participant dashboard, building roster, destination routing, and Free Roam VR all respond truthfully; guided VR claims arrival only where coverage exists; admin CRUD completes create -> read-back -> edit -> delete with a real list read proving zero residue; logout returns 200 and the post-logout request is denied; and `/dashboard`, `/map`, and `/admin` show no horizontal overflow, zero CSP violations, and zero console errors at 1440x900 and 390x844 | **PASS (clean bounded re-execution)** | M12.P1-R8. **MySQL 34/34, Supabase 64/64**, plus a **14/14 supplement per backend** covering SEC-08/09/10/11 — **126 checks, zero failures**. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once through `terminateAll()` and the real CSRF-protected `POST /logout`. No `429` occurred; no failed logout was retried; `services/sessionRevocation.js` was never imported or called; no session row was deleted directly and no database cleanup was performed. MySQL exercises administrator and student (the only deterministic local fixtures); instructor and guest are exercised in Supabase, where all four regression identities exist. Every fixture was deleted through the same admin API that created it. Final ordered postconditions were `24/24 -> 18/18 -> 46/46`. The earlier first execution of this matrix is historical/superseded and is NOT accepted — see the evidence row below |
 | SEC-50 | Pilot feedback form readiness | Fetch the owner-supplied responder form anonymously and inspect it WITHOUT submitting | The form is reachable, is a responder (not editor) URL, is accepting responses, does not request an email address, and carries the minimum `docs/usability-survey.md` questionnaire | **PASS (external owner evidence: READY)** | M12.P1-R8. Opened anonymously; the page served was the **responder page, not the editor UI**; it was **accepting responses** and requested **no email address**. Matched **10/10 SUS-style statements, 8/8 user-satisfaction questions, and 4/4 open-feedback prompts**. **Nothing was submitted and no response row was created.** The responder URL is deliberately NOT recorded in this repository — only its readiness is |
-| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets retain expected security contracts; protected surfaces deny anonymous access | **PASS (bounded anonymous read-only GET-only post-deployment verification; owner-observed deployment identity)** | The bounded checks ran against `https://campusphere-cspc.vercel.app` on deployed technical Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`. Public pages/assets returned the expected responses, sampled bytes matched pushed source, protected HTML routes redirected to `/auth`, protected JSON routes returned `401`, and checked responses set no cookie. `/auth` was deliberately avoided; no authenticated login or schedule auditing was exercised. Historical/superseded: before this deployment, anonymous smoke `31/31` ran on `0627bf78228148e3f989275810c333c16a1f3356`; the earlier detailed browser smoke ran on `d422b54393f659125912ec5c84ae7927c2533288`; the first accepted baseline was `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` |
+| SEC-51 | Vercel production smoke | Exercise the deployed app read-only on the production hostname | Production serves the synchronized baseline; public pages/assets retain expected security contracts; protected surfaces deny anonymous access | **PASS (127/127 bounded anonymous read-only GET-only post-deployment verification; independently verified deployment identity)** | The corrected checks ran against `https://campusphere-cspc.vercel.app` on deployed technical Production baseline `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2`, deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs`, Ready/Production/Current. Public pages/assets returned expected responses, four sampled bytes matched Git, protected HTML redirected to `/auth`, protected JSON returned `401`, and checked application responses set no cookie. CSP `frame-ancestors 'none'` is the framing control; static files are not required to carry all dynamic Helmet headers. `/auth` was deliberately avoided; no authenticated UI, OAuth, real Drive file, schedule, or administrator-write path was exercised, and sampled bytes are not complete immutable package proof. Historical/superseded: before this deployment, the earlier baselines were `fea3b2e11c6331eddc1ee091b165427d8e0218d7`, `0627bf78228148e3f989275810c333c16a1f3356`, `d422b54393f659125912ec5c84ae7927c2533288`, and `78d9053c8ce5c2cc7a9ede80326950cfd29a3a53` |
 
 **Status labelling.** Every row above states HOW it was proven.
 `PASS (clean bounded re-execution)` means the exact scenario was executed in the

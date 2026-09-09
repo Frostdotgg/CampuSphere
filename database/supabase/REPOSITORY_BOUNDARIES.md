@@ -16,7 +16,9 @@ Current invariants remain valid: controllers own HTTP/EJS shapes, repositories
 remain server-only data boundaries, Supabase Auth is unused, privileged keys
 never enter browser code, and Express login/role/CSRF checks remain the per-user
 authorization layer even where database RLS and revoked grants provide defense
-in depth.
+in depth. Current pushed authority is `7b4e818`; its Production deployment is
+independently verified, while this document remains architecture guidance and
+not live database or complete deployed-byte evidence.
 
 Design document for the data-access boundary that will be introduced
 between CampuSphere's controllers and the database.

@@ -25,14 +25,16 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 ## Current pushed source release (2026-09-09)
 
 Current pushed source is Git commit SHA-1
-`8e6053e52b5e1feaa643f4f0ec1931d68d9bd550` (`8e6053e`). Its lineage includes
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`). Its lineage includes
 route-metric release `918f721`, validated Google Drive media references
 `83f247a`, portable handoff authority `86b92eb`, and route-color implementation
 `3d0a2b6`. Migration `0027` is owner-applied and the owner accepted the
 corrected/final route drawings. Entry lines are blue (`#2563eb`) and exit lines
-are red (`#dc2626`) in online and offline views. The owner reports `8e6053e`
-promoted; this remains owner-observed evidence rather than independent
-Ready/Current, Production-smoke, or deployed-byte proof. See
+are red (`#dc2626`) in online and offline views. Vercel deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently verified as
+Ready/Production/Current, and the bounded anonymous Production smoke passed
+`127/127`. Sampled asset bytes matched source; complete deployed-package byte
+equality was not established. See
 [current authority](docs/current-authority.md) and the
 [thesis teammate handoff](docs/thesis-teammate-handoff.md).
 

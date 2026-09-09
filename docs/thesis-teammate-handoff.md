@@ -179,8 +179,8 @@ evidence. Tool availability never grants permission to access external systems.
 
 The handoff next move is owner review and separate commit/push authorization
 for the synchronized documentation; a later source archive, if wanted, must be
-created from a clean committed SHA with `git archive`. The separate product-
-quality sequence is owner-authorized independent verification of the reported
-promoted `8e6053e` Vercel deployment, supported end/expiry of the one observed
-Supabase administrator session and an authorized gate rerun, a bounded
-Production smoke, and then another owner-selected bug fix or feature.
+created from a clean committed SHA with `git archive`. The repository records
+that `7b4e818` was independently verified as the current technical Production
+baseline and passed the corrected bounded anonymous smoke `127/127`. An archive
+recipient cannot independently refresh that external state without owner
+access. The next product move is an owner-selected bug fix or feature.

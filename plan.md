@@ -9,16 +9,17 @@ place, and the owner accepted the subsequently redrawn entry/exit lines as
 final. Google Drive media references alongside Cloudinary are implemented and
 pushed as `83f247a`; the owner reports the feature working, test content
 removed, and the release promoted. Entry routes blue / exit routes red are
-implemented in `3d0a2b6`; pushed authority ends at `8e6053e`, which the owner
-now reports promoted.
+implemented in `3d0a2b6`; pushed authority ends at `7b4e818`. Its exact Vercel
+deployment is independently verified Ready/Production/Current, the fresh full
+`npm test` passed with `QUALITY-GATES OK`, final residue passed `18/18`, and the
+corrected bounded Production smoke passed `127/127`.
 
 The authority track is this owner-continuity synchronization followed by owner
-review and separate commit/push authorization. The product-quality sequence is
-independent verification of the promoted `8e6053e` deployment; supported
-Logout/expiry of the one observed Supabase administrator session followed by
-an authorized residue/full-gate rerun; a bounded Production smoke; and then an
-owner-selected bug fix or feature. Neither track itself authorizes database or
-session mutation, deployment, or Production testing.
+review and separate commit/push authorization. Deployment verification and the
+quality/smoke sequence are complete for `7b4e818`; after the authority update,
+the product track is an owner-selected bug fix or feature. Neither track
+authorizes migration `0027` reapplication, route changes, database/session
+mutation, deployment, or additional Production testing.
 
 ## Historical Pushed Room Schedule Image Candidate (2026-08-26; superseded)
 
@@ -80,7 +81,82 @@ Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Desti
 Supabase migration sources are contiguous from `0001` through `0026`; the historical route/data freeze remains scoped through `0020`; migrations `0014` through `0019` are owner-applied and verified, owner-applied `0020_room_schedule_documents.sql` is recorded before this verification, and `0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and `0026_admin_instructor_profile_integrity.sql` are owner-applied by the project owner. Codex did not apply or reapply them. Migration 0026 is auth/profile-only. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09)
+## Current Release Continuity (2026-09-09 post-deployment verification)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+Current pushed lineage includes role-aware source `5d505e9`, directional
+routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
+handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
+and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
+applied, all 50 directed-edge metrics were corrected in place, and the owner
+confirmed the later redrawn routes as final and visually correct. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
+cache key remains `v41`. Migration `0027` and final routes must not be
+reapplied or changed without separate explicit authorization.
+
+A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
+snapshot: fingerprint SHA-256
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
+and expanded-freeze manifest SHA-256
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The route-color source package remains 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+These are recorded route/source-package evidence, not runtime write locks or
+complete deployed-byte proof.
+
+Independent Vercel inspection established deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
+and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
+`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
+session-store legs completed and final canonical session residue passed
+`18/18`.
+
+The corrected bounded anonymous, read-only, GET-only Production smoke passed
+`127/127`. Public routes and health responded as expected, protected HTML
+redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
+application responses set no cookie and retained their expected security
+headers. Remote bytes exactly matched Git `7b4e818` blobs for
+`public/js/offline-guide-manager.js`, `public/sw.js`,
+`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
+evidence confirms the deployed route colors and `v41`, but it does not prove
+immutable equality for the entire deployed package.
+
+The first ad hoc Production checker exited nonzero because it required
+`X-Frame-Options: DENY` instead of the established CSP
+`frame-ancestors 'none'` control, expected dynamic Helmet headers on
+Vercel-served static files, and searched `public/sw.js` for color literals
+owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
+negatives, not application failures; the corrected `127/127` result is the
+accepted bounded smoke.
+
+Evidence classes remain separate. Source/local QA, owner-observed migration and
+route/media UAT, independently verified Vercel deployment metadata, bounded
+Production behavior, sampled deployed bytes, and external client/milestone
+acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
+technical Production baseline and is independently post-deployment verified;
+the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
+did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete immutable package equality. There is still no
+recorded real CSPC instructor Gmail end-to-end OAuth observation.
+
+Fresh owner and portable teammate prompts in
+`docs/new-session-grounding-prompts.md` must discover the repository root,
+ground read-only, recompute live truth, preserve evidence classes, and stop for
+a focused task. The immediate authority track is review and separate
+commit/push authorization for this synchronization. Afterward, the next product
+move is an owner-selected bug fix or feature. If any future verification or
+smoke fails, stop and ask the owner rather than automatically rolling back,
+patching, promoting, or redeploying.
+
+## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this

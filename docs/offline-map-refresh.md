@@ -7,11 +7,12 @@ published entry and exit lines still use independently authored geometry.
 Google Drive media release `83f247a` also leaves the offline package boundary
 unchanged; Drive-backed pictures, schedules, and panoramas remain online-only.
 Route-color implementation `3d0a2b6` renders cached entry lines blue and exit
-lines red; current pushed authority ends at `8e6053e`. The service-worker shell
+lines red; current pushed authority ends at `7b4e818`. The service-worker shell
 is `v41`, and the PMTiles bounds, publisher,
 signed manifest, IndexedDB activation, and user-controlled update model are
-unchanged. The older 197-file package pin is historical; no current package or
-independent Production/deployed-byte identity is claimed for `8e6053e`. The
+unchanged. The older 197-file package pin is historical. Deployment identity
+and bounded Production behavior are independently verified for `7b4e818`; four
+sampled assets matched Git, without proving the entire deployed package. The
 current route-color source package is 199 files, 7,344,623 bytes, aggregate
 SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`;
 this is source/package evidence, not deployed-byte proof.

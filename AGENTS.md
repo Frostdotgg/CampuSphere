@@ -10,9 +10,11 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 
 Read `docs/current-authority.md` for the canonical current snapshot and
 `docs/thesis-teammate-handoff.md` for the portable repository guide. Current
-pushed source ends at `8e6053e`, after route-metric release `918f721`, Drive
+pushed source ends at `7b4e818`, after route-metric release `918f721`, Drive
 media release `83f247a`, portable handoff authority `86b92eb`, and entry/exit
-route-color implementation `3d0a2b6`. Migration `0027` is owner-applied; the
+route-color implementation `3d0a2b6`. Deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs`
+is independently verified Ready/Production/Current, and the bounded Production
+smoke passed `127/127`. Migration `0027` is owner-applied; the
 earlier cancelled Distance/Walktime proposal and pending-0027 wording are
 historical. Recompute live Git and report evidence classes rather than treating
 an older handoff as current truth.
@@ -99,7 +101,82 @@ the registered list, but proves source patterns only.
 The same contract suite also runs the road-routing probes for topology, stored geometry, API assembly, public Leaflet/MapLibre rendering, admin geometry editing, map-to-guided-VR flow, Free Roam, VR schedule hotspots, and the BE.6 expanded Guided-VR freeze. BE.6 and OFF.1 are complete and Codex GO. The current candidate freezes MySQL at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid geometries; and the shared Guided-VR catalog at 25 active destinations, 472 configured steps, and 99 unique scene keys. The 13-building `models/data.js` roster is the reproducible seed baseline, not the complete campus; admin edits and later additions remain supported but invalidate freeze evidence until it is deliberately refreshed.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09)
+## Current Release Continuity (2026-09-09 post-deployment verification)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+Current pushed lineage includes role-aware source `5d505e9`, directional
+routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
+handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
+and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
+applied, all 50 directed-edge metrics were corrected in place, and the owner
+confirmed the later redrawn routes as final and visually correct. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
+cache key remains `v41`. Migration `0027` and final routes must not be
+reapplied or changed without separate explicit authorization.
+
+A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
+snapshot: fingerprint SHA-256
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
+and expanded-freeze manifest SHA-256
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The route-color source package remains 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+These are recorded route/source-package evidence, not runtime write locks or
+complete deployed-byte proof.
+
+Independent Vercel inspection established deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
+and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
+`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
+session-store legs completed and final canonical session residue passed
+`18/18`.
+
+The corrected bounded anonymous, read-only, GET-only Production smoke passed
+`127/127`. Public routes and health responded as expected, protected HTML
+redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
+application responses set no cookie and retained their expected security
+headers. Remote bytes exactly matched Git `7b4e818` blobs for
+`public/js/offline-guide-manager.js`, `public/sw.js`,
+`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
+evidence confirms the deployed route colors and `v41`, but it does not prove
+immutable equality for the entire deployed package.
+
+The first ad hoc Production checker exited nonzero because it required
+`X-Frame-Options: DENY` instead of the established CSP
+`frame-ancestors 'none'` control, expected dynamic Helmet headers on
+Vercel-served static files, and searched `public/sw.js` for color literals
+owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
+negatives, not application failures; the corrected `127/127` result is the
+accepted bounded smoke.
+
+Evidence classes remain separate. Source/local QA, owner-observed migration and
+route/media UAT, independently verified Vercel deployment metadata, bounded
+Production behavior, sampled deployed bytes, and external client/milestone
+acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
+technical Production baseline and is independently post-deployment verified;
+the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
+did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete immutable package equality. There is still no
+recorded real CSPC instructor Gmail end-to-end OAuth observation.
+
+Fresh owner and portable teammate prompts in
+`docs/new-session-grounding-prompts.md` must discover the repository root,
+ground read-only, recompute live truth, preserve evidence classes, and stop for
+a focused task. The immediate authority track is review and separate
+commit/push authorization for this synchronization. Afterward, the next product
+move is an owner-selected bug fix or feature. If any future verification or
+smoke fails, stop and ask the owner rather than automatically rolling back,
+patching, promoting, or redeploying.
+
+## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this

@@ -6,17 +6,20 @@ Last updated: 2026-09-09 (Asia/Manila)
 
 The canonical current snapshot is `docs/current-authority.md`, and the portable
 human guide is `docs/thesis-teammate-handoff.md`. Current pushed source ends at
-`8e6053e52b5e1feaa643f4f0ec1931d68d9bd550`, after route-metric release
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2`, after route-metric release
 `918f721`, Google Drive media release `83f247a`, portable handoff authority
 `86b92eb`, and route-color implementation `3d0a2b6`. The owner reports
 migration `0027` applied, existing metrics corrected in place, final route
-drawings accepted, Drive media tested, temporary content removed, and
-`8e6053e` promoted. These are owner-observed database/UAT/vendor facts, not
-independent Production or immutable-byte proof. The current Supabase route
+drawings accepted, Drive media tested, and temporary content removed. These
+remain owner-observed database/UAT facts. Deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently verified as
+Ready/Production/Current for `7b4e818`, and the corrected bounded anonymous
+Production smoke passed `127/127`. The current Supabase route
 fingerprint is `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`;
 the old 2026-09-06 fingerprint and 197-file package pin are historical. The
-last independently post-deployment-verified Production baseline remains
-`fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
+current independently post-deployment-verified technical Production baseline
+is `7b4e818`; `fea3b2e` is historical. Sampled assets matched Git, but complete
+immutable deployed-package equality was not established.
 
 The two current prompts below are for new owner-continuity sessions. They
 discover the repository root and authorize only a read-only grounding report.
@@ -65,7 +68,82 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09)
+## Current Release Continuity (2026-09-09 post-deployment verification)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+Current pushed lineage includes role-aware source `5d505e9`, directional
+routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
+handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
+and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
+applied, all 50 directed-edge metrics were corrected in place, and the owner
+confirmed the later redrawn routes as final and visually correct. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
+cache key remains `v41`. Migration `0027` and final routes must not be
+reapplied or changed without separate explicit authorization.
+
+A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
+snapshot: fingerprint SHA-256
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
+and expanded-freeze manifest SHA-256
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The route-color source package remains 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+These are recorded route/source-package evidence, not runtime write locks or
+complete deployed-byte proof.
+
+Independent Vercel inspection established deployment
+`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
+and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
+`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
+session-store legs completed and final canonical session residue passed
+`18/18`.
+
+The corrected bounded anonymous, read-only, GET-only Production smoke passed
+`127/127`. Public routes and health responded as expected, protected HTML
+redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
+application responses set no cookie and retained their expected security
+headers. Remote bytes exactly matched Git `7b4e818` blobs for
+`public/js/offline-guide-manager.js`, `public/sw.js`,
+`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
+evidence confirms the deployed route colors and `v41`, but it does not prove
+immutable equality for the entire deployed package.
+
+The first ad hoc Production checker exited nonzero because it required
+`X-Frame-Options: DENY` instead of the established CSP
+`frame-ancestors 'none'` control, expected dynamic Helmet headers on
+Vercel-served static files, and searched `public/sw.js` for color literals
+owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
+negatives, not application failures; the corrected `127/127` result is the
+accepted bounded smoke.
+
+Evidence classes remain separate. Source/local QA, owner-observed migration and
+route/media UAT, independently verified Vercel deployment metadata, bounded
+Production behavior, sampled deployed bytes, and external client/milestone
+acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
+technical Production baseline and is independently post-deployment verified;
+the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
+did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete immutable package equality. There is still no
+recorded real CSPC instructor Gmail end-to-end OAuth observation.
+
+Fresh owner and portable teammate prompts in
+`docs/new-session-grounding-prompts.md` must discover the repository root,
+ground read-only, recompute live truth, preserve evidence classes, and stop for
+a focused task. The immediate authority track is review and separate
+commit/push authorization for this synchronization. Afterward, the next product
+move is an owner-selected bug fix or feature. If any future verification or
+smoke fails, stop and ask the owner rather than automatically rolling back,
+patching, promoting, or redeploying.
+
+## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this
@@ -1120,24 +1198,25 @@ Recorded checkpoint to verify rather than blindly repeat:
 - Google Drive media release 83f247a6228d7e115e12803d00e1f88da60ee966;
 - portable handoff authority 86b92eb83ec4f4d3c8bc13ba4b987d7a79fc0853;
 - route-color implementation 3d0a2b6226accaaf95fc58a03338093f721ce501;
-- pushed authority successor 8e6053e52b5e1feaa643f4f0ec1931d68d9bd550;
+- route-color authority 8e6053e52b5e1feaa643f4f0ec1931d68d9bd550;
+- current pushed owner-continuity authority
+  7b4e818e7a84c60cb49b4a14889a98c3c7c528a2;
 - migration sources 0001-0027, reported owner-applied on the selected project;
 - 0027 postflight and route/data/UAT actions are owner-supplied evidence;
-- the old 2026-09-06 Supabase route fingerprint is historical after intentional
-  route/metric edits; the current SELECT-only double-read fingerprint is
+- the current SELECT-only route fingerprint is
   a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1 and
   expanded manifest is 3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6;
 - current source package evidence is 199 files, 7,344,623 bytes, SHA-256
   9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e;
-- the owner reports promoting 8e6053e, but its exact deployment identity,
-  post-promotion Ready/Current state, Production smoke, and immutable bytes
-  have not been independently reverified;
-- recorded current-tree checks are package 74/74, BE.6 46/46, public road-route
-  rendering PASS, offline 2D 49/49, shared theme 19/19, OFF.2 145/145, syntax,
-  and diff checks; the full gate ended QUALITY-GATES FAILED: 1 only because the
-  final SELECT-only check found one unexpired Supabase administrator session;
-- fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently
-  post-deployment-verified Production baseline.
+- Vercel deployment dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs is independently
+  verified Ready/Production/Current for full source commit 7b4e818;
+- fresh full npm test exited 0 with QUALITY-GATES OK, both session-store legs
+  completed, and final canonical session residue passed 18/18;
+- the corrected bounded anonymous read-only GET-only Production smoke passed
+  127/127; four sampled assets matched Git exactly, without proving complete
+  immutable deployed-package equality;
+- 7b4e818 is the current independently post-deployment-verified technical
+  Production baseline; fea3b2e is historical.
 
 Confirm from source that route distance is the rounded Haversine length of the
 drawn directed polyline, walk time uses 1.2 m/s, and entry/exit lines remain
@@ -1157,12 +1236,12 @@ recorded localhost/QA, owner-observed database/vendor/Production,
 independently verified Production, and external disposition); excluded external
 systems/data; limitations; and the documented handoff/product next moves.
 Do not repair a discrepancy. Recommend no action during grounding. State the
-next separately authorized sequence: independently verify 8e6053e deployment
-identity and Ready/Current state; allow the observed admin session to end via
-supported Logout or expiry and rerun residue/full gates if authorized; perform
-a bounded Production smoke; then continue with an owner-selected task. If
-verification or smoke fails, stop and ask; do not auto-rollback, patch,
-promote, or redeploy. Stop and wait for the owner's explicit task.
+next separately authorized sequence: review and, only with separate owner
+authorization, commit/push the authority synchronization; then continue with an
+owner-selected bug fix or feature. Do not reapply migration 0027 or change the
+owner-confirmed final routes without separate authority. If any future
+verification or smoke fails, stop and ask; do not auto-rollback, patch, promote,
+or redeploy. Stop and wait for the owner's explicit task.
 ```
 
 ## Claude Code Grounding Prompt
@@ -1236,24 +1315,25 @@ Recorded checkpoint to verify rather than blindly repeat:
 - Google Drive media release 83f247a6228d7e115e12803d00e1f88da60ee966;
 - portable handoff authority 86b92eb83ec4f4d3c8bc13ba4b987d7a79fc0853;
 - route-color implementation 3d0a2b6226accaaf95fc58a03338093f721ce501;
-- pushed authority successor 8e6053e52b5e1feaa643f4f0ec1931d68d9bd550;
+- route-color authority 8e6053e52b5e1feaa643f4f0ec1931d68d9bd550;
+- current pushed owner-continuity authority
+  7b4e818e7a84c60cb49b4a14889a98c3c7c528a2;
 - migration sources 0001-0027, reported owner-applied on the selected project;
 - 0027 postflight and route/data/UAT actions are owner-supplied evidence;
-- the old 2026-09-06 Supabase route fingerprint is historical after intentional
-  route/metric edits; the current SELECT-only double-read fingerprint is
+- the current SELECT-only route fingerprint is
   a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1 and
   expanded manifest is 3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6;
 - current source package evidence is 199 files, 7,344,623 bytes, SHA-256
   9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e;
-- the owner reports promoting 8e6053e, but its exact deployment identity,
-  post-promotion Ready/Current state, Production smoke, and immutable bytes
-  have not been independently reverified;
-- recorded current-tree checks are package 74/74, BE.6 46/46, public road-route
-  rendering PASS, offline 2D 49/49, shared theme 19/19, OFF.2 145/145, syntax,
-  and diff checks; the full gate ended QUALITY-GATES FAILED: 1 only because the
-  final SELECT-only check found one unexpired Supabase administrator session;
-- fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently
-  post-deployment-verified Production baseline.
+- Vercel deployment dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs is independently
+  verified Ready/Production/Current for full source commit 7b4e818;
+- fresh full npm test exited 0 with QUALITY-GATES OK, both session-store legs
+  completed, and final canonical session residue passed 18/18;
+- the corrected bounded anonymous read-only GET-only Production smoke passed
+  127/127; four sampled assets matched Git exactly, without proving complete
+  immutable deployed-package equality;
+- 7b4e818 is the current independently post-deployment-verified technical
+  Production baseline; fea3b2e is historical.
 
 Confirm from source that route distance is the rounded Haversine length of the
 drawn directed polyline, walk time uses 1.2 m/s, and entry/exit lines remain
@@ -1273,12 +1353,12 @@ recorded localhost/QA, owner-observed database/vendor/Production,
 independently verified Production, and external disposition); excluded external
 systems/data; limitations; and the documented handoff/product next moves.
 Do not repair a discrepancy. Recommend no action during grounding. State the
-next separately authorized sequence: independently verify 8e6053e deployment
-identity and Ready/Current state; allow the observed admin session to end via
-supported Logout or expiry and rerun residue/full gates if authorized; perform
-a bounded Production smoke; then continue with an owner-selected task. If
-verification or smoke fails, stop and ask; do not auto-rollback, patch,
-promote, or redeploy. Stop and wait for the owner's explicit task.
+next separately authorized sequence: review and, only with separate owner
+authorization, commit/push the authority synchronization; then continue with an
+owner-selected bug fix or feature. Do not reapply migration 0027 or change the
+owner-confirmed final routes without separate authority. If any future
+verification or smoke fails, stop and ask; do not auto-rollback, patch, promote,
+or redeploy. Stop and wait for the owner's explicit task.
 ```
 
 ## Portable Teammate Codex Grounding Prompt (source-only)
@@ -1315,13 +1395,17 @@ and proxying; VR/content visibility; and relevant migration/probe source. Do not
 execute probes.
 
 Recompute repository root, branch, full HEAD, upstream/remote equality, status,
-stash count, and a short graph using read-only Git commands. Treat 8e6053e as a
-recorded checkpoint to verify, not as guaranteed archive HEAD. Separate current
-source, recorded QA, owner-observed database/vendor/Production, independently
-verified Production, and external milestone evidence. The archive cannot prove
-current Vercel state, live Supabase/vendor data, private assets, credentials,
-sessions, client acceptance, or immutable deployed bytes. Report contradictions
-without repairing them, cite repository files for technical claims, and wait.
+stash count, and a short graph using read-only Git commands. Treat 7b4e818 as a
+recorded checkpoint to verify, not as guaranteed archive HEAD. Repository
+authority records its exact Vercel deployment as independently
+Ready/Production/Current with a corrected 127/127 anonymous smoke, while an
+archive recipient cannot independently refresh current Vercel state, live
+Supabase/vendor data, private assets, credentials, sessions, or client
+acceptance. Four recorded asset matches are sampled-byte evidence, not complete
+immutable deployed-package equality. Separate source, recorded QA,
+owner-observed database/UAT, independently verified Production, and external
+milestone evidence. Report contradictions without repairing them, cite
+repository files for technical claims, and wait.
 ```
 
 ## Portable Teammate Claude Code Grounding Prompt (source-only)
@@ -1359,13 +1443,17 @@ and proxying; VR/content visibility; and relevant migration/probe source. Do not
 execute probes.
 
 Recompute repository root, branch, full HEAD, upstream/remote equality, status,
-stash count, and a short graph using read-only Git commands. Treat 8e6053e as a
-recorded checkpoint to verify, not as guaranteed archive HEAD. Separate current
-source, recorded QA, owner-observed database/vendor/Production, independently
-verified Production, and external milestone evidence. The archive cannot prove
-current Vercel state, live Supabase/vendor data, private assets, credentials,
-sessions, client acceptance, or immutable deployed bytes. Report contradictions
-without repairing them, cite repository files for technical claims, and wait.
+stash count, and a short graph using read-only Git commands. Treat 7b4e818 as a
+recorded checkpoint to verify, not as guaranteed archive HEAD. Repository
+authority records its exact Vercel deployment as independently
+Ready/Production/Current with a corrected 127/127 anonymous smoke, while an
+archive recipient cannot independently refresh current Vercel state, live
+Supabase/vendor data, private assets, credentials, sessions, or client
+acceptance. Four recorded asset matches are sampled-byte evidence, not complete
+immutable deployed-package equality. Separate source, recorded QA,
+owner-observed database/UAT, independently verified Production, and external
+milestone evidence. Report contradictions without repairing them, cite
+repository files for technical claims, and wait.
 ```
 
 ## Historical Codex Grounding Prompt (2026-09-07; superseded; do not use)

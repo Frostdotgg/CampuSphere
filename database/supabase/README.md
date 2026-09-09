@@ -45,13 +45,15 @@ changes away from instructor do not delete a profile. Codex did not apply or
 reapply 0026. It does not change campus, route, VR, event, or selected-freeze
 data.
 
-The current pushed source is `8e6053e`, after route-metric release `918f721`,
+The current pushed source is `7b4e818`, after route-metric release `918f721`,
 Drive media release `83f247a`, and route-color implementation `3d0a2b6`.
 Owner-supplied postflight evidence for applied migration `0027` reported the
 expected service-role-only function/security contract, 26 route nodes, 50
 directed edges, 50 stored geometries, and zero null/invalid geometries or
-metrics. The owner's database and Vercel reports are not independent database
-snapshot or deployed-byte evidence. See `docs/current-authority.md`.
+metrics. Deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently
+verified Ready/Production/Current for `7b4e818`; the database postflight remains
+owner-supplied and sampled Production bytes are not full package proof. See
+`docs/current-authority.md`.
 
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their
