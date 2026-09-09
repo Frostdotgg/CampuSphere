@@ -3,6 +3,16 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
+## Current route/media security status (2026-09-09)
+
+Canonical authority is `docs/current-authority.md`. Owner-applied migration
+`0027` keeps directional geometry and positive geometry-derived metrics in one
+service-role-only atomic write with endpoint/node locking. Google Drive media
+uses strict single-file URL parsing plus an authenticated same-origin proxy;
+approved redirects, 50 MiB limit, image signature/MIME agreement, private
+caching, and `nosniff` are enforced. Neither feature grants a browser access to
+the Supabase service role or a vendor-management credential.
+
 ## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
 Signed-in guests may browse every building, 2D route, and 360 scene. Room
@@ -10,8 +20,8 @@ schedules are limited to `student-cspc`, `instructor`, and `admin`; scene/exit
 hotspots remain guest-visible, information hotspots require explicit admin
 approval, and schedule hotspots are always hidden. Supabase migrations
 `0024_vr_hotspot_guest_visibility.sql` and `0025_event_audience.sql` are
-owner-applied; Codex did not apply or reapply them. The selected freeze is
-unchanged.
+owner-applied; Codex did not apply or reapply them. The older selected freeze
+is historical after later intentional route/metric edits.
 
 ## Admin-managed instructor profile integrity (pushed source release, 2026-09-07)
 
@@ -27,7 +37,7 @@ authority commit `d294cfd`. This is owner-observed vendor evidence only;
 exact deployment identity, Production behavior, and immutable bytes remain
 independently unverified.
 
-## Dual media-provider policy (current source candidate, 2026-09-08)
+## Dual media-provider policy (current pushed source, 2026-09-09)
 
 Building pictures, 360-degree VR scenes, and semester room-schedule documents
 accept one approved `image_url`: either a Cloudinary delivery URL or an exact
@@ -42,11 +52,90 @@ Cloudinary and is cleared when Drive/local media is selected. Existing
 `image_url` columns are reused; no media migration is required. Drive and
 schedule media remain online-only and are excluded from offline-guide storage.
 
-This section describes the current source candidate only. It is not a
-Production deployment, vendor-dashboard, or immutable-byte verification claim.
+The source is pushed as `83f247a`, and the owner reports it promoted and
+working. That remains owner-observed evidence, not an independent Production
+smoke, deployment-identity, vendor-dashboard, or immutable-byte verification.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-07)
+## Current Release Continuity (2026-09-09)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+documentation-only teammate-handoff synchronization, Git branch `main` had
+local `HEAD`, `origin/main`, and remote `main` equal at Git commit SHA-1
+`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+The current source lineage includes role-aware release `5d505e9`,
+directional online/offline routing `23c5536`, authority successors `d294cfd`
+and `217f077`, automatic route-geometry metrics release `918f721`, and
+Google Drive media-reference release `83f247a`. The earlier cancelled
+Distance/Walktime proposal is superseded: the implemented admin edge workflow
+now sums the Haversine length of the drawn directed polyline, rounds to a
+positive whole metre, and derives positive whole-second walk time at 1.2 m/s.
+Entry and exit directions remain independently drawn.
+The route-color release renders entry lines blue (`#2563eb`) and exit lines red
+(`#dc2626`) in both online and offline route views; written direction labels
+remain the primary cue.
+
+Supabase migration sources are contiguous through `0027`; owner-applied
+migrations `0001` through `0027` applied to the selected Supabase project are
+recorded here. Migration `0027_route_edge_geometry_metrics.sql` provides the
+service-role-only atomic directional geometry/metric RPC. Owner-supplied
+postflight evidence reported the expected function/security contract, 26 route
+nodes, 50 directed edges, 50 stored geometries, zero null or invalid geometries,
+zero invalid metrics, and `postflight_pass = true`. The 50 existing edge
+metrics were corrected in place; later owner redraws were rechecked and the
+owner confirmed the current route drawings as final and visually correct.
+Codex must not reapply an owner-applied migration without fresh explicit
+database authorization.
+
+Those intentional live route/metric changes supersede the old Supabase
+building/route fingerprint as a current-data claim. The 2026-09-06 fingerprint SHA-256
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64` remains
+historical recorded QA evidence, not a current live Supabase fingerprint or a
+runtime write lock. A separately authorized SELECT-only double-read on
+2026-09-09 found stable final data and refreshed the current Supabase route
+fingerprint SHA-256 to
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the
+expanded-freeze manifest SHA-256 is
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The refresh changed no route or database row.
+
+Google Drive support is reference-based, not an upload or vendor-management
+integration. Administrators may store an exact approved Drive single-file link
+or a Cloudinary delivery URL for building pictures, schedule images, and 360
+panoramas. Drive bytes pass through authenticated same-origin endpoint
+`/api/media/google-drive/:fileId`; only JPEG, PNG, and WebP are served, so
+HEIC/HEIF must be converted. Drive media remains online-only. The owner reports
+the feature working and the temporary manual-test content removed.
+
+Evidence classes remain separate. Commits `918f721` and `83f247a` are
+current pushed source, and the red-exit route-color change is the current
+uncommitted release candidate until its final commit SHA is recomputed. The
+migration/postflight, 50-edge correction, route UAT, Drive test, cleanup, and
+manual Vercel promotions are owner-supplied or owner-observed evidence. They
+do not independently establish deployment identity, Ready/Current state, a
+Production smoke, or immutable deployed-byte equality. Git commit SHA-1
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified technical Production baseline. The current source
+package is 199 files, 7,344,623 bytes, aggregate SHA-256
+`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; no
+current Vercel package identity is claimed for the new commit. The earlier 197-file
+package pin belongs to older bytes. There is still no recorded real CSPC
+instructor Gmail end-to-end OAuth observation.
+
+Fresh Codex and Claude Code sessions must use the portable current prompts in
+`docs/new-session-grounding-prompts.md`, discover the repository root rather
+than assume an owner-specific path, ground read-only, recompute live truth,
+report discrepancies and evidence classes, then wait. The handoff next move is
+review/authorization of this documentation synchronization followed by a
+tracked-source archive. The separate product-quality next move is independent
+verification of the owner-promoted `83f247a` deployment and a bounded
+Production smoke, or another owner-selected task.
+
+## Historical Release Continuity (2026-09-07; superseded)
 
 At the start of this owner-authorized authority synchronization, Git branch
 `main` had local `HEAD`, `origin/main`, and remote `main` equal at Git
@@ -1518,7 +1607,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`; this is source/package evidence, not immutable deployed-byte proof, and does not authorize deployment. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Historical pushed `c4de5ab` offline-camera package:** 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. **Historical `38905b7` product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is replacement verification evidence, not deployment authorization |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; this is source/package evidence, not immutable deployed-byte proof, and does not authorize deployment. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Historical pushed `c4de5ab` offline-camera package:** 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. **Historical `38905b7` product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is replacement verification evidence, not deployment authorization |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 

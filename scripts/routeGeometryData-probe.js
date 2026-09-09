@@ -415,7 +415,7 @@ function normalizePoints(points) {
 
     const m27Path = path.join(root, 'database', 'supabase', '0027_route_edge_geometry_metrics.sql');
     const m27Exists = fs.existsSync(m27Path);
-    check('0027 directional geometry + metrics migration exists (source-only; owner apply required)', m27Exists);
+    check('0027 owner-applied directional geometry + metrics migration source exists', m27Exists);
     if (m27Exists) {
       const sql = fs.readFileSync(m27Path, 'utf8');
       check('0027 declares the atomic one-way geometry metrics RPC',

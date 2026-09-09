@@ -1,23 +1,25 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-09-07 (Asia/Manila)
+Last updated: 2026-09-09 (Asia/Manila)
 
 ## Current Handoff Override
 
-The runtime/source release is
-`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`) on `main`.
-At the start of the current authority synchronization, local `HEAD`,
-`origin/main`, and remote `main` were equal at pushed authority successor
-`d294cfd40a4b4a3b49e5768df1ca594a662184a0` (`d294cfd`), with a clean
-tree and zero stashes. The final authority commit containing this file must be
-recomputed by the fresh session. The reviewed source package is 197 files,
-7,301,960 bytes, aggregate SHA-256
-`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-The owner reports manually promoting a Vercel deployment after `d294cfd`;
-exact deployment identity, Ready/Current state, Production behavior, and
-immutable bytes remain independently unverified. The two current copy-paste
-prompts below authorize grounding only. A fresh session must recompute Git
-truth, report the requested context, and wait for the owner.
+The canonical current snapshot is `docs/current-authority.md`, and the portable
+human guide is `docs/thesis-teammate-handoff.md`. Current pushed source ends at
+Google Drive media release
+`83f247a6228d7e115e12803d00e1f88da60ee966`, after route-metric release
+`918f721e6daba92357f83db22e4b1741195f8526`. The owner reports migration
+`0027` applied, existing metrics corrected in place, final route drawings
+accepted, Drive media tested, temporary content removed, and both releases
+manually promoted. These are owner-observed database/UAT/vendor facts, not
+independent Production or immutable-byte proof. The old route fingerprint and
+197-file package pin are historical. The last independently post-deployment-
+verified Production baseline remains `fea3b2e11c6331eddc1ee091b165427d8e0218d7`.
+
+The two current prompts below are portable: they discover the teammate's
+repository root and authorize only a read-only grounding report. Every prompt
+labelled historical/superseded is retained for audit history and must not be
+used as current authority.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -60,7 +62,85 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-07)
+## Current Release Continuity (2026-09-09)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+documentation-only teammate-handoff synchronization, Git branch `main` had
+local `HEAD`, `origin/main`, and remote `main` equal at Git commit SHA-1
+`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+The current source lineage includes role-aware release `5d505e9`,
+directional online/offline routing `23c5536`, authority successors `d294cfd`
+and `217f077`, automatic route-geometry metrics release `918f721`, and
+Google Drive media-reference release `83f247a`. The earlier cancelled
+Distance/Walktime proposal is superseded: the implemented admin edge workflow
+now sums the Haversine length of the drawn directed polyline, rounds to a
+positive whole metre, and derives positive whole-second walk time at 1.2 m/s.
+Entry and exit directions remain independently drawn.
+The route-color release renders entry lines blue (`#2563eb`) and exit lines red
+(`#dc2626`) in both online and offline route views; written direction labels
+remain the primary cue.
+
+Supabase migration sources are contiguous through `0027`; owner-applied
+migrations `0001` through `0027` applied to the selected Supabase project are
+recorded here. Migration `0027_route_edge_geometry_metrics.sql` provides the
+service-role-only atomic directional geometry/metric RPC. Owner-supplied
+postflight evidence reported the expected function/security contract, 26 route
+nodes, 50 directed edges, 50 stored geometries, zero null or invalid geometries,
+zero invalid metrics, and `postflight_pass = true`. The 50 existing edge
+metrics were corrected in place; later owner redraws were rechecked and the
+owner confirmed the current route drawings as final and visually correct.
+Codex must not reapply an owner-applied migration without fresh explicit
+database authorization.
+
+Those intentional live route/metric changes supersede the old Supabase
+building/route fingerprint as a current-data claim. The 2026-09-06 fingerprint SHA-256
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64` remains
+historical recorded QA evidence, not a current live Supabase fingerprint or a
+runtime write lock. A separately authorized SELECT-only double-read on
+2026-09-09 found stable final data and refreshed the current Supabase route
+fingerprint SHA-256 to
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the
+expanded-freeze manifest SHA-256 is
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The refresh changed no route or database row.
+
+Google Drive support is reference-based, not an upload or vendor-management
+integration. Administrators may store an exact approved Drive single-file link
+or a Cloudinary delivery URL for building pictures, schedule images, and 360
+panoramas. Drive bytes pass through authenticated same-origin endpoint
+`/api/media/google-drive/:fileId`; only JPEG, PNG, and WebP are served, so
+HEIC/HEIF must be converted. Drive media remains online-only. The owner reports
+the feature working and the temporary manual-test content removed.
+
+Evidence classes remain separate. Commits `918f721` and `83f247a` are
+current pushed source, and the red-exit route-color change is the current
+uncommitted release candidate until its final commit SHA is recomputed. The
+migration/postflight, 50-edge correction, route UAT, Drive test, cleanup, and
+manual Vercel promotions are owner-supplied or owner-observed evidence. They
+do not independently establish deployment identity, Ready/Current state, a
+Production smoke, or immutable deployed-byte equality. Git commit SHA-1
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified technical Production baseline. The current source
+package is 199 files, 7,344,623 bytes, aggregate SHA-256
+`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; no
+current Vercel package identity is claimed for the new commit. The earlier 197-file
+package pin belongs to older bytes. There is still no recorded real CSPC
+instructor Gmail end-to-end OAuth observation.
+
+Fresh Codex and Claude Code sessions must use the portable current prompts in
+`docs/new-session-grounding-prompts.md`, discover the repository root rather
+than assume an owner-specific path, ground read-only, recompute live truth,
+report discrepancies and evidence classes, then wait. The handoff next move is
+review/authorization of this documentation synchronization followed by a
+tracked-source archive. The separate product-quality next move is independent
+verification of the owner-promoted `83f247a` deployment and a bounded
+Production smoke, or another owner-selected task.
+
+## Historical Release Continuity (2026-09-07; superseded)
 
 At the start of this owner-authorized authority synchronization, Git branch
 `main` had local `HEAD`, `origin/main`, and remote `main` equal at Git
@@ -953,6 +1033,197 @@ live repository/vendor evidence win when they conflict.
 <!-- M12 HISTORICAL RELEASE CONTINUITY END -->
 ## Codex Grounding Prompt
 
+Copy only the block below into a Codex session opened at the root of the
+teammate's CampuSphere checkout.
+
+```text
+This is the initial grounding turn for a CampuSphere source-code handoff.
+
+You are CampuSphere's senior developer/reviewer and a thesis-codebase guide.
+The repository may be stored at any path and on any supported operating
+system. Discover the repository root from the current workspace; never assume
+the original owner's Windows path.
+
+GROUNDING RESTRICTION: this first turn is read-only and context-only. Do not
+edit files, review a pending diff, run tests/QA/probes, start servers or
+containers, open/control a browser, access MySQL/Supabase/sessions, inspect
+vendor dashboards, change Git state, deploy/promote, run a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, compare, or package .env or
+secret values. Tool availability does not expand authorization. Report and
+stop after grounding; wait for the teammate's specific question.
+
+The teammate receives source and documentation only. They are not granted
+access to Supabase, Vercel, Cloudinary, Google Drive, Google OAuth, Upstash,
+GitHub Actions secrets, Production data, or live sessions.
+
+First inventory the tools, MCP servers/connectors, browser surfaces, and skills
+actually available. If a campusphere-readonly-grounding skill is already
+installed, read and follow it; do not install or invent one. The code-reviewer
+skill is reserved for a later explicitly authorized review and must not be used
+for this grounding turn.
+
+Read current authority in this order:
+1. AGENTS.md and CLAUDE.md.
+2. docs/current-authority.md and docs/thesis-teammate-handoff.md.
+3. CODEX_HANDOFF.md, CLAUDE_HANDOFF.md, plan.md, ROADMAP.md, and README.md.
+4. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, docs/offline-map-refresh.md, and this prompt file.
+5. database/supabase/README.md and
+   database/supabase/REPOSITORY_BOUNDARIES.md.
+
+Then inspect only the minimum source required to verify current authority:
+- package.json, package-lock.json, .env.example (names/placeholders only),
+  .gitignore, .vercelignore, .dockerignore, Dockerfile, compose files,
+  vercel.json, server.js, and config/selectedDemoFreeze.js;
+- authentication/session/security: middleware/roleAuth.js,
+  middleware/securityHeaders.js, middleware/rateLimit.js,
+  config/sessionConfig.js, config/supabase.js, and the session stores;
+- route metrics/offline: utils/routeGeometry.js,
+  controllers/adminRouteController.js, repositories/routeRepository.js,
+  services/offlineGuideService.js, public/js/admin/admin-map-graph.js,
+  public/js/offline-guide-manager.js, public/sw.js,
+  views/admin/campus-map.ejs, and migration 0027;
+- media/VR: utils/mediaUrl.js, controllers/mediaController.js,
+  controllers/adminVrController.js, controllers/vrController.js,
+  public/js/media-url.js, public/js/admin/admin-vr.js, and the relevant views;
+- read focused probe source only when needed to validate a documented contract;
+  do not execute it during grounding.
+
+Recompute live Git truth with read-only commands: repository root, branch, full
+HEAD, origin/main, remote main via git ls-remote, tracked/staged/untracked
+status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
+switch, restore, commit, or push.
+
+Recorded checkpoint to verify rather than blindly repeat:
+- route-metric release 918f721e6daba92357f83db22e4b1741195f8526;
+- Google Drive media release 83f247a6228d7e115e12803d00e1f88da60ee966;
+- migration sources 0001-0027, reported owner-applied on the selected project;
+- 0027 postflight and route/data/UAT actions are owner-supplied evidence;
+- the old 2026-09-06 Supabase route fingerprint is historical after intentional
+  route/metric edits and no replacement live fingerprint is claimed;
+- the owner reports promoting and accepting 918f721 and 83f247a, but deployment
+  identity, Ready/Current state, Production smoke, and immutable bytes have not
+  been independently reverified;
+- fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently
+  post-deployment-verified Production baseline.
+
+Confirm from source that route distance is the rounded Haversine length of the
+drawn directed polyline, walk time uses 1.2 m/s, and entry/exit lines remain
+independent. Confirm that Google Drive is a validated reference plus an
+authenticated same-origin proxy, not upload/vendor management; only JPEG, PNG,
+and WebP are served, not HEIC/HEIF. Confirm that Production data/session targets
+Supabase, MySQL is local/fallback/rehearsal, Supabase Auth is unused, Express
+enforces per-user access, and service-role use does not make RLS the per-user
+authorization layer.
+
+Report: Git truth and discrepancies; architecture and repository map; current
+features and decisions; migrations and no-reapply boundary; security model;
+route/media/offline behavior; evidence classes (historical, current source,
+recorded localhost/QA, owner-observed database/vendor/Production,
+independently verified Production, and external disposition); excluded external
+systems/data; limitations; and the documented handoff/product next moves.
+Do not repair a discrepancy. Stop and wait for a focused thesis, architecture,
+implementation, database, security, UI/UX, testing, or deployment question.
+```
+
+## Claude Code Grounding Prompt
+
+Copy only the block below into a Claude Code session opened at the root of the
+teammate's CampuSphere checkout.
+
+```text
+This is the initial grounding turn for a CampuSphere source-code handoff.
+
+You are CampuSphere's senior developer/reviewer and a thesis-codebase guide.
+The repository may be stored at any path and on any supported operating
+system. Discover the repository root from the current workspace; never assume
+the original owner's Windows path.
+
+GROUNDING RESTRICTION: this first turn is read-only and context-only. Do not
+edit files, review a pending diff, run tests/QA/probes, start servers or
+containers, open/control a browser, access MySQL/Supabase/sessions, inspect
+vendor dashboards, change Git state, deploy/promote, run a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, compare, or package .env or
+secret values. Tool or subagent availability does not expand authorization;
+no delegated task may exceed this boundary. Report and stop after grounding;
+wait for the teammate's specific question.
+
+The teammate receives source and documentation only. They are not granted
+access to Supabase, Vercel, Cloudinary, Google Drive, Google OAuth, Upstash,
+GitHub Actions secrets, Production data, or live sessions.
+
+First inventory the tools, MCP servers/connectors, browser surfaces, subagent
+capabilities, and skills actually available. If a
+campusphere-readonly-grounding skill is already installed, read and follow it;
+do not install or invent one. A code-reviewer skill is reserved for a later
+explicitly authorized review and must not be used during grounding.
+
+Read current authority in this order:
+1. CLAUDE.md and AGENTS.md.
+2. docs/current-authority.md and docs/thesis-teammate-handoff.md.
+3. CLAUDE_HANDOFF.md, CODEX_HANDOFF.md, plan.md, ROADMAP.md, and README.md.
+4. docs/deployment.md, docs/security-checklist.md, docs/test-evidence.md,
+   docs/demo-script.md, docs/offline-map-refresh.md, and this prompt file.
+5. database/supabase/README.md and
+   database/supabase/REPOSITORY_BOUNDARIES.md.
+
+Then inspect only the minimum source required to verify current authority:
+- package.json, package-lock.json, .env.example (names/placeholders only),
+  .gitignore, .vercelignore, .dockerignore, Dockerfile, compose files,
+  vercel.json, server.js, and config/selectedDemoFreeze.js;
+- authentication/session/security: middleware/roleAuth.js,
+  middleware/securityHeaders.js, middleware/rateLimit.js,
+  config/sessionConfig.js, config/supabase.js, and the session stores;
+- route metrics/offline: utils/routeGeometry.js,
+  controllers/adminRouteController.js, repositories/routeRepository.js,
+  services/offlineGuideService.js, public/js/admin/admin-map-graph.js,
+  public/js/offline-guide-manager.js, public/sw.js,
+  views/admin/campus-map.ejs, and migration 0027;
+- media/VR: utils/mediaUrl.js, controllers/mediaController.js,
+  controllers/adminVrController.js, controllers/vrController.js,
+  public/js/media-url.js, public/js/admin/admin-vr.js, and the relevant views;
+- read focused probe source only when needed to validate a documented contract;
+  do not execute it during grounding.
+
+Recompute live Git truth with read-only commands: repository root, branch, full
+HEAD, origin/main, remote main via git ls-remote, tracked/staged/untracked
+status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
+switch, restore, commit, or push.
+
+Recorded checkpoint to verify rather than blindly repeat:
+- route-metric release 918f721e6daba92357f83db22e4b1741195f8526;
+- Google Drive media release 83f247a6228d7e115e12803d00e1f88da60ee966;
+- migration sources 0001-0027, reported owner-applied on the selected project;
+- 0027 postflight and route/data/UAT actions are owner-supplied evidence;
+- the old 2026-09-06 Supabase route fingerprint is historical after intentional
+  route/metric edits and no replacement live fingerprint is claimed;
+- the owner reports promoting and accepting 918f721 and 83f247a, but deployment
+  identity, Ready/Current state, Production smoke, and immutable bytes have not
+  been independently reverified;
+- fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently
+  post-deployment-verified Production baseline.
+
+Confirm from source that route distance is the rounded Haversine length of the
+drawn directed polyline, walk time uses 1.2 m/s, and entry/exit lines remain
+independent. Confirm that Google Drive is a validated reference plus an
+authenticated same-origin proxy, not upload/vendor management; only JPEG, PNG,
+and WebP are served, not HEIC/HEIF. Confirm that Production data/session targets
+Supabase, MySQL is local/fallback/rehearsal, Supabase Auth is unused, Express
+enforces per-user access, and service-role use does not make RLS the per-user
+authorization layer.
+
+Report: Git truth and discrepancies; architecture and repository map; current
+features and decisions; migrations and no-reapply boundary; security model;
+route/media/offline behavior; evidence classes (historical, current source,
+recorded localhost/QA, owner-observed database/vendor/Production,
+independently verified Production, and external disposition); excluded external
+systems/data; limitations; and the documented handoff/product next moves.
+Do not repair a discrepancy. Stop and wait for a focused thesis, architecture,
+implementation, database, security, UI/UX, testing, or deployment question.
+```
+
+## Historical Codex Grounding Prompt (2026-09-07; superseded; do not use)
+
 Copy only the block below into a fresh Codex session.
 
 ```text
@@ -1091,7 +1362,7 @@ Ready/Current state followed by a bounded Production smoke, or another
 owner-selected task. Then stop and wait.
 ```
 
-## Claude Code Grounding Prompt
+## Historical Claude Code Grounding Prompt (2026-09-07; superseded; do not use)
 
 Copy only the block below into a fresh Claude Code session.
 
@@ -1437,7 +1708,7 @@ evidence classes, inconsistencies, and the next authorization boundary. Then
 stop and wait for the owner. Do not plan or start another task.
 ```
 
-## Historical Codex Grounding Prompt
+## Historical Codex Grounding Prompt (superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1
@@ -1787,7 +2058,7 @@ not infer that implementation, Git mutation, vendor work, or deployment is
 authorized.
 ```
 
-## Historical Claude Code Grounding Prompt
+## Historical Claude Code Grounding Prompt (superseded; do not use)
 
 ```text
 Repository: C:\Users\FROST.GG\Desktop\CampuSphere v1

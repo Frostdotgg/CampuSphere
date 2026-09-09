@@ -12,22 +12,30 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
   everyone, guest, CSPC student, instructor, or admin.
 - Domain-to-role mapping at OAuth registration (`@my.cspc.edu.ph` → student, `@cspc.edu.ph` → instructor, `@gmail.com` → guest).
 - Admin namespace at `/admin` with JSON CRUD endpoints under `/admin/api/*` for users, news, events, and buildings.
+- Administrator-drawn directional edge geometry automatically supplies rounded
+  Haversine distance and 1.2 m/s walk-time metrics without deleting/recreating
+  existing routes.
+- Building, room-schedule, and 360-scene media may reference approved
+  Cloudinary or Google Drive files; Drive images use an authenticated
+  same-origin proxy.
 - Dual-backend repository persistence: Supabase/PostgreSQL in Production and a
   shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
-## Current pushed source release (2026-09-07)
+## Current pushed source release (2026-09-09)
 
-The role-aware guest visibility, event-audience, and admin instructor-profile
-integrity changes are pushed in runtime/source Git commit SHA-1
-`5d505e97e990ad82df6c858e28d48542deb8bf2c` (`5d505e9`). Pushed
-authority successor `d294cfd` was the clean synchronized `main` HEAD at the
-start of the current authority update. The reviewed Vercel package is 197
-files, 7,301,960 bytes, aggregate SHA-256
-`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
-The owner reports manually promoting a Vercel deployment after `d294cfd`;
-its exact deployment identity, Production behavior, and immutable bytes have
-not been independently verified.
+Current pushed source is Git commit SHA-1
+`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), adding validated
+Google Drive media references after route-metric release Git commit SHA-1
+`918f721e6daba92357f83db22e4b1741195f8526` (`918f721`). Migration `0027`
+is owner-applied and the owner accepted the corrected/final route drawings.
+The current route-color release keeps entry lines blue (`#2563eb`) and exit
+lines red (`#dc2626`) in online and offline views; its final commit SHA is
+recomputed after delivery.
+The owner also reports both releases promoted and the Drive feature working;
+these remain owner-observed facts rather than independent Production or
+deployed-byte proof. See [current authority](docs/current-authority.md) and the
+[thesis teammate handoff](docs/thesis-teammate-handoff.md).
 
 ## Tech Stack
 
@@ -37,6 +45,12 @@ not been independently verified.
 - **Database:** Supabase/PostgreSQL in Production; MySQL
   (`mysql2/promise`) for local development, fallback, and rehearsal
 - **Auth:** `express-session`, `bcrypt`, Google OAuth 2.0
+- **Maps/VR:** Leaflet, MapLibre GL JS, OpenStreetMap/PMTiles, Pannellum
+- **Media delivery:** validated Cloudinary or Google Drive references
+- **Security:** role authorization, CSRF, rate limiting, Supabase RLS/server-only
+  grants, nonce-based CSP, and Helmet security headers
+- **Offline:** service worker, IndexedDB package management, and PMTiles
+- **Deployment:** Vercel demo/UAT and Docker Compose/ICTU arrangements
 - **Config:** `dotenv`
 
 ## Project Structure
@@ -46,7 +60,8 @@ not been independently verified.
 ├── config/              # DB pool and other config
 ├── controllers/         # Feature controllers (auth, profile, map, admin*)
 ├── database/            # schema.sql + seed.js
-├── middleware/          # roleAuth, requireLogin
+├── docs/                # current authority, handoff, deployment, evidence
+├── middleware/          # login/role, CSRF, rate limits, security headers
 ├── models/              # Static data used by the seed script
 ├── public/              # Static assets (css, js, images)
 ├── routes/              # Route modules mounted in server.js
@@ -66,7 +81,7 @@ not been independently verified.
 ```bash
 git clone <repo-url>
 cd "CampuSphere v1"
-npm install
+npm ci
 ```
 
 ### Environment Variables
@@ -104,16 +119,33 @@ backfill and server-only RPCs. The owner has applied it; Codex did not apply or
 reapply it. This auth/profile change does not alter campus, route, VR, event, or
 selected-freeze data.
 
-The current owner-applied route/data baseline spans migrations `0001`-`0020`;
-additive owner-applied migrations `0021`-`0026` follow it. Codex did not apply
-or reapply 0026.
+The selected Supabase project has owner-applied migrations `0001`-`0027`.
+Codex did not apply or reapply them. Do not reapply an owner-applied migration
+without fresh explicit database authorization.
+
+The schedule history includes `0012_room_schedules` and
+`0013_vr_hotspot_schedule_metadata`; the current semester-image workflow is
+`0020_room_schedule_documents`, followed by the owner-applied presence,
+directional-route, visibility, audience, instructor-profile, and route-metric
+migrations through `0027`.
 
 The migration summary in the next paragraph is retained as historical setup
 context; the owner-applied status above is the current authority.
 
-CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0026`; the owner has applied migrations `0001`-`0026`, and Codex did not apply or reapply `0024`, `0025`, or `0026`. Do not reapply an owner-applied migration without fresh explicit authorization. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the 17-argument OAuth-profile RPC while removing the old instructor-field guard; it must not be reapplied without fresh owner authorization. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp per account; it is not backfilled. Directional geometry migration `0023_directional_route_edge_geometry.sql` provides the service-role-only independent reverse-geometry save path. Guest visibility migration `0024` adds the explicit `vr_hotspots.guest_visible` policy bit; scene/exit navigation remains guest-visible, schedule hotspots remain private, and only checked information hotspots are guest-visible. Event audience migration `0025` adds role-targeted visibility for events. Migration `0026` adds conflict-safe instructor-profile backfill plus server-only admin create/update functions; it is auth/profile-only and does not alter any freeze data. See **[docs/deployment.md](docs/deployment.md)** for env vars and apply order. Migrations `0011_supabase_session_store.sql`, `0012_room_schedules.sql`, and `0013_vr_hotspot_schedule_metadata.sql` provide Supabase sessions and the preserved legacy schedule fallback. Owner-applied migrations `0014`-`0019` provide the verified road graph, owner-managed edge geometry, atomic admin geometry writes, the authoritative Guard House topology, the CAS baseline, and selected-demo parity. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The historical route/data freeze remains scoped through `0020` because `0021` is auth-only; additive migrations `0022`-`0026` do not change any frozen counts or fingerprints: MySQL is frozen at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 100 valid geometries; Supabase at 25 buildings, 26 route nodes, 50 directed edges, 0 exact reverse pairs, 50 valid geometries; and the shared catalog at 25 active Guided VR destinations, 472 configured steps, and 99 unique scene keys. `config/selectedDemoFreeze.js` records those backend-specific facts without disabling normal admin edits or future reviewed additions.
+CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0027`, and all are owner-applied on the selected project. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the OAuth-profile RPC while removing the old instructor-field guard. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp. Directional migration `0023` provides independent reverse-geometry saves; `0024` adds explicit guest-visible hotspot policy; `0025` adds role-targeted event audiences; and `0026` preserves instructor-profile integrity. Migration `0027` adds the service-role-only atomic directed-edge geometry and geometry-derived metric save. See **[docs/deployment.md](docs/deployment.md)** for environment names and the fresh-project apply order. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. The old selected route freeze is historical after intentional live route/metric changes; `config/selectedDemoFreeze.js` is a QA record rather than a runtime/admin write lock. A separately authorized SELECT-only double-read on 2026-09-09 found stable final data and refreshed the current Supabase route fingerprint SHA-256 to `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the expanded-freeze manifest SHA-256 is `3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`. The refresh changed no route or database row.
 
-The current route count distinction is explicit: a reverse pair is a pair of directed edges, while an exact reverse geometry is a byte-equivalent mirrored drawing. MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid geometries. Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid geometries. The selected freeze therefore preserves separately authored exits while all 100/50 directed geometries remain valid.
+Historical selected-freeze note: a reverse pair is a pair of directed edges,
+while an exact reverse geometry is a byte-equivalent mirrored drawing. The
+2026-09-06 record measured MySQL at 34 buildings, 44 route nodes, 100 directed
+edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid geometries;
+Supabase at 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs,
+0 exact reverse geometries, and 50 valid geometries. Intentional later
+Supabase route/metric edits mean those Supabase values and fingerprint are not
+claimed as a current live freeze.
+
+The recorded shared Guided-VR catalog baseline is 25 active destinations, 472
+configured steps, and 99 unique scene keys; this is source/QA evidence rather
+than a live-data guarantee.
 
 Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary or Google Drive media metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room scheduling stores one admin-managed current-semester image per room or facility; this admin-managed data is not SIS, enrollment, assigned-class, or instructor-load simulation. Schedule hotspots link to that stable record. `SCHEDULE_DATA_SOURCE` must match `BUILDING_DATA_SOURCE` for building-linked flows and `VR_DATA_SOURCE` for new schedule hotspots; numeric IDs are never guessed across backends. Admins provide one validated Cloudinary or Google Drive delivery URL; CampuSphere does not upload, transform, or delete the asset. Legacy time rows remain read-only fallback data during transition, and schedule images remain outside offline-guide packages. Offline-guide downloads include separately authored Main Gate entry routes and building-to-Main-Gate exit routes when the reverse geometry is reachable, explicitly drawn, valid, and distinct from the entry path.
 

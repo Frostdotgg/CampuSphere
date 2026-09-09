@@ -65,7 +65,7 @@ function migrationRecords() {
     // 0021 is the owner-applied auth-only migration, 0022 is the owner-applied
     // user-presence migration, 0023 is directional route geometry, 0024 is
     // the guest-visibility policy, 0025 is event audience visibility, 0026 is
-    // admin instructor-profile integrity, and 0027 is a source-only runtime
+    // admin instructor-profile integrity, and owner-applied 0027 is a runtime
     // RPC migration. The
     // historical BE.6 route/data freeze intentionally pins the 0001-0020
     // sequence only.

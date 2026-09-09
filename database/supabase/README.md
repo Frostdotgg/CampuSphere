@@ -2,12 +2,12 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-09-07)
+## Current migration status (2026-09-08)
 
 Migration sources are contiguous from `0001` through `0027`. Migrations
-`0001`-`0026` are owner-applied; `0027` is source-only pending a separate
-owner application. Codex did not apply or reapply 0024, 0025, or 0026, and must
-not apply 0027 without fresh explicit database authorization.
+`0001`-`0027` are owner-applied on the selected Supabase project. Codex did not
+apply or reapply the owner-managed migrations. Migration `0027` must not be
+reapplied without fresh explicit database authorization.
 Do not reapply an owner-applied migration without fresh explicit database authorization.
 `0020_room_schedule_documents.sql` is the
 semester room-schedule image migration; it creates
@@ -45,10 +45,12 @@ changes away from instructor do not delete a profile. Codex did not apply or
 reapply 0026. It does not change campus, route, VR, event, or selected-freeze
 data.
 
-The current runtime/source release is `5d505e9`; pushed authority successor
-`d294cfd` was the clean synchronized `main` HEAD at the start of the 2026-09-07
-authority update. The owner's later Vercel-promotion report does not change
-migration status and is not independent database or deployed-byte evidence.
+The current pushed source is `83f247a`, after route-metric release `918f721`.
+Owner-supplied postflight evidence for applied migration `0027` reported the
+expected service-role-only function/security contract, 26 route nodes, 50
+directed edges, 50 stored geometries, and zero null/invalid geometries or
+metrics. The owner's database and Vercel reports are not independent database
+snapshot or deployed-byte evidence. See `docs/current-authority.md`.
 
 The older milestone-by-milestone application notes below are retained as
 historical setup guidance; this current-status block controls when their
@@ -69,7 +71,7 @@ reads and writes through `config/supabase.js`, so controllers, routes, and
 views do depend on this schema in Supabase mode. MySQL remains the default and
 the rollback baseline.
 
-## 2. Current migration file
+## 2. Historical baseline migration design (superseded by the current status above)
 
 `database/supabase/0001_initial_schema.sql` is the single ordered baseline
 migration. It currently covers:
@@ -189,9 +191,10 @@ Apply order (each file once, in sequence, against the target project):
 14. `0026_admin_instructor_profile_integrity.sql` (owner-applied; repairs
     missing instructor profiles and installs the profile-aware admin
     create/update functions).
-15. `0027_route_edge_geometry_metrics.sql` (source-only until the owner
-    explicitly applies it; adds the service-role-only atomic directional
-    geometry + distance/walk-time RPC used by the new admin edge editor).
+15. `0027_route_edge_geometry_metrics.sql` (owner-applied on the selected
+    project; apply once after `0026` on a new empty project; adds the
+    service-role-only atomic directional geometry + distance/walk-time RPC used
+    by the admin edge editor).
 
 ## 5. Auth decision
 

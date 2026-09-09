@@ -1,8 +1,9 @@
 # CampuSphere Codex Handoff
 
-Last updated: 2026-09-07 (Asia/Manila)
+Last updated: 2026-09-09 (Asia/Manila)
 
-Repository: `C:\Users\FROST.GG\Desktop\CampuSphere v1`
+Repository: discover the current checkout root; do not assume an owner-specific
+absolute path. Canonical current authority: `docs/current-authority.md`.
 
 ## Historical Pushed Offline Camera Release (2026-08-29; superseded)
 
@@ -40,6 +41,8 @@ contains the conflict-safe backfill and server-only admin create/update RPCs;
 the owner has applied it and Codex did not apply or reapply it. It does not
 change campus, route, VR, event, or selected-freeze data.
 
+## Historical September 7 package checkpoint (superseded)
+
 The reviewed source package is 197 files, 7,301,960 bytes, aggregate SHA-256
 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`.
 Runtime/source commit `5d505e9` and pushed authority successor `d294cfd`
@@ -49,7 +52,85 @@ deployment afterward. Its exact deployment SHA, Ready/Current state,
 Production behavior, and immutable bytes remain independently unverified.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-07)
+## Current Release Continuity (2026-09-09)
+
+The canonical current snapshot is `docs/current-authority.md`; detailed older
+records below are historical and must not override it. At the start of this
+documentation-only teammate-handoff synchronization, Git branch `main` had
+local `HEAD`, `origin/main`, and remote `main` equal at Git commit SHA-1
+`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), with a clean
+index/worktree and zero stashes. The final documentation commit contains this
+self-referential block, so fresh sessions must recompute its full SHA.
+
+The current source lineage includes role-aware release `5d505e9`,
+directional online/offline routing `23c5536`, authority successors `d294cfd`
+and `217f077`, automatic route-geometry metrics release `918f721`, and
+Google Drive media-reference release `83f247a`. The earlier cancelled
+Distance/Walktime proposal is superseded: the implemented admin edge workflow
+now sums the Haversine length of the drawn directed polyline, rounds to a
+positive whole metre, and derives positive whole-second walk time at 1.2 m/s.
+Entry and exit directions remain independently drawn.
+The route-color release renders entry lines blue (`#2563eb`) and exit lines red
+(`#dc2626`) in both online and offline route views; written direction labels
+remain the primary cue.
+
+Supabase migration sources are contiguous through `0027`; owner-applied
+migrations `0001` through `0027` applied to the selected Supabase project are
+recorded here. Migration `0027_route_edge_geometry_metrics.sql` provides the
+service-role-only atomic directional geometry/metric RPC. Owner-supplied
+postflight evidence reported the expected function/security contract, 26 route
+nodes, 50 directed edges, 50 stored geometries, zero null or invalid geometries,
+zero invalid metrics, and `postflight_pass = true`. The 50 existing edge
+metrics were corrected in place; later owner redraws were rechecked and the
+owner confirmed the current route drawings as final and visually correct.
+Codex must not reapply an owner-applied migration without fresh explicit
+database authorization.
+
+Those intentional live route/metric changes supersede the old Supabase
+building/route fingerprint as a current-data claim. The 2026-09-06 fingerprint SHA-256
+`8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64` remains
+historical recorded QA evidence, not a current live Supabase fingerprint or a
+runtime write lock. A separately authorized SELECT-only double-read on
+2026-09-09 found stable final data and refreshed the current Supabase route
+fingerprint SHA-256 to
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the
+expanded-freeze manifest SHA-256 is
+`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+The refresh changed no route or database row.
+
+Google Drive support is reference-based, not an upload or vendor-management
+integration. Administrators may store an exact approved Drive single-file link
+or a Cloudinary delivery URL for building pictures, schedule images, and 360
+panoramas. Drive bytes pass through authenticated same-origin endpoint
+`/api/media/google-drive/:fileId`; only JPEG, PNG, and WebP are served, so
+HEIC/HEIF must be converted. Drive media remains online-only. The owner reports
+the feature working and the temporary manual-test content removed.
+
+Evidence classes remain separate. Commits `918f721` and `83f247a` are
+current pushed source, and the red-exit route-color change is the current
+uncommitted release candidate until its final commit SHA is recomputed. The
+migration/postflight, 50-edge correction, route UAT, Drive test, cleanup, and
+manual Vercel promotions are owner-supplied or owner-observed evidence. They
+do not independently establish deployment identity, Ready/Current state, a
+Production smoke, or immutable deployed-byte equality. Git commit SHA-1
+`fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
+post-deployment-verified technical Production baseline. The current source
+package is 199 files, 7,344,623 bytes, aggregate SHA-256
+`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; no
+current Vercel package identity is claimed for the new commit. The earlier 197-file
+package pin belongs to older bytes. There is still no recorded real CSPC
+instructor Gmail end-to-end OAuth observation.
+
+Fresh Codex and Claude Code sessions must use the portable current prompts in
+`docs/new-session-grounding-prompts.md`, discover the repository root rather
+than assume an owner-specific path, ground read-only, recompute live truth,
+report discrepancies and evidence classes, then wait. The handoff next move is
+review/authorization of this documentation synchronization followed by a
+tracked-source archive. The separate product-quality next move is independent
+verification of the owner-promoted `83f247a` deployment and a bounded
+Production smoke, or another owner-selected task.
+
+## Historical Release Continuity (2026-09-07; superseded)
 
 At the start of this owner-authorized authority synchronization, Git branch
 `main` had local `HEAD`, `origin/main`, and remote `main` equal at Git

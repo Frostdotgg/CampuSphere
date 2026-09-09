@@ -408,8 +408,8 @@ function verifyBackend(scope, buildings, nodes, edges) {
     /* ---------------- static migration checks ---------------- */
     say('\nstatic migration checks (this probe applies NO SQL):');
     const dir = path.join(__dirname, '..', 'database', 'supabase');
-    // 0027 is source-only and does not extend the owner-applied data-freeze
-    // sequence asserted by this baseline probe.
+    // Owner-applied 0027 postdates and does not extend the historical 0001-0020
+    // data-freeze sequence asserted by this baseline probe.
     const sqlFiles = fs.readdirSync(dir)
       .filter((f) => f.endsWith('.sql') && f !== '0027_route_edge_geometry_metrics.sql')
       .sort();

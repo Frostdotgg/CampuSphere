@@ -555,7 +555,7 @@ function runStaticSupabaseChecks() {
     /adminSetEdgeGeometry\(id, prepared\.geometry\)/.test(ctrl));
   const m27Path = path.join(dir, '0027_route_edge_geometry_metrics.sql');
   const m27Exists = fs.existsSync(m27Path);
-  check(scope, '0027 source-only atomic geometry metrics RPC is declared', m27Exists);
+  check(scope, '0027 owner-applied atomic geometry metrics RPC source is declared', m27Exists);
   if (m27Exists) {
     const sql = fs.readFileSync(m27Path, 'utf8');
     check(scope, '0027 locks the selected edge/endpoints and validates positive metrics',

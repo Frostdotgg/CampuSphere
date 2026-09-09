@@ -1,5 +1,23 @@
 # Repository Boundary Design
 
+## Current implementation note (2026-09-08)
+
+This file preserves the original repository-boundary design and migration
+sequence as historical architecture evidence. The repository layer is now
+implemented and used by runtime data-source switches. Production application
+data and sessions target Supabase/PostgreSQL; MySQL remains local development,
+fallback, and rehearsal. Current migration and release authority lives in
+`database/supabase/README.md` and `docs/current-authority.md`. Statements below
+such as "will be introduced", "no controller imports a repository", or "MySQL
+remains the live runtime" describe the historical design phase and are not
+current runtime status.
+
+Current invariants remain valid: controllers own HTTP/EJS shapes, repositories
+remain server-only data boundaries, Supabase Auth is unused, privileged keys
+never enter browser code, and Express login/role/CSRF checks remain the per-user
+authorization layer even where database RLS and revoked grants provide defense
+in depth.
+
 Design document for the data-access boundary that will be introduced
 between CampuSphere's controllers and the database.
 
