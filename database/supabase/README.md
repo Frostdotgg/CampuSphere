@@ -2,7 +2,7 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-09-08)
+## Current migration status (2026-09-09)
 
 Migration sources are contiguous from `0001` through `0027`. Migrations
 `0001`-`0027` are owner-applied on the selected Supabase project. Codex did not
@@ -45,7 +45,8 @@ changes away from instructor do not delete a profile. Codex did not apply or
 reapply 0026. It does not change campus, route, VR, event, or selected-freeze
 data.
 
-The current pushed source is `83f247a`, after route-metric release `918f721`.
+The current pushed source is `8e6053e`, after route-metric release `918f721`,
+Drive media release `83f247a`, and route-color implementation `3d0a2b6`.
 Owner-supplied postflight evidence for applied migration `0027` reported the
 expected service-role-only function/security contract, 26 route nodes, 50
 directed edges, 50 stored geometries, and zero null/invalid geometries or

@@ -25,16 +25,15 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 ## Current pushed source release (2026-09-09)
 
 Current pushed source is Git commit SHA-1
-`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), adding validated
-Google Drive media references after route-metric release Git commit SHA-1
-`918f721e6daba92357f83db22e4b1741195f8526` (`918f721`). Migration `0027`
-is owner-applied and the owner accepted the corrected/final route drawings.
-The current route-color release keeps entry lines blue (`#2563eb`) and exit
-lines red (`#dc2626`) in online and offline views; its final commit SHA is
-recomputed after delivery.
-The owner also reports both releases promoted and the Drive feature working;
-these remain owner-observed facts rather than independent Production or
-deployed-byte proof. See [current authority](docs/current-authority.md) and the
+`8e6053e52b5e1feaa643f4f0ec1931d68d9bd550` (`8e6053e`). Its lineage includes
+route-metric release `918f721`, validated Google Drive media references
+`83f247a`, portable handoff authority `86b92eb`, and route-color implementation
+`3d0a2b6`. Migration `0027` is owner-applied and the owner accepted the
+corrected/final route drawings. Entry lines are blue (`#2563eb`) and exit lines
+are red (`#dc2626`) in online and offline views. The owner reports `8e6053e`
+promoted; this remains owner-observed evidence rather than independent
+Ready/Current, Production-smoke, or deployed-byte proof. See
+[current authority](docs/current-authority.md) and the
 [thesis teammate handoff](docs/thesis-teammate-handoff.md).
 
 ## Tech Stack

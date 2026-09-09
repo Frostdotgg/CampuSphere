@@ -1,6 +1,6 @@
 # Repository Boundary Design
 
-## Current implementation note (2026-09-08)
+## Current implementation note (2026-09-09)
 
 This file preserves the original repository-boundary design and migration
 sequence as historical architecture evidence. The repository layer is now

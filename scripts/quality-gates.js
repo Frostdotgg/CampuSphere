@@ -6921,6 +6921,14 @@ const CURRENT_ROUTE_METRICS_COMMIT_SHA =
   '918f721e6daba92357f83db22e4b1741195f8526';
 const CURRENT_DRIVE_MEDIA_COMMIT_SHA =
   '83f247a6228d7e115e12803d00e1f88da60ee966';
+const CURRENT_PORTABLE_HANDOFF_COMMIT_SHA =
+  '86b92eb83ec4f4d3c8bc13ba4b987d7a79fc0853';
+const CURRENT_ROUTE_COLOR_COMMIT_SHA =
+  '3d0a2b6226accaaf95fc58a03338093f721ce501';
+const CURRENT_PUSHED_AUTHORITY_COMMIT_SHA =
+  '8e6053e52b5e1feaa643f4f0ec1931d68d9bd550';
+const CURRENT_ROUTE_COLOR_PACKAGE_SHA256 =
+  '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6966,16 +6974,19 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 9 route-color + portable teammate handoff. This branch is deliberately
-     first so the superseded September 7 section cannot satisfy current docs. */
-  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+  /* Current September 9 route-color + owner-continuity authority. This branch
+     is deliberately first so superseded sections cannot satisfy current docs. */
+  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
         !t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA.slice(0, 7)) ||
+        !t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA.slice(0, 7)) ||
+        !t.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA.slice(0, 7)) ||
+        !t.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA.slice(0, 7)) ||
         !/5d505e9/i.test(t) || !/23c5536/i.test(t) ||
         !/d294cfd/i.test(t) || !/217f077/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}83f247a/i.test(t) ||
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}8e6053e/i.test(t) ||
         !/clean index\/worktree/i.test(t) || !/zero stashes/i.test(t) ||
         !/final documentation commit[^.]{0,160}recompute its full SHA/i.test(t)) {
       problems.push('September 9 canonical authority, Git truth, or source lineage is incomplete');
@@ -6986,6 +6997,14 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/Haversine length/i.test(t) || !/1\.2 m\/s/i.test(t) ||
         !/Entry and exit directions remain independently drawn/i.test(t)) {
       problems.push('implemented route-metric and directional-geometry behavior is incomplete');
+    }
+
+    if (!/entry lines are blue/i.test(t) || !/#2563eb/i.test(t) ||
+        !/exit lines are red/i.test(t) || !/#dc2626/i.test(t) ||
+        !/online and offline route views/i.test(t) ||
+        !/written direction labels remain the primary cue/i.test(t) ||
+        !/service-worker cache key is `?v41`?/i.test(t)) {
+      problems.push('current entry/exit color and service-worker behavior is incomplete');
     }
 
     if (!/migration sources are contiguous through `?0027`?/i.test(t) ||
@@ -7019,20 +7038,39 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
     if (!/current pushed source/i.test(t) ||
         !/owner-supplied or owner-observed evidence/i.test(t) ||
-        !/do not independently establish deployment identity/i.test(t) ||
+        !/owner now reports promoting `?8e6053e`?/i.test(t) ||
+        !/no independent post-promotion check/i.test(t) ||
+        !/Ready\/Current state/i.test(t) ||
         !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
-        !/no current Vercel package identity is claimed/i.test(t) ||
+        !/199 files[^.]{0,80}7,344,623 bytes/i.test(t) ||
+        !t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) ||
+        !/not current deployed-byte proof/i.test(t) ||
         !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t)) {
       problems.push('source, owner-observed, Production, package, or OAuth evidence classes are incomplete');
     }
 
-    if (!/portable current prompts/i.test(t) ||
+    if (!/exact route-color tree passed package boundary `?74\/74`?/i.test(t) ||
+        !/BE\.6 `?46\/46`?/i.test(t) ||
+        !/offline 2D `?49\/49`?/i.test(t) ||
+        !/shared button\/theme `?19\/19`?/i.test(t) ||
+        !/OFF\.2 PWA lifecycle `?145\/145`?/i.test(t) ||
+        !/QUALITY-GATES FAILED: 1/i.test(t) ||
+        !/exactly one unexpired Supabase administrator session/i.test(t) ||
+        !/no session or database row was changed/i.test(t)) {
+      problems.push('current-tree focused checks or one-session residue boundary is incomplete');
+    }
+
+    if (!/current owner prompts/i.test(t) ||
+        !/Portable source-only teammate prompts/i.test(t) ||
         !/discover the repository root/i.test(t) ||
         !/ground read-only/i.test(t) || !/recompute live truth/i.test(t) ||
-        !/tracked-source archive/i.test(t) ||
-        !/independent verification of the owner-promoted `?83f247a`? deployment/i.test(t) ||
-        !/bounded Production smoke/i.test(t)) {
-      problems.push('portable grounding or handoff/product next moves are incomplete');
+        !/independent verification of the owner-promoted `?8e6053e`? deployment identity/i.test(t) ||
+        !/supported Logout or normal expiry/i.test(t) ||
+        !/authorized residue\/full-gate rerun/i.test(t) ||
+        !/bounded Production smoke/i.test(t) ||
+        !/stop and ask the owner/i.test(t) ||
+        !/automatically rolling back, patching, promoting, or redeploying/i.test(t)) {
+      problems.push('owner grounding, teammate prompt, or next-move boundaries are incomplete');
     }
     return problems;
   }
@@ -7913,7 +7951,7 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
-  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
       'docs/thesis-teammate-handoff.md', 'CODEX_HANDOFF.md',
@@ -7927,17 +7965,18 @@ function reusablePromptIsCurrent(body) {
       'config/selectedDemoFreeze.js', 'middleware/roleAuth.js',
       'middleware/securityHeaders.js', 'middleware/rateLimit.js',
       'config/sessionConfig.js', 'config/supabase.js',
-      'utils/routeGeometry.js', 'controllers/adminRouteController.js',
+      'utils/routeGeometry.js', 'controllers/mapController.js',
+      'controllers/adminRouteController.js',
       'repositories/routeRepository.js', 'services/offlineGuideService.js',
       'public/js/admin/admin-map-graph.js',
       'public/js/offline-guide-manager.js', 'public/sw.js',
-      'views/admin/campus-map.ejs', '0027', 'utils/mediaUrl.js',
+      'views/map.ejs', 'views/admin/campus-map.ejs', '0027', 'utils/mediaUrl.js',
       'controllers/mediaController.js', 'controllers/adminVrController.js',
       'controllers/vrController.js', 'public/js/media-url.js',
       'public/js/admin/admin-vr.js'
     ];
     return /initial grounding turn/i.test(t) &&
-      /senior developer\/reviewer[^.]{0,80}thesis-codebase guide/i.test(t) &&
+      /senior reviewer[^.]{0,160}senior developer\/engineer[^.]{0,160}security\/DB\/UI quality gate[^.]{0,160}handoff owner[^.]{0,160}delivery coordinator/i.test(t) &&
       /Discover the repository root/i.test(t) &&
       /GROUNDING RESTRICTION[^.]{0,120}read-only and context-only/i.test(t) &&
       /inventory the tools, MCP servers\/connectors[^.]{0,160}skills/i.test(t) &&
@@ -7948,12 +7987,24 @@ function reusablePromptIsCurrent(body) {
       /Never read, print, summarize, compare, or package \.env/i.test(t) &&
       requiredSurfaces.every((surface) => t.includes(surface)) &&
       t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA) &&
+      t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA) &&
+      t.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA) &&
+      t.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
+      t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
+      t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) &&
+      t.includes(CURRENT_FREEZE_MANIFEST_SHA256) &&
+      t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) &&
       t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
       /migration sources 0001-0027[^.]{0,80}owner-applied/i.test(t) &&
       /old 2026-09-06 Supabase route fingerprint is historical/i.test(t) &&
+      /entry lines are blue[^.]{0,100}exit lines are red/i.test(t) &&
+      /service worker is v41/i.test(t) &&
       /Google Drive[^.]{0,120}authenticated same-origin proxy/i.test(t) &&
       /JPEG, PNG,\s*and WebP/i.test(t) &&
       /not HEIC\/HEIF/i.test(t) &&
+      /owner reports promoting 8e6053e/i.test(t) &&
+      /QUALITY-GATES FAILED: 1/i.test(t) &&
+      /one unexpired Supabase administrator session/i.test(t) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
       /evidence classes/i.test(t) && /Stop and wait/i.test(t) &&
@@ -8175,12 +8226,13 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
       /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
       /Report and stop after grounding/i.test(t) &&
-      /wait for the teammate's specific question/i.test(t);
+      /Recommend no action during grounding/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
   }
   if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
@@ -8225,12 +8277,13 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+  if (t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
       /no delegated task may exceed this boundary/i.test(t) &&
       /Report and stop after grounding/i.test(t) &&
-      /wait for the teammate's specific question/i.test(t);
+      /Recommend no action during grounding/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
   }
   if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
@@ -10500,7 +10553,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 9 portable handoff and current evidence boundary`,
+    ok(`${name} records the September 9 owner-continuity authority and current evidence boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -10520,14 +10573,19 @@ function runDocsCurrentGate() {
 
   const currentAuthority = docs['docs/current-authority.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
-  ok('canonical current authority records current source, applied 0027, evidence classes, and separate next tracks',
+  ok('canonical current authority records current source, applied 0027, evidence classes, and ordered owner next moves',
     currentAuthority.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA) &&
     currentAuthority.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
     /migrations `?0001`?-`?0027`? are owner-applied/i.test(currentAuthority) &&
     /Evidence Classes/i.test(currentAuthority) &&
     /historical evidence/i.test(currentAuthority) &&
     /must not be described as the current live Supabase route fingerprint/i.test(currentAuthority) &&
-    /handoff track/i.test(currentAuthority) && /product-quality track/i.test(currentAuthority));
+    /immediate authority track/i.test(currentAuthority) && /product-quality sequence/i.test(currentAuthority) &&
+    /supported Logout or normal expiry/i.test(currentAuthority) &&
+    /QUALITY-GATES FAILED: 1/i.test(currentAuthority));
   ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
     /Node\.js `?>=22`?/i.test(teammateHandoff) && /npm ci/i.test(teammateHandoff) &&
     /Repository Map/i.test(teammateHandoff) && /Technology and Security Model/i.test(teammateHandoff) &&
@@ -10542,11 +10600,11 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 9 continuity is accepted and Git, route, migration, freeze, media, scope, and marker drift fail closed',
+  ok('fixture: current September 9 continuity is accepted and Git, route, migration, freeze, QA, owner-promotion, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_DRIVE_MEDIA_COMMIT_SHA,
+      CURRENT_PUSHED_AUTHORITY_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -10568,6 +10626,10 @@ function runDocsCurrentGate() {
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       /HEIC\/HEIF must be converted/i,
       'HEIC is accepted')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /QUALITY-GATES FAILED: 1/i,
+      'QUALITY-GATES OK')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 

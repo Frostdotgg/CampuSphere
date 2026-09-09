@@ -9,12 +9,12 @@ before relying on any recorded checkpoint.
 
 ## Current Git and Source Lineage
 
-At the start of the teammate-handoff documentation synchronization, branch
-`main` had local `HEAD`, `origin/main`, and remote `main` equal at Git commit
-SHA-1 `83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`). The index and
+At the start of this authority synchronization, branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`8e6053e52b5e1feaa643f4f0ec1931d68d9bd550` (`8e6053e`). The index and
 worktree were clean and there were zero stashes. The documentation commit that
-contains this file is necessarily later, so a fresh session must recompute its
-full SHA rather than infer it from this record.
+will contain this edit is necessarily later, so a fresh session must recompute
+its full SHA rather than infer it from this record.
 
 Important current lineage:
 
@@ -29,13 +29,19 @@ Important current lineage:
   edge distance and walk-time calculation from administrator-drawn geometry.
 - `83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`) — validated Google
   Drive media references alongside Cloudinary delivery references.
+- `86b92eb83ec4f4d3c8bc13ba4b987d7a79fc0853` (`86b92eb`) — portable thesis-
+  teammate handoff authority and source-grounding documentation.
+- `3d0a2b6226accaaf95fc58a03338093f721ce501` (`3d0a2b6`) — entry routes blue
+  and exit routes red in the online and offline route renderers.
+- `8e6053e52b5e1feaa643f4f0ec1931d68d9bd550` (`8e6053e`) — pushed authority
+  successor recording the route-color release.
 
 Earlier dashboard-image, presence, campus-UI, and dependency-security commits
 remain `fdb0c8c`, `621d72e`, `b8e7ffb`, and `a5a6cee` respectively.
 
-The route-color release keeps entry routes blue (`#2563eb`) and renders exit
-routes red (`#dc2626`) in online and offline route views. Written Entry/Exit
-labels remain the primary direction cue.
+Commit `3d0a2b6` keeps entry routes blue (`#2563eb`) and renders exit routes red
+(`#dc2626`) in online and offline route views. Written Entry/Exit labels remain
+the primary direction cue, and the service-worker cache key is `v41`.
 
 ## Architecture and Runtime Boundaries
 
@@ -128,20 +134,27 @@ verify that environment separately.
 
 ## Evidence Classes
 
-- **Current source/Git:** commits `918f721` and `83f247a` are committed and
-  pushed; Git equality and cleanliness above were independently recomputed at
-  the start of this documentation work.
-- **Recorded source/local QA:** earlier focused probes, full quality gates,
-  Docker health, package identities, and session-residue results remain
-  historical evidence for the exact bytes on which they ran. They are not
-  automatically evidence for `83f247a` or for Production.
+- **Current source/Git:** commits `918f721`, `83f247a`, `86b92eb`, `3d0a2b6`,
+  and `8e6053e` are committed and pushed; Git equality and cleanliness above
+  were independently recomputed at the start of this documentation work.
+- **Recorded current-tree source/local QA:** before `8e6053e` was pushed, the
+  exact route-color tree passed package boundary `74/74`, BE.6 `46/46`, public
+  road-route rendering, offline 2D `49/49`, shared button/theme `19/19`, OFF.2
+  PWA lifecycle `145/145`, Node syntax checks, and `git diff --check`. The full
+  quality-gate run passed its application/source checks but ended
+  `QUALITY-GATES FAILED: 1` solely because the final SELECT-only residue check
+  found exactly one unexpired Supabase administrator session. No session or
+  database row was changed to make that run green. These results are local
+  source evidence, not Production evidence.
 - **Owner-observed database/UAT:** migration `0027`, its postflight, the in-place
   50-edge metric correction, later route edits, final route approval, Drive
   testing, and cleanup are owner-supplied or owner-accepted evidence.
 - **Owner-observed vendor/Production:** the owner reports manually promoting
-  both `918f721` and then `83f247a` and reports that the Drive-backed feature
-  works. This does not independently establish deployment identity, Ready or
-  Current state, a Production smoke, or immutable deployed-byte equality.
+  `918f721`, `83f247a`, and now `8e6053e`, and reports that the Drive-backed
+  feature works. The pre-promotion screenshot showed the `8e6053e` deployment
+  Ready in the Production environment, but no independent post-promotion check
+  established its exact deployment identity, Ready/Current state, Production
+  behavior, or immutable deployed-byte equality.
 - **Independently verified Production:** Git commit
   `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
   post-deployment-verified technical baseline.
@@ -164,9 +177,12 @@ package pin belongs to an older source set and remains historical only.
   Cloudinary, Google Drive, Google OAuth, Upstash, GitHub Actions secrets, live
   sessions, or Production data.
 
-The handoff track is to synchronize and review the documentation, obtain
-separate authorization for its commit/push, then create a tracked-source archive
-from the clean committed SHA. The product-quality track is separate: independently
-verify the owner-promoted `83f247a` deployment identity and Ready/Current state,
-run a bounded Production smoke if authorized, and then continue with an
-owner-selected bug fix or feature.
+The immediate authority track is to review this documentation synchronization
+and obtain separate authorization before committing or pushing it. The
+product-quality sequence is separate: independently verify the owner-promoted
+`8e6053e` deployment identity and Ready/Current state; allow the one observed
+Supabase administrator session to end through supported Logout or normal expiry
+and then rerun the residue/full gate if authorized; run a bounded Production
+smoke if authorized; and continue with an owner-selected bug fix or feature.
+If deployment verification or smoke fails, stop and ask the owner rather than
+automatically rolling back, patching, promoting, or redeploying.

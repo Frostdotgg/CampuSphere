@@ -153,10 +153,12 @@ application code. It does not reproduce the current live Production dataset.
 
 ## Asking Codex or Claude Code
 
-Use the current prompt under `## Codex Grounding Prompt` or
-`## Claude Code Grounding Prompt` in
-`docs/new-session-grounding-prompts.md`. The first turn is intentionally
-read-only so the assistant learns the repository before answering.
+Use the `## Portable Teammate Codex Grounding Prompt (source-only)` or
+`## Portable Teammate Claude Code Grounding Prompt (source-only)` in
+`docs/new-session-grounding-prompts.md`. The owner-continuity prompts in that
+file are for the project owner, not an archive recipient. The teammate's first
+turn is intentionally read-only so the assistant learns the repository before
+answering.
 
 Useful follow-up requests include:
 
@@ -175,8 +177,10 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-The handoff next move is to review and commit the synchronized documentation,
-then create a clean tracked-source archive using `git archive`. The separate
-product-quality next move is an owner-authorized verification of the promoted
-`83f247a` Vercel deployment followed by a bounded Production smoke, or another
-owner-selected bug fix or feature.
+The handoff next move is owner review and separate commit/push authorization
+for the synchronized documentation; a later source archive, if wanted, must be
+created from a clean committed SHA with `git archive`. The separate product-
+quality sequence is owner-authorized independent verification of the reported
+promoted `8e6053e` Vercel deployment, supported end/expiry of the one observed
+Supabase administrator session and an authorized gate rerun, a bounded
+Production smoke, and then another owner-selected bug fix or feature.

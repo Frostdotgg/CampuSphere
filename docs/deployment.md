@@ -10,13 +10,15 @@ troubleshooting.
 ## Current deployment handoff (2026-09-09)
 
 Use `docs/current-authority.md` for the canonical release/evidence snapshot.
-Current pushed source is `83f247a` after route-metric release `918f721`.
+Current pushed source is `8e6053e`, after route-metric release `918f721`, Drive
+media release `83f247a`, portable handoff `86b92eb`, and route-color
+implementation `3d0a2b6`.
 Supabase sources are contiguous through owner-applied migration `0027`; never
 reapply an owner-applied migration to the selected project. The owner reports
-both releases manually promoted, route results accepted, and Drive-backed media
-working. Deployment identity, Ready/Current state, Production smoke, current
-package identity, and immutable deployed bytes remain independently unverified.
-The last independently verified Production baseline is `fea3b2e`.
+`8e6053e` promoted, route results accepted, and Drive-backed media working.
+Exact deployment identity, post-promotion Ready/Current state, Production
+smoke, and immutable deployed bytes remain independently unverified. The last
+independently verified Production baseline is `fea3b2e`.
 
 CampuSphere is an Express 5 + EJS server-rendered app. It runs against **MySQL**
 (the local/fallback/rehearsal target) and/or **Supabase/PostgreSQL** (the
@@ -85,23 +87,24 @@ earlier 197-file package remains historical.
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. At the start of this
-documentation-only teammate-handoff synchronization, Git branch `main` had
-local `HEAD`, `origin/main`, and remote `main` equal at Git commit SHA-1
-`83f247a6228d7e115e12803d00e1f88da60ee966` (`83f247a`), with a clean
+authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`8e6053e52b5e1feaa643f4f0ec1931d68d9bd550` (`8e6053e`), with a clean
 index/worktree and zero stashes. The final documentation commit contains this
 self-referential block, so fresh sessions must recompute its full SHA.
 
 The current source lineage includes role-aware release `5d505e9`,
 directional online/offline routing `23c5536`, authority successors `d294cfd`
 and `217f077`, automatic route-geometry metrics release `918f721`, and
-Google Drive media-reference release `83f247a`. The earlier cancelled
-Distance/Walktime proposal is superseded: the implemented admin edge workflow
-now sums the Haversine length of the drawn directed polyline, rounds to a
-positive whole metre, and derives positive whole-second walk time at 1.2 m/s.
-Entry and exit directions remain independently drawn.
-The route-color release renders entry lines blue (`#2563eb`) and exit lines red
-(`#dc2626`) in both online and offline route views; written direction labels
-remain the primary cue.
+Google Drive media-reference release `83f247a`, portable handoff authority
+`86b92eb`, route-color implementation `3d0a2b6`, and pushed authority
+successor `8e6053e`. The earlier cancelled Distance/Walktime proposal is
+superseded: the implemented admin edge workflow sums the Haversine length of
+the drawn directed polyline, rounds to a positive whole metre, and derives
+positive whole-second walk time at 1.2 m/s. Entry and exit directions remain
+independently drawn. Entry lines are blue (`#2563eb`) and exit lines are red
+(`#dc2626`) in online and offline route views; written direction labels remain
+the primary cue, and the service-worker cache key is `v41`.
 
 Supabase migration sources are contiguous through `0027`; owner-applied
 migrations `0001` through `0027` applied to the selected Supabase project are
@@ -135,30 +138,44 @@ panoramas. Drive bytes pass through authenticated same-origin endpoint
 HEIC/HEIF must be converted. Drive media remains online-only. The owner reports
 the feature working and the temporary manual-test content removed.
 
-Evidence classes remain separate. Commits `918f721` and `83f247a` remain
-current pushed source; the red-exit route-color implementation is now part of
-the current pushed source. Its full commit SHA must be recomputed from live Git
-rather than copied into this self-referential snapshot. The
-migration/postflight, 50-edge correction, route UAT, Drive test, cleanup, and
-manual Vercel promotions are owner-supplied or owner-observed evidence. They
-do not independently establish deployment identity, Ready/Current state, a
-Production smoke, or immutable deployed-byte equality. Git commit SHA-1
+Evidence classes remain separate. Commits `918f721`, `83f247a`, `86b92eb`,
+`3d0a2b6`, and `8e6053e` are current pushed source. Before `8e6053e` was
+pushed, the exact route-color tree passed package boundary `74/74`, BE.6
+`46/46`, public road-route rendering, offline 2D `49/49`, shared button/theme
+`19/19`, OFF.2 PWA lifecycle `145/145`, Node syntax checks, and
+`git diff --check`. The same full quality-gate run passed its application and
+source checks but ended `QUALITY-GATES FAILED: 1` solely because its final
+SELECT-only residue check found exactly one unexpired Supabase administrator
+session; no session or database row was changed to make it green.
+
+The migration/postflight, 50-edge correction, route UAT, Drive test, cleanup,
+and manual promotions are owner-supplied or owner-observed evidence. The owner
+now reports promoting `8e6053e`; the earlier screenshot showed that deployment
+Ready in the Production environment before promotion. No independent
+post-promotion check has established its exact deployment identity,
+Ready/Current state, Production behavior, Production smoke, or immutable
+deployed-byte equality. Git commit SHA-1
 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` remains the last independently
 post-deployment-verified technical Production baseline. The current source
 package is 199 files, 7,344,623 bytes, aggregate SHA-256
-`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; no
-current Vercel package identity is claimed for the new commit. The earlier 197-file
-package pin belongs to older bytes. There is still no recorded real CSPC
+`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`;
+this is source/package evidence, not current deployed-byte proof. The earlier
+197-file pin belongs to older bytes. There is still no recorded real CSPC
 instructor Gmail end-to-end OAuth observation.
 
-Fresh Codex and Claude Code sessions must use the portable current prompts in
-`docs/new-session-grounding-prompts.md`, discover the repository root rather
-than assume an owner-specific path, ground read-only, recompute live truth,
-report discrepancies and evidence classes, then wait. The handoff next move is
-review/authorization of this documentation synchronization followed by a
-tracked-source archive. The separate product-quality next move is independent
-verification of the owner-promoted `83f247a` deployment and a bounded
-Production smoke, or another owner-selected task.
+Fresh owner Codex and Claude Code sessions must use the current owner prompts
+in `docs/new-session-grounding-prompts.md`, discover the repository root,
+ground read-only, recompute live truth, report discrepancies and evidence
+classes, then wait for the owner's explicit task. Portable source-only teammate
+prompts remain separately labelled in that file. The immediate authority track
+is review and separate commit/push authorization for this synchronization. The
+product-quality sequence is independent verification of the owner-promoted
+`8e6053e` deployment identity and Ready/Current state; supported Logout or
+normal expiry of the one observed Supabase administrator session followed by an
+authorized residue/full-gate rerun; a bounded Production smoke; and then an
+owner-selected bug fix or feature. If verification or smoke fails, stop and ask
+the owner rather than automatically rolling back, patching, promoting, or
+redeploying.
 
 ## Historical Release Continuity (2026-09-07; superseded)
 
