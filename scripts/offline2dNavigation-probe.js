@@ -418,6 +418,13 @@ function runStaticBoundaryChecks() {
     /byId\('offlineExitRoute'\)/.test(manager) &&
     /showRoute\(selectedKey, \{ isExit: true \}\)/.test(manager) &&
     /Update Offline Map while connected to download exit routes/.test(manager));
+  ok('offline entry routes stay blue and exit routes are red in MapLibre and fallback renderers',
+    /var ENTRY_ROUTE_COLOR = '#2563eb';/.test(manager) &&
+    /var EXIT_ROUTE_COLOR = '#dc2626';/.test(manager) &&
+    /function showRoute\(key, options\)[\s\S]*?var routeColor = isExit \? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;/.test(manager) &&
+    /map\.setPaintProperty\('offline-route-line', 'line-color', routeColor\)/.test(manager) &&
+    /drawFallbackRoute\(route, routeColor\)/.test(manager) &&
+    /function drawFallbackRoute\(route, routeColor\)[\s\S]*?line\.setAttribute\('stroke', routeColor \|\| ENTRY_ROUTE_COLOR\)/.test(manager));
   ok('database text is rendered through textContent and no innerHTML sink exists',
     /node\.textContent\s*=\s*text/.test(manager) && !/\.innerHTML\s*=/.test(manager));
   ok('offline origin marker says Guard House while retaining the canonical main-gate key',

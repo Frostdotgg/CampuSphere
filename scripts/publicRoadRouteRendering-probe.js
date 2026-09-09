@@ -19,8 +19,9 @@
         otherwise stitch a building-crossing diagonal).
 
      2) Static source invariants on views/map.ejs: Leaflet [lat,lng] vs MapLibre
-        [lng,lat] coordinate ordering, preserved #2563eb / width / opacity /
-        source+layer names, the single shared request-generation token used
+        [lng,lat] coordinate ordering, direction-aware blue entry / red exit
+        styling, preserved width / opacity / source+layer names, the single
+        shared request-generation token used
         across findRoute + findComputedRoute (clear-on-begin, guard-after-await,
         destination-clear invalidation), no browser-side external routing
         dependency, and unchanged API / route-panel / Set VR Route / Free Roam.
@@ -214,12 +215,20 @@ function runStaticSourceGate(src) {
   check(scope, 'MapLibre uses GeoJSON [lng, lat] ordering', src.includes('pts.map(p => [p.lng, p.lat])'));
   check(scope, 'Leaflet uses polyline [lat, lng] ordering', src.includes('pts.map(p => [p.lat, p.lng])'));
 
-  // Preserved styling / source + layer names / fit behavior.
-  check(scope, "MapLibre keeps blue #2563eb line-color", src.includes("'line-color': '#2563eb'"));
+  // Direction-aware styling / source + layer names / fit behavior.
+  check(scope, 'route renderers define blue entry and red exit semantic colors',
+    src.includes("const ENTRY_ROUTE_COLOR = '#2563eb';") &&
+    src.includes("const EXIT_ROUTE_COLOR = '#dc2626';") &&
+    src.includes('const isExit = !!(options && options.isExit);') &&
+    src.includes('const routeColor = isExit ? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;') &&
+    src.includes('drawComputedPath(data.route, { isExit });'));
+  check(scope, 'MapLibre applies the direction-specific line color on create and redraw',
+    src.includes("'line-color': routeColor") &&
+    src.includes("maplibreMap.setPaintProperty('computed-route-line', 'line-color', routeColor)"));
   check(scope, 'MapLibre keeps line-width 4 + line-opacity 0.85',
     src.includes("'line-width': 4") && src.includes("'line-opacity': 0.85"));
-  check(scope, 'Leaflet keeps blue #2563eb weight 4 opacity 0.85',
-    src.includes("color: '#2563eb', weight: 4, opacity: 0.85"));
+  check(scope, 'Leaflet applies the direction-specific color with weight 4 opacity 0.85',
+    src.includes('color: routeColor, weight: 4, opacity: 0.85'));
   check(scope, 'computed-route source + computed-route-line layer names preserved',
     src.includes("'computed-route'") && src.includes("id: 'computed-route-line'"));
   check(scope, 'fitBounds is used on both renderers',

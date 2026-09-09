@@ -1474,6 +1474,10 @@
            segments), so a drawing failure never hides the result. */
         const COMPUTED_START_KEY = 'main-gate';
         const COMPUTED_START_LABEL = 'Guard House / Main Gate';
+        // Direction is part of the route request, so keep the visual treatment
+        // semantic and consistent across the supported online renderers.
+        const ENTRY_ROUTE_COLOR = '#2563eb';
+        const EXIT_ROUTE_COLOR = '#dc2626';
         let leafletRouteLayer = null;
 
         /* RF.5: one monotonically increasing generation token shared by
@@ -1567,7 +1571,9 @@
         }
         // RF5-PURE-END
 
-        function drawComputedPath(route) {
+        function drawComputedPath(route, options) {
+            const isExit = !!(options && options.isExit);
+            const routeColor = isExit ? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;
             // RF.5: prefer road-following route.geometry, fall back to
             // route.nodes only when geometry is unavailable/invalid, and reject
             // any partial shape so a dropped point can never create a diagonal.
@@ -1587,8 +1593,11 @@
                             type: 'line',
                             source: 'computed-route',
                             layout: { 'line-join': 'round', 'line-cap': 'round' },
-                            paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }
+                            paint: { 'line-color': routeColor, 'line-width': 4, 'line-opacity': 0.85 }
                         });
+                    }
+                    if (maplibreMap.getLayer('computed-route-line')) {
+                        maplibreMap.setPaintProperty('computed-route-line', 'line-color', routeColor);
                     }
                     const lngs = coords.map(c => c[0]);
                     const lats = coords.map(c => c[1]);
@@ -1601,7 +1610,7 @@
                 if (MAP_RENDERER === 'leaflet' && leafletMap && typeof L !== 'undefined') {
                     if (leafletRouteLayer) leafletMap.removeLayer(leafletRouteLayer);
                     leafletRouteLayer = L.polyline(pts.map(p => [p.lat, p.lng]), {
-                        color: '#2563eb', weight: 4, opacity: 0.85
+                        color: routeColor, weight: 4, opacity: 0.85
                     }).addTo(leafletMap);
                     leafletMap.fitBounds(leafletRouteLayer.getBounds(), { padding: [60, 60] });
                     return true;
@@ -1735,7 +1744,7 @@
                 const data = await res.json().catch(() => null);
                 if (!isCurrentRouteLookup(token)) return;
                 if (res.ok && data && data.success && data.route) {
-                    drawComputedPath(data.route);
+                    drawComputedPath(data.route, { isExit });
                     openComputedRoutePanel(data.route, b, null, { isExit });
                 } else {
                     // Sanitized 400/404 or success:true route:null (no path):

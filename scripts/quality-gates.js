@@ -1769,8 +1769,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v40 and the offline origin marker, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 40 &&
+    ok('sw.js is v41 and the offline origin marker, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 41 &&
       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
       /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
       /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
@@ -3324,7 +3324,7 @@ function containsLikelyDocumentationSecret(value) {
   const withoutLabeledNonSecrets = text
     // Integrity evidence is safe only when its algorithm and exact 64-hex
     // shape are explicit. The label may wrap onto the preceding line.
-    .replace(/\b(?:aggregate\s+)?SHA-256\s*(?:\r?\n[ \t]*)?`[0-9a-f]{64}`/gi,
+    .replace(/\b(?:aggregate\s+)?SHA-256\s*(?:(?:is|to|:)\s*)?(?:\r?\n[ \t]*)?`[0-9a-f]{64}`/gi,
       'SHA-256 `[recognized-integrity-digest]`')
     // Production Git evidence is safe only when the 40-hex value is bound to
     // an explicit deployed/runtime baseline label.
@@ -6902,9 +6902,9 @@ const CURRENT_REJECTED_NPM_TEST_SHA256 =
 const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
   'd16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d';
 const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
-  '8143e5d1bf3f5e4b4acb1c39253950dc60b737e4aa7d21422356ff288ce9ca64';
+  'a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1';
 const CURRENT_FREEZE_MANIFEST_SHA256 =
-  '9e22ce6940f36f7a5c407070aba28bb4fabdb16942d913d18953cbee29aeb995';
+  '3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
   '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
@@ -6917,6 +6917,10 @@ const CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA =
   '5d505e97e990ad82df6c858e28d48542deb8bf2c';
 const CURRENT_AUTHORITY_PREDECESSOR_SHA =
   'd294cfd40a4b4a3b49e5768df1ca594a662184a0';
+const CURRENT_ROUTE_METRICS_COMMIT_SHA =
+  '918f721e6daba92357f83db22e4b1741195f8526';
+const CURRENT_DRIVE_MEDIA_COMMIT_SHA =
+  '83f247a6228d7e115e12803d00e1f88da60ee966';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6962,7 +6966,78 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 7 handoff. This branch is deliberately first so older
+  /* Current September 9 route-color + portable teammate handoff. This branch is deliberately
+     first so the superseded September 7 section cannot satisfy current docs. */
+  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+    if (!/docs\/current-authority\.md/i.test(t) ||
+        !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
+        !t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA.slice(0, 7)) ||
+        !/5d505e9/i.test(t) || !/23c5536/i.test(t) ||
+        !/d294cfd/i.test(t) || !/217f077/i.test(t) ||
+        !/Git branch `?main`?/i.test(t) ||
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}83f247a/i.test(t) ||
+        !/clean index\/worktree/i.test(t) || !/zero stashes/i.test(t) ||
+        !/final documentation commit[^.]{0,160}recompute its full SHA/i.test(t)) {
+      problems.push('September 9 canonical authority, Git truth, or source lineage is incomplete');
+    }
+
+    if (!/cancelled Distance\/Walktime proposal is superseded/i.test(t) ||
+        !/implemented admin edge workflow/i.test(t) ||
+        !/Haversine length/i.test(t) || !/1\.2 m\/s/i.test(t) ||
+        !/Entry and exit directions remain independently drawn/i.test(t)) {
+      problems.push('implemented route-metric and directional-geometry behavior is incomplete');
+    }
+
+    if (!/migration sources are contiguous through `?0027`?/i.test(t) ||
+        !/migrations `?0001`? through `?0027`? applied/i.test(t) ||
+        !/service-role-only atomic directional geometry\/metric RPC/i.test(t) ||
+        !/26 route nodes[^.]{0,100}50 directed edges[^.]{0,100}50 stored geometries/i.test(t) ||
+        !/zero null or invalid geometries[^.]{0,80}zero invalid metrics/i.test(t) ||
+        !/postflight_pass = true/i.test(t) ||
+        !/50 existing edge metrics were corrected in place/i.test(t) ||
+        !/owner confirmed the current route drawings as final and visually correct/i.test(t) ||
+        !/must not reapply an owner-applied migration/i.test(t)) {
+      problems.push('owner-applied 0027, postflight, in-place correction, or no-reapply boundary is incomplete');
+    }
+
+    if (!t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
+        !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
+        !/historical recorded QA evidence/i.test(t) ||
+        !/not a current live Supabase fingerprint/i.test(t) ||
+        !/SELECT-only double-read/i.test(t) ||
+        !/refreshed the current Supabase route fingerprint/i.test(t)) {
+      problems.push('historical route-freeze and refreshed-current-fingerprint boundary is incomplete');
+    }
+
+    if (!/Google Drive support is reference-based/i.test(t) ||
+        !/not an upload or vendor-management integration/i.test(t) ||
+        !/\/api\/media\/google-drive\/:fileId/i.test(t) ||
+        !/JPEG, PNG, and WebP/i.test(t) || !/HEIC\/HEIF must be converted/i.test(t) ||
+        !/temporary manual-test content removed/i.test(t)) {
+      problems.push('Google Drive reference/proxy/media-format boundary is incomplete');
+    }
+
+    if (!/current pushed source/i.test(t) ||
+        !/owner-supplied or owner-observed evidence/i.test(t) ||
+        !/do not independently establish deployment identity/i.test(t) ||
+        !t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) ||
+        !/no current Vercel package identity is claimed/i.test(t) ||
+        !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t)) {
+      problems.push('source, owner-observed, Production, package, or OAuth evidence classes are incomplete');
+    }
+
+    if (!/portable current prompts/i.test(t) ||
+        !/discover the repository root/i.test(t) ||
+        !/ground read-only/i.test(t) || !/recompute live truth/i.test(t) ||
+        !/tracked-source archive/i.test(t) ||
+        !/independent verification of the owner-promoted `?83f247a`? deployment/i.test(t) ||
+        !/bounded Production smoke/i.test(t)) {
+      problems.push('portable grounding or handoff/product next moves are incomplete');
+    }
+    return problems;
+  }
+
+  /* Historical September 7 handoff. This branch is deliberately first so older
      freeze/performance continuity cannot satisfy the live closeout contract. */
   if (t.includes(CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA)) {
     if (!t.includes(CURRENT_AUTHORITY_PREDECESSOR_SHA) ||
@@ -7838,6 +7913,53 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+    const requiredSurfaces = [
+      'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
+      'docs/thesis-teammate-handoff.md', 'CODEX_HANDOFF.md',
+      'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md', 'README.md',
+      'docs/deployment.md', 'docs/security-checklist.md',
+      'docs/test-evidence.md', 'docs/demo-script.md',
+      'docs/offline-map-refresh.md', 'database/supabase/README.md',
+      'database/supabase/REPOSITORY_BOUNDARIES.md', 'package.json',
+      'package-lock.json', '.env.example', '.gitignore', '.vercelignore',
+      '.dockerignore', 'Dockerfile', 'vercel.json', 'server.js',
+      'config/selectedDemoFreeze.js', 'middleware/roleAuth.js',
+      'middleware/securityHeaders.js', 'middleware/rateLimit.js',
+      'config/sessionConfig.js', 'config/supabase.js',
+      'utils/routeGeometry.js', 'controllers/adminRouteController.js',
+      'repositories/routeRepository.js', 'services/offlineGuideService.js',
+      'public/js/admin/admin-map-graph.js',
+      'public/js/offline-guide-manager.js', 'public/sw.js',
+      'views/admin/campus-map.ejs', '0027', 'utils/mediaUrl.js',
+      'controllers/mediaController.js', 'controllers/adminVrController.js',
+      'controllers/vrController.js', 'public/js/media-url.js',
+      'public/js/admin/admin-vr.js'
+    ];
+    return /initial grounding turn/i.test(t) &&
+      /senior developer\/reviewer[^.]{0,80}thesis-codebase guide/i.test(t) &&
+      /Discover the repository root/i.test(t) &&
+      /GROUNDING RESTRICTION[^.]{0,120}read-only and context-only/i.test(t) &&
+      /inventory the tools, MCP servers\/connectors[^.]{0,160}skills/i.test(t) &&
+      /campusphere-readonly-grounding/i.test(t) &&
+      /do not install or invent one/i.test(t) &&
+      /code-reviewer[^.]{0,120}later explicitly authorized review/i.test(t) &&
+      /Tool(?: or subagent)? availability does not expand authorization/i.test(t) &&
+      /Never read, print, summarize, compare, or package \.env/i.test(t) &&
+      requiredSurfaces.every((surface) => t.includes(surface)) &&
+      t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA) &&
+      t.includes(CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA) &&
+      /migration sources 0001-0027[^.]{0,80}owner-applied/i.test(t) &&
+      /old 2026-09-06 Supabase route fingerprint is historical/i.test(t) &&
+      /Google Drive[^.]{0,120}authenticated same-origin proxy/i.test(t) &&
+      /JPEG, PNG,\s*and WebP/i.test(t) &&
+      /not HEIC\/HEIF/i.test(t) &&
+      /git ls-remote/i.test(t) &&
+      /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
+      /evidence classes/i.test(t) && /Stop and wait/i.test(t) &&
+      !/[A-Z]:\\Users\\/i.test(t) && !declaresStaleOrPrematureAuthority(t);
+  }
+
   if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md',
@@ -8053,6 +8175,13 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /wait for the teammate's specific question/i.test(t);
+  }
   if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /fresh Codex grounding session/i.test(t) &&
@@ -8096,6 +8225,13 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /no delegated task may exceed this boundary/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /wait for the teammate's specific question/i.test(t);
+  }
   if (t.includes(CURRENT_DASHBOARD_IMAGE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /fresh Claude Code grounding session/i.test(t) &&
@@ -8366,17 +8502,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 197,
-  bytes: '7,301,960',
-  sha256: 'f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1',
+  files: 199,
+  bytes: '7,344,623',
+  sha256: '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 199,
-  bytes: '7,343,428',
-  sha256: '5fb5e6dd013ce961f41ba7df79eb60b4a615106b94277280036b01c17c822515',
+  bytes: '7,344,623',
+  sha256: '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -9815,6 +9951,8 @@ function runDocsCurrentGate() {
     '.env.example': readIf('.env.example'),
     'docs/deployment.md': readIf(path.join('docs', 'deployment.md')),
     'docs/offline-map-refresh.md': readIf(path.join('docs', 'offline-map-refresh.md')),
+    'docs/current-authority.md': readIf(path.join('docs', 'current-authority.md')),
+    'docs/thesis-teammate-handoff.md': readIf(path.join('docs', 'thesis-teammate-handoff.md')),
     'docs/new-session-grounding-prompts.md': readIf(path.join('docs', 'new-session-grounding-prompts.md')),
     'docs/demo-script.md': readIf(path.join('docs', 'demo-script.md')),
     'docs/test-evidence.md': readIf(path.join('docs', 'test-evidence.md')),
@@ -9825,8 +9963,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-07';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-07';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-09';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-09';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -9865,17 +10003,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-07)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-07)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
-    'plan.md': '## Current Release Continuity (2026-09-07)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-07)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-07 (Asia/Manila)\n## Current Release Continuity (2026-09-07)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-07)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-07)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-07)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-07)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-09)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-09)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
+    'plan.md': '## Current Release Continuity (2026-09-09)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-09)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-09)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-09)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-09)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-09)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -10035,9 +10173,9 @@ function runDocsCurrentGate() {
 
   for (const name of migrationDocs) {
     const doc = docs[name].replace(/\s+/g, ' ');
-    ok(`${name} records migrations through 0019`, /0001[\s\S]{0,2000}0019/.test(doc));
-    ok(`${name} records 0014-0019 owner-applied`,
-      /0014[\s\S]{0,80}0019[\s\S]{0,120}owner-applied|owner-applied[\s\S]{0,240}0014[\s\S]{0,80}0019|0001[\s\S]{0,80}0019[^\n]{0,80}all owner-applied/i.test(doc));
+    ok(`${name} records migrations through 0027`, /0001[\s\S]{0,2000}0027/.test(doc));
+    ok(`${name} records 0001-0027 owner-applied`,
+      /0001[\s\S]{0,120}0027[\s\S]{0,180}owner-applied|owner-applied[\s\S]{0,240}0001[\s\S]{0,120}0027/i.test(doc));
   }
 
   for (const name of architectureDocs) {
@@ -10362,10 +10500,39 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 7 authority handoff and current evidence boundary`,
+    ok(`${name} records the September 9 portable handoff and current evidence boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
+
+  function normalizedCurrentReleaseSection(value) {
+    const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-09)');
+    const historical = raw.indexOf('## Historical Release Continuity', start);
+    if (start < 0 || historical <= start) return '';
+    return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
+  }
+  const currentSections = currentReleaseAuthorityDocs
+    .map((name) => normalizedCurrentReleaseSection(docs[name]));
+  ok('all eleven operative September 9 release summaries are exactly synchronized',
+    currentSections.every((section) => section !== '') &&
+    new Set(currentSections).size === 1);
+
+  const currentAuthority = docs['docs/current-authority.md'];
+  const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
+  ok('canonical current authority records current source, applied 0027, evidence classes, and separate next tracks',
+    currentAuthority.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA) &&
+    /migrations `?0001`?-`?0027`? are owner-applied/i.test(currentAuthority) &&
+    /Evidence Classes/i.test(currentAuthority) &&
+    /historical evidence/i.test(currentAuthority) &&
+    /must not be described as the current live Supabase route fingerprint/i.test(currentAuthority) &&
+    /handoff track/i.test(currentAuthority) && /product-quality track/i.test(currentAuthority));
+  ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
+    /Node\.js `?>=22`?/i.test(teammateHandoff) && /npm ci/i.test(teammateHandoff) &&
+    /Repository Map/i.test(teammateHandoff) && /Technology and Security Model/i.test(teammateHandoff) &&
+    /What Is Not Included/i.test(teammateHandoff) && /Asking Codex or Claude Code/i.test(teammateHandoff) &&
+    /git archive/i.test(teammateHandoff) && !/[A-Z]:\\Users\\/i.test(teammateHandoff));
 
   const releaseFixtureSource = docs['CODEX_HANDOFF.md'];
   const releaseStart = releaseFixtureSource.indexOf(CURRENT_RELEASE_CONTINUITY_START);
@@ -10375,40 +10542,32 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 7 continuity is accepted and Git, product, freeze, package, scope, and marker drift fail closed',
+  ok('fixture: current September 9 continuity is accepted and Git, route, migration, freeze, media, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_ROLE_AWARE_SOURCE_COMMIT_SHA,
+      CURRENT_DRIVE_MEDIA_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      '621d72e',
+      '918f721',
       'eeeeeee')).length > 0 &&
-    currentReleaseContinuityProblems(replaceAllLiteral(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_CLOSEOUT_PACKAGE_SHA256,
-      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       CURRENT_SUPABASE_BUILDING_ROUTE_SHA256,
       'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      'b8e7ffb',
-      'ddddddd')).length > 0 &&
-    currentReleaseContinuityProblems(replaceAllLiteral(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
       'zero stashes',
       'one stash')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /0020`? through `?0026/i,
-      '0020 through 0027')).length > 0 &&
+      /migrations `?0001`? through `?0027`? applied/i,
+      'migrations 0001 through 0026 applied')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /owner reports manually promoting a Vercel deployment/i,
-      'No owner promotion was reported')).length > 0 &&
+      /HEIC\/HEIF must be converted/i,
+      'HEIC is accepted')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 
@@ -11759,13 +11918,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`; focused package gate `74/74`** | current reviewed source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`** | current reviewed source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; focused package gate `74/74`** | current route-color/handoff candidate source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`** | current route-color/handoff candidate source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 197 files, 7,301,960 bytes, aggregate SHA-256 `f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -13312,11 +13471,12 @@ function runScheduleDocsGate() {
   ok('.env.example names legacy schedule migrations plus owner-applied 0020 for the image runtime',
     envEx.includes('0012_room_schedules') && envEx.includes('0013_vr_hotspot_schedule_metadata') &&
     envEx.includes('0020_room_schedule_documents'));
-  ok('README documents schedule migrations and the current owner-applied 0001-0020 span',
+  ok('README documents schedule migrations and the current owner-applied 0001-0027 span',
     readme.includes('0012_room_schedules') &&
     readme.includes('0013_vr_hotspot_schedule_metadata') &&
     readme.includes('0020_room_schedule_documents') &&
-    /0001[\s\S]{0,80}0020/.test(readme));
+    /0001[\s\S]{0,120}0027/.test(readme) &&
+    /owner-applied[\s\S]{0,40}0001[\s\S]{0,40}0027/i.test(readme));
   ok('README drops stale 0001-0011-as-current migration span', !/0001.{1,3}0011/.test(readme));
   ok('deployment.md lists 0012, 0013, and 0020 in the apply order',
     deploy.includes('0012_room_schedules') && deploy.includes('0013_vr_hotspot_schedule_metadata') &&

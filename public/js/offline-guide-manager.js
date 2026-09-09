@@ -13,6 +13,10 @@
   var MOBILE_MAP_MEDIA = '(max-width: 768px)';
   var PLACEHOLDER_IMAGE = '/img/Camarines-sur-polytechnic-colleges.png';
   var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';
+  // Direction-specific route colors are semantic UI state. The written route
+  // summary remains the accessible direction cue; color is supplementary.
+  var ENTRY_ROUTE_COLOR = '#2563eb';
+  var EXIT_ROUTE_COLOR = '#dc2626';
   // Initial camera target selected for the offline map (code order: [lng, lat]).
   // This is intentionally independent of the release manifest center.
   var OFFLINE_START_CENTER = Object.freeze([123.374590, 13.405872]);
@@ -649,6 +653,7 @@
 
   function showRoute(key, options) {
     var isExit = !!(options && options.isExit);
+    var routeColor = isExit ? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;
     var route = isExit ? exitRouteFor(key) : routeFor(key);
     var building = buildingFor(key);
     var summary = byId('offlineRouteSummary');
@@ -682,10 +687,13 @@
     };
     if (map && map.getSource('offline-route')) {
       map.getSource('offline-route').setData(feature);
+      if (map.getLayer('offline-route-line') && typeof map.setPaintProperty === 'function') {
+        map.setPaintProperty('offline-route-line', 'line-color', routeColor);
+      }
       var bounds = route.geometry.reduce(function (box, point) { return box.extend(point); }, new maplibregl.LngLatBounds());
       map.fitBounds(bounds, { padding: { top: 80, right: 80, bottom: 180, left: 80 }, duration: 500, maxZoom: 18 });
     }
-    drawFallbackRoute(route);
+    drawFallbackRoute(route, routeColor);
     closeDetails();
     var close = byId('offlineRouteClose');
     if (close) close.focus();
@@ -802,7 +810,7 @@
           id: 'offline-route-line',
           type: 'line',
           source: 'offline-route',
-          paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }
+          paint: { 'line-color': ENTRY_ROUTE_COLOR, 'line-width': 4, 'line-opacity': 0.85 }
         });
         addMapMarkers(record);
       });
@@ -885,7 +893,7 @@
     });
   }
 
-  function drawFallbackRoute(route) {
+  function drawFallbackRoute(route, routeColor) {
     var group = byId('offlineFallbackRoute');
     if (!group || !activeRecord) return;
     clearNode(group);
@@ -895,7 +903,7 @@
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     line.setAttribute('points', points);
     line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', '#2563eb');
+    line.setAttribute('stroke', routeColor || ENTRY_ROUTE_COLOR);
     line.setAttribute('stroke-width', '6');
     line.setAttribute('stroke-linecap', 'round');
     line.setAttribute('stroke-linejoin', 'round');

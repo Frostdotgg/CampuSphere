@@ -1,20 +1,18 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-09-07): the Dashboard-image, five-minute-presence,
-and campus-UI commits do not change the offline publisher, bounds, release
-center, opening camera, Drive workflow, IndexedDB activation, or
-user-controlled update model. The service-worker shell is now `v40` for the
-offline entry/exit route UI and package support (following the shared
-button/theme correction and stylesheet key `v11`); that cache revision does
-not change the PMTiles release rectangle or publisher. The current reviewed
-source package is 197 files, 7,301,960 bytes, aggregate SHA-256
-`f595f888c07c45eda8faf855363be95456ae95474a293cfe57726e69ff4cffe1`
-with package boundary `74/74`. Keep this current full-package evidence separate
-from the historical offline-specific `c4de5ab` package evidence below. No
-independent Vercel deployment identity, Production smoke, or immutable
-deployed-byte identity was established. The owner reports manually promoting
-a deployment after authority commit `d294cfd`; that is owner-observed vendor
-evidence only.
+Current handoff note (2026-09-09): use `docs/current-authority.md` for release
+truth. Route-metric release `918f721` changes stored scalar metrics when a
+directed geometry is saved but does not change the offline package format:
+published entry and exit lines still use independently authored geometry.
+Google Drive media release `83f247a` also leaves the offline package boundary
+unchanged; Drive-backed pictures, schedules, and panoramas remain online-only.
+The service-worker shell is `v41`, and the PMTiles bounds, publisher,
+signed manifest, IndexedDB activation, and user-controlled update model are
+unchanged. The older 197-file package pin is historical; no current package or
+independent Production/deployed-byte identity is claimed for `83f247a`. The
+current route-color source package is 199 files, 7,344,623 bytes, aggregate
+SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`;
+this is source/package evidence, not deployed-byte proof.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps
@@ -65,7 +63,7 @@ pitch `0`, minimum zoom `12`, and maximum zoom `19`. The recenter control
 continues to use the offline guide's route origin. Commit `c4de5ab` advanced
 the service-worker shell cache to `v34` so a stale camera script was replaced;
 a later intermediate product batch advanced it to `v36`, and the current
-entry/exit route package uses `v40`, without changing the offline camera or
+entry/exit route package uses `v41`, without changing the offline camera or
 release metadata.
 
 The archive is a whole bounded campus basemap, not an OSM-to-CampuSphere data
