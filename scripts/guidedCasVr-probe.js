@@ -247,7 +247,15 @@ function leakScan(scope, bodies) {
     failures.forEach((failure) => console.error('  - ' + failure));
     process.exitCode = 1;
   }
-})().catch(() => {
-  console.error('GUIDED-CATALOG-VR-PROBE FAILED: runtime probe did not complete.');
+})().catch((error) => {
+  const name = error && error.name ? String(error.name).replace(/[^A-Za-z0-9_$.-]/g, '') : 'Error';
+  const message = error && error.message ? String(error.message)
+    .replace(/(?:https?:\/\/)[^\s]+/gi, '[url]')
+    .replace(/[A-Za-z]:\\[^\r\n]+/g, '[path]')
+    .replace(/\b(?:SUPABASE_SERVICE_ROLE|SERVICE_ROLE_KEY|CLOUDINARY_API_KEY|CLOUDINARY_API_SECRET)\b[^\s]*/gi, '[redacted]')
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[token]')
+    .slice(0, 240)
+    : 'unknown failure';
+  console.error(`GUIDED-CATALOG-VR-PROBE FAILED: runtime probe did not complete (${name}: ${message}).`);
   process.exitCode = 1;
 });

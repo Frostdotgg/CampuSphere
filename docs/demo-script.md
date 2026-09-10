@@ -41,81 +41,110 @@ Production smoke passed `127/127`. This does not authorize a live demonstration
 or prove complete immutable deployed-package equality.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09 post-deployment verification)
+## Current Release Continuity (2026-09-10 Guided-VR route release; owner promotion pending)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
-records below are historical and must not override it. At the start of this
-authority synchronization, Git branch `main` had local `HEAD`,
-`origin/main`, and remote `main` equal at Git commit SHA-1
-`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
-index/worktree and zero stashes. The final documentation commit contains this
-self-referential block, so fresh sessions must recompute its full SHA.
+records below are historical and must not override it. The reusable grounding
+prompts remain in `docs/new-session-grounding-prompts.md`. At the start of this
+release, Git branch `main` had local `HEAD`, `origin/main`, and remote `main`
+equal at Git commit SHA-1 `05b0545ccefbf282c365244c7f9edf8f2be5810c`
+(`05b0545`). The index was empty, the worktree contained only the owner-requested
+`config/guidedVrRoutes.js` modification, and there were zero stashes. The owner
+authorized the bounded Guided-VR route release, exact local MySQL mapping parity,
+source/freeze/authority synchronization, one commit, and a push to `main`. The
+final release commit contains this self-referential block, so fresh sessions
+must recompute its full SHA.
 
-Current pushed lineage includes role-aware source `5d505e9`, directional
-routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
-handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
-and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
-applied, all 50 directed-edge metrics were corrected in place, and the owner
-confirmed the later redrawn routes as final and visually correct. Entry routes
-remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
-cache key remains `v41`. Migration `0027` and final routes must not be
-reapplied or changed without separate explicit authorization.
+Current lineage includes role-aware source `5d505e9`, directional routing
+`23c5536`, route metrics `918f721`, Drive media `83f247a`, portable handoff
+`86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`, independently
+verified Production authority `7b4e818`, and its documentation successor
+`05b0545`. The new release changes the Guided-VR policy and its evidence only;
+it adds no public URL, HTTP payload, database schema, migration, authentication,
+or authorization interface.
 
-A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
-snapshot: fingerprint SHA-256
-`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
-and expanded-freeze manifest SHA-256
-`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
-The route-color source package remains 199 files, 7,344,623 bytes, aggregate
-SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
-These are recorded route/source-package evidence, not runtime write locks or
-complete deployed-byte proof.
+Academic Building II now follows the owner-selected corridor and completes in
+31 steps at `scene-acad-2-1st-floor-17`. MULTI-PURPOSE-BUILDING I follows the
+same corridor through road scenes 33, 33-5, 37, 38, 38-5, 54, 53, and 57-60,
+then continues through 61-64 to `scene-audit-building-006`, completing in 35
+steps. Green Building follows road scenes 33, 33-5, 37, 38, and 38-5 and now
+completes in 25 steps at `scene-green-1st-floor-1`.
 
-Independent Vercel inspection established deployment
-`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
-`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
-and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
-`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
-session-store legs completed and final canonical session residue passed
-`18/18`.
+The owner-authorized Supabase destination mapping and the matching local MySQL
+rehearsal mapping now map `scene-green-1st-floor-1` to `green` and leave the
+former `scene-green-1st-floor-7` arrival unmapped. Four owner-confirmed hotspots
+are intentional owner-managed Supabase data: the bidirectional Guard House walk
+pair and the bidirectional road-32/CITD-floor-8 pair. No other database write is
+part of this release.
 
-The corrected bounded anonymous, read-only, GET-only Production smoke passed
-`127/127`. Public routes and health responded as expected, protected HTML
-redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
-application responses set no cookie and retained their expected security
-headers. Remote bytes exactly matched Git `7b4e818` blobs for
-`public/js/offline-guide-manager.js`, `public/sw.js`,
-`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
-evidence confirms the deployed route colors and `v41`, but it does not prove
-immutable equality for the entire deployed package.
+The refreshed BE.6 snapshot keeps MySQL at 34 buildings, 44 route nodes, 100
+directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid
+geometries, 671 scenes, and 1,397 hotspots. Supabase remains at 25 buildings, 26
+route nodes, 50 directed edges, 25 reverse pairs, zero exact reverse geometries,
+50 valid geometries, and 664 scenes, and now records the four owner-confirmed
+rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations,
+484 configured steps, and 100 unique scene keys. The Supabase building/route
+fingerprint SHA-256 is
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`;
+the refreshed expanded-freeze manifest SHA-256 is
+`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
+These fingerprints are QA records, not runtime write locks or complete
+deployed-byte proof.
 
-The first ad hoc Production checker exited nonzero because it required
-`X-Frame-Options: DENY` instead of the established CSP
-`frame-ancestors 'none'` control, expected dynamic Helmet headers on
-Vercel-served static files, and searched `public/sw.js` for color literals
-owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
-negatives, not application failures; the corrected `127/127` result is the
-accepted bounded smoke.
+Migrations `0001`-`0027` and their sources are unchanged. Migration `0027`
+remains owner-applied, and the 2D route graph and final owner-confirmed route
+drawings remain unchanged. Migration `0027` and those routes must not be
+reapplied or changed without separate explicit authorization. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), written direction labels
+remain primary, and the service-worker cache key remains `v41`.
 
-Evidence classes remain separate. Source/local QA, owner-observed migration and
-route/media UAT, independently verified Vercel deployment metadata, bounded
-Production behavior, sampled deployed bytes, and external client/milestone
-acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
-technical Production baseline and is independently post-deployment verified;
-the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
-did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
-administrator writes, or complete immutable package equality. There is still no
+The refreshed source package is 199 files, 7,345,009 bytes, aggregate SHA-256
+`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
+Fresh full local `npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and
+Supabase session-store legs completed, final canonical session residue passed
+`18/18`, and the final BE.6 double-read passed `46/46`. All five `npm run qa`
+stages were green with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
+vulnerabilities. The focused package boundary passed `74/74`. The rebuilt
+Supabase-backed Docker test application returned HTTP 200 from `/healthz`, and
+the authenticated guest Chrome checks reached Academic Building II at `31/31`,
+MULTI-PURPOSE-BUILDING I at `35/35`, and Green Building at `25/25` with the new
+arrival panorama and truthful completion message.
+
+Evidence classes remain separate. The Green mapping transfer and four hotspot
+pairs are owner-authorized or owner-confirmed data evidence; the Docker, Chrome,
+freeze, package, and quality-gate results are current localhost/source evidence.
+Vercel deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` for full source commit Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` remains independently verified as
+`Ready`, `Production`, and `Current` for
+`https://campusphere-cspc.vercel.app`. The new Guided-VR source release is not
+yet Production-verified.
+Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is the deployed baseline for
+Production.
+
+The earlier corrected bounded anonymous, read-only, GET-only Production smoke
+passed `127/127` for `7b4e818`; protected HTML redirected to `/auth`, protected
+JSON returned fixed `401` JSON, checked responses set no cookie, and the four
+sampled assets—`public/js/offline-guide-manager.js`, `public/sw.js`, `public/css/styles.css`, and `public/js/public-nav.js`—retained their expected security and source bytes. This remains
+sampled-byte evidence and does not prove immutable equality for the entire
+deployed package. The first ad hoc Production checker exited nonzero because it
+required `X-Frame-Options: DENY` instead of CSP `frame-ancestors 'none'`, expected
+dynamic Helmet headers on Vercel-served static files, and used the wrong file for
+route-color literals; those were verifier-scope false negatives, not application
+failures.
+
+`7b4e818` remains the current independently post-deployment-verified technical
+Production baseline until the owner promotes a successor;
+historical Git commit SHA-1 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is historical. That smoke did not
+exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete deployed-package equality, and there is no
 recorded real CSPC instructor Gmail end-to-end OAuth observation.
 
-Fresh owner and portable teammate prompts in
-`docs/new-session-grounding-prompts.md` must discover the repository root,
-ground read-only, recompute live truth, preserve evidence classes, and stop for
-a focused task. The immediate authority track is review and separate
-commit/push authorization for this synchronization. Afterward, the next product
-move is an owner-selected bug fix or feature. If any future verification or
-smoke fails, stop and ask the owner rather than automatically rolling back,
-patching, promoting, or redeploying.
-
+The owner alone will promote the pushed release in Vercel. Deployment identity
+verification and any bounded Production smoke require separate authorization
+after that owner action. If verification or smoke fails, stop and ask the owner
+rather than automatically rolling back, patching, promoting, or redeploying.
 ## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
@@ -1181,8 +1210,8 @@ buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact
 reverse geometries, 100 valid geometries, and 33 routable destinations;
 Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 reverse
 pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable
-destinations; Guided VR covers 25 active destinations, 472
-configured steps, and 99 unique scene keys.
+destinations; Guided VR covers 25 active destinations, 484
+configured steps, and 100 unique scene keys.
 
 Arrival requires the configured natural destination node, stored start and
 arrival scene mappings, an approved Cloudinary delivery URL and public ID, and

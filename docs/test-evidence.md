@@ -42,81 +42,110 @@ authority commit `d294cfd`. This is owner-observed vendor evidence, not an
 independent deployment-identity or Production-behavior result.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-09 post-deployment verification)
+## Current Release Continuity (2026-09-10 Guided-VR route release; owner promotion pending)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
-records below are historical and must not override it. At the start of this
-authority synchronization, Git branch `main` had local `HEAD`,
-`origin/main`, and remote `main` equal at Git commit SHA-1
-`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`), with a clean
-index/worktree and zero stashes. The final documentation commit contains this
-self-referential block, so fresh sessions must recompute its full SHA.
+records below are historical and must not override it. The reusable grounding
+prompts remain in `docs/new-session-grounding-prompts.md`. At the start of this
+release, Git branch `main` had local `HEAD`, `origin/main`, and remote `main`
+equal at Git commit SHA-1 `05b0545ccefbf282c365244c7f9edf8f2be5810c`
+(`05b0545`). The index was empty, the worktree contained only the owner-requested
+`config/guidedVrRoutes.js` modification, and there were zero stashes. The owner
+authorized the bounded Guided-VR route release, exact local MySQL mapping parity,
+source/freeze/authority synchronization, one commit, and a push to `main`. The
+final release commit contains this self-referential block, so fresh sessions
+must recompute its full SHA.
 
-Current pushed lineage includes role-aware source `5d505e9`, directional
-routing `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable
-handoff `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`,
-and owner-continuity authority `7b4e818`. Migration `0027` remains owner-
-applied, all 50 directed-edge metrics were corrected in place, and the owner
-confirmed the later redrawn routes as final and visually correct. Entry routes
-remain blue (`#2563eb`), exit routes red (`#dc2626`), and the service-worker
-cache key remains `v41`. Migration `0027` and final routes must not be
-reapplied or changed without separate explicit authorization.
+Current lineage includes role-aware source `5d505e9`, directional routing
+`23c5536`, route metrics `918f721`, Drive media `83f247a`, portable handoff
+`86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`, independently
+verified Production authority `7b4e818`, and its documentation successor
+`05b0545`. The new release changes the Guided-VR policy and its evidence only;
+it adds no public URL, HTTP payload, database schema, migration, authentication,
+or authorization interface.
 
-A 2026-09-09 SELECT-only double-read remains the current recorded Supabase route
-snapshot: fingerprint SHA-256
-`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`
-and expanded-freeze manifest SHA-256
-`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
-The route-color source package remains 199 files, 7,344,623 bytes, aggregate
-SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
-These are recorded route/source-package evidence, not runtime write locks or
-complete deployed-byte proof.
+Academic Building II now follows the owner-selected corridor and completes in
+31 steps at `scene-acad-2-1st-floor-17`. MULTI-PURPOSE-BUILDING I follows the
+same corridor through road scenes 33, 33-5, 37, 38, 38-5, 54, 53, and 57-60,
+then continues through 61-64 to `scene-audit-building-006`, completing in 35
+steps. Green Building follows road scenes 33, 33-5, 37, 38, and 38-5 and now
+completes in 25 steps at `scene-green-1st-floor-1`.
 
-Independent Vercel inspection established deployment
-`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` on branch `main` and full source commit
-`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` as `Ready`, `Production`,
-and `Current` for `https://campusphere-cspc.vercel.app`. A fresh full local
-`npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and Supabase
-session-store legs completed and final canonical session residue passed
-`18/18`.
+The owner-authorized Supabase destination mapping and the matching local MySQL
+rehearsal mapping now map `scene-green-1st-floor-1` to `green` and leave the
+former `scene-green-1st-floor-7` arrival unmapped. Four owner-confirmed hotspots
+are intentional owner-managed Supabase data: the bidirectional Guard House walk
+pair and the bidirectional road-32/CITD-floor-8 pair. No other database write is
+part of this release.
 
-The corrected bounded anonymous, read-only, GET-only Production smoke passed
-`127/127`. Public routes and health responded as expected, protected HTML
-redirected to `/auth`, protected JSON returned fixed `401` JSON, and checked
-application responses set no cookie and retained their expected security
-headers. Remote bytes exactly matched Git `7b4e818` blobs for
-`public/js/offline-guide-manager.js`, `public/sw.js`,
-`public/css/styles.css`, and `public/js/public-nav.js`. This sampled-byte
-evidence confirms the deployed route colors and `v41`, but it does not prove
-immutable equality for the entire deployed package.
+The refreshed BE.6 snapshot keeps MySQL at 34 buildings, 44 route nodes, 100
+directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid
+geometries, 671 scenes, and 1,397 hotspots. Supabase remains at 25 buildings, 26
+route nodes, 50 directed edges, 25 reverse pairs, zero exact reverse geometries,
+50 valid geometries, and 664 scenes, and now records the four owner-confirmed
+rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations,
+484 configured steps, and 100 unique scene keys. The Supabase building/route
+fingerprint SHA-256 is
+`a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`;
+the refreshed expanded-freeze manifest SHA-256 is
+`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
+These fingerprints are QA records, not runtime write locks or complete
+deployed-byte proof.
 
-The first ad hoc Production checker exited nonzero because it required
-`X-Frame-Options: DENY` instead of the established CSP
-`frame-ancestors 'none'` control, expected dynamic Helmet headers on
-Vercel-served static files, and searched `public/sw.js` for color literals
-owned by `public/js/offline-guide-manager.js`. Those were verifier-scope false
-negatives, not application failures; the corrected `127/127` result is the
-accepted bounded smoke.
+Migrations `0001`-`0027` and their sources are unchanged. Migration `0027`
+remains owner-applied, and the 2D route graph and final owner-confirmed route
+drawings remain unchanged. Migration `0027` and those routes must not be
+reapplied or changed without separate explicit authorization. Entry routes
+remain blue (`#2563eb`), exit routes red (`#dc2626`), written direction labels
+remain primary, and the service-worker cache key remains `v41`.
 
-Evidence classes remain separate. Source/local QA, owner-observed migration and
-route/media UAT, independently verified Vercel deployment metadata, bounded
-Production behavior, sampled deployed bytes, and external client/milestone
-acceptance are distinct. `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is now the current deployed
-technical Production baseline and is independently post-deployment verified;
-the earlier `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical. The anonymous smoke
-did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
-administrator writes, or complete immutable package equality. There is still no
+The refreshed source package is 199 files, 7,345,009 bytes, aggregate SHA-256
+`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
+Fresh full local `npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and
+Supabase session-store legs completed, final canonical session residue passed
+`18/18`, and the final BE.6 double-read passed `46/46`. All five `npm run qa`
+stages were green with `QUALITY-GATES OK`, `DB-PERF-GATE OK`,
+`[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and zero audit
+vulnerabilities. The focused package boundary passed `74/74`. The rebuilt
+Supabase-backed Docker test application returned HTTP 200 from `/healthz`, and
+the authenticated guest Chrome checks reached Academic Building II at `31/31`,
+MULTI-PURPOSE-BUILDING I at `35/35`, and Green Building at `25/25` with the new
+arrival panorama and truthful completion message.
+
+Evidence classes remain separate. The Green mapping transfer and four hotspot
+pairs are owner-authorized or owner-confirmed data evidence; the Docker, Chrome,
+freeze, package, and quality-gate results are current localhost/source evidence.
+Vercel deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` for full source commit Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` remains independently verified as
+`Ready`, `Production`, and `Current` for
+`https://campusphere-cspc.vercel.app`. The new Guided-VR source release is not
+yet Production-verified.
+Git commit SHA-1
+`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` is the deployed baseline for
+Production.
+
+The earlier corrected bounded anonymous, read-only, GET-only Production smoke
+passed `127/127` for `7b4e818`; protected HTML redirected to `/auth`, protected
+JSON returned fixed `401` JSON, checked responses set no cookie, and the four
+sampled assets—`public/js/offline-guide-manager.js`, `public/sw.js`, `public/css/styles.css`, and `public/js/public-nav.js`—retained their expected security and source bytes. This remains
+sampled-byte evidence and does not prove immutable equality for the entire
+deployed package. The first ad hoc Production checker exited nonzero because it
+required `X-Frame-Options: DENY` instead of CSP `frame-ancestors 'none'`, expected
+dynamic Helmet headers on Vercel-served static files, and used the wrong file for
+route-color literals; those were verifier-scope false negatives, not application
+failures.
+
+`7b4e818` remains the current independently post-deployment-verified technical
+Production baseline until the owner promotes a successor;
+historical Git commit SHA-1 `fea3b2e11c6331eddc1ee091b165427d8e0218d7` is historical. That smoke did not
+exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
+administrator writes, or complete deployed-package equality, and there is no
 recorded real CSPC instructor Gmail end-to-end OAuth observation.
 
-Fresh owner and portable teammate prompts in
-`docs/new-session-grounding-prompts.md` must discover the repository root,
-ground read-only, recompute live truth, preserve evidence classes, and stop for
-a focused task. The immediate authority track is review and separate
-commit/push authorization for this synchronization. Afterward, the next product
-move is an owner-selected bug fix or feature. If any future verification or
-smoke fails, stop and ask the owner rather than automatically rolling back,
-patching, promoting, or redeploying.
-
+The owner alone will promote the pushed release in Vercel. Deployment identity
+verification and any bounded Production smoke require separate authorization
+after that owner action. If verification or smoke fails, stop and ask the owner
+rather than automatically rolling back, patching, promoting, or redeploying.
 ## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
@@ -1381,7 +1410,7 @@ require explicit manual promotion before they replace the live alias.
 
 | Gate | Command | Expected result | Status | Evidence reference |
 | --- | --- | --- | --- | --- |
-| Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) | `npm test` | All application, security, dataset, and session checks pass | **4850/4850 PASS - accepted local evidence; exit 0; `QUALITY-GATES OK`** | Fresh 2026-09-06 `npm test` registered `4850/4850` checks and produced 4,850 PASS with zero FAIL lines; final canonical session residue is `18/18`. Focused profile-image `27/27`, presence `34/34`, BE.6 `46/46`, ICTU Docker `49/49`, package `74/74`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities` are green. No account/profile/campus/freeze data was changed to make the checks pass; presence timestamps and verification sessions followed normal application behavior; this source push is owner-authorized |
+| Full contract suite (2026-09-10 Guided-VR route release) | `npm test` | All application, security, dataset, and session checks pass | **4850/4850 PASS - accepted local evidence; exit 0; `QUALITY-GATES OK`** | Fresh 2026-09-10 `npm test` registered `4850/4850` checks and produced 4,850 PASS with zero FAIL lines; final canonical session residue is `18/18`. Focused Guided-VR resolution, BE.6 `46/46`, Docker health, guest Chrome route acceptance, package `74/74`, `DB-PERF-GATE OK`, `[supabase-smoke] PASS`, `IDENTITY-CONSTRAINTS OK`, and `found 0 vulnerabilities` are green. The owner authorized the Green mapping transfer and confirmed the four intentional Supabase hotspots; verification sessions followed supported lifecycle cleanup; this source push is owner-authorized |
 | Full contract suite (M12.P1-D6/OFF.6 accepted local candidate) — historical/superseded | `npm test` | Preserve the previously accepted all-green evidence as history | **Historical/superseded: 4687/4687 PASS — accepted local evidence; exit 0** | September 2 final transcript `artifacts/npm-test-2026-09-02-final.txt`, SHA-256 `d16a97e78d339f1213a41e1eafb18433083d432afe42d0089e66f755377a829d`: exactly 4,687 `[PASS]` lines, zero `[FAIL]` lines, `QUALITY-GATES OK`, ordinary D6 `266/266` with both required comparison legs, BE.6 `46/46`, and embedded residue `18/18`; retained as historical evidence after the presence closeout |
 | Full contract suite (September 2 freeze-drift run) — historical/rejected | `npm test` | Preserve the fail-closed dataset-freeze result without promoting it | **Historical/rejected: 4,683 PASS, four FAIL, exit 1, `QUALITY-GATES FAILED: 1`** | `artifacts/npm-test-2026-09-02.txt`, SHA-256 `5eee0c4a8e2935f8eddce598cf2c5de62dc54af2ad6f2933d1a98825f51f0edd`: three BE.6 data-freeze assertions plus the parent probe-exit assertion failed; `BE6-DATASET-FREEZE-PROBE FAILED: 3`; embedded residue was still `18/18`. The owner later removed the unintended 26th Supabase building; Codex did not mutate the database. The refreshed intended freeze and accepted final transcript above supersede this run |
 | Full contract suite (rejected-run analyzer first execution) — historical/rejected | `npm test` | Preserve the fail-closed analyzer defect without promoting the otherwise green runtime matrix | **Historical/rejected: 4640/4641 checks passed; one `docs-current` failure; exit 1; no `QUALITY-GATES OK`** | Every runtime/database/catalog probe and the embedded canonical residue gate were green, including `18/18`. The new analyzer inspected only the first 4,628 mention in the evidence ledger instead of accepting a later exact evidence scope, so the combined live authority assertion failed closed. The analyzer now evaluates every bounded 4,628 scope and requires at least one transcript-faithful exact account. No session or data correction was required; this red run is not promoted |
@@ -1393,7 +1422,7 @@ require explicit manual promotion before they replace the live alias.
 | Full contract suite (bounded review-finding remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4623/4624 checks passed; one `docs-current` failure; exit 1; no `QUALITY-GATES OK`** | Runtime, dual-backend catalog, supported fixture cleanup, and embedded `18/18` residue were green. The sole failure was the reusable Codex prompt lacking an explicit review-open sentence within the fail-closed authority scope; corrected before the exact green row above |
 | Full contract suite (Guided-VR catalog-remediation pre-disclosure candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/pre-disclosure: 4609/4609 PASS; exit 0; does not validate the later failure-disclosure documentation bytes** | One `QUALITY-GATES OK`, zero `[FAIL]` lines, and clean embedded `18/18` residue before QA. Superseded by the current exact row after the bounded session correction and fresh matrix |
 | Full contract suite (Guided-VR catalog-remediation measurement) — historical/rejected | `npm test` | Measure the synchronized total without promoting a red execution | **Historical/rejected: 4,591 PASS plus eight documentation-only failures; exit 1; no `QUALITY-GATES OK`** | Every runtime/database/catalog probe and embedded `18/18` residue postcondition passed. Failures were confined to secret-label/current routing wording, reusable-prompt currency, two stale-current safety rows, and three unset suite/QA evidence contracts. This run is retained only as measurement evidence |
-| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; focused package gate `74/74`** | Current route-color/handoff candidate source/package evidence; this is not immutable deployed-byte proof and does not authorize deployment. Historical pushed `c4de5ab` offline-camera package: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. Historical `38905b7` package: 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
+| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | Current repository-byte allowlist inventory matches both independent live pins | **199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`; focused package gate `74/74`** | Current Guided-VR release source/package evidence; this is not immutable deployed-byte proof and does not authorize deployment. Historical pushed `c4de5ab` offline-camera package: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. Historical `38905b7` package: 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. Accepted local D6/OFF predecessor: 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. The `+3` files versus the original offline candidate are `services/adminAnalyticsService.js`, `repositories/analyticsRepository.js`, and `public/js/admin/dashboard-analytics.js`; `scripts/adminDashboardAnalytics-probe.js` is denied by the allowlist and is not packaged. **Historical/rejected after the independent review, never accepted:** the first D6 candidate at 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd`, 15-file manifest `a6202b0f2106f244d58a41fbc1d646f360356df299790d5f88d44fe2729a2bc2`. **Historical/blocked, never accepted:** the OFF.3-OFF.5 2D offline-navigation candidates at package hashes `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b`, `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783`, `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523`, and `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. Accepted technical Production predecessor remains 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency second execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,774/3,777 checks passed, three `docs-current` failures, exit 1; no `QUALITY-GATES OK`** | The frozen candidate passed its hash/Git preflight, syntax checks, and focused logout probe at `75/75`. `npm test` then completed once and failed only the three recorded documentation contracts: `docs/test-evidence.md` did not distinguish the deployed runtime baseline from the documentation-only commit, and both `docs/test-evidence.md` and `docs/deployment.md` carried a claim-scoped stale deployment conflict. Embedded residue and BE.6 reported `18/18` and `46/46`, but stop-on-red prevented `npm run qa` and the final independent `24/24 -> 18/18 -> 46/46`; no retry was run, and clean embedded checks do not promote the red suite |
 | Full contract suite (M12.P1 SEC-51 authority/audit/total-consistency first execution) — historical/rejected | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/rejected: 3,742/3,772 checks passed, 30 failed, exit 1; no `QUALITY-GATES OK`** | The single execution exposed static documentation/analyzer contract failures plus the long-hex false positive. It did not establish acceptance evidence and was not retried. The focused logout probe had already passed `75/75`, and the test transcript emitted zero escaped logout-destroy error lines; those facts do not convert this red suite into a pass |
 | Full contract suite (M12.P1 SEC-51 gate-hardening correction candidate) — historical/superseded | `npm test` | Zero `[FAIL]` lines, `QUALITY-GATES OK`, and zero escaped `Logout error:` lines | **Historical/superseded: `3760/3760` PASS — later found FAIL-OPEN by independent Codex review on contradictory-scope deployed SHAs and superseded by the correction row above; retained as history, NOT accepted evidence** | `+5` versus the superseded `3755`: five separately named rejecting fixtures for five fail-open cases found by independent Codex adversarial review, which passed only 7 of 12 cases. Two cases escaped topic detection — a stale claim after a semicolon, and a stale claim in the following sentence — because topic matching was per-claim, so a clause that did not repeat the topic was skipped. Three more defeated SHA co-occurrence: a row or prose statement naming a DIFFERENT 40-character SHA as the deployed baseline while mentioning the expected SHA nearby for comparison. Both classes are now closed. Topic is matched on the containing EVIDENCE SCOPE — one table row, or one prose paragraph — so a following claim cannot escape by omitting the topic, while scope boundaries stop context crossing into an unrelated row or paragraph. A new pure `claimBindsShaToDeployedBaseline()` replaces co-occurrence with explicit binding: the claim must be non-historical, contain exactly ONE full 40-character SHA, that SHA must be the expected one, and it must be grammatically attached to the deployed production baseline. Historical and past-bounded exemptions remain per-claim. The pre-existing regression fixture is restored verbatim rather than reworded to suit the detector. Superseded: `3755/3755` was recorded as green but is historical/superseded — independent adversarial review later found it fail-open, so it is retained as history and is NOT accepted evidence |
@@ -1408,7 +1437,7 @@ require explicit manual promotion before they replace the live alias.
 | Full QA aggregate (pre-independent-review remediation candidate) — historical/superseded | `npm run qa` | Preserve the prior five-stage result without treating it as current-byte evidence | **Historical/superseded: 4624/4624 PASS — all five stages; exit 0** | Validated the prior exact 31-file candidate; superseded by the current bounded-remediation matrix |
 | Full QA aggregate (Guided-VR catalog-remediation first attempt) — historical/rejected | `npm run qa` | Retain a failed chained attempt without promoting partial output | **Historical/rejected: contract stage stopped at 4,594 PASS plus five failed assertions; later QA stages did not run** | Public schedule-display probe exited 1. Its immediate isolated rerun passed MySQL and Supabase, canonical residue remained `18/18`, and the single disclosed full-QA retry passed |
 | Full QA aggregate (M12.P1 SEC-51 gate-hardening attempt against the `3755` candidate) — historical/superseded, RED | `npm run qa` | Contracts, DB perf, Supabase smoke, identity, and audit all green | **RED — 17 failures, exit 1; NOT accepted evidence** | Executed once against the prior `3755` candidate bytes and retained here rather than erased. All 17 failures were confined to the Supabase leg of the `adminCampusMapSearchFilter` probe (16 assertions plus its exit-1 line). The same probe exited 0 inside the `npm test` run minutes earlier, and the earlier attempt separately hit `[publicRoadRouteRendering-probe] FATAL: fetch failed` on the Supabase leg, so the condition presented as transient and external. It was NOT reproduced as an application defect, and no application code or probe was changed to address it. The run was not retried. The run's own embedded residue gate still reported `18/18` and the independent ordered postconditions were `24/24 -> 18/18 -> 46/46`; **clean postconditions do not convert a red QA run into passing evidence**. The earlier `3752/3752`, `3728/3728`, `3704/3704`, and `3685/3685` contract totals are historical/superseded and preserved in their own rows above |
-| M12.P1 SEC-51 pilot-surface correction (three findings) | `pilot-readiness` gate inside `npm test`, local browser acceptance at 1440x900 and 390x844, and production smoke history | Truthful landing role mapping; a shared, accessible anonymous navbar; an auth-scoped in-card theme control | **Present in deployed technical Production baseline `fea3b2e11c6331eddc1ee091b165427d8e0218d7`; original independent acceptance retained** | The corrections remain present on the current deployment. Historical/superseded: before `fea3b2e`, they were also live on `0627bf78228148e3f989275810c333c16a1f3356`; their detailed independent SEC-51 browser acceptance originally ran against `d422b54393f659125912ec5c84ae7927c2533288`. The current bounded anonymous GET-only verification does not restate authenticated profile-modal or schedule-audit coverage. The implementation and original local verification detail remain retained below |
+| M12.P1 SEC-51 pilot-surface correction (three findings) | `pilot-readiness` gate inside `npm test`, local browser acceptance at 1440x900 and 390x844, and production smoke history | Truthful landing role mapping; a shared, accessible anonymous navbar; an auth-scoped in-card theme control | **Present in deployed technical Production baseline `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2`; original independent acceptance retained** | The corrections remain present on the current deployment. Historical/superseded: before `7b4e818`, they were also live on `fea3b2e11c6331eddc1ee091b165427d8e0218d7` and `0627bf78228148e3f989275810c333c16a1f3356`; their detailed independent SEC-51 browser acceptance originally ran against `d422b54393f659125912ec5c84ae7927c2533288`. The current bounded anonymous GET-only verification does not restate authenticated profile-modal or schedule-audit coverage. The implementation and original local verification detail remain retained below |
 | Independent `npm test` verification of the recorded R8 evidence commit — historical/superseded | `npm test` | Zero `[FAIL]` lines and `QUALITY-GATES OK` | **RED — seven spawned-gate failures; historical/superseded and explicitly NOT accepted evidence** | One independent verification run encountered transient Supabase read unreadability and ended with seven spawned-gate failures. Its ordered postcondition reading was `23/24 -> 17/18 -> 46/46`: exactly one unexpired persisted Supabase session remained for the canonical regression student, while MySQL and the other three Supabase identities were clean. A separately owner-authorized bounded maintenance restoration then reproduced that exact reading, verified the identity resolved to exactly one row with the intended role, and called `revokeUserSessions()` exactly once for that verified identity through `services/sessionRevocation.js` — no direct SQL, no direct session-row deletion, no dataset or account change. An independent SELECT-only recount returned zero unexpired sessions for all four canonical identities, and the ordered postconditions returned to `24/24 -> 18/18 -> 46/46` with the frozen BE.6 fingerprint unchanged. Neither the red run nor the maintenance restoration is promoted into M12.P1-R8 acceptance evidence |
 | M12.P1-R8 local authenticated exposure matrix (clean bounded re-execution) | Browser-driven, both runtime modes | Role denial, registration trust, logout isolation, admin CRUD with supported cleanup, map/routing, full/partial VR coverage, and desktop/mobile overflow/CSP/console checks, with a separate fresh browser context per role | **126/126 PASS, zero failures — MySQL 34/34 plus a 14/14 supplement; Supabase 64/64 plus a 14/14 supplement** | Clean bounded re-execution under a separate owner authorization. It replaces the contaminated first execution recorded in the row below, which is retained as history and is not accepted. A separate fresh `BrowserContext` per role, each proven to carry zero cookies and zero web storage BEFORE authentication. Every authenticated session was registered with `scripts/probeSessionLifecycle.js` immediately after login and terminated exactly once through `terminateAll()` and the real CSRF-protected `POST /logout`, each with a former-cookie replay-denial proof. No `429` occurred; no failed logout was retried; `services/sessionRevocation.js` was never imported or called; no session row was deleted directly and no database cleanup was performed. MySQL exercises administrator and student (the only deterministic local fixtures); instructor and guest are exercised in Supabase, where all four regression identities exist. The supplement covers SEC-08 (the session identifier changes across authentication), SEC-09 (a tampered cookie AND a replayed pre-logout cookie are both rejected), SEC-10 (four SQL-like search payloads leak no SQL/driver/stack text), and SEC-11 (a stored script-and-onerror payload does not execute, is never emitted as a raw script element, and raises zero CSP violations). Every fixture was deleted through the same admin API that created it. Final ordered postconditions were `24/24 -> 18/18 -> 46/46` |
 | M12.P1-R8 local authenticated exposure matrix (first execution) — historical/superseded | Browser-driven, both runtime modes | Same scenario set as the clean re-execution above | **Historical/superseded — explicitly NOT accepted evidence, whatever totals it produced** | Recorded so the defect is not silently erased. Repeated matrix runs exhausted the in-memory `preParseAuthLimiter` budget, the run began receiving `429` responses with a `Retry-After`, and one throttled `POST /logout` left an orphaned MySQL administrator session. That session was cleared by calling `revokeUserSessions` DIRECTLY instead of through the supported logout interface. Direct revocation is outside the supported-interface rule this evidence class depends on, so that run cannot be accepted on its numbers. It is superseded by the clean bounded re-execution above, which hit no `429`, retried no logout, never imported or called `services/sessionRevocation.js`, and deleted no session row directly |
@@ -1515,7 +1544,7 @@ do not establish a Production capacity or deployment-byte claim.
 | Admin CRUD | News/events/FAQs | Create, edit, list, delete a demo item | JSON contracts return `{ success: true }`; UI reflects changes | **PASS (clean bounded matrix)** | M12.P1-R8 clean bounded exposure matrix, both runtime modes: admin CRUD completed create -> read-back -> edit -> delete with a real list read proving zero residue. Every fixture was deleted through the same admin API that created it |
 | Admin CRUD | Invalid payload | Submit missing/invalid required fields | Sanitized 400 JSON/HTML response; no raw stack or SQL | **PASS (automated)** | Named live contract assertions inside `npm test`, in both runtime modes: malformed JSON returns `400 {success:false}`, an invalid FAQ payload returns `400 {success:false}`, and invalid building/VR-scene `image_url` and `cloudinary_public_id` values each return `400`. The same section scans every captured error body for raw stack, SQL, and driver text |
 | Map search | Search known building/route | Search a seeded building and route term | Results appear, capped, no private data | **PARTIAL — cap enforcement and injection safety proven; a positive "results appear" browser search was not separately recorded** | `npm test` asserts the over-cap contract (`/api/search` with an over-length query returns `400 {success:false}`) in both runtime modes, and the matrix SEC-10 supplement drove four SQL-like search payloads that leaked no SQL, driver, or stack text. Neither source records a positive seeded-term result set as a distinct measured check, so the "results appear" half of this row is not claimed as executed |
-| Route/pathfinding | Road-following destination route | Select destinations from the map and compare the drawn line against the API response | The line starts at the Guard House, matches API `route.geometry`, follows campus roads, and steps match `route.segments` | **PASS (clean bounded matrix + named automated probes; current catalog-remediation freeze)** | M12.P1-R8 clean bounded exposure matrix exercised destination routing from the map in both runtime modes and found it truthful. The in-suite road-routing probes (topology, stored geometry, API assembly, public Leaflet/MapLibre rendering, admin geometry editing, and map-to-guided-VR flow) assert the Guard-House origin, geometry/segment correspondence, and cross-backend parity; the standalone SELECT-only `routeGeometryData-probe.js` independently verifies the backend-specific complete graph, geometry, reverse-pair, and routability counts. The expanded BE.6 freeze remains `46/46`: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys |
+| Route/pathfinding | Road-following destination route | Select destinations from the map and compare the drawn line against the API response | The line starts at the Guard House, matches API `route.geometry`, follows campus roads, and steps match `route.segments` | **PASS (clean bounded matrix + named automated probes; current catalog-remediation freeze)** | M12.P1-R8 clean bounded exposure matrix exercised destination routing from the map in both runtime modes and found it truthful. The in-suite road-routing probes (topology, stored geometry, API assembly, public Leaflet/MapLibre rendering, admin geometry editing, and map-to-guided-VR flow) assert the Guard-House origin, geometry/segment correspondence, and cross-backend parity; the standalone SELECT-only `routeGeometryData-probe.js` independently verifies the backend-specific complete graph, geometry, reverse-pair, and routability counts. The expanded BE.6 freeze remains `46/46`: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys |
 | VR route | Guided scene coverage and hotspots | Open a fully mapped route and a partially mapped destination | Hotspots work; arrival requires the configured natural destination, stored endpoint mappings, approved delivery metadata, and exact bidirectional adjacent-scene links; any incomplete contract ends with an explicit notice | **PASS (clean bounded matrix + named automated probes)** | M12.P1-R8 clean bounded exposure matrix confirmed truthful Free Roam responses in both runtime modes. The catalog-wide Guided-VR probes establish the configured natural destination node, stored start/arrival mappings, approved Cloudinary URL/public-ID metadata, exact forward/reverse adjacent links, and fail-closed incomplete-route behavior; `vrScheduleHotspot` separately covers schedule hotspot behavior, empty states, leak boundaries, and cleanup |
 | PWA/offline | OFF.2-OFF.6 accepted local 2D implementation | Verify install/update lifecycle, explicit integrity-checked download, normal local campus map, Main Gate routes, node/list details, privacy exclusions, logout removal, and fallback behavior | Authenticated HTML remains network-only; no schedule/VR/media/private data enters offline storage; the verified implementation is pushed, while promotion and deployment remain separate owner decisions | **Codex GO.** Focused evidence: OFF.2 `145/145`, 2D offline navigation `35/35`, package boundary `74/74`. Browser acceptance covered every current MySQL and Supabase destination/available route, desktop/mobile, search, keyboard, offline restart/rendering, interrupted-update preservation, neutral protected-route fallback, forbidden-data absence, and supported logout deletion. The unchanged 40-file candidate passed replacement `npm test` at `4998/4998` with `QUALITY-GATES OK`, D6 `266/266`, BE.6 `46/46`, and embedded residue `18/18`. | The service worker caches only the exact reviewed shell/static allowlist; every same-origin API and every cross-origin request is network-only. Offline data is the explicit integrity-checked 2D guide/PMTiles record only. Historical rejected runs and correction detail remain documented in the authority handoffs. |
 | Mobile layout | Phone viewport | Check auth, dashboard, map, admin key screens at mobile width | No broken overflow or blocked primary actions | **PARTIAL — PASS for `/dashboard`, `/map`, and `/admin`; the anonymous `/auth` surface was not separately measured for mobile overflow** | M12.P1-R8 clean bounded exposure matrix, both runtime modes: `/dashboard`, `/map`, and `/admin` showed no horizontal overflow, zero CSP violations, and zero console errors at 1440x900 and 390x844. The matrix did not record `/auth` as a distinct mobile-overflow measurement, so that screen is not claimed |

@@ -350,7 +350,7 @@ function buildCandidate(mysql, supabase, migrations, policy) {
   const seedRoster = sourceData.buildings.map((building) => building.name).sort();
   const candidate = {
     schema_version: 2,
-    frozen_on: '2026-08-10',
+    frozen_on: SELECTED_DEMO_FREEZE.frozen_on,
     migrations,
     seed_roster: seedRoster,
     policy: policy.snapshot,
@@ -475,9 +475,9 @@ function runSourceChecks() {
     new Set(seedNames.map(canonicalKey)).size === seedNames.length);
   check('source', 'catalog declares exactly 25 active destinations', GUIDED_VR_ROUTES.length === 25);
   check('source', 'catalog declares zero deferred destinations', DEFERRED_GUIDED_VR_DESTINATIONS.length === 0);
-  check('source', 'catalog declares exactly 472 configured steps', CONFIGURED_STEPS === 472);
-  check('source', 'catalog scope is 99 unique guided scenes plus two interior scenes',
-    GUIDED_KEYS.length === 99 && SELECTED_KEYS.length === 101 && INTERIOR_KEYS.length === 2);
+  check('source', 'catalog declares exactly 484 configured steps', CONFIGURED_STEPS === 484);
+  check('source', 'catalog scope is 100 unique guided scenes plus two interior scenes',
+    GUIDED_KEYS.length === 100 && SELECTED_KEYS.length === 102 && INTERIOR_KEYS.length === 2);
 }
 
 function runBackendChecks(scope, live, frozen) {
@@ -532,7 +532,8 @@ async function main() {
   check('cross-backend', 'Guided catalog natural-key verification fingerprints match',
     mysqlLive.fingerprints.guided_catalog === supabaseLive.fingerprints.guided_catalog);
   check('cross-backend', 'combined expanded-freeze manifest fingerprint matches',
-    candidate.fingerprints.manifest === SELECTED_DEMO_FREEZE.fingerprints.manifest);
+    candidate.fingerprints.manifest === SELECTED_DEMO_FREEZE.fingerprints.manifest &&
+    fingerprint(expectedCore(SELECTED_DEMO_FREEZE)) === SELECTED_DEMO_FREEZE.fingerprints.manifest);
   check('cross-backend', 'both backends verify all 25 active routes',
     mysqlLive.route_results.length === 25 && supabaseLive.route_results.length === 25 &&
     mysqlLive.route_results.every((result) => result.chain_complete && result.path_reachable) &&

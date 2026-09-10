@@ -6904,7 +6904,7 @@ const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
 const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
   'a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1';
 const CURRENT_FREEZE_MANIFEST_SHA256 =
-  '3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6';
+  'c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
   '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
@@ -6929,10 +6929,12 @@ const CURRENT_PUSHED_AUTHORITY_COMMIT_SHA =
   '8e6053e52b5e1feaa643f4f0ec1931d68d9bd550';
 const CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA =
   '7b4e818e7a84c60cb49b4a14889a98c3c7c528a2';
+const CURRENT_PRE_GUIDED_VR_RELEASE_COMMIT_SHA =
+  '05b0545ccefbf282c365244c7f9edf8f2be5810c';
 const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
   'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_ROUTE_COLOR_PACKAGE_SHA256 =
-  '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e';
+  '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6978,10 +6980,11 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 9 independently verified Production authority. */
+  /* Current September 10 Guided-VR source release with owner-held promotion. */
   if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
+        !t.includes(CURRENT_PRE_GUIDED_VR_RELEASE_COMMIT_SHA) ||
         !t.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA.slice(0, 7)) ||
@@ -6989,38 +6992,51 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA.slice(0, 7)) ||
         !/5d505e9/i.test(t) || !/23c5536/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}7b4e818/i.test(t) ||
-        !/clean index\/worktree/i.test(t) || !/zero stashes/i.test(t) ||
-        !/final documentation commit[^.]{0,160}recompute its full SHA/i.test(t)) {
-      problems.push('verified September 9 authority, Git truth, or source lineage is incomplete');
+        !/HEAD[^.]{0,120}origin\/main[^.]{0,120}remote `?main`?[^.]{0,160}05b0545/i.test(t) ||
+        !/only[^.]{0,160}config\/guidedVrRoutes\.js/i.test(t) || !/zero stashes/i.test(t) ||
+        !/final release commit[^.]{0,160}recompute its full SHA/i.test(t)) {
+      problems.push('September 10 Git start truth, authorization, or source lineage is incomplete');
     }
 
     if (!/Migration `?0027`? remains owner-applied/i.test(t) ||
-        !/50 directed-edge metrics were corrected in place/i.test(t) ||
-        !/owner confirmed[^.]{0,120}routes as final and visually correct/i.test(t) ||
+        !/migrations `?0001`?-`?0027`?[^.]{0,100}unchanged/i.test(t) ||
+        !/2D route graph and final owner-confirmed route drawings remain unchanged/i.test(t) ||
         !/entry routes remain blue/i.test(t) || !/#2563eb/i.test(t) ||
         !/exit routes red/i.test(t) || !/#dc2626/i.test(t) ||
         !/service-worker cache key remains `?v41`?/i.test(t) ||
         !/must not be reapplied or changed without separate explicit authorization/i.test(t)) {
-      problems.push('route metric, migration, final-route, or color boundary is incomplete');
+      problems.push('migration, unchanged 2D route, or route-color boundary is incomplete');
     }
 
-    if (!t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
+    if (!/Academic Building II[^.]{0,100}31 steps/i.test(t) ||
+        !/MULTI-PURPOSE-BUILDING I[^.]{0,240}35 steps/i.test(t) ||
+        !/Green Building[^.]{0,100}25 steps[^.]{0,120}scene-green-1st-floor-1/i.test(t) ||
+        !/scene-green-1st-floor-7[^.]{0,100}unmapped/i.test(t) ||
+        !/scene-green-1st-floor-1[^.]{0,100}`?green`?/i.test(t) ||
+        !/four owner-confirmed hotspots/i.test(t) || !/1,378 hotspots/i.test(t)) {
+      problems.push('Guided-VR route, Green mapping, or intentional-hotspot truth is incomplete');
+    }
+
+    if (!/25 active destinations[^.]{0,100}484 configured steps[^.]{0,100}100 unique scene keys/i.test(t) ||
+        !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
         !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
-        !/199 files[^.]{0,80}7,344,623 bytes/i.test(t) ||
+        !/199 files[^.]{0,80}7,345,009 bytes/i.test(t) ||
         !t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) ||
         !/not runtime write locks or complete deployed-byte proof/i.test(t)) {
-      problems.push('route snapshot or source-package evidence boundary is incomplete');
+      problems.push('Guided-VR freeze, route snapshot, or source-package evidence boundary is incomplete');
     }
 
     if (!t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) ||
-        !/branch `?main`?[^.]{0,160}full source commit/i.test(t) ||
+        !/full source commit[^.]{0,120}7b4e818/i.test(t) ||
         !/`?Ready`?[^.]{0,80}`?Production`?[^.]{0,80}`?Current`?/i.test(t) ||
         !/https:\/\/campusphere-cspc\.vercel\.app/i.test(t) ||
         !/full local `?npm test`? exited `?0`? with `?QUALITY-GATES OK`?/i.test(t) ||
+        !/all five `?npm run qa`? stages[^.]{0,80}green/i.test(t) ||
         !/MySQL and Supabase session-store legs completed/i.test(t) ||
-        !/session residue passed `?18\/18`?/i.test(t)) {
-      problems.push('deployment identity, Ready/Production/Current, or full-gate evidence is incomplete');
+        !/session residue passed `?18\/18`?/i.test(t) ||
+        !/BE\.6[^.]{0,60}`?46\/46`?/i.test(t) ||
+        !/package boundary[^.]{0,60}`?74\/74`?/i.test(t)) {
+      problems.push('historical deployment identity or current local verification evidence is incomplete');
     }
 
     if (!/corrected bounded anonymous[^.]{0,100}Production smoke passed `?127\/127`?/i.test(t) ||
@@ -7044,21 +7060,22 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     }
 
     if (!/Evidence classes remain separate/i.test(t) ||
-        !/current deployed technical Production baseline[^;]{0,100}independently post-deployment verified/i.test(t) ||
+        !/7b4e818[^.]{0,160}current independently post-deployment-verified technical Production baseline/i.test(t) ||
+        !/new Guided-VR source release[^.]{0,160}not yet Production-verified/i.test(t) ||
         !/fea3b2e11c6331eddc1ee091b165427d8e0218d7[^.]{0,80}historical/i.test(t) ||
         !/did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules/i.test(t) ||
         !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
-        !/next product move is an owner-selected bug fix or feature/i.test(t) ||
+        !/owner alone will promote/i.test(t) ||
+        !/separate authorization/i.test(t) ||
         !/stop and ask the owner/i.test(t) ||
         !/automatically rolling back, patching, promoting, or redeploying/i.test(t)) {
-      problems.push('evidence classes, smoke limitations, baseline, or next-move boundary is incomplete');
+      problems.push('evidence classes, Production baseline, or owner-promotion boundary is incomplete');
     }
 
-    if (/no independent post-promotion check/i.test(t) ||
-        /QUALITY-GATES FAILED: 1/i.test(t) ||
+    if (/QUALITY-GATES FAILED: 1/i.test(t) ||
         /exactly one unexpired Supabase administrator session/i.test(t) ||
         /fea3b2e11c6331eddc1ee091b165427d8e0218d7 remains the last independently/i.test(t)) {
-      problems.push('obsolete pre-verification authority remains operative');
+      problems.push('obsolete or failed authority remains operative');
     }
     return problems;
   }
@@ -7956,7 +7973,7 @@ function reusablePromptIsCurrent(body) {
       'database/supabase/REPOSITORY_BOUNDARIES.md', 'package.json',
       'package-lock.json', '.env.example', '.gitignore', '.vercelignore',
       '.dockerignore', 'Dockerfile', 'vercel.json', 'server.js',
-      'config/selectedDemoFreeze.js', 'middleware/roleAuth.js',
+      'config/guidedVrRoutes.js', 'config/selectedDemoFreeze.js', 'middleware/roleAuth.js',
       'middleware/securityHeaders.js', 'middleware/rateLimit.js',
       'config/sessionConfig.js', 'config/supabase.js',
       'utils/routeGeometry.js', 'controllers/mapController.js',
@@ -7986,11 +8003,16 @@ function reusablePromptIsCurrent(body) {
       t.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
       t.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
       t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA) &&
+      t.includes(CURRENT_PRE_GUIDED_VR_RELEASE_COMMIT_SHA) &&
       t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) &&
       t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) &&
       t.includes(CURRENT_FREEZE_MANIFEST_SHA256) &&
       t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) &&
       /migration sources 0001-0027[^.]{0,80}owner-applied/i.test(t) &&
+      /25 active destinations[^.]{0,100}484 configured[^.]{0,100}100 unique scene keys/i.test(t) &&
+      /scene-green-1st-floor-1[^.]{0,100}node green/i.test(t) &&
+      /scene-green-1st-floor-7[^.]{0,80}unmapped/i.test(t) &&
+      /four owner-confirmed Supabase hotspots[^.]{0,120}1,378/i.test(t) &&
       /old 2026-09-06 Supabase route fingerprint is historical/i.test(t) &&
       /entry lines are blue[^.]{0,100}exit lines are red/i.test(t) &&
       /service worker is v41/i.test(t) &&
@@ -8004,6 +8026,7 @@ function reusablePromptIsCurrent(body) {
       /sampled assets matched Git exactly/i.test(t) &&
       /without proving complete immutable deployed-package equality/i.test(t) &&
       /7b4e818[^.]{0,120}current independently post-deployment-verified technical Production baseline/i.test(t) &&
+      /new Guided-VR source[^.]{0,100}owner promotion/i.test(t) &&
       /fea3b2e[^.]{0,80}historical/i.test(t) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
@@ -8556,16 +8579,16 @@ function analyzeProvenanceRemediationRow(md) {
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
   files: 199,
-  bytes: '7,344,623',
-  sha256: '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e',
+  bytes: '7,345,009',
+  sha256: '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 199,
-  bytes: '7,344,623',
-  sha256: '9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e',
+  bytes: '7,345,009',
+  sha256: '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -8591,7 +8614,7 @@ function currentPackageInventoryProblems(manifest, expected = EXPECTED_CURRENT_P
 const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
   mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
   supabase: 'Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
-  guidedCatalog: 'the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys',
+  guidedCatalog: 'the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys',
   be6Result: 'BE.6 freeze remains 46/46',
 });
 
@@ -8601,7 +8624,7 @@ const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
 const EXPECTED_CURRENT_DEMO_ROUTING = Object.freeze({
   mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
   supabase: 'Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
-  guidedCatalog: 'Guided VR covers 25 active destinations, 472 configured steps, and 99 unique scene keys',
+  guidedCatalog: 'Guided VR covers 25 active destinations, 484 configured steps, and 100 unique scene keys',
   naturalEndpoint: 'the configured natural destination node',
   storedMappings: 'stored start and arrival scene mappings',
   approvedMedia: 'an approved Cloudinary delivery URL and public ID',
@@ -9396,7 +9419,7 @@ function analyzeExactCurrentQualityTotals(testEvidenceMd, securityChecklistMd, e
     {
       label: 'test-evidence current full contract suite',
       md: testEvidenceMd,
-      match: (r) => /^full contract suite \(M12\.P1-D6\/OFF\.6 accepted local candidate\)$/i
+      match: (r) => /^(?:full contract suite \(M12\.P1-D6\/OFF\.6 accepted local candidate\)|full contract suite \(2026-09-10 Guided-VR route release\))$/i
         .test(String(r.cells[0] || '').trim()),
     },
     {
@@ -10036,8 +10059,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-09';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-09';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-10';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-10';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -10047,7 +10070,7 @@ function runDocsCurrentGate() {
     const problems = [];
     for (const name of ['AGENTS.md', 'CLAUDE.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md']) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^## Current Release Continuity \\(' + releaseDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
+      const pattern = new RegExp('^## Current Release Continuity \\(' + releaseDate.replace(/\./g, '\\.') + '\\b[^)]*\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized release-continuity date');
     }
     for (const name of ['CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'docs/new-session-grounding-prompts.md']) {
@@ -10064,7 +10087,7 @@ function runDocsCurrentGate() {
     };
     for (const [name, heading] of Object.entries(headings)) {
       const value = String(sourceMap && sourceMap[name] || '');
-      const pattern = new RegExp('^## ' + heading + ' \\(' + releaseDate.replace(/\./g, '\\.') + '\\)\\s*$', 'm');
+      const pattern = new RegExp('^## ' + heading + ' \\(' + releaseDate.replace(/\./g, '\\.') + '\\b[^)]*\\)\\s*$', 'm');
       if (!pattern.test(value)) problems.push(name + ' does not carry the synchronized current heading date');
     }
     return problems;
@@ -10076,17 +10099,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-09)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-09)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
-    'plan.md': '## Current Release Continuity (2026-09-09)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-09)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-09 (Asia/Manila)\n## Current Release Continuity (2026-09-09)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-09)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-09)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-09)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-09)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-10)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-10)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
+    'plan.md': '## Current Release Continuity (2026-09-10)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-10)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-10)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-10)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-10)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-10)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -10257,8 +10280,8 @@ function runDocsCurrentGate() {
       /MySQL.{0,160}34.{0,40}buildings.{0,100}44.{0,40}(nodes|route nodes).{0,100}100.{0,40}(directed edges|edges).{0,100}50.{0,40}(reverse pairs|pairs).{0,100}100.{0,80}geometr/i.test(doc) &&
       /Supabase.{0,160}25.{0,40}buildings.{0,100}26.{0,40}(nodes|route nodes).{0,100}50.{0,40}(directed edges|edges).{0,100}25.{0,40}(reverse pairs|pairs).{0,100}50.{0,80}geometr/i.test(doc) &&
       /25.{0,80}(active|configured).{0,80}(Guided VR|destinations)/i.test(doc) &&
-      /472.{0,80}(configured )?(steps|scene steps)/i.test(doc) &&
-      /99.{0,80}unique.{0,40}(scene|scene keys)/i.test(doc));
+      /484.{0,80}(configured )?(steps|scene steps)/i.test(doc) &&
+      /100.{0,80}unique.{0,40}(scene|scene keys)/i.test(doc));
     ok(`${name} states routing uses the campus graph and owner-managed geometry`,
       /(own|its own|internal).{0,40}campus graph/i.test(doc) &&
       /owner-managed.{0,80}(geometr(y|ies)|path_geometry)/i.test(doc));
@@ -10573,21 +10596,21 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 9 owner-continuity authority and current evidence boundary`,
+    ok(`${name} records the September 10 Guided-VR release authority and owner-promotion boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-09 post-deployment verification)');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-10 Guided-VR route release; owner promotion pending)');
     const historical = raw.indexOf('## Historical Release Continuity', start);
     if (start < 0 || historical <= start) return '';
     return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative September 9 release summaries are exactly synchronized',
+  ok('all eleven operative September 10 release summaries are exactly synchronized',
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
 
@@ -10622,7 +10645,7 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 9 verified continuity is accepted and Git, route, deployment, QA, smoke, scope, and marker drift fail closed',
+  ok('fixture: current September 10 Guided-VR continuity is accepted and Git, route, deployment, QA, smoke, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -11038,7 +11061,8 @@ function runDocsCurrentGate() {
     const t = String(value == null ? '' : value).replace(/\s+/g, ' ');
     const legacyNoGo = /\bM12\.P1\b[\s\S]{0,240}\bNO-GO\b/i.test(t);
     const closeoutPending = /\bfinal Milestone 12\b[\s\S]{0,220}\b(?:not self-issued|remains external|awaits? (?:one )?independent|latest independent external closeout report controls)\b/i.test(t);
-    return (legacyNoGo || closeoutPending) &&
+    const sourceOnlyBoundary = /\bSOURCE-ONLY CANDIDATE STATUS\b[\s\S]{0,700}\bno GO\/NO-GO is issued\b[\s\S]{0,180}\bdeployment is not authorized\b/i.test(t);
+    return (legacyNoGo || closeoutPending || sourceOnlyBoundary) &&
       (/\b(?:deployment|push|promotion)\b[\s\S]{0,260}\b(?:not authorized|must not|requires?[^.]{0,120}separate owner)\b/i.test(t) ||
        hasPrePresentationReleaseDenial(t));
   }
@@ -11130,7 +11154,7 @@ function runDocsCurrentGate() {
     'Accepted R7 evidence is focused 71/71, in-suite vercel-package-boundary 70/70, full suite 3495/3495 with QUALITY-GATES OK, and npm audit --omit=dev at zero vulnerabilities. ' +
     'The 3492/3492 initial candidate and 3494/3494 literal-NUL remediation are historical/superseded. ' +
     'M12.P1-D7 is complete and Codex GO. Accepted D7 evidence is the fresh-context role-isolation rerun: separate Playwright BrowserContext objects with no storage carryover, both MySQL and Supabase legs completed and cleaned up through supported application interfaces, npm test 3511/3511 with QUALITY-GATES OK, npm audit --omit=dev zero vulnerabilities, and postconditions 24/24 -> 18/18 -> 46/46 with fingerprint a1e11ac03f15f837dade60dead664a88ff30b0bf313a99b760789d079892591d unchanged. ' +
-    'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as fea3b2e11c6331eddc1ee091b165427d8e0218d7. Production serves fea3b2e11c6331eddc1ee091b165427d8e0218d7 as the current technical Production baseline. ' +
+    'The Guided-VR runtime/catalog remediation remains recorded as 43627cf0a77741556f4e701711e55612a739799b, tree eb3e830f68d537c4a54d6dda6df7d52a61f9c87b. The final R8 authority synchronization is committed and pushed as 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2. Production serves 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 as the current technical Production baseline. ' +
     'The separately authorized push automatically triggered Vercel Production. Post-deployment verification passed within bounded anonymous read-only GET-only scope. Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. Historical/superseded: before this deployment, Production served 0627bf78228148e3f989275810c333c16a1f3356. ' +
     'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
     'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The exact 19-file implementation was independently fully verified at 4998/4998 with QUALITY-GATES OK, five-stage QA, bounded Chrome acceptance in both supported backends, and ordered postconditions 24/24 -> 18/18 -> 46/46. It was committed as d786bdcb83a196c7263dceae668417d3ced3e95a and pushed to origin/main. The committed implementation manifest SHA-256 92c689b884f52021f5545f331e8768ffc4768914cf9320c2d4b8fedee7020642 covered 19 files and 2,072,400 bytes. The package pin is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. The clean-commit independent R8 review returned NO-GO solely because stale operative lifecycle authority described the pushed, verified commit as uncommitted and pending; no separate runtime, security, database, or package blocker was found. The documentation/static-assertion correction is a separate byte set whose lifecycle and disposition are controlled by live Git and the latest independent external review report. Final Milestone 12 disposition remains external. No promotion or deployment is authorized.';
@@ -11973,7 +11997,7 @@ function runDocsCurrentGate() {
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 472 configured steps, and 99 unique scene keys |';
+    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys |';
     const M_ROUTE_STALE = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The refreshed BE.6 selected-demo candidate holds at 46/46 with 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 13 routable destinations in both backends |';
     const M_ROUTE_WRONG_MYSQL_COUNT = M_ROUTE_CURRENT.replace('44 route nodes', '43 route nodes');
     const DEMO_OK = [
@@ -12002,13 +12026,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`; focused package gate `74/74`** | current route-color/handoff candidate source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`** | current route-color/handoff candidate source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`; focused package gate `74/74`** | current Guided-VR release source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`** | current Guided-VR release source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,344,623 bytes, aggregate SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -12382,7 +12406,7 @@ function runDocsCurrentGate() {
       'Auto-assign Custom Production Domains is disabled; future main deployments require manual promotion. ' +
       'The documentation/static-assertion-only authority synchronization db05b549807535840968bf28cdefac4154a6d59d is committed and pushed. ' +
       'Owner-observed Vercel evidence shows it Ready, Production, Staged, with custom-domain assignment Skipped. ' +
-      'It was not promoted or made Current, and fea3b2e11c6331eddc1ee091b165427d8e0218d7 remained on the live alias. ' +
+    'It was not promoted or made Current, and 7b4e818e7a84c60cb49b4a14889a98c3c7c528a2 remained on the live alias. ' +
       'The owner attests that a human pilot occurred on 2026-08-05 and accepts it with zero reported findings. ' +
       'Participant/Form evidence remains external. The tested build full source-commit identity was not independently verified. ' +
       'Pilot review is complete for sequencing purposes. OFF.2-OFF.6 are complete and Codex GO on local commit cdbc863b779e5319c14dee21a31a5e78951e233c. D6 is complete and Codex GO on local commit 691f0bef40e06b6ea9485e713d2fe3000a03bd83. The service worker is v25. The simplified fallback keeps the route decorative and exposes buildings as labelled native HTML buttons with exact 44-by-44 targets. The pre-authority-sync manifest SHA-256 494010dd9d1aadb43c2d124543c302d97bece118b8c687109ccd6e2624ed0610 covered 19 files and 2,020,639 bytes. Focused evidence only is OFF.2 145/145, offline 2D 35/35, and package boundary 74/74. The unchanged package identity is 168 files, 7,073,128 bytes, aggregate SHA-256 1d6cc68b7ef350b6a61eb8d84ea4fb7dd6862bd8548beb7595d3f2e6f4b10d6a. No npm test, npm run qa, ordered 24/24 -> 18/18 -> 46/46 postconditions, or browser acceptance was run for those exact bytes. That manifest is predecessor evidence; recompute the live manifest instead of reusing it. The current uncommitted 19-file offline UI/accessibility/package correction candidate is pending independent read-only review and full verification. The current uncommitted 19-file offline UI/accessibility/package correction candidate claims no new Codex GO, commit readiness, deployment readiness, or final Milestone 12 GO. Final Milestone 12 disposition remains external. The local commits and current candidate must not be pushed, promoted, or deployed before the presentation and a later explicit owner decision. ' +

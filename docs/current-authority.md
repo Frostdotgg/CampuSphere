@@ -1,6 +1,6 @@
 # CampuSphere Current Authority
 
-Last updated: 2026-09-09 (Asia/Manila)
+Last updated: 2026-09-10 (Asia/Manila)
 
 This file is the canonical current-state summary for the repository. Detailed
 historical records remain in the handoffs, plan, roadmap, and evidence files,
@@ -9,12 +9,13 @@ before relying on any recorded checkpoint.
 
 ## Current Git and Source Lineage
 
-At the start of this authority synchronization, branch `main` had local `HEAD`,
+At the start of this Guided-VR release, branch `main` had local `HEAD`,
 `origin/main`, and remote `main` equal at Git commit SHA-1
-`7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`). The index and
-worktree were clean and there were zero stashes. The documentation commit that
-will contain this edit is necessarily later, so a fresh session must recompute
-its full SHA rather than infer it from this record.
+`05b0545ccefbf282c365244c7f9edf8f2be5810c` (`05b0545`). The index was
+empty, the worktree contained only the owner-requested
+`config/guidedVrRoutes.js` change, and there were zero stashes. The final
+release commit that contains this edit is necessarily later, so a fresh session
+must recompute its full SHA rather than infer it from this record.
 
 Important current lineage:
 
@@ -37,6 +38,10 @@ Important current lineage:
   successor recording the route-color release.
 - `7b4e818e7a84c60cb49b4a14889a98c3c7c528a2` (`7b4e818`) — pushed owner-
   continuity authority deployed and independently verified in Production.
+
+- `05b0545ccefbf282c365244c7f9edf8f2be5810c` (`05b0545`) is the pushed
+  post-deployment authority successor and starting point for this Guided-VR
+  route release.
 
 Earlier dashboard-image, presence, campus-UI, and dependency-security commits
 remain `fdb0c8c`, `621d72e`, `b8e7ffb`, and `a5a6cee` respectively.
@@ -72,6 +77,28 @@ administrator-selected audience. Admin creation or promotion of an instructor
 guarantees one minimal `instructor_profiles` row without overwriting existing
 profile values.
 
+## Guided-VR Route Release
+
+Academic Building II now follows the owner-selected corridor and completes in
+31 steps at `scene-acad-2-1st-floor-17`. MULTI-PURPOSE-BUILDING I follows the
+same corridor through road scenes 33, 33-5, 37, 38, 38-5, 54, 53, and 57-60,
+then continues through 61-64 to `scene-audit-building-006`, completing in 35
+steps. Green Building follows road scenes 33, 33-5, 37, 38, and 38-5 and now
+completes in 25 steps at `scene-green-1st-floor-1`.
+
+The owner-authorized Supabase mapping and matching local MySQL rehearsal
+mapping assign `scene-green-1st-floor-1` to natural destination node `green`
+and leave former arrival `scene-green-1st-floor-7` unmapped. The owner also
+confirmed four intentional Supabase hotspots: the bidirectional Guard House
+walk pair and the bidirectional road-32/CITD-floor-8 pair. No schema or
+migration changed.
+
+The refreshed shared catalog has 25 active destinations, 484 configured steps,
+and 100 unique scene keys. MySQL remains at 671 scenes and 1,397 hotspots;
+Supabase remains at 664 scenes and now records the four confirmed rows for
+1,378 hotspots. Both backends verify all 25 configured media/link/endpoint
+chains.
+
 ## Route Geometry and Metrics
 
 Commit `918f721` replaced the earlier cancelled proposal with an implemented
@@ -106,9 +133,9 @@ House / Main Gate start), 50 directed edges, 25 reverse pairs, and 50 valid
 geometries. The refreshed current Supabase route fingerprint SHA-256 is
 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`, and the
 expanded-freeze manifest SHA-256 is
-`3a2b6bca003bb8a8eed942a1fc54a6db4c599e464677d16cf4262537675323d6`.
+`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
 `config/selectedDemoFreeze.js` remains a QA record, not a runtime write lock;
-the read-only refresh changed no route or database row.
+the refresh did not change any 2D route or migration.
 
 ## Media Delivery
 
@@ -129,6 +156,7 @@ feature working and removed the temporary content used for manual testing.
 
 Supabase migration sources are contiguous from `0001` through `0027`. For the
 owner-selected Supabase project, migrations `0001`-`0027` are owner-applied.
+Migrations 0001-0027 are owner-applied on that selected project.
 Codex did not apply or reapply the owner-managed migrations. Do not reapply an
 owner-applied migration without fresh explicit database authorization. On a
 new, empty Supabase project, apply each migration once in numeric order and
@@ -137,17 +165,20 @@ verify that environment separately.
 ## Evidence Classes
 
 - **Current source/Git:** commits `918f721`, `83f247a`, `86b92eb`, `3d0a2b6`,
-  `8e6053e`, and `7b4e818` are committed and pushed. Git equality and
-  cleanliness above were independently recomputed at the start of this work.
+  `8e6053e`, `7b4e818`, and `05b0545` are pushed predecessors. The final
+  Guided-VR release commit contains this self-referential file, so its exact SHA
+  must be read from live Git.
 - **Recorded source/local QA:** the earlier route-color checks remain recorded.
-  On 2026-09-09 a fresh full `npm test` exited `0` with
+  On 2026-09-10 a fresh full `npm test` exited `0` with
   `QUALITY-GATES OK`; its MySQL and Supabase session-store legs completed and
-  the final canonical session-residue check passed `18/18`. Test fixtures and
-  sessions were created and cleaned through supported application interfaces.
-  This is source/local evidence, not Production evidence.
+  the final canonical session-residue check passed `18/18`. All five
+  `npm run qa` stages were green, the package boundary passed `74/74`, and the
+  final BE.6 double-read passed `46/46`. This is source/local evidence, not
+  Production evidence.
 - **Owner-observed database/UAT:** migration `0027`, its postflight, the in-place
   50-edge metric correction, later route edits, final route approval, Drive
-  testing, cleanup, and manual promotions are owner-supplied or owner-accepted
+  testing, the Green endpoint transfer, four intentional hotspots, cleanup,
+  and manual promotions are owner-supplied, owner-authorized, or owner-accepted
   evidence.
 - **Independently verified vendor/deployment:** Vercel deployment
   `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` was independently observed bound to branch
@@ -164,8 +195,7 @@ verify that environment separately.
   `public/css/styles.css`, and `public/js/public-nav.js`. The sample also
   confirmed entry blue `#2563eb`, exit red `#dc2626`, and service-worker `v41`.
   This establishes `7b4e818` as the current independently post-deployment-
-  verified technical Production baseline, but the four sampled assets do not
-  prove immutable equality for the entire deployed package. The earlier
+  verified technical Production baseline, but the four sampled assets do not prove immutable equality for the entire deployed package. The earlier
   `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical.
 - **External disposition:** final thesis/client acceptance and any final
   milestone disposition remain owner/client decisions.
@@ -178,9 +208,9 @@ served static files, and searched `public/sw.js` for color literals owned by
 not application failures; the corrected bounded contract is the `127/127`
 result above.
 
-The current source package after the route-color and freeze refresh is 199
-files, 7,344,623 bytes, aggregate SHA-256
-`9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`.
+The current source package after the Guided-VR and freeze refresh is 199 files,
+7,345,009 bytes, aggregate SHA-256
+`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
 This is source/package evidence, not deployed-byte proof. The earlier 197-file
 package pin belongs to an older source set and remains historical only.
 
@@ -194,12 +224,16 @@ package pin belongs to an older source set and remains historical only.
   Cloudinary, Google Drive, Google OAuth, Upstash, GitHub Actions secrets, live
   sessions, or Production data.
 
-The immediate authority track is to review this documentation synchronization
-and obtain separate authorization before committing or pushing it. Deployment
-identity verification, the full quality gate, final residue check, and bounded
-Production smoke are complete for `7b4e818`. After the authority update is
-committed and pushed, the next product move is an owner-selected bug fix or
-feature. Migration `0027` and the owner-confirmed final routes must remain
-untouched unless separately authorized. If any future deployment verification
-or smoke fails, stop and ask the owner rather than automatically rolling back,
-patching, promoting, or redeploying.
+The owner authorized this synchronized release commit and push to `main` and
+retains sole control of Vercel promotion. Deployment identity verification and
+any bounded Production smoke for the new commit require separate authorization
+after the owner promotes it. Until then, `7b4e818` remains the current
+independently post-deployment-verified technical Production baseline. Migration
+`0027` and the owner-confirmed final 2D routes must remain untouched unless
+separately authorized. If any future deployment verification or smoke fails,
+stop and ask the owner rather than automatically rolling back, patching,
+promoting, or redeploying.
+
+The immediate authority track is the owner-controlled commit/push and promotion
+boundary; the next product move is an owner-selected bug fix or feature after
+separate authorization.
