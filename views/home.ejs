@@ -3,10 +3,12 @@
 
 <head>
     <%- include('partials/head') %>
-        <!-- Leaflet 1.9.4 CSS & JS — both self-hosted (M12.P1-R6). leaflet.css
-             resolves its control/marker images from /vendor/leaflet/images/. -->
-        <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
-        <script src="/vendor/leaflet/leaflet.js"></script>
+        <!-- The home preview uses the same self-hosted MapLibre + PMTiles
+             renderer and content-addressed campus archive as /map and the
+             downloaded offline guide. No public tile server is required. -->
+        <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css" />
+        <script src="/vendor/maplibre/maplibre-gl.js"></script>
+        <script src="/vendor/pmtiles/pmtiles.js"></script>
         <!-- Iconify Icon 1.0.7 component — self-hosted (M12.P1-R6). The component
              still fetches icon DATA from the approved api.iconify.design origin. -->
         <script src="/vendor/iconify-icon/iconify-icon.min.js"></script>
@@ -113,8 +115,9 @@
                             <a href="/map" class="btn btn--primary btn--sm">Open Full Map</a>
                         </div>
                         <div class="dash-map-preview__container">
-                            <div id="homeLeafletMap" style="width:100%; height:350px; border-radius: 12px; z-index: 1;">
-                            </div>
+                            <div id="homeMap" class="dash-map-preview__map" role="region"
+                                aria-label="Campus map preview" aria-busy="true"></div>
+                            <p id="homeMapStatus" class="dash-map-preview__status" role="status" hidden></p>
                         </div>
                     </div>
                 </div>
@@ -217,48 +220,182 @@
                 <!-- Edit Profile Script -->
                 <script src="/js/profile-script.js"></script>
                 <script src="/js/nav-role.js"></script>
+                <script id="homeMapConfig" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({
+                    basemap: (typeof mapBasemap !== 'undefined' ? mapBasemap : null),
+                    startNode: (typeof mapStartNode !== 'undefined' ? mapStartNode : null)
+                }) %></script>
                 <script nonce="<%= cspNonce %>">
-                    // Initialize Home Page Map
+                    // The home preview intentionally shares the public MapLibre
+                    // basemap contract with /map. Building data remains a
+                    // session-bound API read; no personalized data is embedded
+                    // in the HTML or cached by the service worker.
                     document.addEventListener('DOMContentLoaded', () => {
-                        // M12.P1-R6: fail truthfully if the self-hosted Leaflet
-                        // bundle is unavailable. Without this, L.map() threw a
-                        // ReferenceError and the container was left as a silent
-                        // blank panel that looked like an empty campus map.
-                        const mapHost = document.getElementById('homeLeafletMap');
-                        if (typeof L === 'undefined') {
+                        const mapHost = document.getElementById('homeMap');
+                        const status = document.getElementById('homeMapStatus');
+                        const configNode = document.getElementById('homeMapConfig');
+                        let config = {};
+                        try { config = JSON.parse(configNode ? configNode.textContent : '{}') || {}; } catch (e) { config = {}; }
+
+                        const showUnavailable = (message) => {
                             if (mapHost) {
-                                mapHost.textContent = 'Live map engine is unavailable.';
-                                mapHost.setAttribute('role', 'status');
+                                mapHost.replaceChildren();
+                                mapHost.setAttribute('aria-busy', 'false');
+                                mapHost.setAttribute('aria-label', 'Campus map preview unavailable');
                             }
+                            if (status) {
+                                status.textContent = message || 'Live map engine is unavailable.';
+                                status.hidden = false;
+                            }
+                        };
+
+                        if (!mapHost || typeof maplibregl === 'undefined' || typeof pmtiles === 'undefined') {
+                            showUnavailable('Live map engine is unavailable.');
                             return;
                         }
 
-                        const map = L.map('homeLeafletMap').setView([13.40591, 123.37362], 17);
-
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        }).addTo(map);
-
-                        // Add building markers from the login-only endpoint. Keep
-                        // the session check as a fail-closed defense if this view
-                        // is ever rendered without an authenticated session.
-                        if (window.__SESSION_USER) {
-                            fetch('/api/buildings')
-                                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
-                                .then(data => {
-                                    const buildings = (data && data.success && Array.isArray(data.buildings)) ? data.buildings : [];
-                                    buildings.forEach(b => {
-                                        if (b.lat && b.lng) {
-                                            L.marker([b.lat, b.lng])
-                                                .addTo(map)
-                                                .bindPopup(`<strong>${b.name}</strong><br>${b.category}`);
-                                        }
-                                    });
-                                })
-                                .catch(err => {
-                                    console.warn('Home map: failed to load buildings', err);
-                                });
+                        const basemap = config.basemap && typeof config.basemap === 'object' ? config.basemap : null;
+                        const asset = basemap && typeof basemap.asset === 'string' ? basemap.asset : '';
+                        if (!/^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/i.test(asset)) {
+                            showUnavailable('Campus basemap is temporarily unavailable.');
+                            return;
                         }
+
+                        const style = {
+                            version: 8,
+                            sources: {
+                                campus: {
+                                    type: 'vector',
+                                    url: 'pmtiles://' + asset,
+                                    attribution: (typeof basemap.attribution === 'string' && basemap.attribution.trim())
+                                        ? basemap.attribution : 'Protomaps © OpenStreetMap contributors'
+                                }
+                            },
+                            layers: [
+                                { id: 'background', type: 'background', paint: { 'background-color': '#edf1e8' } },
+                                { id: 'earth', type: 'fill', source: 'campus', 'source-layer': 'earth', paint: { 'fill-color': '#f5f2e8' } },
+                                { id: 'landuse', type: 'fill', source: 'campus', 'source-layer': 'landuse', paint: { 'fill-color': '#dfead9', 'fill-opacity': 0.7 } },
+                                { id: 'water', type: 'fill', source: 'campus', 'source-layer': 'water', paint: { 'fill-color': '#b8dbe8' } },
+                                { id: 'roads-casing', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#c4c1b8', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 2, 18, 8] } },
+                                { id: 'roads', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 5] } },
+                                { id: 'buildings', type: 'fill', source: 'campus', 'source-layer': 'buildings', paint: { 'fill-color': '#c9c5b8', 'fill-outline-color': '#9d998f', 'fill-opacity': 0.88 } }
+                            ]
+                        };
+
+                        let map;
+                        try {
+                            const archive = new pmtiles.PMTiles(new pmtiles.FetchSource(asset));
+                            const protocol = new pmtiles.Protocol();
+                            protocol.add(archive);
+                            maplibregl.addProtocol('pmtiles', protocol.tile);
+                            map = new maplibregl.Map({
+                                container: mapHost,
+                                style,
+                                center: Array.isArray(basemap.center) ? basemap.center : [123.375604, 13.405885],
+                                zoom: 16.5,
+                                minZoom: 12,
+                                maxZoom: 19,
+                                maxBounds: Array.isArray(basemap.bounds) && basemap.bounds.length === 4
+                                    ? [[basemap.bounds[0], basemap.bounds[1]], [basemap.bounds[2], basemap.bounds[3]]]
+                                    : undefined
+                            });
+                            map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+                        } catch (e) {
+                            showUnavailable('Campus basemap is temporarily unavailable.');
+                            return;
+                        }
+
+                        let sourceLoaded = false;
+                        let tileErrors = 0;
+                        map.on('sourcedata', (event) => {
+                            if (event && event.sourceId === 'campus' && event.isSourceLoaded) sourceLoaded = true;
+                        });
+                        map.on('error', (event) => {
+                            if (sourceLoaded || !event || !event.error) return;
+                            tileErrors += 1;
+                            if (tileErrors >= 2) showUnavailable('Campus basemap is temporarily unavailable.');
+                        });
+                        window.setTimeout(() => {
+                            if (!sourceLoaded && mapHost.getAttribute('aria-busy') === 'true') {
+                                showUnavailable('Campus basemap is temporarily unavailable.');
+                            }
+                        }, 6000);
+
+                        const validPoint = (value) => {
+                            const lat = Number(value && value.lat);
+                            const lng = Number(value && value.lng);
+                            return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+                        };
+                        const addStartMarker = () => {
+                            const node = config.startNode;
+                            if (!validPoint(node)) return;
+                            const element = document.createElement('div');
+                            element.className = 'map-start-marker home-map-start-marker';
+                            element.setAttribute('aria-label', 'Start: Guard House / Main Gate');
+                            const label = document.createElement('span');
+                            label.className = 'campus-map-label map-start-label';
+                            label.textContent = 'Start · Guard House';
+                            element.appendChild(label);
+                            new maplibregl.Marker({ element, anchor: 'center' })
+                                .setLngLat([Number(node.lng), Number(node.lat)])
+                                .addTo(map);
+                        };
+                        const addBuildingMarkers = (buildings) => {
+                            buildings.forEach((building) => {
+                                if (!validPoint(building)) return;
+                                const marker = new maplibregl.Marker({ scale: 0.7, offset: [0, -9.8] })
+                                    .setLngLat([Number(building.lng), Number(building.lat)])
+                                    .addTo(map);
+                                const element = marker.getElement();
+                                element.classList.add('map-building-marker', 'map-building-marker--maplibre');
+                                element.setAttribute('role', 'button');
+                                element.setAttribute('tabindex', '0');
+                                element.setAttribute('aria-label', String(building.name || 'Campus building'));
+                                element.title = String(building.name || 'Campus building');
+                                const openPopup = () => {
+                                    const content = document.createElement('div');
+                                    content.className = 'home-map-popup';
+                                    const name = document.createElement('strong');
+                                    name.textContent = String(building.name || 'Campus building');
+                                    const category = document.createElement('span');
+                                    category.textContent = String(building.category || 'Campus location');
+                                    content.append(name, category);
+                                    new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 14 })
+                                        .setLngLat([Number(building.lng), Number(building.lat)])
+                                        .setDOMContent(content)
+                                        .addTo(map);
+                                };
+                                element.addEventListener('click', (event) => {
+                                    // MapLibre's map-level closeOnClick handler
+                                    // would otherwise close the popup immediately
+                                    // after the marker opens it.
+                                    event.stopPropagation();
+                                    openPopup();
+                                });
+                                element.addEventListener('keydown', (event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPopup(); }
+                                });
+                            });
+                        };
+
+                        map.once('load', () => {
+                            sourceLoaded = true;
+                            mapHost.setAttribute('aria-busy', 'false');
+                            addStartMarker();
+                            if (!window.__SESSION_USER) return;
+                            fetch('/api/buildings', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                                .then((response) => response.ok ? response.json() : Promise.reject(new Error('HTTP ' + response.status)))
+                                .then((data) => {
+                                    const buildings = data && data.success && Array.isArray(data.buildings) ? data.buildings : [];
+                                    addBuildingMarkers(buildings);
+                                })
+                                .catch(() => {
+                                    if (status) {
+                                        status.textContent = 'Building markers are temporarily unavailable.';
+                                        status.hidden = false;
+                                    }
+                                });
+                        });
+                        window.addEventListener('resize', () => { if (map) map.resize(); });
                     });
                 </script>
 </body>

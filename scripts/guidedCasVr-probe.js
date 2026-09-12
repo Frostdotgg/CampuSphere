@@ -7,17 +7,22 @@
  * The probe now iterates every GUIDED_VR_ROUTES entry in MySQL, Supabase, and
  * both supported mixed route/VR source combinations. It is read-only apart
  * from its owned login sessions, which are terminated through real logout in
- * finally blocks.
+ * finally blocks. Pass `--supabase-only` to omit deferred MySQL/mixed legs.
  */
 
 require('dotenv').config();
 
 const { withServer } = require('./with-server');
 const { hasSupabaseConfig } = require('../config/supabase');
-const { GUIDED_VR_ROUTES, DEFERRED_GUIDED_VR_DESTINATIONS } = require('../config/guidedVrRoutes');
+const {
+  GUIDED_VR_ROUTES,
+  WALKING_GUIDED_VR_ROUTES,
+  DEFERRED_GUIDED_VR_DESTINATIONS
+} = require('../config/guidedVrRoutes');
 const { getRegressionCredentials } = require('./regressionCredentials');
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 
+const SUPABASE_ONLY = process.argv.includes('--supabase-only');
 const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
 const DRIVE_PROXY_RE = /^\/api\/media\/google-drive\/[A-Za-z0-9_-]{1,200}(?:\?resourcekey=[A-Za-z0-9_-]{1,200})?$/;
 const ARRIVAL_MARKERS = ['Route complete', 'You have arrived'];
@@ -38,6 +43,10 @@ function normName(value) {
 function isApprovedSceneMedia(value) {
   return typeof value === 'string' &&
     (value.startsWith(CLOUDINARY_PREFIX) || DRIVE_PROXY_RE.test(value));
+}
+
+function htmlStepHref(path, mode, step) {
+  return `${path}?mode=${mode}&amp;step=${step}`;
 }
 
 function cookieJar() {
@@ -150,6 +159,7 @@ async function runMode(scope, base, authSource) {
       const path = Array.isArray(payload.path) ? payload.path : [];
 
       check(scope, `${key}: destination API succeeds`, response.status === 200 && payload.success === true);
+      check(scope, `${key}: legacy API request selects Vehicle mode`, payload.travel_mode === 'vehicle');
       check(scope, `${key}: route path reaches the configured natural node`,
         path.length >= 2 && path[0] === 'main-gate' && path[path.length - 1] === key &&
         new Set(path).size === path.length && Number(payload.route && payload.route.distance_meters) > 0 &&
@@ -169,19 +179,103 @@ async function runMode(scope, base, authSource) {
         !(typeof payload.message === 'string' && payload.message.includes('VR coverage ends')));
 
       const finalStep = route.scene_keys.length;
-      response = await request(`/vr/to/${buildingId}?step=${finalStep}`, { headers: htmlHeaders });
+      response = await request(`/vr/to/${buildingId}?mode=vehicle&step=${finalStep}`, { headers: htmlHeaders });
       const finalHtml = response.text || '';
       check(scope, `${key}: final HTML reports arrival and has bounded previous navigation`,
         response.status === 200 && ARRIVAL_MARKERS.every((marker) => finalHtml.includes(marker)) &&
-        finalHtml.includes(`href="/vr/to/${buildingId}?step=${finalStep - 1}"`) &&
-        !finalHtml.includes(`href="/vr/to/${buildingId}?step=${finalStep + 1}"`) &&
+        finalHtml.includes(htmlStepHref(`/vr/to/${buildingId}`, 'vehicle', finalStep - 1)) &&
+        !finalHtml.includes(htmlStepHref(`/vr/to/${buildingId}`, 'vehicle', finalStep + 1)) &&
         !finalHtml.includes('VR coverage ends'));
 
-      response = await request(`/vr/to/${buildingId}?step=${finalStep - 1}`, { headers: htmlHeaders });
+      response = await request(`/vr/to/${buildingId}?mode=vehicle&step=${finalStep - 1}`, { headers: htmlHeaders });
       const priorHtml = response.text || '';
       check(scope, `${key}: penultimate HTML is not arrival and links to final step`,
         response.status === 200 && ARRIVAL_MARKERS.every((marker) => !priorHtml.includes(marker)) &&
-        priorHtml.includes(`href="/vr/to/${buildingId}?step=${finalStep}"`));
+        priorHtml.includes(htmlStepHref(`/vr/to/${buildingId}`, 'vehicle', finalStep)));
+    }
+
+    const walkingDestinationNames = new Set(WALKING_GUIDED_VR_ROUTES.map((route) =>
+      normName(route.destination_name)));
+    for (const walkingRoute of WALKING_GUIDED_VR_ROUTES) {
+      const walkingMatches = buildings.filter((building) =>
+        normName(building && building.name) === normName(walkingRoute.destination_name));
+      const walkingIds = walkingMatches
+        .map((building) => Number(building.route_destination_id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+      check(scope, `${walkingRoute.destination_node_key}: exactly one Walking route-source building`,
+        walkingMatches.length === 1 && walkingIds.length === 1);
+      if (walkingIds.length !== 1) continue;
+
+      const walkingBuildingId = walkingIds[0];
+      response = await request(`/api/vr/to/${walkingBuildingId}?mode=walking`, { headers: jsonHeaders });
+      const walkingPayload = response.json || {};
+      const walkingScenes = Array.isArray(walkingPayload.scenes) ? walkingPayload.scenes : [];
+      const walkingKeys = walkingScenes.map((scene) => scene.scene_key);
+      check(scope, `${walkingRoute.destination_node_key}: Walking API selects Walking mode and advertises both choices`,
+        response.status === 200 && walkingPayload.success === true &&
+        walkingPayload.travel_mode === 'walking' &&
+        JSON.stringify(walkingPayload.available_travel_modes) === JSON.stringify(['vehicle', 'walking']));
+      check(scope, `${walkingRoute.destination_node_key}: Walking API returns the exact configured scene chain`,
+        walkingKeys.length === walkingRoute.scene_keys.length &&
+        walkingKeys.every((key, index) => key === walkingRoute.scene_keys[index]) &&
+        walkingPayload.destination_reached === true &&
+        walkingScenes[0] && walkingScenes[0].node_key === 'main-gate' &&
+        walkingScenes[walkingScenes.length - 1] &&
+        walkingScenes[walkingScenes.length - 1].node_key === walkingRoute.destination_node_key);
+
+      response = await request(`/vr/to/${walkingBuildingId}?mode=walking&step=1`, { headers: htmlHeaders });
+      const walkingFirstHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: first Walking HTML starts at the route start`,
+        response.status === 200 && !ARRIVAL_MARKERS.some((marker) => walkingFirstHtml.includes(marker)) &&
+        walkingFirstHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', 2)) &&
+        !walkingFirstHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', 0)));
+
+      const walkingFinalStep = walkingRoute.scene_keys.length;
+      response = await request(`/vr/to/${walkingBuildingId}?mode=walking&step=${walkingFinalStep - 1}`, { headers: htmlHeaders });
+      const walkingPriorHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: penultimate Walking HTML links to arrival without claiming it`,
+        response.status === 200 && !ARRIVAL_MARKERS.some((marker) => walkingPriorHtml.includes(marker)) &&
+        walkingPriorHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep)));
+
+      response = await request(`/vr/to/${walkingBuildingId}?mode=walking&step=${walkingFinalStep}`, { headers: htmlHeaders });
+      const walkingFinalHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: final Walking HTML preserves navigation and reports arrival`,
+        response.status === 200 && ARRIVAL_MARKERS.every((marker) => walkingFinalHtml.includes(marker)) &&
+        walkingFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep - 1)) &&
+        !walkingFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep + 1)) &&
+        !walkingFinalHtml.includes('VR coverage ends'));
+
+      response = await request(`/vr/to/${walkingBuildingId}`, { headers: htmlHeaders });
+      const chooserHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: mode-less HTML renders the travel-mode chooser`,
+        response.status === 200 && chooserHtml.includes('How are you traveling') &&
+        chooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=walking`) &&
+        chooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle`) &&
+        !chooserHtml.includes('id="vrPano"'));
+    }
+
+    const invalidModeRoute = WALKING_GUIDED_VR_ROUTES[0];
+    const invalidModeBuilding = buildings.find((building) =>
+      normName(building && building.name) === normName(invalidModeRoute && invalidModeRoute.destination_name));
+    const invalidModeBuildingId = invalidModeBuilding ? Number(invalidModeBuilding.route_destination_id) : null;
+    if (Number.isInteger(invalidModeBuildingId) && invalidModeBuildingId > 0) {
+      response = await request(`/api/vr/to/${invalidModeBuildingId}?mode=bicycle`, { headers: jsonHeaders });
+      check(scope, 'unsupported API travel mode is rejected without route data',
+        response.status === 400 && response.json && response.json.success === false &&
+        response.json.code === 'invalid_travel_mode');
+    }
+
+    const vehicleOnlyRoute = GUIDED_VR_ROUTES.find((route) =>
+      !walkingDestinationNames.has(normName(route.destination_name)));
+    const vehicleOnlyBuilding = buildings.find((building) =>
+      normName(building && building.name) === normName(vehicleOnlyRoute && vehicleOnlyRoute.destination_name));
+    const vehicleOnlyBuildingId = vehicleOnlyBuilding ? Number(vehicleOnlyBuilding.route_destination_id) : null;
+    if (vehicleOnlyRoute && Number.isInteger(vehicleOnlyBuildingId) && vehicleOnlyBuildingId > 0) {
+      response = await request(`/vr/to/${vehicleOnlyBuildingId}`, { headers: htmlHeaders });
+      const vehicleOnlyHtml = response.text || '';
+      check(scope, 'vehicle-only destination keeps the direct Vehicle launch',
+        response.status === 200 && vehicleOnlyHtml.includes('id="vrPano"') &&
+        !vehicleOnlyHtml.includes('How are you traveling'));
     }
   } finally {
     await sessions.terminateAll();
@@ -207,14 +301,22 @@ function leakScan(scope, bodies) {
 
   const skipSupabase = process.env.PROBE_SKIP_SUPABASE === '1' && !hasSupabaseConfig();
 
-  console.log('\nROUTE=mysql + VR=mysql:');
-  const mysqlBodies = await withServer(
-    { mode: 'mysql', port: 3372, sessionStore: 'mysql' },
-    (base) => runMode('mysql/mysql', base, 'mysql')
-  );
-  leakScan('mysql/mysql', mysqlBodies || []);
+  if (SUPABASE_ONLY && !hasSupabaseConfig()) {
+    console.error('GUIDED-CATALOG-VR-PROBE FAILED: --supabase-only requires Supabase configuration.');
+    process.exitCode = 1;
+    return;
+  }
 
-  if (skipSupabase) {
+  if (!SUPABASE_ONLY) {
+    console.log('\nROUTE=mysql + VR=mysql:');
+    const mysqlBodies = await withServer(
+      { mode: 'mysql', port: 3372, sessionStore: 'mysql' },
+      (base) => runMode('mysql/mysql', base, 'mysql')
+    );
+    leakScan('mysql/mysql', mysqlBodies || []);
+  }
+
+  if (skipSupabase && !SUPABASE_ONLY) {
     console.log('\nSupabase configurations skipped by explicit fallback mode.');
   } else {
     console.log('\nROUTE=supabase + VR=supabase:');
@@ -224,24 +326,28 @@ function leakScan(scope, bodies) {
     );
     leakScan('supabase/supabase', supabaseBodies || []);
 
-    console.log('\nROUTE=mysql + VR=supabase:');
-    const mixedSupabaseBodies = await withServer(
-      { mode: 'mysql', port: 3374, sessionStore: 'mysql', sourceOverrides: { VR_DATA_SOURCE: 'supabase' } },
-      (base) => runMode('mysql-route/supabase-vr', base, 'mysql')
-    );
-    leakScan('mysql-route/supabase-vr', mixedSupabaseBodies || []);
+    if (!SUPABASE_ONLY) {
+      console.log('\nROUTE=mysql + VR=supabase:');
+      const mixedSupabaseBodies = await withServer(
+        { mode: 'mysql', port: 3374, sessionStore: 'mysql', sourceOverrides: { VR_DATA_SOURCE: 'supabase' } },
+        (base) => runMode('mysql-route/supabase-vr', base, 'mysql')
+      );
+      leakScan('mysql-route/supabase-vr', mixedSupabaseBodies || []);
 
-    console.log('\nROUTE=supabase + VR=mysql:');
-    const mixedMysqlBodies = await withServer(
-      { mode: 'supabase', port: 3375, sessionStore: 'supabase', sourceOverrides: { VR_DATA_SOURCE: 'mysql' } },
-      (base) => runMode('supabase-route/mysql-vr', base, 'supabase')
-    );
-    leakScan('supabase-route/mysql-vr', mixedMysqlBodies || []);
+      console.log('\nROUTE=supabase + VR=mysql:');
+      const mixedMysqlBodies = await withServer(
+        { mode: 'supabase', port: 3375, sessionStore: 'supabase', sourceOverrides: { VR_DATA_SOURCE: 'mysql' } },
+        (base) => runMode('supabase-route/mysql-vr', base, 'supabase')
+      );
+      leakScan('supabase-route/mysql-vr', mixedMysqlBodies || []);
+    }
   }
 
   console.log('');
   if (failures.length === 0) {
-    console.log('GUIDED-CATALOG-VR-PROBE OK: all active destinations passed in every supported source mode.');
+    console.log(SUPABASE_ONLY
+      ? 'GUIDED-CATALOG-VR-PROBE OK: all active destinations passed in Supabase route/VR mode.'
+      : 'GUIDED-CATALOG-VR-PROBE OK: all active destinations passed in every supported source mode.');
   } else {
     console.error(`GUIDED-CATALOG-VR-PROBE FAILED: ${failures.length} check(s) did not pass:`);
     failures.forEach((failure) => console.error('  - ' + failure));

@@ -309,6 +309,7 @@ const VENDOR = Object.freeze({
   leafletCss: '/vendor/leaflet/leaflet.css',
   maplibreJs: '/vendor/maplibre/maplibre-gl.js',
   maplibreCss: '/vendor/maplibre/maplibre-gl.css',
+  pmtilesJs: '/vendor/pmtiles/pmtiles.js',
   pannellumJs: '/vendor/pannellum/pannellum.js',
   pannellumCss: '/vendor/pannellum/pannellum.css',
   iconify: '/vendor/iconify-icon/iconify-icon.min.js',
@@ -679,7 +680,7 @@ async function runRendererLeg(mode, renderer, base, full) {
     /* ---- /map in THIS renderer mode ---- */
     if (renderer === 'maplibre') {
       await checkPage(scope, base, studentJar, '/map',
-        [VENDOR.maplibreJs, VENDOR.maplibreCss],
+        [VENDOR.maplibreJs, VENDOR.maplibreCss, VENDOR.pmtilesJs],
         [VENDOR.leafletJs, VENDOR.leafletCss]);
     } else {
       await checkPage(scope, base, studentJar, '/map',
@@ -695,7 +696,8 @@ async function runRendererLeg(mode, renderer, base, full) {
 
     /* ---- public + authenticated participant pages ---- */
     await checkPage(scope, base, studentJar, '/home',
-      [VENDOR.leafletJs, VENDOR.leafletCss, VENDOR.iconify], []);
+      [VENDOR.maplibreJs, VENDOR.maplibreCss, VENDOR.pmtilesJs, VENDOR.iconify],
+      [VENDOR.leafletJs, VENDOR.leafletCss]);
     await checkPage(scope, base, studentJar, '/dashboard',
       [VENDOR.leafletJs, VENDOR.leafletCss, VENDOR.iconify], []);
     await checkPage(scope, base, studentJar, '/about', [VENDOR.iconify], []);
@@ -718,7 +720,11 @@ async function runRendererLeg(mode, renderer, base, full) {
     check(scope, 'a valid guided VR destination was resolved through the search API',
       Number.isInteger(casRouteId) && casRouteId > 0);
     if (Number.isInteger(casRouteId) && casRouteId > 0) {
-      await checkPage(scope, base, studentJar, '/vr/to/' + casRouteId,
+      /* A destination without a mode intentionally renders the walking /
+         vehicle chooser.  Exercise the existing vehicle route here so the
+         dependency check observes the actual Pannellum panorama page while
+         leaving the chooser contract covered by the Guided-VR probes. */
+      await checkPage(scope, base, studentJar, '/vr/to/' + casRouteId + '?mode=vehicle',
         [VENDOR.pannellumJs, VENDOR.pannellumCss], []);
     }
 

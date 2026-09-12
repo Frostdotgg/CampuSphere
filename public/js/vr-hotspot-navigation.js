@@ -30,7 +30,9 @@
 
    Accepted same-origin URL forms (entire string, nothing else):
      /vr/to/<positive-id>?step=<positive-step>
+     /vr/to/<positive-id>?mode=<vehicle|walking>&step=<positive-step>
      /vr/routes/<positive-id>?step=<positive-step>
+     /vr/routes/<positive-id>?mode=<vehicle|walking>&step=<positive-step>
      /vr/<safe-scene-key>
 
    Fail closed (return null / non-navigating copy; never throw, navigate,
@@ -60,7 +62,7 @@
     // longer is rejected before the regexes run.
     var MAX_URL_LENGTH = 160;
     var SCENE_KEY_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-    var GUIDED_STEP_RE = /^\/vr\/(?:to|routes)\/[1-9][0-9]*\?step=[1-9][0-9]*$/;
+    var GUIDED_STEP_RE = /^\/vr\/(?:to|routes)\/[1-9][0-9]*\?(?:(?:mode=(?:vehicle|walking)&)?step=[1-9][0-9]*)$/;
     var SCENE_PATH_RE = /^\/vr\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;
     var SCENE_HOTSPOT_CLASS = 'campusphere-vr-scene-hotspot';
 

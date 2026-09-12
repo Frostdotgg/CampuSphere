@@ -98,12 +98,12 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         route_edges: 100,
         reverse_pairs: 50,
         valid_geometries: 100,
-        exact_reverse_geometries: 50,
+        exact_reverse_geometries: 25,
         routable_destinations: 33,
         total_vr_scenes: 671,
-        total_vr_hotspots: 1397,
+        total_vr_hotspots: 1410,
         selected_vr_scenes: 102,
-        selected_source_hotspots: 291,
+        selected_source_hotspots: 294,
         selected_schedule_hotspots: 1,
         active_guided_destinations: 25,
         configured_guided_steps: 484,
@@ -124,8 +124,8 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         'Supply & Property Building', 'Technohub Building', 'Villafuerte Hall'
       ],
       fingerprints: {
-        building_route: '0dbb4c4ca38b375393c7ae2c842e1f799d429feda11d17cb29cee6ff0c2564ff',
-        selected_vr: 'd5ab301b36c0cbfb8e485b1ee959ab326d89a3700661d03bc1bf5b5a3cc2639a',
+        building_route: 'e6a6f83f33736023dc8436e02001324334a61693ef2a23d74b7431e3757c0207',
+        selected_vr: '621571193464739fe3952c25a8d81b6d488af0fd8a6120451ff4f2d102d55bce',
         guided_catalog: 'b807738a4e30745bd1bdab2087615199db3dd72de47403b5bb3d909ba2a4544a'
       }
     },
@@ -161,7 +161,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
       ],
       fingerprints: {
         building_route: 'a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1',
-        selected_vr: 'a13edfaad2f9e21b7cae05a393198c7dacee6942921fcb0f19a63c02f823504b',
+        selected_vr: 'c4c46bb9586f98f527e4ec41f7962ccc1935e0f1475f151bf475de3b9fe336bf',
         guided_catalog: 'b807738a4e30745bd1bdab2087615199db3dd72de47403b5bb3d909ba2a4544a'
       }
     }
@@ -169,7 +169,7 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
   fingerprints: {
     migrations: '904978d7acf081c6e2757ff78bbc8c27e71decfedc948326e34fb76ede614de7',
     guided_policy: '17c96a5fdca2d314c2fcbaf999962919ea64c36b2878131894ac23f9025187f8',
-    manifest: 'c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c'
+    manifest: '32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38'
   }
 });
 

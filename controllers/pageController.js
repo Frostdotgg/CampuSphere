@@ -15,6 +15,7 @@ const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const { normalizeBuildingRows } = require('../utils/buildingData');
 const { logServerError } = require('../utils/serverLog');
+const mapController = require('./mapController');
 
 const HOME_FEATURED_BUILDING_LIMIT = 3;
 const HOME_LATEST_EVENT_LIMIT = 2;
@@ -171,11 +172,16 @@ exports.privacy = (req, res) => {
  * GET /home — Home Dashboard
  */
 exports.home = async (req, res) => {
-  const sidebar = await loadHomeSidebarData(req);
+  const [sidebar, startNodeResult] = await Promise.all([
+    loadHomeSidebarData(req),
+    mapController.getPublicStartNode()
+  ]);
   res.render('home', {
     title: 'CampuSphere | Home Dashboard',
     description: 'CampuSphere Dashboard — Explore the CSPC campus interactively with maps, buildings, events, and more.',
     activeTab: 'tabHome',
+    mapBasemap: mapController.getPublicBasemapConfig(),
+    mapStartNode: startNodeResult,
     ...sidebar
   });
 };

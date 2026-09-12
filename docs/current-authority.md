@@ -48,7 +48,16 @@ remain `fdb0c8c`, `621d72e`, `b8e7ffb`, and `a5a6cee` respectively.
 
 Commit `3d0a2b6` keeps entry routes blue (`#2563eb`) and renders exit routes red
 (`#dc2626`) in online and offline route views. Written Entry/Exit labels remain
-the primary direction cue, and the service-worker cache key is `v41`.
+the primary direction cue, and the service-worker cache key is `v45`.
+
+The current release adds the completed walking Guided-VR catalog and the
+walking/vehicle choice page, MapLibre/PMTiles rendering for online and offline
+maps, readable building/start labels, the corrected home map preview, and the
+offline start-marker alignment. The owner-authorized local MySQL campus/VR sync
+used natural-key upserts, preserved local-only and protected records, repaired
+ten retained route-edge endpoints after the shared library node refresh, and
+removed one stale duplicate Guided-VR link. Supabase was not changed by those
+local repairs.
 
 ## Architecture and Runtime Boundaries
 
@@ -94,7 +103,7 @@ walk pair and the bidirectional road-32/CITD-floor-8 pair. No schema or
 migration changed.
 
 The refreshed shared catalog has 25 active destinations, 484 configured steps,
-and 100 unique scene keys. MySQL remains at 671 scenes and 1,397 hotspots;
+and 100 unique scene keys. MySQL remains at 671 scenes and 1,410 hotspots;
 Supabase remains at 664 scenes and now records the four confirmed rows for
 1,378 hotspots. Both backends verify all 25 configured media/link/endpoint
 chains.
@@ -133,7 +142,7 @@ House / Main Gate start), 50 directed edges, 25 reverse pairs, and 50 valid
 geometries. The refreshed current Supabase route fingerprint SHA-256 is
 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`, and the
 expanded-freeze manifest SHA-256 is
-`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
+`32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38`.
 `config/selectedDemoFreeze.js` remains a QA record, not a runtime write lock;
 the refresh did not change any 2D route or migration.
 
@@ -193,7 +202,7 @@ verify that environment separately.
   bytes exactly matched the Git `7b4e818` blobs for
   `public/js/offline-guide-manager.js`, `public/sw.js`,
   `public/css/styles.css`, and `public/js/public-nav.js`. The sample also
-  confirmed entry blue `#2563eb`, exit red `#dc2626`, and service-worker `v41`.
+confirmed entry blue `#2563eb`, exit red `#dc2626`, and service-worker `v45`.
   This establishes `7b4e818` as the current independently post-deployment-
   verified technical Production baseline, but the four sampled assets do not prove immutable equality for the entire deployed package. The earlier
   `fea3b2e11c6331eddc1ee091b165427d8e0218d7` baseline is historical.
@@ -208,9 +217,9 @@ served static files, and searched `public/sw.js` for color literals owned by
 not application failures; the corrected bounded contract is the `127/127`
 result above.
 
-The current source package after the Guided-VR and freeze refresh is 199 files,
-7,345,009 bytes, aggregate SHA-256
-`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
+The current source package after the Guided-VR, MapLibre, and offline UI refresh
+is 200 files, 7,437,974 bytes, aggregate SHA-256
+`375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`.
 This is source/package evidence, not deployed-byte proof. The earlier 197-file
 package pin belongs to an older source set and remains historical only.
 

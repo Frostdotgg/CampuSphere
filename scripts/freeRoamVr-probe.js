@@ -221,8 +221,10 @@ async function runMode(mode, base) {
   }
   if (destId) {
     r = await hfetch('/vr/to/' + destId, { headers: HTMLH });
+    const destinationModeChoice = r.text.includes('id="vr-mode-title"') &&
+      r.text.includes('How are you traveling to');
     check(mode, 'backward-compat: /vr/to/:buildingId -> 200 destination route',
-      r.status === 200 && r.text.includes('Guard House / Main Gate'));
+      r.status === 200 && (r.text.includes('Guard House / Main Gate') || destinationModeChoice));
     if (r.text.includes('id="vrPano"')) {
       check(mode, 'destination route scene renders the approved capture date', hasCaptureDate(r.text));
     }

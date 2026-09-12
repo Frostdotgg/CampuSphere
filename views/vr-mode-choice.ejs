@@ -1,0 +1,352 @@
+<%
+  var vrRoute = (typeof route !== 'undefined' && route) ? route : null;
+  if (!vrRoute) vrRoute = { destination: { name: 'Destination' } };
+  if (!vrRoute.destination) vrRoute.destination = { name: 'Destination' };
+  var vrModes = (typeof availableTravelModes !== 'undefined' && Array.isArray(availableTravelModes))
+    ? availableTravelModes : ['vehicle'];
+  var vrNotice = (typeof notice !== 'undefined') ? notice : null;
+  var vrVehicleUrl = (typeof vehicleUrl !== 'undefined') ? vehicleUrl : '#';
+  var vrWalkingUrl = (typeof walkingUrl !== 'undefined') ? walkingUrl : '#';
+  var hasWalking = vrModes.indexOf('walking') !== -1;
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Choose a travel mode for the guided 360-degree campus route.">
+    <title><%= (typeof title !== 'undefined' ? title : 'CampuSphere | Travel mode') %></title>
+    <script nonce="<%= cspNonce %>">
+        (function () {
+            try {
+                if (localStorage.getItem('campussphere-theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (_) { /* theme preference is best effort */ }
+        })();
+    </script>
+    <link rel="stylesheet" href="/css/styles.css?v=12">
+    <link rel="icon" type="image/png" href="/img/cspc-logo.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f2a44">
+    <script src="/js/pwa.js" defer></script>
+    <style nonce="<%= cspNonce %>">
+        body {
+            --vr-mode-page-bg: #f4f7fb;
+            --vr-mode-text: #16324f;
+            --vr-mode-heading: #0f2a44;
+            --vr-mode-muted: #526a82;
+            --vr-mode-accent: #765600;
+            --vr-mode-link: #1e4d8c;
+            --vr-mode-surface: #ffffff;
+            --vr-mode-surface-hover: #f2f6fb;
+            --vr-mode-border: rgba(22, 50, 79, .16);
+            --vr-mode-border-strong: rgba(22, 50, 79, .28);
+            --vr-mode-icon-bg: #e8f1fb;
+            --vr-mode-icon-color: #1e4d8c;
+            --vr-mode-focus: #2563a8;
+            --vr-mode-chevron: #6b7280;
+            --vr-mode-notice-bg: #fff7ed;
+            --vr-mode-notice-border: #fdba74;
+            --vr-mode-notice-text: #7c2d12;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background: var(--vr-mode-page-bg);
+            color: var(--vr-mode-text);
+        }
+        html[data-theme="dark"] body {
+            --vr-mode-page-bg: #111827;
+            --vr-mode-text: #e5e7eb;
+            --vr-mode-heading: #f8fafc;
+            --vr-mode-muted: #b7c5d6;
+            --vr-mode-accent: #f0d078;
+            --vr-mode-link: #93c5fd;
+            --vr-mode-surface: #172033;
+            --vr-mode-surface-hover: #1d2a3e;
+            --vr-mode-border: rgba(184, 211, 237, .16);
+            --vr-mode-border-strong: rgba(184, 211, 237, .28);
+            --vr-mode-icon-bg: #1a3a5d;
+            --vr-mode-icon-color: #a7d2ff;
+            --vr-mode-focus: #f0d078;
+            --vr-mode-chevron: #94a3b8;
+            --vr-mode-notice-bg: rgba(124, 45, 18, .28);
+            --vr-mode-notice-border: rgba(251, 146, 60, .55);
+            --vr-mode-notice-text: #fed7aa;
+        }
+        .vr-mode-page {
+            width: min(760px, calc(100% - 2rem));
+            margin: 0 auto;
+            padding: calc(64px + 1.5rem) 0 4rem;
+        }
+        .vr-mode-breadcrumb { margin-bottom: 1.25rem; }
+        .vr-mode-back {
+            align-items: center;
+            color: var(--vr-mode-link);
+            display: inline-flex;
+            font-size: .9rem;
+            font-weight: 600;
+            gap: .45rem;
+            min-height: 44px;
+            padding: 0 .25rem;
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        .vr-mode-back:hover { color: var(--vr-mode-heading); }
+        .vr-mode-back:focus-visible {
+            border-radius: var(--radius-sm);
+            outline: 3px solid var(--vr-mode-focus);
+            outline-offset: 2px;
+        }
+        .vr-mode-head { margin-bottom: 1.5rem; }
+        .vr-mode-eyebrow {
+            color: var(--vr-mode-accent);
+            display: block;
+            font-family: var(--font-heading);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .14em;
+            margin-bottom: .55rem;
+            text-transform: uppercase;
+        }
+        .vr-mode-title {
+            color: var(--vr-mode-heading);
+            font-family: var(--font-heading);
+            font-size: clamp(1.55rem, 4vw, 2rem);
+            letter-spacing: -.025em;
+            line-height: 1.2;
+            margin: 0 0 .65rem;
+        }
+        .vr-mode-title__prompt,
+        .vr-mode-title__destination { display: block; }
+        .vr-mode-title__prompt { font-weight: 600; }
+        .vr-mode-title__destination { font-weight: 800; }
+        .vr-mode-copy {
+            color: var(--vr-mode-muted);
+            line-height: 1.55;
+            margin: 0;
+            max-width: 42rem;
+        }
+        .vr-mode-notice {
+            align-items: flex-start;
+            background: var(--vr-mode-notice-bg);
+            border: 1px solid var(--vr-mode-notice-border);
+            border-radius: var(--radius-md);
+            color: var(--vr-mode-notice-text);
+            display: flex;
+            gap: .65rem;
+            line-height: 1.5;
+            margin: 0 0 1rem;
+            padding: .85rem 1rem;
+        }
+        .vr-mode-notice svg { flex: 0 0 auto; margin-top: .15rem; }
+        .vr-mode-panel {
+            background: var(--vr-mode-surface);
+            border: 1px solid var(--vr-mode-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .vr-mode-panel__head {
+            align-items: baseline;
+            border-bottom: 1px solid var(--vr-mode-border);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            padding: .9rem 1.25rem;
+        }
+        .vr-mode-panel__title {
+            color: var(--vr-mode-heading);
+            font-family: var(--font-heading);
+            font-size: .95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .vr-mode-panel__hint {
+            color: var(--vr-mode-muted);
+            font-size: .78rem;
+            white-space: nowrap;
+        }
+        .vr-mode-options {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .vr-mode-options li + li { border-top: 1px solid var(--vr-mode-border); }
+        .vr-mode-option {
+            align-items: center;
+            background: transparent;
+            box-shadow: inset 3px 0 transparent;
+            color: var(--vr-mode-text);
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 48px minmax(0, 1fr) 20px;
+            min-height: 92px;
+            padding: 1rem 1.25rem;
+            text-decoration: none;
+            touch-action: manipulation;
+            transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .vr-mode-option:hover {
+            background: var(--vr-mode-surface-hover);
+            box-shadow: inset 3px 0 var(--vr-mode-link);
+        }
+        .vr-mode-option:active { background: var(--vr-mode-surface-hover); }
+        .vr-mode-option:focus-visible {
+            outline: 3px solid var(--vr-mode-focus);
+            outline-offset: -3px;
+        }
+        .vr-mode-option__icon {
+            align-items: center;
+            background: var(--vr-mode-icon-bg);
+            border-radius: var(--radius-md);
+            color: var(--vr-mode-icon-color);
+            display: flex;
+            flex: 0 0 auto;
+            height: 48px;
+            justify-content: center;
+        }
+        .vr-mode-option__body { min-width: 0; }
+        .vr-mode-option__title {
+            color: var(--vr-mode-heading);
+            display: block;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: .2rem;
+        }
+        .vr-mode-option__text {
+            color: var(--vr-mode-muted);
+            display: block;
+            font-size: .88rem;
+            line-height: 1.5;
+        }
+        .vr-mode-option__arrow {
+            color: var(--vr-mode-chevron);
+            display: flex;
+            justify-content: flex-end;
+            transition: color var(--transition-fast);
+        }
+        .vr-mode-option:hover .vr-mode-option__arrow { color: var(--vr-mode-link); }
+        .vr-mode-unavailable {
+            align-items: flex-start;
+            border-top: 1px solid var(--vr-mode-border);
+            color: var(--vr-mode-muted);
+            display: flex;
+            font-size: .83rem;
+            gap: .55rem;
+            line-height: 1.45;
+            margin: 0;
+            padding: .8rem 1.25rem;
+        }
+        .vr-mode-unavailable svg { flex: 0 0 auto; margin-top: .1rem; }
+        @media (max-width: 600px) {
+            .vr-mode-page {
+                width: min(100% - 1.25rem, 760px);
+                padding-top: calc(64px + 1rem);
+            }
+            .vr-mode-breadcrumb { margin-bottom: .85rem; }
+            .vr-mode-head { margin-bottom: 1.25rem; }
+            .vr-mode-panel__head {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: .15rem;
+                padding: .8rem 1rem;
+            }
+            .vr-mode-panel__hint { white-space: normal; }
+            .vr-mode-option {
+                gap: .8rem;
+                grid-template-columns: 44px minmax(0, 1fr) 18px;
+                min-height: 88px;
+                padding: .9rem 1rem;
+            }
+            .vr-mode-option__icon { height: 44px; }
+            .vr-mode-option__icon svg { height: 23px; width: 23px; }
+            .vr-mode-unavailable { padding: .8rem 1rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .vr-mode-back,
+            .vr-mode-option,
+            .vr-mode-option__arrow { transition: none; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/dash-navbar', { activeTab: activeTab }) %>
+    <main class="vr-mode-page">
+        <nav class="vr-mode-breadcrumb" aria-label="Breadcrumb">
+            <a class="vr-mode-back" href="/map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Back to Campus Map</span>
+            </a>
+        </nav>
+
+        <header class="vr-mode-head" aria-labelledby="vr-mode-title">
+            <span class="vr-mode-eyebrow">Guided VR Route</span>
+            <h1 class="vr-mode-title" id="vr-mode-title">
+                <span class="vr-mode-title__prompt">How are you traveling to</span>
+                <span class="vr-mode-title__destination"><%= vrRoute.destination.name %>?</span>
+            </h1>
+            <p class="vr-mode-copy">Select a travel mode to start the guided 360&deg; route. You can change modes before the route begins.</p>
+        </header>
+
+        <% if (vrNotice) { %>
+        <div class="vr-mode-notice" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span><%= vrNotice %></span>
+        </div>
+        <% } %>
+
+        <div class="vr-mode-panel">
+            <div class="vr-mode-panel__head">
+                <h2 class="vr-mode-panel__title" id="vr-mode-options-title">Select a travel mode</h2>
+                <span class="vr-mode-panel__hint">Your route opens immediately</span>
+            </div>
+            <ul class="vr-mode-options" aria-labelledby="vr-mode-options-title">
+                <% if (hasWalking) { %>
+                <li>
+                    <a class="vr-mode-option" href="<%= vrWalkingUrl %>" aria-describedby="vr-walking-description">
+                        <span class="vr-mode-option__icon" aria-hidden="true">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="m10 22 1.5-6 2-2 1.5 3.5 3 1.5"/><path d="m10.5 9 3 2 2.5-2 1.5-3"/><path d="m8 13 3.5-2"/></svg>
+                        </span>
+                        <span class="vr-mode-option__body">
+                            <span class="vr-mode-option__title">Walking</span>
+                            <span class="vr-mode-option__text" id="vr-walking-description">Follow the pedestrian path through campus.</span>
+                        </span>
+                        <span class="vr-mode-option__arrow" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                    </a>
+                </li>
+                <% } %>
+                <% if (vrModes.indexOf('vehicle') !== -1) { %>
+                <li>
+                    <a class="vr-mode-option" href="<%= vrVehicleUrl %>" aria-describedby="vr-vehicle-description">
+                        <span class="vr-mode-option__icon" aria-hidden="true">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m5 16 1.4-6.5A2 2 0 0 1 8.35 8h7.3a2 2 0 0 1 1.95 1.5L19 16"/><path d="M4 16h16v3H4z"/><circle cx="7.5" cy="19" r="1"/><circle cx="16.5" cy="19" r="1"/><path d="M7 12h10"/></svg>
+                        </span>
+                        <span class="vr-mode-option__body">
+                            <span class="vr-mode-option__title">Vehicle</span>
+                            <span class="vr-mode-option__text" id="vr-vehicle-description">Follow the vehicle route through campus.</span>
+                        </span>
+                        <span class="vr-mode-option__arrow" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                    </a>
+                </li>
+                <% } %>
+            </ul>
+
+            <% if (!hasWalking) { %>
+            <p class="vr-mode-unavailable">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Walking is not available for this destination yet.</span>
+            </p>
+            <% } %>
+        </div>
+    </main>
+    <%- include('partials/theme-toggle') %>
+    <script src="/js/nav-role.js"></script>
+    <script src="/js/profile-script.js"></script>
+</body>
+</html>

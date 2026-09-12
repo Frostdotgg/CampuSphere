@@ -13,7 +13,10 @@
     "qa:smoke": "node scripts/supabase-smoke.js",
     "qa:identity": "node scripts/verify-identity-constraints.js",
     "qa:audit": "npm audit --omit=dev",
-    "qa:offline-map": "node scripts/offlineMapRelease-probe.js"
+    "qa:offline-map": "node scripts/offlineMapRelease-probe.js",
+    "qa:map-labels": "node scripts/mapLabels-probe.js",
+    "repair:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings.js",
+    "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js"
   },
   "keywords": [
     "cspc",

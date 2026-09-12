@@ -2645,6 +2645,40 @@ iconify-icon {
     padding: var(--space-md);
 }
 
+.dash-map-preview__map {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    min-height: 240px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #edf1e8;
+}
+
+.dash-map-preview__map .maplibregl-canvas {
+    border-radius: 12px;
+}
+
+.dash-map-preview__status {
+    margin: var(--space-sm) 0 0;
+    color: var(--gray-600);
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+.home-map-popup {
+    display: flex;
+    min-width: 130px;
+    flex-direction: column;
+    gap: 3px;
+    color: var(--gray-800);
+    font-size: .78rem;
+    line-height: 1.25;
+}
+
+.home-map-popup strong { font-size: .84rem; }
+.home-map-popup span { color: var(--gray-600); }
+
 /* ---- Sidebar Cards ---- */
 .dash-sidebar-card {
     background: var(--white);
@@ -6756,6 +6790,118 @@ a.btn-google {
     pointer-events: auto;
 }
 
+/* ===== COMPACT MAP LABELS ===== */
+/* Labels stay deliberately small and cartographic: the pin remains the
+   interactive target, while the text is a passive readable cue. */
+.campus-map-label {
+    position: absolute;
+    z-index: 5;
+    display: block;
+    width: max-content;
+    max-width: 150px;
+    min-width: 0;
+    padding: 2px 4px;
+    border: 1px solid rgba(15, 42, 68, .18);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .9);
+    color: #102a43;
+    box-shadow: 0 1px 3px rgba(15, 42, 68, .14);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: .01em;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    text-align: left;
+    user-select: none;
+    white-space: normal;
+}
+
+.campus-map-label[hidden] { display: none; }
+
+.map-building-label--leaflet {
+    left: 29px;
+    top: -7px;
+}
+
+.map-building-label--maplibre {
+    left: 26px;
+    top: -5px;
+}
+
+.map-building-label--offline {
+    left: 35px;
+    top: 0;
+    max-width: 150px;
+}
+
+.map-building-label--fallback {
+    left: 24px;
+    top: -7px;
+    max-width: 142px;
+}
+
+.map-start-marker,
+.map-fallback__origin {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+}
+
+.map-start-marker::before,
+.map-fallback__origin::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: #d4a843;
+    box-shadow: 0 2px 5px rgba(15, 42, 68, .3);
+}
+
+/* Fallback markers are positioned with percentage coordinates rather than
+   MapLibre's anchor transform, so center the 44px wrapper on the coordinate. */
+.map-fallback__origin { transform: translate(-50%, -50%); }
+
+[data-theme="dark"] .dash-map-preview__status,
+[data-theme="dark"] .home-map-popup span { color: var(--gray-300); }
+
+[data-theme="dark"] .home-map-popup { color: var(--gray-100); }
+
+@media (max-width: 600px) {
+    .dash-map-preview__header {
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    .dash-map-preview__header .btn { flex: 0 0 auto; }
+    .dash-map-preview__map { height: 280px; min-height: 220px; }
+    .dash-map-preview__map .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+    .dash-map-preview__map .campus-map-label { max-width: 130px; font-size: 11px; }
+}
+
+.map-start-label {
+    left: 31px;
+    top: 4px;
+    max-width: 170px;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .campus-map-label,
+.offline-page[data-theme="dark"] .campus-map-label {
+    border-color: rgba(255, 255, 255, .22);
+    background: rgba(15, 42, 68, .92);
+    color: #f5f7fb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+
 .leaflet-tile {
     width: 256px;
     height: 256px;
@@ -6914,6 +7060,11 @@ a.btn-google {
     box-shadow: var(--shadow-sm);
     pointer-events: none;
 }
+
+/* The label is a real child element so collision handling can measure and
+   hide it. Keep the historical marker data-label attribute for compatibility,
+   but do not render a second pseudo-label. */
+.map-fallback__marker::before { content: none; }
 
 .map-fallback__marker.active,
 .map-fallback__marker:hover {

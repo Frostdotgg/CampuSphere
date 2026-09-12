@@ -1769,12 +1769,12 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v41 and the offline origin marker, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 41 &&
-      /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
-      /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(offlineManager) &&
-      /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(offlineManager) &&
-      !/originEl\.textContent = 'Main Gate'/.test(offlineManager) &&
+    ok('sw.js is v45 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 45 &&
+       /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
+       /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\);/.test(offlineManager) &&
+       /createOfflineMapLabel\('Start · ' \+ OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label'\)/.test(offlineManager) &&
+       !/originEl\.textContent = 'Main Gate'/.test(offlineManager) &&
       /var OFFLINE_BUILDING_PIN_SCALE = 0\.7;/.test(offlineManager) &&
       /var OFFLINE_BUILDING_PIN_OFFSET = \[0, -14 \* OFFLINE_BUILDING_PIN_SCALE\];/.test(offlineManager) &&
       /new maplibregl\.Marker\(\{\s*scale: OFFLINE_BUILDING_PIN_SCALE,\s*offset: OFFLINE_BUILDING_PIN_OFFSET\s*\}\)/.test(offlineManager) &&
@@ -1896,11 +1896,19 @@ function runLeafletVendorGate() {
   const { ok } = rec;
   const root = path.join(__dirname, '..');
   const CDN_LEAFLET_JS = /unpkg\.com\/leaflet@[^"']*\/leaflet\.js\b/;
-  for (const view of ['views/map.ejs', 'views/home.ejs', 'views/dashboard.ejs']) {
+  for (const view of ['views/map.ejs', 'views/dashboard.ejs']) {
     const src = fs.readFileSync(path.join(root, view), 'utf8');
     ok(view + ' no longer loads CDN Leaflet JS', !CDN_LEAFLET_JS.test(src));
     ok(view + ' loads /vendor/leaflet/leaflet.js', src.includes('/vendor/leaflet/leaflet.js'));
   }
+  const home = fs.readFileSync(path.join(root, 'views', 'home.ejs'), 'utf8');
+  ok('views/home.ejs no longer loads Leaflet or public OSM tiles',
+    !/\/vendor\/leaflet\/leaflet\.(?:js|css)/.test(home) &&
+    !/tile\.openstreetmap\.org/.test(home));
+  ok('views/home.ejs loads the bundled MapLibre/PMTiles preview assets',
+    home.includes('/vendor/maplibre/maplibre-gl.js') &&
+    home.includes('/vendor/maplibre/maplibre-gl.css') &&
+    home.includes('/vendor/pmtiles/pmtiles.js'));
   const vendorPath = path.join(root, 'public', 'vendor', 'leaflet', 'leaflet.js');
   const vendorExists = fs.existsSync(vendorPath);
   ok('public/vendor/leaflet/leaflet.js exists', vendorExists);
@@ -1967,7 +1975,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
   ['views/about.ejs', ['/vendor/iconify-icon/iconify-icon.min.js']],
   ['views/dashboard.ejs', ['/vendor/iconify-icon/iconify-icon.min.js', '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css']],
   ['views/events.ejs', ['/vendor/iconify-icon/iconify-icon.min.js']],
-  ['views/home.ejs', ['/vendor/iconify-icon/iconify-icon.min.js', '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css']],
+  ['views/home.ejs', ['/vendor/iconify-icon/iconify-icon.min.js', '/vendor/maplibre/maplibre-gl.js', '/vendor/maplibre/maplibre-gl.css', '/vendor/pmtiles/pmtiles.js']],
   ['views/map.ejs', ['/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/vendor/maplibre/maplibre-gl.js', '/vendor/maplibre/maplibre-gl.css']],
   ['views/vr.ejs', ['/vendor/pannellum/pannellum.js', '/vendor/pannellum/pannellum.css']],
   ['views/vr-route.ejs', ['/vendor/pannellum/pannellum.js', '/vendor/pannellum/pannellum.css']],
@@ -1976,7 +1984,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
 /* Reviewed package-manifest bytes after the July 26 dependency-security
    remediation.  The package manifest pins EJS 6.0.1 and the lockfile removes
    the vulnerable jake/filelist/minimatch/brace-expansion production chain. */
-const REVIEWED_PACKAGE_JSON_SHA256 = 'b207496892501c30b514402b3afce3d748af8afbed147eadf0e27f814c5dea97';
+const REVIEWED_PACKAGE_JSON_SHA256 = '7e1f716ee21de5ac6f9b7a25f53d972948fd55a59d7331f1a5dfd0ab986989be';
 const REVIEWED_PACKAGE_LOCK_SHA256 = 'ad1a378b8b46a049af7f8543d9ea0561ef91082c2d49d73be2d4178f397f68ca';
 
 /** PURE: do the manifest's recorded versions equal the expected pinned set? */
@@ -2308,11 +2316,14 @@ async function runSelfHostedVendorGate() {
       ok(`${view} never claims arrival when the viewer is missing`,
         /if \(!window\.pannellum\)[\s\S]{0,300}showFallback\(\)/.test(src));
     }
-    for (const view of ['views/home.ejs', 'views/dashboard.ejs']) {
-      ok(`${view} fails closed to a truthful message without Leaflet`,
-        /typeof L === 'undefined'/.test(readIf(view)) &&
-        /Live map engine is unavailable\./.test(readIf(view)));
-    }
+    const home = readIf('views/home.ejs');
+    const dashboard = readIf('views/dashboard.ejs');
+    ok('views/home.ejs fails closed to a truthful message without MapLibre/PMTiles',
+      /typeof maplibregl === 'undefined' \|\| typeof pmtiles === 'undefined'/.test(home) &&
+      /Live map engine is unavailable\./.test(home));
+    ok('views/dashboard.ejs fails closed to a truthful message without Leaflet',
+      /typeof L === 'undefined'/.test(dashboard) &&
+      /Live map engine is unavailable\./.test(dashboard));
   }
 
   /* ---- 9. package manifests match the reviewed dependency baseline ---- */
@@ -6904,7 +6915,7 @@ const CURRENT_ACCEPTED_NPM_TEST_SHA256 =
 const CURRENT_SUPABASE_BUILDING_ROUTE_SHA256 =
   'a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1';
 const CURRENT_FREEZE_MANIFEST_SHA256 =
-  'c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c';
+  '32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38';
 const CURRENT_FEATURE_PACKAGE_SHA256 =
   '864dfc634c78d70770a569a799a041ce0a5c0f135222737cc335ee70c533b079';
 const CURRENT_IDENTITY_LOCK_PACKAGE_SHA256 =
@@ -6934,7 +6945,7 @@ const CURRENT_PRE_GUIDED_VR_RELEASE_COMMIT_SHA =
 const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
   'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_ROUTE_COLOR_PACKAGE_SHA256 =
-  '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079';
+  '375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -7003,7 +7014,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/2D route graph and final owner-confirmed route drawings remain unchanged/i.test(t) ||
         !/entry routes remain blue/i.test(t) || !/#2563eb/i.test(t) ||
         !/exit routes red/i.test(t) || !/#dc2626/i.test(t) ||
-        !/service-worker cache key remains `?v41`?/i.test(t) ||
+        !/service-worker cache key remains `?v45`?/i.test(t) ||
         !/must not be reapplied or changed without separate explicit authorization/i.test(t)) {
       problems.push('migration, unchanged 2D route, or route-color boundary is incomplete');
     }
@@ -7020,7 +7031,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
     if (!/25 active destinations[^.]{0,100}484 configured steps[^.]{0,100}100 unique scene keys/i.test(t) ||
         !t.includes(CURRENT_SUPABASE_BUILDING_ROUTE_SHA256) ||
         !t.includes(CURRENT_FREEZE_MANIFEST_SHA256) ||
-        !/199 files[^.]{0,80}7,345,009 bytes/i.test(t) ||
+        !/200 files[^.]{0,80}7,437,974 bytes/i.test(t) ||
         !t.includes(CURRENT_ROUTE_COLOR_PACKAGE_SHA256) ||
         !/not runtime write locks or complete deployed-byte proof/i.test(t)) {
       problems.push('Guided-VR freeze, route snapshot, or source-package evidence boundary is incomplete');
@@ -7065,7 +7076,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/fea3b2e11c6331eddc1ee091b165427d8e0218d7[^.]{0,80}historical/i.test(t) ||
         !/did not exercise authenticated UI behavior, OAuth, a real Drive file, schedules/i.test(t) ||
         !/no recorded real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
-        !/owner alone will promote/i.test(t) ||
+        !/(?:owner alone will promote|owner controls the Vercel promotion boundary[^.]{0,160}(?:explicitly )?authorized Codex to promote)/i.test(t) ||
         !/separate authorization/i.test(t) ||
         !/stop and ask the owner/i.test(t) ||
         !/automatically rolling back, patching, promoting, or redeploying/i.test(t)) {
@@ -8015,7 +8026,7 @@ function reusablePromptIsCurrent(body) {
       /four owner-confirmed Supabase hotspots[^.]{0,120}1,378/i.test(t) &&
       /old 2026-09-06 Supabase route fingerprint is historical/i.test(t) &&
       /entry lines are blue[^.]{0,100}exit lines are red/i.test(t) &&
-      /service worker is v41/i.test(t) &&
+      /service worker is v45/i.test(t) &&
       /Google Drive[^.]{0,120}authenticated same-origin proxy/i.test(t) &&
       /JPEG, PNG,\s*and WebP/i.test(t) &&
       /not HEIC\/HEIF/i.test(t) &&
@@ -8578,17 +8589,17 @@ function analyzeProvenanceRemediationRow(md) {
    and evidence documents. Historical offline-camera, product, and technical
    Production identities remain separate evidence. */
 const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
-  files: 199,
-  bytes: '7,345,009',
-  sha256: '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079',
+  files: 200,
+  bytes: '7,437,974',
+  sha256: '375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6',
 });
 
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 199,
-  bytes: '7,345,009',
-  sha256: '518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079',
+  files: 200,
+  bytes: '7,437,974',
+  sha256: '375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -8612,7 +8623,7 @@ function currentPackageInventoryProblems(manifest, expected = EXPECTED_CURRENT_P
    configuration and the evidence document. A coordinated config+docs edit
    therefore cannot silently redefine the reviewed backend/catalog truth. */
 const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
-  mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
+  mysql: 'MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 25 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
   supabase: 'Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
   guidedCatalog: 'the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys',
   be6Result: 'BE.6 freeze remains 46/46',
@@ -8622,7 +8633,7 @@ const EXPECTED_CURRENT_BE6_EVIDENCE = Object.freeze({
    complete fail-closed arrival contract. This pin is independent of the demo
    document and the runtime resolver. */
 const EXPECTED_CURRENT_DEMO_ROUTING = Object.freeze({
-  mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
+  mysql: 'MySQL freezes 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 25 exact reverse geometries, 100 valid geometries, and 33 routable destinations',
   supabase: 'Supabase freezes 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations',
   guidedCatalog: 'Guided VR covers 25 active destinations, 484 configured steps, and 100 unique scene keys',
   naturalEndpoint: 'the configured natural destination node',
@@ -11997,7 +12008,7 @@ function runDocsCurrentGate() {
     const M_OK = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** | 126/126 clean bounded matrix, both runtime modes |';
     const M_PENDING = '| Local login | Student login | sign in through the real form | dashboard renders | Pending | |';
     const M_BLANK_EVIDENCE = '| Local login | Student login | sign in through the real form | dashboard renders | **PASS (clean bounded matrix)** |  |';
-    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys |';
+    const M_ROUTE_CURRENT = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The expanded BE.6 freeze remains 46/46: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 25 exact reverse geometries, 100 valid geometries, and 33 routable destinations; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, and 25 routable destinations; the shared Guided-VR catalog has 25 active destinations, 484 configured steps, and 100 unique scene keys |';
     const M_ROUTE_STALE = '| Route/pathfinding | Road-following destination route | select a destination | route follows roads | **PASS (current expanded freeze)** | The refreshed BE.6 selected-demo candidate holds at 46/46 with 21 nodes, 50 directed edges, 25 exact reverse pairs, 50 valid geometries, and 13 routable destinations in both backends |';
     const M_ROUTE_WRONG_MYSQL_COUNT = M_ROUTE_CURRENT.replace('44 route nodes', '43 route nodes');
     const DEMO_OK = [
@@ -12026,13 +12037,13 @@ function runDocsCurrentGate() {
     const SUITE_STALE_CURRENT = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) | `npm test` | zero fail | **3659/3659 PASS - correction candidate, awaiting an independent read-only R8 review** | delta reconciliation |';
     const SUITE_STALE_HIST = '| Full contract suite (M12.P1-R8 pilot-readiness correction candidate) - historical/superseded | `npm test` | zero fail | **Historical/superseded: `3659/3659` PASS - superseded by the current correction-candidate row above** | delta reconciliation |';
 
-    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`; focused package gate `74/74`** | current Guided-VR release source/package evidence; pushed c4de5ab package remains historical |';
-    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`** | current Guided-VR release source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
+    const INV_CURRENT = '| M12.P1-D6/OFF local package inventory | `node scripts/vercelPackageBoundary-probe.js` | recomputed | **200 files, 7,437,974 bytes, aggregate SHA-256 `375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`; focused package gate `74/74`** | current Guided-VR/MapLibre release source/package evidence; pushed c4de5ab package remains historical |';
+    const INV_CURRENT_CITES_OLD = '| M12.P1-D6/OFF local package inventory | `x` | recomputed | **200 files, 7,437,974 bytes, aggregate SHA-256 `375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`** | current Guided-VR/MapLibre release source/package evidence; c4de5ab package is historical: 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af` |';
     const INV_STALE_CURRENT = '| M12.P1-R8 package inventory (correction candidate) | `x` | recomputed | **157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`; focused probe `71/71`** | candidate evidence only |';
     const INV_STALE_HIST = '| M12.P1-R8 package inventory (pilot-readiness correction candidate) - historical/superseded | `x` | recomputed | **Historical/superseded: 157 files, 6,192,992 bytes, aggregate SHA-256 `0ae9f57debf8009235e7bef2160e8320b958e6e873d91d0ffb011a74ab999a1c`** | retained as history |';
     const SEC37_HDR = '| ID | Area | Test | Expected | Status | Evidence |\n| --- | --- | --- | --- | --- | --- |\n';
     const SEC37_CURRENT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS — current maintenance-correction package evidence 74/74** | **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Current maintenance-correction package:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |';
-    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
+    const SEC37_CURRENT_PRODUCT = '| SEC-37 | Deployment package boundary | enumerate | exact pin | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 200 files, 7,437,974 bytes, aggregate SHA-256 `375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4` |';
     const SEC37_STALE_CURRENT = SEC37_CURRENT.replace('168 files, 7,074,195 bytes', '158 files, 6,245,074 bytes');
     const SEC37_DUPLICATE_CURRENT = SEC37_CURRENT.replace(/ \|$/, '. **Current duplicate:** 168 files, 7,074,195 bytes, aggregate SHA-256 `13cd3c5e5d8259766e50b1136c8cc8a5672b2321c65962892358c62b45ef88f5` |');
     const SEC37_HISTORICAL_ONLY = SEC37_CURRENT.replace('**Current maintenance-correction package:**', '**Historical/superseded maintenance-correction package:**');
@@ -13514,8 +13525,8 @@ function runSwPrecacheGate() {
   ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=11',
-    canonicalStylesheet === '/css/styles.css?v=11');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=12',
+    canonicalStylesheet === '/css/styles.css?v=12');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.

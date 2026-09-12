@@ -313,21 +313,33 @@ a:focus-visible,
 }
 
 .offline-map-marker--origin {
-  width: auto;
-  min-width: 86px;
-  height: 31px;
-  padding: 0 10px;
-  color: var(--navy-900);
-  background: #f0c757;
-  border: 3px solid #fff;
-  border-radius: 8px 8px 8px 2px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  color: transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   cursor: default;
-  font-size: .67rem;
-  font-weight: 800;
-  filter: drop-shadow(0 3px 6px rgba(15, 42, 68, .22));
+  font-size: 0;
+  filter: none;
 }
 
-.offline-map-marker--origin::before,
+.offline-map-marker--origin::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #d4a843;
+  box-shadow: 0 2px 5px rgba(15, 42, 68, .3);
+}
+
 .offline-map-marker--origin::after { content: none; }
 
 .offline-details .map-panel__action-buttons { width: 100%; }

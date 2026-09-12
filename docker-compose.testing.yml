@@ -65,14 +65,17 @@ services:
       # Read from .env; default to the local MySQL fallback when unset.
       SESSION_STORE: ${SESSION_STORE:-mysql}
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in your shell or .env}
-      # ---- Optional runtime switches (default to MySQL/Leaflet fallback) ----
+      # ---- Optional runtime switches (default to MySQL and bundled MapLibre) ----
       AUTH_DATA_SOURCE: ${AUTH_DATA_SOURCE:-mysql}
       CONTENT_DATA_SOURCE: ${CONTENT_DATA_SOURCE:-mysql}
       BUILDING_DATA_SOURCE: ${BUILDING_DATA_SOURCE:-mysql}
       ROUTE_DATA_SOURCE: ${ROUTE_DATA_SOURCE:-mysql}
       VR_DATA_SOURCE: ${VR_DATA_SOURCE:-mysql}
       SCHEDULE_DATA_SOURCE: ${SCHEDULE_DATA_SOURCE:-mysql}
-      MAP_RENDERER: ${MAP_RENDERER:-leaflet}
+      # Use the bundled PMTiles basemap for local map verification. The
+      # legacy Leaflet renderer requests public OSM raster tiles directly and
+      # can be blocked by the volunteer tile service.
+      MAP_RENDERER: maplibre
       # ---- Offline map release runtime (public values only) ----
       # Keep the default bundled baseline for local development until the
       # public Drive manifest URL and Ed25519 verification key are configured.

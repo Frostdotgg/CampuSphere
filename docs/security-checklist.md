@@ -79,9 +79,12 @@ Current lineage includes role-aware source `5d505e9`, directional routing
 `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable handoff
 `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`, independently
 verified Production authority `7b4e818`, and its documentation successor
-`05b0545`. The new release changes the Guided-VR policy and its evidence only;
-it adds no public URL, HTTP payload, database schema, migration, authentication,
-or authorization interface.
+`05b0545`. The release keeps the owner-selected Guided-VR route content and
+now includes the complete walking catalog and walking/vehicle chooser,
+MapLibre/PMTiles online and offline map surfaces, readable building/start
+labels, the corrected home map preview, and the aligned offline start marker.
+It adds no database schema or migration and preserves the existing
+authentication, session, and media boundaries.
 
 Academic Building II now follows the owner-selected corridor and completes in
 31 steps at `scene-acad-2-1st-floor-17`. MULTI-PURPOSE-BUILDING I follows the
@@ -94,12 +97,15 @@ The owner-authorized Supabase destination mapping and the matching local MySQL
 rehearsal mapping now map `scene-green-1st-floor-1` to `green` and leave the
 former `scene-green-1st-floor-7` arrival unmapped. Four owner-confirmed hotspots
 are intentional owner-managed Supabase data: the bidirectional Guard House walk
-pair and the bidirectional road-32/CITD-floor-8 pair. No other database write is
-part of this release.
+pair and the bidirectional road-32/CITD-floor-8 pair. No other Supabase write
+is part of this release. The owner-authorized local MySQL campus/VR sync used
+natural-key upserts, preserved local-only and protected records, normalized
+ten retained route-edge endpoints, and removed one stale duplicate Guided-VR
+link; Supabase was not changed by those local repairs.
 
 The refreshed BE.6 snapshot keeps MySQL at 34 buildings, 44 route nodes, 100
-directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid
-geometries, 671 scenes, and 1,397 hotspots. Supabase remains at 25 buildings, 26
+directed edges, 50 reverse pairs, 25 exact reverse geometries, 100 valid
+geometries, 671 scenes, and 1,410 hotspots. Supabase remains at 25 buildings, 26
 route nodes, 50 directed edges, 25 reverse pairs, zero exact reverse geometries,
 50 valid geometries, and 664 scenes, and now records the four owner-confirmed
 rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations,
@@ -107,7 +113,7 @@ rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations
 fingerprint SHA-256 is
 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`;
 the refreshed expanded-freeze manifest SHA-256 is
-`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
+`32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38`.
 These fingerprints are QA records, not runtime write locks or complete
 deployed-byte proof.
 
@@ -116,10 +122,10 @@ remains owner-applied, and the 2D route graph and final owner-confirmed route
 drawings remain unchanged. Migration `0027` and those routes must not be
 reapplied or changed without separate explicit authorization. Entry routes
 remain blue (`#2563eb`), exit routes red (`#dc2626`), written direction labels
-remain primary, and the service-worker cache key remains `v41`.
+remain primary, and the service-worker cache key remains `v45`.
 
-The refreshed source package is 199 files, 7,345,009 bytes, aggregate SHA-256
-`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
+The refreshed source package is 200 files, 7,437,974 bytes, aggregate SHA-256
+`375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`.
 Fresh full local `npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and
 Supabase session-store legs completed, final canonical session residue passed
 `18/18`, and the final BE.6 double-read passed `46/46`. All five `npm run qa`
@@ -161,10 +167,12 @@ exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
 administrator writes, or complete deployed-package equality, and there is no
 recorded real CSPC instructor Gmail end-to-end OAuth observation.
 
-The owner alone will promote the pushed release in Vercel. Deployment identity
-verification and any bounded Production smoke require separate authorization
-after that owner action. If verification or smoke fails, stop and ask the owner
-rather than automatically rolling back, patching, promoting, or redeploying.
+The owner controls the Vercel promotion boundary and has explicitly authorized
+Codex to promote this pushed release. Deployment identity verification and any
+bounded Production smoke remain separate post-promotion checks; any unrequested
+follow-on action still requires separate authorization. If verification or smoke
+fails, stop and ask the owner rather than automatically rolling back, patching,
+promoting, or redeploying.
 ## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
@@ -1731,7 +1739,7 @@ adherence.
 | SEC-35 | Missing self-hosted asset degradation | Intercept each vendor family locally and reload affected map/VR/admin pages | Essential content/actions remain truthful; no stale route/arrival success, uncaught initialization cascade, or executable CDN fallback occurs | **PASS — accepted R6 Codex GO** | Independent fresh-context interception covered Lucide, Iconify, Leaflet, Pannellum, and MapLibre. Lucide/Iconify absence preserved essential labels/actions; Leaflet/MapLibre absence showed "Live map engine is unavailable." with 13 locations and zero stale route paths; Pannellum absence showed "360 viewer could not be loaded." and never claimed arrival. Only expected same-origin 404s occurred, with zero executable CDN fallback or unexpected page errors |
 | SEC-36 | R6 browser and responsive verification | Run the required admin/map/VR matrix at desktop and mobile sizes | No CSP violation, unexpected failed vendor request, broken essential control, or untruthful unavailable state | **PASS — accepted R6 Codex GO** | Independent Codex review covered eight admin pages, `/home`, `/dashboard`, `/about`, `/events`, `/map` in Leaflet and MapLibre modes, Free Roam `/vr`, and a valid CAS guided route at 1440×900 and 390×844: all HTTP 200, zero CSP violations, zero unexpected page errors, no horizontal overflow, Leaflet markers resolving from `/vendor/leaflet/images/marker-icon.png`, and the MapLibre `blob:` worker with zero separate worker-file requests |
 
-| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 199 files, 7,345,009 bytes, aggregate SHA-256 `518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`; this is source/package evidence, not immutable deployed-byte proof, and does not authorize deployment. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Historical pushed `c4de5ab` offline-camera package:** 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. **Historical `38905b7` product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is replacement verification evidence, not deployment authorization |
+| SEC-37 | Deployment package boundary | Inspect the root `.vercelignore` allowlist and enumerate what a Vercel upload would contain | The first rule is the root `/*`, so a new root file or directory is excluded by default. Only reviewed runtime roots are re-included; `public/img/sample 360` remains denied after `public`. No secret, documentation, probe, database source, screenshot, Docker/local-agent, dependency tree, temporary, or Git metadata is packaged. The exact content-addressed PMTiles archive/manifest and 20 vendor runtime files are independently required | **PASS - current product package evidence 74/74** | **Current reviewed source package:** 200 files, 7,437,974 bytes, aggregate SHA-256 `375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`; this is source/package evidence, not immutable deployed-byte proof, and does not authorize deployment. **Accepted technical Production predecessor:** 158 files, 6,245,074 bytes, aggregate SHA-256 `b3113c05daaa5d2e870f204083923434456580fa6499190421de062ce9cabbd4`. **Historical pushed `c4de5ab` offline-camera package:** 188 files, 7,242,957 bytes, aggregate SHA-256 `6790308c8cd157425a551c1bb910b3e2d3b899bc3515b0904154b99b918d35af`. **Historical `38905b7` product package:** 186 files, 7,220,073 bytes, aggregate SHA-256 `c19b2bb9bcd328df56f0eb247077f48e0c3cc6f35bf919c0e22da0d3add1f621`. **Historical/rejected pre-correction package:** 168 files, 7,071,943 bytes, aggregate SHA-256 `dd00055741fedecd9d99f081c612f8c18e6573d7a121d5903d866fcebddb0a33`. **Accepted local predecessor:** 168 files, 7,042,705 bytes, aggregate SHA-256 `fe08232edf026edcbd33371df7d484bfaf39e3de0dafe22f5144e18e08efbf2b`. **Historical/blocked, never accepted:** 168 files, 7,022,574 bytes, aggregate SHA-256 `779d331824026ce0c1c9510e6393790d0a8da508498a395c1e97d9a04c19e7fd` (the first D6 candidate, rejected by the independent review); 165 files, 6,971,229 bytes, aggregate SHA-256 `e383f2fe708c5233192ec3602727ed2029dbc906df1ad53a75a70f6fa583334b` (the OFF.3-OFF.5 2D offline-navigation candidate); 165 files, 6,970,280 bytes, aggregate SHA-256 `fc5d8bdcc7a6482bd256d4504224018cfc56ba418f56d81babd6e0ec5a4ff783` at candidate manifest `af7a1a333db0653449727ee5b6b7f223606686a05717ef6f107607bd99f04e9c` (incomplete service-worker header and API guards); 165 files, 6,969,343 bytes, aggregate SHA-256 `2dd88fede872db81a771a9d7273c8fd0264e2f6006d5eee09f33a1b930400523` (automatic API caching contradicted the consent-driven offline-package boundary); and 165 files, 6,968,875 bytes, aggregate SHA-256 `115dccba1fc4d9707caa5c43cc8bd7f9340bd7d92286513ad562d60af60b100f`. The allowlist, forbidden classes, exact map assets, and vendor files are pinned outside `.vercelignore`; this is replacement verification evidence, not deployment authorization |
 | SEC-38 | Excluded scratch panoramas are not CDN-addressable | Serve only the allowlisted public files from a bounded local static root and request the excluded panorama directory in both wire forms | Percent-encoded requests (which decode to the literal `img/sample 360/` path) return `404` with no `Location` header for a file, the directory, and the trailing-slash directory; literal-space request lines never return `200` and never carry file bytes; a missing normal asset, every excluded root/`scripts`/`database`/`docs` path, and four traversal forms also fail closed with no redirect or fallback | **PASS — accepted M12.P1-R7 Codex GO** | Focused `71/71` (historical/superseded initial R7 candidate: `70/70`) on dedicated port `3385`; representative CSS, client script, PWA icon, web app manifest, offline shell, service worker, campus image, all 18 vendored runtime files, and the vendor manifest were served `200` byte-identical in the same run. The temporary static root is created outside the repository and removed in `finally` |
 | SEC-39 | Static headers never override the dynamic nonce CSP | Compare `vercel.json` header rules against `middleware/securityHeaders.js` | `vercel.json` carries exactly `$schema` and `headers` with seven narrowly scoped rules and no catch-all/dynamic matcher. The only static CSP is on `/offline.html`, the session-neutral shell. Express still mints a per-request nonce and still restricts `script-src` to exactly `'self'` plus that nonce, so it remains the sole CSP authority for dynamic responses. No `builds`, `functions`, `routes`, `rewrites`, `redirects`, framework/build/install override, or long-lived immutable caching on the non-content-hashed asset URLs | **PASS — accepted M12.P1-R7 Codex GO** | In-suite `vercel-package-boundary` `70/70`; negative fixtures reject a broadened source, a catch-all or dynamic-route CSP, an altered/added/dropped header key or value, an extra top-level key, and every build/routing override. Per Vercel's documentation, headers set in a Function response take precedence over file-based configuration, so the two never compete |
 

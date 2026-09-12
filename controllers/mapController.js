@@ -12,9 +12,54 @@ const routeRepository = require('../repositories/routeRepository');
 const { logServerError } = require('../utils/serverLog');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const routeAvailability = require('../services/routeAvailability');
+const basemapManifest = require('../public/maps/manifest.json');
 
 const MAX_QUERY_LEN = 100;
 const MAX_RESULTS = 25;
+
+// The online MapLibre map uses the same content-addressed, bundled PMTiles
+// archive as the offline map. Keep this config limited to public map metadata;
+// no Drive, Supabase, or credential state belongs in the rendered page.
+function onlineBasemapConfig() {
+  return {
+    asset: basemapManifest.asset,
+    bounds: Array.isArray(basemapManifest.bounds) ? basemapManifest.bounds.slice() : null,
+    center: Array.isArray(basemapManifest.center) ? basemapManifest.center.slice() : null,
+    minzoom: basemapManifest.minzoom,
+    maxzoom: basemapManifest.maxzoom,
+    attribution: basemapManifest.attribution || 'Protomaps © OpenStreetMap contributors'
+  };
+}
+
+// The public map needs the same canonical origin coordinates as the offline
+// guide so its start label is anchored to the real route graph. Keep this read
+// narrow and backend-aware; the browser receives only non-secret coordinates.
+async function onlineStartNode() {
+  try {
+    let row = null;
+    if (mapRuntime.isRouteSupabase()) {
+      const nodes = await routeRepository.listAllNodes();
+      row = (nodes || []).find((node) => node && node.node_key === 'main-gate') || null;
+    } else {
+      const [rows] = await db.query(
+        'SELECT node_key, label, lat, lng FROM route_nodes WHERE node_key = ? LIMIT 1',
+        ['main-gate']
+      );
+      row = rows && rows[0] ? rows[0] : null;
+    }
+    const lat = toNumOrNull(row && row.lat);
+    const lng = toNumOrNull(row && row.lng);
+    if (lat == null || lng == null) return null;
+    return {
+      key: 'main-gate',
+      label: row && row.label ? String(row.label) : 'Guard House / Main Gate',
+      lat,
+      lng
+    };
+  } catch (error) {
+    return null;
+  }
+}
 
 function toNumOrNull(v) {
   if (v == null || v === '') return null;
@@ -152,13 +197,16 @@ exports.index = async (req, res) => {
     // marks their pin/panel and disables Set as Destination / Set VR Route.
     const decorated = await routeAvailability.decorateBuildings(buildings);
     if (!decorated.ok) logServerError('map.index.routeAvailability', req);
+    const startNode = await onlineStartNode();
 
     res.render('map', {
       title: 'CampuSphere | Campus Map',
       description: 'Navigate the CSPC campus with our interactive map.',
       activeTab: 'tabMap',
       buildings: decorated.buildings,
-      mapRenderer: mapRuntime.getMapRenderer()
+      mapRenderer: mapRuntime.getMapRenderer(),
+      mapBasemap: onlineBasemapConfig(),
+      mapStartNode: startNode
     });
   } catch (err) {
     logServerError('map.index', req);
@@ -167,10 +215,18 @@ exports.index = async (req, res) => {
       description: 'Navigate the CSPC campus with our interactive map.',
       activeTab: 'tabMap',
       buildings: [],
-      mapRenderer: mapRuntime.getMapRenderer()
+      mapRenderer: mapRuntime.getMapRenderer(),
+      mapBasemap: onlineBasemapConfig(),
+      mapStartNode: null
     });
   }
 };
+
+// Home's compact map preview uses the same public basemap and canonical start
+// node as the full online map. Export these narrow readers instead of copying
+// backend-selection logic into another controller.
+exports.getPublicBasemapConfig = onlineBasemapConfig;
+exports.getPublicStartNode = onlineStartNode;
 
 /**
  * GET /api/search?q=...

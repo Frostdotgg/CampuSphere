@@ -13,6 +13,11 @@
   var vrPrevUrl = (typeof prevUrl !== 'undefined') ? prevUrl : null;
   var vrNextUrl = (typeof nextUrl !== 'undefined') ? nextUrl : null;
   var vrNotice = (typeof notice !== 'undefined') ? notice : null;
+  var vrTravelMode = (typeof travelMode === 'string' && travelMode) ? travelMode : 'vehicle';
+  var vrModeLabel = vrTravelMode === 'walking' ? 'Walking' : 'Vehicle';
+  var vrAvailableModes = (typeof availableTravelModes !== 'undefined' && Array.isArray(availableTravelModes))
+    ? availableTravelModes : ['vehicle'];
+  var vrModeChooserUrl = (typeof modeChooserUrl === 'string' && modeChooserUrl) ? modeChooserUrl : null;
   // Step links work for BOTH flows (11.8B): predefined campus_routes rows use
   // /vr/routes/:id; the synthesized destination flow (route.id null) uses
   // /vr/to/:buildingId from the destination building id.
@@ -38,7 +43,7 @@
             } catch (_) { /* theme preference is best effort */ }
         })();
     </script>
-    <link rel="stylesheet" href="/css/styles.css?v=11">
+    <link rel="stylesheet" href="/css/styles.css?v=12">
     <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
     <link rel="stylesheet" href="/css/room-schedule-viewer.css">
     <% } %>
@@ -553,6 +558,7 @@
             font-size: 0.9rem;
             color: var(--vr-muted);
         }
+        .vr-mode-switch { align-items: center; display: inline-flex; gap: .35rem; margin-top: .75rem; min-height: 44px; }
 
         @media (max-width: 600px) {
             .vr-page { padding: 8.25rem 0.85rem 2.5rem; }
@@ -593,16 +599,27 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         <span>Destination: <%= vrRoute.destination.name %></span>
                     </span>
-                    <% if (vrRoute.estimated_walk_time) { %>
+                    <span class="vr-chip">
+                        <% if (vrTravelMode === 'walking') { %>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="m10 22 1.5-6 2-2 1.5 3.5 3 1.5"/><path d="m10.5 9 3 2 2.5-2 1.5-3"/><path d="m8 13 3.5-2"/></svg>
+                        <% } else { %>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 16 1.4-6.5A2 2 0 0 1 8.35 8h7.3a2 2 0 0 1 1.95 1.5L19 16"/><path d="M4 16h16v3H4z"/><circle cx="7.5" cy="19" r="1"/><circle cx="16.5" cy="19" r="1"/></svg>
+                        <% } %>
+                        <span><%= vrModeLabel %></span>
+                    </span>
+                    <% if (vrTravelMode === 'walking' && vrRoute.estimated_walk_time) { %>
                     <span class="vr-chip vr-chip--accent">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <span>Approx. <%= vrRoute.estimated_walk_time %></span>
+                        <span>Approx. walking time: <%= vrRoute.estimated_walk_time %></span>
                     </span>
                     <% } %>
                     <% if (vrScene) { %>
                     <span class="vr-chip"><%- include('partials/vr-capture-date') %></span>
                     <% } %>
                 </div>
+                <% if (vrModeChooserUrl && vrAvailableModes.length > 1) { %>
+                <a class="vr-mode-switch" href="<%= vrModeChooserUrl %>">Change travel mode</a>
+                <% } %>
             </div>
             <a class="vr-backlink" href="/map">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -697,7 +714,7 @@
                 <ol class="vr-steplist">
                     <% vrScenes.forEach(function (s, i) { var isCur = (i + 1 === vrStepIndex); %>
                     <li class="vr-steplist__item <%= isCur ? 'is-current' : '' %>">
-                        <a href="<%= vrStepBase ? (vrStepBase + '?step=' + (i + 1)) : '#' %>">
+                        <a href="<%= vrStepBase ? (vrStepBase + '?mode=' + encodeURIComponent(vrTravelMode) + '&step=' + (i + 1)) : '#' %>">
                             <span class="vr-steplist__num"><%= (i + 1) %></span>
                             <span><%= s.title %></span>
                         </a>

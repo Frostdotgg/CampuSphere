@@ -6,16 +6,22 @@
  * Read-only apart from an owned regression login per mode. Verifies that a
  * building-id path request and the VR destination request both resolve every
  * active destination through its configured natural destination_node_key.
+ * Pass `--supabase-only` to omit the deferred MySQL leg.
  */
 
 require('dotenv').config();
 
 const { withServer } = require('./with-server');
 const { hasSupabaseConfig } = require('../config/supabase');
-const { GUIDED_VR_ROUTES, DEFERRED_GUIDED_VR_DESTINATIONS } = require('../config/guidedVrRoutes');
+const {
+  GUIDED_VR_ROUTES,
+  WALKING_GUIDED_VR_ROUTES,
+  DEFERRED_GUIDED_VR_DESTINATIONS
+} = require('../config/guidedVrRoutes');
 const { getRegressionCredentials } = require('./regressionCredentials');
 const { createProbeSessionTracker } = require('./probeSessionLifecycle');
 
+const SUPABASE_ONLY = process.argv.includes('--supabase-only');
 const failures = [];
 function check(scope, label, ok) {
   console.log(`  [${ok ? 'PASS' : 'FAIL'}] ${scope} :: ${label}`);
@@ -138,9 +144,37 @@ async function runMode(scope, base, authSource) {
       const keys = Array.isArray(vr.scenes) ? vr.scenes.map((scene) => scene.scene_key) : [];
       check(scope, `${route.destination_node_key}: map destination opens exact Guided VR catalog chain`,
         response.status === 200 && vr.success === true && vr.destination_reached === true &&
+        vr.travel_mode === 'vehicle' &&
         Array.isArray(vr.path) && vr.path[0] === 'main-gate' &&
         vr.path[vr.path.length - 1] === route.destination_node_key &&
         keys.length === route.scene_keys.length && keys.every((key, index) => key === route.scene_keys[index]));
+    }
+
+    for (const walkingRoute of WALKING_GUIDED_VR_ROUTES) {
+      const walkingMatches = buildings.filter((building) =>
+        canonical(building && building.name) === canonical(walkingRoute.destination_name));
+      const walkingIds = walkingMatches
+        .map((building) => Number(building.route_destination_id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+      check(scope, `${walkingRoute.destination_node_key}: Walking route has one routable building id`,
+        walkingMatches.length === 1 && walkingIds.length === 1 && walkingMatches[0].route_available === true);
+      if (walkingIds.length !== 1) continue;
+
+      const walkingBuildingId = walkingIds[0];
+      response = await request(`/api/vr/to/${walkingBuildingId}?mode=walking`, { headers: jsonHeaders });
+      const walking = response.json || {};
+      const walkingKeys = Array.isArray(walking.scenes)
+        ? walking.scenes.map((scene) => scene.scene_key) : [];
+      check(scope, `${walkingRoute.destination_node_key}: Walking destination selects walking mode`,
+        response.status === 200 && walking.success === true && walking.travel_mode === 'walking' &&
+        JSON.stringify(walking.available_travel_modes) === JSON.stringify(['vehicle', 'walking']));
+      check(scope, `${walkingRoute.destination_node_key}: Walking destination returns the exact configured chain`,
+        walkingKeys.length === walkingRoute.scene_keys.length &&
+        walkingKeys.every((key, index) => key === walkingRoute.scene_keys[index]) &&
+        walking.destination_reached === true &&
+        walking.scenes[0] && walking.scenes[0].node_key === 'main-gate' &&
+        walking.scenes[walking.scenes.length - 1] &&
+        walking.scenes[walking.scenes.length - 1].node_key === walkingRoute.destination_node_key);
     }
 
     const exitBuilding = buildings.find((building) =>
@@ -228,19 +262,23 @@ async function runMode(scope, base, authSource) {
     throw new Error('catalog shape mismatch');
   }
 
-  await withServer({ mode: 'mysql', port: 3331, sessionStore: 'mysql' },
-    (base) => runMode('mysql', base, 'mysql'));
+  if (!SUPABASE_ONLY) {
+    await withServer({ mode: 'mysql', port: 3331, sessionStore: 'mysql' },
+      (base) => runMode('mysql', base, 'mysql'));
+  }
 
   if (hasSupabaseConfig()) {
     await withServer({ mode: 'supabase', port: 3332, sessionStore: 'supabase' },
       (base) => runMode('supabase', base, 'supabase'));
-  } else if (process.env.PROBE_SKIP_SUPABASE !== '1') {
+  } else if (process.env.PROBE_SKIP_SUPABASE !== '1' || SUPABASE_ONLY) {
     check('supabase', 'Supabase configuration is present', false);
   }
 
   console.log('');
   if (failures.length === 0) {
-    console.log('MAP-VR-DESTINATION-FLOW-PROBE OK: catalog-wide natural destination flow passed.');
+    console.log(SUPABASE_ONLY
+      ? 'MAP-VR-DESTINATION-FLOW-PROBE OK: catalog-wide natural destination flow passed in Supabase mode.'
+      : 'MAP-VR-DESTINATION-FLOW-PROBE OK: catalog-wide natural destination flow passed.');
   } else {
     console.error(`MAP-VR-DESTINATION-FLOW-PROBE FAILED: ${failures.length} check(s) did not pass:`);
     failures.forEach((failure) => console.error('  - ' + failure));

@@ -222,9 +222,12 @@ Current lineage includes role-aware source `5d505e9`, directional routing
 `23c5536`, route metrics `918f721`, Drive media `83f247a`, portable handoff
 `86b92eb`, route colors `3d0a2b6`, route-color authority `8e6053e`, independently
 verified Production authority `7b4e818`, and its documentation successor
-`05b0545`. The new release changes the Guided-VR policy and its evidence only;
-it adds no public URL, HTTP payload, database schema, migration, authentication,
-or authorization interface.
+`05b0545`. The release keeps the owner-selected Guided-VR route content and
+now includes the complete walking catalog and walking/vehicle chooser,
+MapLibre/PMTiles online and offline map surfaces, readable building/start
+labels, the corrected home map preview, and the aligned offline start marker.
+It adds no database schema or migration and preserves the existing
+authentication, session, and media boundaries.
 
 Academic Building II now follows the owner-selected corridor and completes in
 31 steps at `scene-acad-2-1st-floor-17`. MULTI-PURPOSE-BUILDING I follows the
@@ -237,12 +240,15 @@ The owner-authorized Supabase destination mapping and the matching local MySQL
 rehearsal mapping now map `scene-green-1st-floor-1` to `green` and leave the
 former `scene-green-1st-floor-7` arrival unmapped. Four owner-confirmed hotspots
 are intentional owner-managed Supabase data: the bidirectional Guard House walk
-pair and the bidirectional road-32/CITD-floor-8 pair. No other database write is
-part of this release.
+pair and the bidirectional road-32/CITD-floor-8 pair. No other Supabase write
+is part of this release. The owner-authorized local MySQL campus/VR sync used
+natural-key upserts, preserved local-only and protected records, normalized
+ten retained route-edge endpoints, and removed one stale duplicate Guided-VR
+link; Supabase was not changed by those local repairs.
 
 The refreshed BE.6 snapshot keeps MySQL at 34 buildings, 44 route nodes, 100
-directed edges, 50 reverse pairs, 50 exact reverse geometries, 100 valid
-geometries, 671 scenes, and 1,397 hotspots. Supabase remains at 25 buildings, 26
+directed edges, 50 reverse pairs, 25 exact reverse geometries, 100 valid
+geometries, 671 scenes, and 1,410 hotspots. Supabase remains at 25 buildings, 26
 route nodes, 50 directed edges, 25 reverse pairs, zero exact reverse geometries,
 50 valid geometries, and 664 scenes, and now records the four owner-confirmed
 rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations,
@@ -250,7 +256,7 @@ rows for 1,378 hotspots. The shared Guided-VR catalog has 25 active destinations
 fingerprint SHA-256 is
 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`;
 the refreshed expanded-freeze manifest SHA-256 is
-`c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`.
+`32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38`.
 These fingerprints are QA records, not runtime write locks or complete
 deployed-byte proof.
 
@@ -259,10 +265,10 @@ remains owner-applied, and the 2D route graph and final owner-confirmed route
 drawings remain unchanged. Migration `0027` and those routes must not be
 reapplied or changed without separate explicit authorization. Entry routes
 remain blue (`#2563eb`), exit routes red (`#dc2626`), written direction labels
-remain primary, and the service-worker cache key remains `v41`.
+remain primary, and the service-worker cache key remains `v45`.
 
-The refreshed source package is 199 files, 7,345,009 bytes, aggregate SHA-256
-`518d2d63471f335819c6238b2595e949295a3a2b7cf1798634e759cb4bb1d079`.
+The refreshed source package is 200 files, 7,437,974 bytes, aggregate SHA-256
+`375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6`.
 Fresh full local `npm test` exited `0` with `QUALITY-GATES OK`; both MySQL and
 Supabase session-store legs completed, final canonical session residue passed
 `18/18`, and the final BE.6 double-read passed `46/46`. All five `npm run qa`
@@ -304,10 +310,12 @@ exercise authenticated UI behavior, OAuth, a real Drive file, schedules,
 administrator writes, or complete deployed-package equality, and there is no
 recorded real CSPC instructor Gmail end-to-end OAuth observation.
 
-The owner alone will promote the pushed release in Vercel. Deployment identity
-verification and any bounded Production smoke require separate authorization
-after that owner action. If verification or smoke fails, stop and ask the owner
-rather than automatically rolling back, patching, promoting, or redeploying.
+The owner controls the Vercel promotion boundary and has explicitly authorized
+Codex to promote this pushed release. Deployment identity verification and any
+bounded Production smoke remain separate post-promotion checks; any unrequested
+follow-on action still requires separate authorization. If verification or smoke
+fails, stop and ask the owner rather than automatically rolling back, patching,
+promoting, or redeploying.
 ## Historical Release Continuity (2026-09-09 pre-verification; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
