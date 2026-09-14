@@ -175,6 +175,22 @@ async function runMode(scope, base, authSource) {
         walking.scenes[0] && walking.scenes[0].node_key === 'main-gate' &&
         walking.scenes[walking.scenes.length - 1] &&
         walking.scenes[walking.scenes.length - 1].node_key === walkingRoute.destination_node_key);
+
+      response = await request(`/api/vr/to/${walkingBuildingId}?mode=walking&direction=exit`, { headers: jsonHeaders });
+      const exitWalking = response.json || {};
+      const exitWalkingKeys = Array.isArray(exitWalking.scenes)
+        ? exitWalking.scenes.map((scene) => scene.scene_key) : [];
+      const expectedExitKeys = walkingRoute.scene_keys.slice().reverse();
+      check(scope, `${walkingRoute.destination_node_key}: Walking exit reverses the configured chain to main-gate`,
+        response.status === 200 && exitWalking.success === true &&
+        exitWalking.travel_mode === 'walking' && exitWalking.direction === 'exit' &&
+        JSON.stringify(exitWalking.available_travel_modes) === JSON.stringify(['walking']) &&
+        exitWalkingKeys.length === expectedExitKeys.length &&
+        exitWalkingKeys.every((key, index) => key === expectedExitKeys[index]) &&
+        exitWalking.destination_reached === true &&
+        exitWalking.scenes[0] && exitWalking.scenes[0].node_key === walkingRoute.destination_node_key &&
+        exitWalking.scenes[exitWalking.scenes.length - 1] &&
+        exitWalking.scenes[exitWalking.scenes.length - 1].node_key === 'main-gate');
     }
 
     const exitBuilding = buildings.find((building) =>

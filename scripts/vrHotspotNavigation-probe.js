@@ -145,6 +145,7 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   const prevUrl = '/vr/to/153?step=23';
   const nextUrl = '/vr/routes/4?step=2';
   const walkingNextUrl = '/vr/to/153?mode=walking&step=23';
+  const walkingExitUrl = '/vr/to/153?mode=walking&direction=exit&step=23';
   const exploreUrl = '/vr/scene-cas-1st-floor-2';
   check('accept', 'guided Previous nav_url is accepted exactly',
     resolveGuidedUrl(guided(prevUrl), LOC) === prevUrl);
@@ -152,6 +153,8 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
     resolveGuidedUrl(guided(nextUrl), LOC) === nextUrl);
   check('accept', 'guided Walking nav_url preserves its mode exactly',
     resolveGuidedUrl(guided(walkingNextUrl), LOC) === walkingNextUrl);
+  check('accept', 'guided walking Exit nav_url preserves its direction exactly',
+    resolveGuidedUrl(guided(walkingExitUrl), LOC) === walkingExitUrl);
   check('accept', 'guided CAS interior Explore nav_url is accepted exactly',
     resolveGuidedUrl(guided(exploreUrl), LOC) === exploreUrl);
   check('accept', 'an accepted nav_url is preserved byte-for-byte (never rebuilt)',
@@ -256,6 +259,9 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
     ['uppercase prefix', '/VR/scene-a'],
     ['percent-encoded traversal', '/vr/%2e%2e/admin'],
     ['extra query parameter on a step URL', '/vr/to/1?step=2&x=1'],
+    ['vehicle Exit step URL', '/vr/to/1?mode=vehicle&direction=exit&step=2'],
+    ['entry direction step URL', '/vr/to/1?mode=walking&direction=entry&step=2'],
+    ['duplicate direction on a step URL', '/vr/to/1?mode=walking&direction=exit&direction=exit&step=2'],
     ['unsupported travel mode on a step URL', '/vr/to/1?mode=bicycle&step=2'],
     ['query parameter on a scene URL', '/vr/scene-a?x=1'],
     ['wrong query parameter name', '/vr/to/1?x=2'],

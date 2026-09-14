@@ -8,6 +8,11 @@
   var vrVehicleUrl = (typeof vehicleUrl !== 'undefined') ? vehicleUrl : '#';
   var vrWalkingUrl = (typeof walkingUrl !== 'undefined') ? walkingUrl : '#';
   var hasWalking = vrModes.indexOf('walking') !== -1;
+  var vrDirection = (typeof direction === 'string' && direction) ? direction : 'entry';
+  var vrDirectionLabel = (typeof directionLabel === 'string' && directionLabel)
+    ? directionLabel : (vrDirection === 'exit' ? 'Exit to Guard House / Main Gate' : 'Entrance from Guard House / Main Gate');
+  var vrEntryChoiceUrl = (typeof entryChoiceUrl === 'string' && entryChoiceUrl) ? entryChoiceUrl : '#';
+  var vrExitChoiceUrl = (typeof exitChoiceUrl === 'string' && exitChoiceUrl) ? exitChoiceUrl : '#';
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,6 +103,34 @@
             outline-offset: 2px;
         }
         .vr-mode-head { margin-bottom: 1.5rem; }
+        .vr-direction-switch {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: .35rem;
+            margin: 0 0 1.15rem;
+            padding: .25rem;
+            border: 1px solid var(--vr-mode-border);
+            border-radius: 999px;
+            background: var(--vr-mode-surface);
+        }
+        .vr-direction-switch a {
+            border-radius: 999px;
+            color: var(--vr-mode-muted);
+            font-size: .8rem;
+            font-weight: 700;
+            min-height: 36px;
+            padding: .5rem .85rem;
+            text-decoration: none;
+        }
+        .vr-direction-switch a:hover,
+        .vr-direction-switch a[aria-current="page"] {
+            background: var(--vr-mode-icon-bg);
+            color: var(--vr-mode-link);
+        }
+        .vr-direction-switch a:focus-visible {
+            outline: 3px solid var(--vr-mode-focus);
+            outline-offset: 1px;
+        }
         .vr-mode-eyebrow {
             color: var(--vr-mode-accent);
             display: block;
@@ -247,6 +280,7 @@
             }
             .vr-mode-breadcrumb { margin-bottom: .85rem; }
             .vr-mode-head { margin-bottom: 1.25rem; }
+            .vr-direction-switch { margin-bottom: .95rem; }
             .vr-mode-panel__head {
                 align-items: flex-start;
                 flex-direction: column;
@@ -283,11 +317,15 @@
 
         <header class="vr-mode-head" aria-labelledby="vr-mode-title">
             <span class="vr-mode-eyebrow">Guided VR Route</span>
+            <nav class="vr-direction-switch" aria-label="Route direction">
+                <a href="<%= vrEntryChoiceUrl %>" aria-current="<%= vrDirection === 'entry' ? 'page' : 'false' %>">Entrance</a>
+                <a href="<%= vrExitChoiceUrl %>" aria-current="<%= vrDirection === 'exit' ? 'page' : 'false' %>">Exit to Guard House</a>
+            </nav>
             <h1 class="vr-mode-title" id="vr-mode-title">
-                <span class="vr-mode-title__prompt">How are you traveling to</span>
-                <span class="vr-mode-title__destination"><%= vrRoute.destination.name %>?</span>
+                <span class="vr-mode-title__prompt"><%= vrDirection === 'exit' ? 'How are you traveling from' : 'How are you traveling to' %></span>
+                <span class="vr-mode-title__destination"><%= vrDirection === 'exit' ? vrRoute.destination.name + ' to Guard House / Main Gate?' : vrRoute.destination.name + '?' %></span>
             </h1>
-            <p class="vr-mode-copy">Select a travel mode to start the guided 360&deg; route. You can change modes before the route begins.</p>
+            <p class="vr-mode-copy"><%= vrDirectionLabel %>. Select a travel mode to start the guided 360&deg; route. You can change this choice before the route begins.</p>
         </header>
 
         <% if (vrNotice) { %>
@@ -311,7 +349,7 @@
                         </span>
                         <span class="vr-mode-option__body">
                             <span class="vr-mode-option__title">Walking</span>
-                            <span class="vr-mode-option__text" id="vr-walking-description">Follow the pedestrian path through campus.</span>
+                        <span class="vr-mode-option__text" id="vr-walking-description"><%= vrDirection === 'exit' ? 'Follow the pedestrian path back to the Guard House / Main Gate.' : 'Follow the pedestrian path through campus.' %></span>
                         </span>
                         <span class="vr-mode-option__arrow" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -327,7 +365,7 @@
                         </span>
                         <span class="vr-mode-option__body">
                             <span class="vr-mode-option__title">Vehicle</span>
-                            <span class="vr-mode-option__text" id="vr-vehicle-description">Follow the vehicle route through campus.</span>
+                        <span class="vr-mode-option__text" id="vr-vehicle-description">Follow the vehicle route through campus.</span>
                         </span>
                         <span class="vr-mode-option__arrow" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>

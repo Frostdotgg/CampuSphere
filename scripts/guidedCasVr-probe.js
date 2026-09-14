@@ -45,8 +45,8 @@ function isApprovedSceneMedia(value) {
     (value.startsWith(CLOUDINARY_PREFIX) || DRIVE_PROXY_RE.test(value));
 }
 
-function htmlStepHref(path, mode, step) {
-  return `${path}?mode=${mode}&amp;step=${step}`;
+function htmlStepHref(path, mode, step, direction = 'entry') {
+  return `${path}?mode=${mode}${direction === 'exit' ? '&amp;direction=exit' : ''}&amp;step=${step}`;
 }
 
 function cookieJar() {
@@ -223,6 +223,21 @@ async function runMode(scope, base, authSource) {
         walkingScenes[walkingScenes.length - 1] &&
         walkingScenes[walkingScenes.length - 1].node_key === walkingRoute.destination_node_key);
 
+      response = await request(`/api/vr/to/${walkingBuildingId}?mode=walking&direction=exit`, { headers: jsonHeaders });
+      const exitPayload = response.json || {};
+      const exitScenes = Array.isArray(exitPayload.scenes) ? exitPayload.scenes : [];
+      const exitKeys = exitScenes.map((scene) => scene.scene_key);
+      const reversedWalkingKeys = walkingRoute.scene_keys.slice().reverse();
+      check(scope, `${walkingRoute.destination_node_key}: Walking exit API reverses the complete chain to main-gate`,
+        response.status === 200 && exitPayload.success === true &&
+        exitPayload.travel_mode === 'walking' && exitPayload.direction === 'exit' &&
+        JSON.stringify(exitPayload.available_travel_modes) === JSON.stringify(['walking']) &&
+        exitKeys.length === reversedWalkingKeys.length &&
+        exitKeys.every((key, index) => key === reversedWalkingKeys[index]) &&
+        exitPayload.destination_reached === true &&
+        exitScenes[0] && exitScenes[0].node_key === walkingRoute.destination_node_key &&
+        exitScenes[exitScenes.length - 1] && exitScenes[exitScenes.length - 1].node_key === 'main-gate');
+
       response = await request(`/vr/to/${walkingBuildingId}?mode=walking&step=1`, { headers: htmlHeaders });
       const walkingFirstHtml = response.text || '';
       check(scope, `${walkingRoute.destination_node_key}: first Walking HTML starts at the route start`,
@@ -243,7 +258,9 @@ async function runMode(scope, base, authSource) {
         response.status === 200 && ARRIVAL_MARKERS.every((marker) => walkingFinalHtml.includes(marker)) &&
         walkingFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep - 1)) &&
         !walkingFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep + 1)) &&
-        !walkingFinalHtml.includes('VR coverage ends'));
+        !walkingFinalHtml.includes('VR coverage ends') &&
+        walkingFinalHtml.includes('Walk back to Guard House') &&
+        walkingFinalHtml.includes(`/vr/to/${walkingBuildingId}?mode=walking&amp;direction=exit`));
 
       response = await request(`/vr/to/${walkingBuildingId}`, { headers: htmlHeaders });
       const chooserHtml = response.text || '';
@@ -252,6 +269,31 @@ async function runMode(scope, base, authSource) {
         chooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=walking`) &&
         chooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle`) &&
         !chooserHtml.includes('id="vrPano"'));
+
+      response = await request(`/vr/to/${walkingBuildingId}?direction=exit`, { headers: htmlHeaders });
+      const exitChooserHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: exit chooser keeps only Walking and the exit direction`,
+        response.status === 200 &&
+        exitChooserHtml.includes('Exit to Guard House') &&
+        exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=walking&amp;direction=exit`) &&
+        !exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle&amp;direction=exit`) &&
+        !exitChooserHtml.includes('id="vrPano"'));
+
+      response = await request(`/vr/to/${walkingBuildingId}?mode=walking&direction=exit&step=1`, { headers: htmlHeaders });
+      const exitFirstHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: first Walking exit HTML starts at the building`,
+        response.status === 200 && !ARRIVAL_MARKERS.some((marker) => exitFirstHtml.includes(marker)) &&
+        exitFirstHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', 2, 'exit')) &&
+        !exitFirstHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', 0, 'exit')));
+
+      response = await request(`/vr/to/${walkingBuildingId}?mode=walking&direction=exit&step=${walkingFinalStep}`, { headers: htmlHeaders });
+      const exitFinalHtml = response.text || '';
+      check(scope, `${walkingRoute.destination_node_key}: final Walking exit HTML reports Guard House arrival`,
+        response.status === 200 && ARRIVAL_MARKERS.every((marker) => exitFinalHtml.includes(marker)) &&
+        exitFinalHtml.includes('You have arrived at Guard House / Main Gate') &&
+        exitFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep - 1, 'exit')) &&
+        !exitFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep + 1, 'exit')) &&
+        !exitFinalHtml.includes('Walk back to Guard House'));
     }
 
     const invalidModeRoute = WALKING_GUIDED_VR_ROUTES[0];

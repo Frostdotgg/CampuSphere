@@ -70,6 +70,27 @@ function verifyRoute(route, scenes = scenesFor(route), links = linksFor(route.sc
   });
 }
 
+function reverseScenesFor(route) {
+  return scenesFor(route).slice().reverse().map((scene, index, list) => ({
+    ...scene,
+    node_key: index === 0
+      ? route.destination_node_key
+      : (index === list.length - 1 ? 'main-gate' : null)
+  }));
+}
+
+function verifyReverseRoute(route) {
+  const keys = route.scene_keys.slice().reverse();
+  return verifyGuidedChain({
+    keys,
+    arrivalKey: route.scene_keys[0],
+    scenes: reverseScenesFor(route),
+    links: linksFor(route.scene_keys),
+    startNodeKey: route.destination_node_key,
+    destinationNodeKey: 'main-gate'
+  });
+}
+
 // Independent source-contract manifest for the walking routes added in this
 // release. The runtime catalog remains the application input; these arrays
 // pin the owner-supplied order so a route cannot silently pass by only matching
@@ -124,7 +145,8 @@ const NEW_WALKING_CITD = Object.freeze([
 const EXPECTED_NEW_WALKING_SEQUENCES = Object.freeze({
   'acad-6': Object.freeze([...NEW_WALKING_PREFIX, ...NEW_WALKING_CITD,
     'scene-general-road-32', 'scene-general-road-33', 'scene-general-road-33-5',
-    'scene-general-road-37', 'scene-general-road-38', 'scene-general-road-94',
+    'scene-general-road-37', 'scene-general-road-38', 'scene-general-road-85',
+    'scene-general-road-94',
     'scene-general-road-93', 'scene-general-road-92', 'scene-general-road-91',
     'scene-chs-1st-floor-001']),
   'acad-3': Object.freeze([...NEW_WALKING_PREFIX, ...NEW_WALKING_CITD,
@@ -346,8 +368,14 @@ const EXPECTED_NEW_WALKING_SEQUENCES = Object.freeze({
   ])
 });
 
+const EXPECTED_SHARED_ROAD_CORRIDOR = Object.freeze([
+  'scene-general-road-38',
+  'scene-general-road-85',
+  'scene-general-road-94'
+]);
+
 const EXPECTED_WALKING_ROUTES = Object.freeze([
-  { name: 'Academic Building IV', node: 'ccs', count: 50, arrival: 'scene-ccs-1st-floor' },
+  { name: 'Academic Building IV', node: 'ccs', count: 51, arrival: 'scene-ccs-1st-floor' },
   { name: 'Academic Building II', node: 'acad-2', count: 39, arrival: 'scene-acad-2-1st-floor-17' },
   { name: 'MULTI-PURPOSE-BUILDING I', node: 'multi-1', count: 28, arrival: 'scene-audit-building-006' },
   { name: 'Central Student Council', node: 'csc', count: 24, arrival: 'scene-csc' },
@@ -355,7 +383,7 @@ const EXPECTED_WALKING_ROUTES = Object.freeze([
   { name: 'Library Building', node: 'library', count: 17, arrival: 'scene-library-1st-floor-4' },
   { name: 'FOOD LABORATORY BUILDING', node: 'food', count: 13, arrival: 'scene-foodlab-1st-floor-1' },
   { name: 'Administration Building', node: 'admin-bldg', count: 7, arrival: 'scene-admin-1st-floor-3' },
-  { name: 'Academic Building VI', node: 'acad-6', count: 53, arrival: 'scene-chs-1st-floor-001' },
+  { name: 'Academic Building VI', node: 'acad-6', count: 54, arrival: 'scene-chs-1st-floor-001' },
   { name: 'Academic Building III', node: 'acad-3', count: 51, arrival: 'scene-cas-1st-floor' },
   { name: 'Supply & Property Building', node: 'supply-property-bldg', count: 45, arrival: 'scene-supply-1st-floor-001' },
   { name: 'CITD Building', node: 'citd', count: 36, arrival: 'scene-citd-1st-floor-1' },
@@ -383,10 +411,23 @@ check('destination node keys are unique',
   new Set(GUIDED_VR_ROUTES.map((route) => route.destination_node_key)).size === GUIDED_VR_ROUTES.length);
 check('legacy catalog alias remains the Vehicle catalog',
   GUIDED_VR_ROUTES === VEHICLE_GUIDED_VR_ROUTES && GUIDED_VR_ROUTES_BY_MODE.vehicle === GUIDED_VR_ROUTES);
+for (const mode of [
+  ['Vehicle', VEHICLE_GUIDED_VR_ROUTES],
+  ['Walking', WALKING_GUIDED_VR_ROUTES]
+]) {
+  for (const nodeKey of ['ccs', 'acad-6']) {
+    const route = mode[1].find((entry) => entry.destination_node_key === nodeKey);
+    const index = route ? route.scene_keys.indexOf(EXPECTED_SHARED_ROAD_CORRIDOR[0]) : -1;
+    check(`${nodeKey}: ${mode[0]} route uses the 38 -> 85 -> 94 corridor`,
+      !!route && index >= 0 &&
+      JSON.stringify(route.scene_keys.slice(index, index + EXPECTED_SHARED_ROAD_CORRIDOR.length)) ===
+        JSON.stringify(EXPECTED_SHARED_ROAD_CORRIDOR));
+  }
+}
 check('twenty-five Walking routes are configured',
   WALKING_GUIDED_VR_ROUTES.length === EXPECTED_WALKING_ROUTES.length);
-check('Walking catalog has 688 configured scene steps',
-  WALKING_GUIDED_VR_ROUTES.reduce((total, route) => total + route.scene_keys.length, 0) === 688);
+check('Walking catalog has 690 configured scene steps',
+  WALKING_GUIDED_VR_ROUTES.reduce((total, route) => total + route.scene_keys.length, 0) === 690);
 for (const expected of EXPECTED_WALKING_ROUTES) {
   const route = WALKING_GUIDED_VR_ROUTES.find((entry) =>
     canonicalize(entry.destination_name) === canonicalize(expected.name));
@@ -405,6 +446,22 @@ for (const expected of EXPECTED_WALKING_ROUTES) {
   check(`${expected.node}: Walking chain passes the media/link/endpoint verifier`,
     !!route && verifyRoute(route).complete === true);
 }
+
+console.log('=== Reversed Walking Exit contracts ===');
+for (const route of WALKING_GUIDED_VR_ROUTES) {
+  const reversed = verifyReverseRoute(route);
+  check(`${route.destination_node_key}: reversed Walking chain reaches main-gate`,
+    reversed.complete === true &&
+    reversed.verifiedKeys.length === route.scene_keys.length &&
+    reversed.verifiedKeys[0] === route.arrival_scene_key &&
+    reversed.verifiedKeys[reversed.verifiedKeys.length - 1] === route.scene_keys[0]);
+}
+const walkingReference = WALKING_GUIDED_VR_ROUTES[0].scene_keys.slice();
+const walkingReversed = walkingReference.slice().reverse();
+walkingReversed.reverse();
+check('reversing an exit copy twice restores the entrance order',
+  JSON.stringify(walkingReversed) === JSON.stringify(walkingReference) &&
+  JSON.stringify(WALKING_GUIDED_VR_ROUTES[0].scene_keys) === JSON.stringify(walkingReference));
 
 for (const route of GUIDED_VR_ROUTES) {
   const label = route.destination_node_key;

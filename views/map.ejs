@@ -1580,6 +1580,7 @@
                 const vrId = route && route.id;
                 if (vrId) {
                     routePanelVrBtn.href = '/vr/routes/' + vrId;
+                    routePanelVrBtn.textContent = 'Set VR Route';
                     routePanelVrBtn.removeAttribute('aria-disabled');
                     routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = false;
@@ -1818,8 +1819,9 @@
                 routePanelEmpty.hidden = false;
             }
 
-            // Set VR Route from the computed entry-route summary. An exit route
-            // intentionally has no Guided-VR action; VR remains an entry flow.
+            // Set VR Route from the computed summary. Exit summaries launch the
+            // walking return flow with an explicit direction so the chooser and
+            // every subsequent scene link remain on the way back to the gate.
             //
             // BE.3 repair: guided VR reads the ROUTE source, so /vr/to/:id takes a
             // ROUTE-SOURCE building id. This previously fell back to `b.id` — a
@@ -1832,18 +1834,23 @@
                 const vrRouteId = bldg && bldg.vr_route_id;
                 const destId = routeDestinationId(bldg) || routeDestinationId(b);
 
-                if (isExit) {
-                    routePanelVrBtn.removeAttribute('href');
-                    routePanelVrBtn.setAttribute('aria-disabled', 'true');
-                    routePanelVrBtn.classList.add('is-disabled');
-                    routePanelVrBtn.hidden = true;
-                } else if (vrRouteId) {
-                    routePanelVrBtn.href = '/vr/routes/' + vrRouteId;
+                if (isExit && destId !== null) {
+                    routePanelVrBtn.href = vrRouteId
+                        ? '/vr/routes/' + vrRouteId + '?direction=exit'
+                        : '/vr/to/' + destId + '?direction=exit';
+                    routePanelVrBtn.textContent = 'Start Walking Exit VR';
                     routePanelVrBtn.removeAttribute('aria-disabled');
                     routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = false;
-                } else if (destId !== null) {
+                } else if (!isExit && vrRouteId) {
+                    routePanelVrBtn.href = '/vr/routes/' + vrRouteId;
+                    routePanelVrBtn.textContent = 'Set VR Route';
+                    routePanelVrBtn.removeAttribute('aria-disabled');
+                    routePanelVrBtn.classList.remove('is-disabled');
+                    routePanelVrBtn.hidden = false;
+                } else if (!isExit && destId !== null) {
                     routePanelVrBtn.href = '/vr/to/' + destId;
+                    routePanelVrBtn.textContent = 'Set VR Route';
                     routePanelVrBtn.removeAttribute('aria-disabled');
                     routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = false;
