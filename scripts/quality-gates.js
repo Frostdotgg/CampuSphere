@@ -6942,10 +6942,18 @@ const CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA =
   '7b4e818e7a84c60cb49b4a14889a98c3c7c528a2';
 const CURRENT_PRE_GUIDED_VR_RELEASE_COMMIT_SHA =
   '05b0545ccefbf282c365244c7f9edf8f2be5810c';
+const CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA =
+  '13ae67c';
+const CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA =
+  'f9679f6';
+const CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA =
+  '4e9d5798ec2230c861a088808c39abc8a2b59937';
 const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
   'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_ROUTE_COLOR_PACKAGE_SHA256 =
   '375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6';
+const CURRENT_WALKING_EXIT_PACKAGE_SHA256 =
+  '297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4';
 const CURRENT_RELEASE_REVIEW_MANIFEST_SHA256 =
   '1c5ed249dd21894a2cb0871a04fc650deebfe2fa790b7e260d123415a4aa45c7';
 const CURRENT_RELEASE_PACKAGE_SHA256 =
@@ -6990,6 +6998,111 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   if (historicalAt >= 0) scope = scope.slice(0, historicalAt);
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  /* Current September 14 Walking-exit release and verified Production. */
+  if (t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
+    if (!/docs\/current-authority\.md/i.test(t) ||
+        !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
+        !/Git branch `?main`?/i.test(t) ||
+        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,140}4e9d579/i.test(t) ||
+        !/empty index/i.test(t) || !/clean worktree/i.test(t) || !/zero stashes/i.test(t) ||
+        !/owner[^.]{0,120}authorized review[^.]{0,120}18[^.]{0,120}one commit[^.]{0,120}push to `?main`?/i.test(t) ||
+        !/self-referential[^.]{0,120}recompute its exact SHA/i.test(t) ||
+        !t.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) ||
+        !t.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) ||
+        !/recompute[^.]{0,100}(?:facts|exact SHA)/i.test(t)) {
+      problems.push('September 14 Git start truth, lineage, or synchronization boundary is incomplete');
+    }
+
+    if (!/25 Vehicle destinations[^.]{0,80}486 steps[^.]{0,80}101 unique scenes/i.test(t) ||
+        !/25 Walking destinations[^.]{0,80}690 steps[^.]{0,80}133 unique scenes/i.test(t) ||
+        !/direction=entry[^.]{0,100}default/i.test(t) ||
+        !/direction=exit[^.]{0,100}mode=walking/i.test(t) ||
+        !/reverses a copied approved Walking sequence/i.test(t) ||
+        !/Vehicle exit requests fail closed/i.test(t)) {
+      problems.push('Walking/Vehicle catalog or direction contract is incomplete');
+    }
+
+    if (!/Academic Buildings IV and VI[^.]{0,100}38 -> 85 -> 94/i.test(t) ||
+        !/Academic VI[^.]{0,120}94 -> 93 -> 92 -> 91 -> CHS/i.test(t) ||
+        !/scene-chs-1st-floor-001/i.test(t) ||
+        !/670 scenes/i.test(t) || !/85 <-> 86 <-> 87 <-> 88 <-> 89 <-> 90 <-> 91/i.test(t) ||
+        !/85 <-> 94/i.test(t) || !/22\/22 expected directed links/i.test(t) ||
+        !/scenes 86-90[^.]{0,100}loop\/Free-Roam/i.test(t) ||
+        !/must not be inserted into the Academic VI guided sequence/i.test(t)) {
+      problems.push('Academic IV/VI loop, shortcut, or owner-intent truth is incomplete');
+    }
+
+    if (!/Green(?:'s)? Vehicle route[^.]{0,100}scene-green-1st-floor-1/i.test(t) ||
+        !/Walking route[^.]{0,100}scene-green-1st-floor-9/i.test(t) ||
+        !/Staff House Walking[^.]{0,100}scene-guard-house-walk-1st-floor-1/i.test(t) ||
+        !/Previously authorized mapping repairs and session revocations[^.]{0,160}not standing permission/i.test(t)) {
+      problems.push('Green/Staff route truth or expired data authority is incomplete');
+    }
+
+    if (!/Migrations remain exactly `?0001`? through `?0027`?/i.test(t) ||
+        !/owner-reported applied/i.test(t) ||
+        !/Migration `?0027`?[^.]{0,200}fresh focused authority/i.test(t) ||
+        !/Entry lines remain blue/i.test(t) || !/#2563eb/i.test(t) ||
+        !/exit lines red/i.test(t) || !/#dc2626/i.test(t) ||
+        !/written direction labels remain primary/i.test(t) ||
+        !/service worker remains `?v45`?/i.test(t)) {
+      problems.push('migration, route-color, or service-worker boundary is incomplete');
+    }
+
+    if (!/Guided-VR resolution and hotspot-navigation probes/i.test(t) ||
+        !/Supabase-only Guided-VR catalog and map-to-VR flow probes/i.test(t) ||
+        !/Academic VI repair utility in read-only preflight mode/i.test(t) ||
+        !/package boundary passed `?74\/74`?/i.test(t) ||
+        !/200 files[^.]{0,80}7,449,738 bytes/i.test(t) ||
+        !t.includes(CURRENT_WALKING_EXIT_PACKAGE_SHA256) ||
+        !/full `?npm test`? and MySQL checks were deliberately deferred/i.test(t) ||
+        !/September 10 predecessor[^.]{0,120}historical evidence/i.test(t)) {
+      problems.push('source/package evidence or deferred-test boundary is incomplete');
+    }
+
+    if (!/owner promoted `?4e9d579`?/i.test(t) ||
+        !/signed-in Vercel dashboard[^.]{0,160}`?Ready`?[^.]{0,80}`?Production`?/i.test(t) ||
+        !/https:\/\/campusphere-cspc\.vercel\.app/i.test(t) ||
+        !/Production smoke passed `?207\/207`?/i.test(t) ||
+        !/health response/i.test(t) || !/400`? or `?404/i.test(t) ||
+        !/protected HTML redirecting to `?\/auth`?/i.test(t) ||
+        !/protected JSON returning `?401`?/i.test(t) ||
+        !/no cookies on checked responses/i.test(t) ||
+        !/committed Git blobs/i.test(t) ||
+        !/verifier-contract issues/i.test(t)) {
+      problems.push('Production identity, smoke, or corrected-verifier evidence is incomplete');
+    }
+
+    if (!/all 25 online building panels/i.test(t) ||
+        !/all 25 offline building panels/i.test(t) ||
+        !/25 entry routes and 25 exit routes/i.test(t) ||
+        !/Academic VI's offline entry[^.]{0,80}375 m[^.]{0,80}5-6 minutes/i.test(t) ||
+        !/exit[^.]{0,80}461 m[^.]{0,80}6-7 minutes/i.test(t) ||
+        !/did not traverse every Guided-VR scene/i.test(t) ||
+        !/cold reload with the network disconnected/i.test(t)) {
+      problems.push('guest UAT coverage or limitation boundary is incomplete');
+    }
+
+    if (!/MapLibre\/PMTiles campus basemap/i.test(t) ||
+        !/GitHub Actions publishes[^.]{0,160}OSM-derived PMTiles/i.test(t) ||
+        !/stores validated guide data[^.]{0,120}IndexedDB/i.test(t) ||
+        !/Offline packages exclude VR panoramas[^.]{0,180}sessions/i.test(t) ||
+        !/Evidence classes remain separate/i.test(t) ||
+        !/Sampled deployed assets are not complete immutable-package equality/i.test(t) ||
+        !/no real CSPC instructor Gmail end-to-end OAuth observation/i.test(t) ||
+        !/next product move is an owner-selected bug fix or add\/change\/remove feature/i.test(t) ||
+        !/stop and ask before rollback, patch, promotion, or redeployment/i.test(t)) {
+      problems.push('offline flow, evidence classes, limitations, or next-move boundary is incomplete');
+    }
+
+    if (/current MySQL parity[^.]{0,80}(?:complete|verified|green)/i.test(t) ||
+        /full `?npm test`?[^.]{0,80}(?:passed|QUALITY-GATES OK)[^.]{0,120}4e9d579/i.test(t) ||
+        /UAT[^.]{0,80}(?:traversed|tested) every Guided-VR scene/i.test(t)) {
+      problems.push('unsupported current parity, full-suite, or exhaustive-UAT claim is operative');
+    }
+    return problems;
+  }
 
   /* Current September 10 Guided-VR source release with owner-held promotion. */
   if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
@@ -7973,6 +8086,79 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
+    const requiredSurfaces = [
+      'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
+      'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md',
+      'README.md', 'docs/thesis-teammate-handoff.md', 'docs/deployment.md',
+      'docs/security-checklist.md', 'docs/test-evidence.md',
+      'docs/demo-script.md', 'docs/offline-map-refresh.md',
+      'docs/new-session-grounding-prompts.md', 'database/supabase/README.md',
+      'database/supabase/REPOSITORY_BOUNDARIES.md', 'package.json',
+      'package-lock.json', '.env.example', '.gitignore', '.vercelignore',
+      '.dockerignore', 'Dockerfile', 'docker-compose.yml',
+      'docker-compose.testing.yml', 'vercel.json', 'server.js',
+      'config/selectedDemoFreeze.js', 'config/guidedVrRoutes.js',
+      'middleware/roleAuth.js', 'middleware/securityHeaders.js',
+      'middleware/rateLimit.js', 'config/sessionConfig.js',
+      'config/supabase.js', 'services/sessionReadiness.js',
+      'services/sessionRevocation.js',
+      'services/mysqlSessionStore.js', 'services/supabaseSessionStore.js',
+      'services/guidedVrResolution.js', 'controllers/vrController.js',
+      'views/vr-mode-choice.ejs', 'views/vr-route.ejs',
+      'utils/routeGeometry.js', 'controllers/mapController.js',
+      'controllers/adminRouteController.js', 'repositories/routeRepository.js',
+      'services/offlineGuideService.js', 'services/offlineMapReleaseService.js',
+      'public/js/admin/admin-map-graph.js',
+      'public/js/offline-guide-manager.js', 'views/map.ejs',
+      'views/admin/campus-map.ejs', 'public/sw.js', 'utils/mediaUrl.js',
+      'controllers/mediaController.js', 'controllers/adminVrController.js',
+      'repositories/vrRepository.js', 'public/js/media-url.js',
+      'public/js/admin/admin-vr.js', 'views/vr.ejs', 'views/admin/vr.ejs',
+      '.github/workflows/offline-map-refresh.yml',
+      'scripts/publishOfflineMapRelease.js', '0027'
+    ];
+    return /initial grounding turn/i.test(t) &&
+      /senior reviewer[^.]{0,160}senior developer\/engineer[^.]{0,160}security\/DB\/UI quality gate[^.]{0,160}handoff owner[^.]{0,160}delivery coordinator/i.test(t) &&
+      /Discover the repository root/i.test(t) &&
+      /GROUNDING RESTRICTION[^.]{0,140}read-only and context-only/i.test(t) &&
+      /inventory the tools, MCP servers\/connectors[^.]{0,160}browser surfaces[^.]{0,160}skills/i.test(t) &&
+      /campusphere-readonly-grounding/i.test(t) &&
+      /do not install or invent it/i.test(t) &&
+      /code-reviewer[^.]{0,120}later explicitly authorized review/i.test(t) &&
+      /availability does not expand authority/i.test(t) &&
+      /Never read, print, summarize, compare, or package `?\.env`?/i.test(t) &&
+      /This prompt grants no access to Supabase, Vercel, Cloudinary, Google Drive/i.test(t) &&
+      requiredSurfaces.every((surface) => t.includes(surface)) &&
+      t.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) &&
+      t.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) &&
+      /Vehicle 25 destinations \/ 486 steps \/ 101 unique scenes/i.test(t) &&
+      /Walking 25 \/ 690 \/ 133/i.test(t) &&
+      /direction=exit[^.]{0,80}Walking/i.test(t) &&
+      /38 -> 85 -> 94/i.test(t) && /94 -> 93 -> 92 -> 91/i.test(t) &&
+      /scene-chs-1st-floor-001/i.test(t) && /scenes 86-90[^.]{0,100}loop\/Free-Roam/i.test(t) &&
+      /scene-green-1st-floor-1/i.test(t) && /scene-green-1st-floor-9/i.test(t) &&
+      /scene-guard-house-walk-1st-floor-1/i.test(t) &&
+      /670 scenes/i.test(t) && /11 loop\/shortcut scenes/i.test(t) && /22\/22 expected directed/i.test(t) &&
+      /migrations `?0001-0027`? are owner-reported applied/i.test(t) &&
+      /never reapply `?0027`?/i.test(t) &&
+      /package boundary `?74\/74`?/i.test(t) &&
+      /200 files[^.]{0,80}7,449,738 bytes/i.test(t) &&
+      t.includes(CURRENT_WALKING_EXIT_PACKAGE_SHA256) &&
+      /full `?npm test`? and current MySQL parity were deferred/i.test(t) &&
+      /owner-promoted `?4e9d579`?[^.]{0,120}`?Ready`? in `?Production`?/i.test(t) &&
+      /authority-only[^.]{0,100}successor[^.]{0,120}self-referential commit SHA/i.test(t) &&
+      /smoke passed `?207\/207`?/i.test(t) && /Git-blob sampled bytes/i.test(t) &&
+      /25\/25 online and 25\/25 offline building panels/i.test(t) &&
+      /did not prove every VR journey[^.]{0,160}disconnected cold reload/i.test(t) &&
+      /MapLibre\/PMTiles basemap/i.test(t) && /GitHub Actions publishes/i.test(t) &&
+      /users explicitly update IndexedDB/i.test(t) && /service worker is `?v45`?/i.test(t) &&
+      /git ls-remote/i.test(t) &&
+      /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
+      /evidence classes/i.test(t) && /Stop and wait/i.test(t) &&
+      !/[A-Z]:\\Users\\/i.test(t) && !declaresStaleOrPrematureAuthority(t);
+  }
+
   if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
@@ -8260,6 +8446,14 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
   if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
@@ -8311,6 +8505,14 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
   if (t.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
@@ -9297,6 +9499,22 @@ const CLAIM_NON_RUNTIME_RE =
 function recordsPostDeploymentAuthority(text) {
   if (typeof text !== 'string' || text === '') return false;
   const current = currentDeploymentAuthorityScope(text);
+  const t = current.replace(/\s+/g, ' ');
+
+  /* September 14 live authority has a newer independently exercised release.
+     Keep the older SEC-51 fixture contract intact for historical regression
+     coverage while validating the current owner-promotion, smoke, and sampled-
+     byte boundaries directly from the operative continuity section. */
+  if (current.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
+    return /owner promoted `?4e9d579`?/i.test(t) &&
+      /signed-in Vercel dashboard[^.]{0,180}`?Ready`?[^.]{0,80}`?Production`?/i.test(t) &&
+      /https:\/\/campusphere-cspc\.vercel\.app/i.test(t) &&
+      /Production smoke passed `?207\/207`?/i.test(t) &&
+      /sampled deployed assets matching the committed Git blobs/i.test(t) &&
+      /Sampled deployed assets are not complete immutable-package equality/i.test(t) &&
+      /next product move is an owner-selected bug fix or add\/change\/remove feature/i.test(t) &&
+      !/verification remains pending|owner promotion pending/i.test(t);
+  }
   /* Claim-scoped: the current SHA must be BOUND to the deployed result by a
      non-historical claim. Naming it only inside a historical label — while the
      old SHA is presented as current — no longer satisfies this. */
@@ -9305,7 +9523,6 @@ function recordsPostDeploymentAuthority(text) {
   /* A valid binding elsewhere must not excuse a contradictory deployment claim
      in the same scope. */
   const noConflict = documentConflictingDeployedShaProblems(current).length === 0;
-  const t = current.replace(/\s+/g, ' ');
   if (t.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID)) {
     return bindsCurrent && oldStaysHistorical && noConflict &&
       /Ready[^.]{0,80}Production[^.]{0,80}Current/i.test(t) &&
@@ -10070,8 +10287,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-10';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-10';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-14';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-14';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -10105,22 +10322,22 @@ function runDocsCurrentGate() {
   }
 
   const liveDateProblems = currentCandidateDateProblems(docs);
-  ok('accepted continuity headings and feature-candidate update dates remain explicit',
+  ok('accepted continuity headings and current-authority update dates remain explicit',
     liveDateProblems.length === 0);
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-10)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-10)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
-    'plan.md': '## Current Release Continuity (2026-09-10)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-10)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-10 (Asia/Manila)\n## Current Release Continuity (2026-09-10)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-10)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-10)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-10)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-10)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-14)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-14)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-14 (Asia/Manila)\n## Current Release Continuity (2026-09-14)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-14 (Asia/Manila)\n## Current Release Continuity (2026-09-14)',
+    'plan.md': '## Current Release Continuity (2026-09-14)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-14)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-14 (Asia/Manila)\n## Current Release Continuity (2026-09-14)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-14)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-14)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-14)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-14)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -10607,41 +10824,41 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 10 Guided-VR release authority and owner-promotion boundary`,
+    ok(`${name} records the September 14 Walking-exit release and verified-Production boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-10 Guided-VR route release; owner promotion pending)');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-14 walking exits and verified Production)');
     const historical = raw.indexOf('## Historical Release Continuity', start);
     if (start < 0 || historical <= start) return '';
     return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative September 10 release summaries are exactly synchronized',
+  ok('all eleven operative September 14 release summaries are exactly synchronized',
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
 
   const currentAuthority = docs['docs/current-authority.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
-  ok('canonical current authority records current source, applied 0027, evidence classes, and ordered owner next moves',
-    currentAuthority.includes(CURRENT_ROUTE_METRICS_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_DRIVE_MEDIA_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_PORTABLE_HANDOFF_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_ROUTE_COLOR_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_PUSHED_AUTHORITY_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID) &&
-    /migrations `?0001`?-`?0027`? are owner-applied/i.test(currentAuthority) &&
-    /Evidence Classes/i.test(currentAuthority) &&
-    /historical evidence/i.test(currentAuthority) &&
-    /must not be described as the current live Supabase route fingerprint/i.test(currentAuthority) &&
-    /immediate authority track/i.test(currentAuthority) && /next product move/i.test(currentAuthority) &&
-    /QUALITY-GATES OK/i.test(currentAuthority) && /127\/127/i.test(currentAuthority) &&
-    /four sampled assets[^.]{0,60}do not prove immutable equality/i.test(currentAuthority));
+  ok('canonical current authority records 4e9d579 source, Production evidence, limits, and next move',
+    currentAuthority.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) &&
+    /Vehicle[^.]{0,80}25[^.]{0,80}486[^.]{0,80}101/i.test(currentAuthority) &&
+    /Walking[^.]{0,80}25[^.]{0,80}690[^.]{0,80}133/i.test(currentAuthority) &&
+    /670 scenes/i.test(currentAuthority) && /22\/22 expected directed links/i.test(currentAuthority) &&
+    /Migration sources are contiguous through[^.]{0,40}0027/i.test(currentAuthority) &&
+    currentAuthority.includes(CURRENT_WALKING_EXIT_PACKAGE_SHA256) &&
+    /Deferred for this release:[^.]{0,120}npm test[^.]{0,80}MySQL checks/i.test(currentAuthority) &&
+    /anonymous GET-only smoke passed[^.]{0,40}207\/207/i.test(currentAuthority) &&
+    /all 25 online and all 25 offline building panels opened/i.test(currentAuthority) &&
+    /did not traverse every Guided-VR scene/i.test(currentAuthority) &&
+    /Sampled assets do not prove immutable equality/i.test(currentAuthority) &&
+    /next product move is an owner-selected bug fix or\s+add\/change\/remove feature/i.test(currentAuthority));
   ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
     /Node\.js `?>=22`?/i.test(teammateHandoff) && /npm ci/i.test(teammateHandoff) &&
     /Repository Map/i.test(teammateHandoff) && /Technology and Security Model/i.test(teammateHandoff) &&
@@ -10656,19 +10873,19 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 10 Guided-VR continuity is accepted and Git, route, deployment, QA, smoke, scope, and marker drift fail closed',
+  ok('fixture: current September 14 continuity is accepted and Git, route, deployment, package, smoke, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_VERIFIED_AUTHORITY_COMMIT_SHA,
+      CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      '918f721',
+      CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA,
       'eeeeeee')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_SUPABASE_BUILDING_ROUTE_SHA256,
+      CURRENT_WALKING_EXIT_PACKAGE_SHA256,
       'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
@@ -10676,16 +10893,16 @@ function runDocsCurrentGate() {
       'one stash')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID,
-      'dpl_wrong')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
+      'The owner separately authorized review of these 18',
+      'The owner did not authorize review of these 18')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /QUALITY-GATES OK/i,
-      'QUALITY-GATES FAILED: 1')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
+      '207/207',
+      '206/207')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /127\/127/i,
-      '126/127')).length > 0 &&
+      'did not traverse every Guided-VR scene',
+      'traversed every Guided-VR scene')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 

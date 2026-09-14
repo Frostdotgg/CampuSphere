@@ -1,25 +1,20 @@
 # Milestone 11 and Pre-Milestone-12 Delivery Plan
 
-## Current Progress and Next Moves (2026-09-09)
+## Current Progress and Next Moves (2026-09-14)
 
-Canonical current status is maintained in `docs/current-authority.md`. Route
-metrics from drawn geometry are implemented and pushed as `918f721`; migration
-`0027` is owner-applied, the existing 50 directed edges were corrected in
-place, and the owner accepted the subsequently redrawn entry/exit lines as
-final. Google Drive media references alongside Cloudinary are implemented and
-pushed as `83f247a`; the owner reports the feature working, test content
-removed, and the release promoted. Entry routes blue / exit routes red are
-implemented in `3d0a2b6`; pushed authority ends at `7b4e818`. Its exact Vercel
-deployment is independently verified Ready/Production/Current, the fresh full
-`npm test` passed with `QUALITY-GATES OK`, final residue passed `18/18`, and the
-corrected bounded Production smoke passed `127/127`.
+Release `4e9d579` is pushed and owner-promoted. Its corrected Production smoke
+passed `207/207`, and the signed-in guest UAT opened all 25 online and offline
+building panels with no blocker. Current source has 25 Vehicle destinations /
+486 steps and 25 Walking destinations / 690 steps; Walking exits are complete.
+MySQL parity and full dual-backend `npm test` remain deferred for this release.
 
-The authority track is this owner-continuity synchronization followed by owner
-review and separate commit/push authorization. Deployment verification and the
-quality/smoke sequence are complete for `7b4e818`; after the authority update,
-the product track is an owner-selected bug fix or feature. Neither track
-authorizes migration `0027` reapplication, route changes, database/session
-mutation, deployment, or additional Production testing.
+The owner separately authorized focused review of this 18-file authority/prompt
+synchronization, one commit, and a push to `main`; the resulting authority-only
+successor must be read from live Git because its documentation is
+self-referential. After delivery, the next product task is an owner-selected bug
+fix or add/change/remove feature. Deployment remains a separate explicit release
+step. Older sections below are retained as historical planning evidence where
+they conflict with this status and `docs/current-authority.md`.
 
 ## Historical Pushed Room Schedule Image Candidate (2026-08-26; superseded)
 
@@ -81,7 +76,113 @@ Milestones 9, 10, and 11 are complete and Codex GO. The Road-Following Map Desti
 Supabase migration sources are contiguous from `0001` through `0026`; the historical route/data freeze remains scoped through `0020`; migrations `0014` through `0019` are owner-applied and verified, owner-applied `0020_room_schedule_documents.sql` is recorded before this verification, and `0024_vr_hotspot_guest_visibility.sql`, `0025_event_audience.sql`, and `0026_admin_instructor_profile_integrity.sql` are owner-applied by the project owner. Codex did not apply or reapply them. Migration 0026 is auth/profile-only. The guarded BE.5 MySQL parity apply is complete and its dry-run reports zero actions. The current expanded BE.6 freeze is backend-specific: MySQL has 34 buildings, 44 route nodes, 100 directed edges, 50 reverse pairs, 50 exact reverse geometries, and 100 valid road geometries; Supabase has 25 buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse geometries, and 50 valid road geometries. The shared active Guided-VR catalog has 25 destinations, 472 configured steps, and 99 unique scene keys. The temporary D4 probe edge and `main-gate.display_order` drift were restored through separately authorized admin API operations, and the complete D4 regate remains accepted historical evidence. CampuSphere computes routes from its own campus graph and renders owner-managed road geometry; Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-10 Guided-VR route release; owner promotion pending)
+## Current Release Continuity (2026-09-14 walking exits and verified Production)
+
+The canonical current snapshot is `docs/current-authority.md`. Older blocks in
+this file are retained as historical evidence and do not override this section.
+At the start of this authority synchronization, Git branch `main` had local
+`HEAD`, `origin/main`, and remote `main` equal at
+`4e9d5798ec2230c861a088808c39abc8a2b59937` (`4e9d579`), with an empty index,
+a clean worktree, and zero stashes. Recompute those facts before relying on this
+checkpoint. The owner separately authorized review of these 18
+authority/static-contract paths, one commit, and a push to `main`. Because the
+final authority commit contains this self-referential section, fresh sessions
+must recompute its exact SHA and status.
+
+The current product lineage is `13ae67c` (destination-route corrections),
+`f9679f6` (the complete Walking catalog, travel-mode chooser, MapLibre/PMTiles
+online and offline map experience, labels, home preview, and offline start
+alignment), and `4e9d579` (Walking exits, direction-aware Guided-VR navigation,
+and Academic VI route/mapping safeguards). Production data and Express sessions
+target Supabase/PostgreSQL. MySQL remains the local-development, fallback, and
+rehearsal backend; current MySQL parity and a fresh dual-backend full-suite claim
+are deferred.
+
+Source inspection at `4e9d579` records 25 Vehicle destinations with 486 steps
+and 101 unique scenes, and 25 Walking destinations with 690 steps and 133 unique
+scenes. `direction=entry` remains the default; `direction=exit` is supported for
+`mode=walking` and reverses a copied approved Walking sequence. Vehicle exit
+requests fail closed. Runtime resolution still verifies unique scene keys,
+approved media, exact forward/reverse hotspots, and the direction-specific
+arrival before reporting completion.
+
+Academic Buildings IV and VI intentionally use the `38 -> 85 -> 94` shortcut in
+both modes. Academic VI then continues `94 -> 93 -> 92 -> 91 -> CHS` and ends at
+`scene-chs-1st-floor-001`. A SELECT-only Supabase verification on 2026-09-14
+confirmed 670 scenes, the loop `85 <-> 86 <-> 87 <-> 88 <-> 89 <-> 90 <-> 91
+<-> 92 <-> 93 <-> 94`, the `85 <-> 94` shortcut, approved media for the 11
+checked loop/shortcut scenes, and 22/22 expected directed links. The owner
+confirmed that scenes 86-90 remain loop/Free-Roam scenes and must not be inserted
+into the Academic VI guided sequence.
+
+Green's Vehicle route arrives at `scene-green-1st-floor-1`; its Walking route
+arrives at `scene-green-1st-floor-9`. Staff House Walking starts at
+`scene-guard-house-walk-1st-floor-1`. Previously authorized mapping repairs and
+session revocations are completed task history, not standing permission to run
+the repair utilities or change data again.
+
+Migrations remain exactly `0001` through `0027` and are owner-reported applied
+on the selected Supabase project. Migration `0027`, the owner-confirmed 2D route
+geometry, and the approved Guided-VR sequences require fresh focused authority
+before any database or route change. Entry lines remain blue (`#2563eb`), exit
+lines red (`#dc2626`), written direction labels remain primary, and the service
+worker remains `v45`.
+
+Current source evidence for `4e9d579` includes passing syntax and whitespace
+checks, Guided-VR resolution and hotspot-navigation probes, public route
+rendering, Supabase-only Guided-VR catalog and map-to-VR flow probes, and the
+Academic VI repair utility in read-only preflight mode. The Vercel package
+boundary passed `74/74` at 200 files, 7,449,738 bytes, aggregate SHA-256
+`297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4`. The
+full `npm test` and MySQL checks were deliberately deferred for this release;
+the earlier `QUALITY-GATES OK`, five-stage `npm run qa`, residue `18/18`, and
+BE.6 `46/46` results belong to the September 10 predecessor and remain
+historical evidence.
+
+The owner promoted `4e9d579`. A signed-in Vercel dashboard observation showed
+the matching `main` deployment as `Ready` in `Production`, and the canonical
+alias is `https://campusphere-cspc.vercel.app`. A corrected bounded anonymous,
+read-only, GET-only Production smoke passed `207/207`. It confirmed the
+`{"status":"ok"}` health response, safe `400` or `404` edge rejection for
+traversal attempts, protected HTML redirecting to `/auth`, protected JSON
+returning `401`, expected security headers, no cookies on checked responses,
+and sampled deployed assets matching the committed Git blobs. The first run's
+three mismatches were verifier-contract issues: a stale health-body expectation,
+an overly narrow `404` expectation for safe Vercel edge rejection, and comparison
+against CRLF-normalized Windows working-copy bytes rather than Git blobs.
+
+A signed-in guest Production UAT then opened all 25 online building panels and
+confirmed their VR-route action. The downloaded guide opened all 25 offline
+building panels and reported 25 entry routes and 25 exit routes; markers and
+labels rendered, and Free Roam correctly remained online-only. Academic VI's
+offline entry rendered as 375 m / 5-6 minutes and its exit as 461 m / 6-7
+minutes. This UAT did not traverse every Guided-VR scene, draw every building's
+entry/exit route, prove a cold reload with the network disconnected, or cover
+administrator writes, schedules, Google OAuth, or real Drive media.
+
+Evidence classes remain separate: source/Git facts, recorded local checks,
+SELECT-only Supabase verification, owner/vendor observations, independently
+executed Production smoke/UAT, and final client/panel disposition. Sampled
+deployed assets are not complete immutable-package equality. No real CSPC
+instructor Gmail end-to-end OAuth observation is recorded.
+
+Online `/map` and the home preview use the bundled MapLibre/PMTiles campus
+basemap. GitHub Actions publishes a signed OSM-derived PMTiles release to the
+configured public Google Drive delivery location; a connected signed-in user
+explicitly downloads or updates the guide, which stores validated guide data
+and the map Blob in IndexedDB. The service worker caches the reviewed shell and
+static assets. Offline packages exclude VR panoramas, schedules, building
+photos, private/admin data, and sessions.
+
+Fresh Codex and Claude Code sessions must use the current owner prompts in
+`docs/new-session-grounding-prompts.md`, inventory their actual capabilities,
+ground read-only, report discrepancies, and wait for the owner's focused task.
+The next product move is an owner-selected bug fix or add/change/remove feature.
+For a later release, review and test the bounded change, then obtain explicit
+commit/push and deployment authority. If a future verification or smoke fails,
+stop and ask before rollback, patch, promotion, or redeployment.
+
+## Historical Release Continuity (2026-09-10 Guided-VR route release; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; detailed older
 records below are historical and must not override it. The reusable grounding

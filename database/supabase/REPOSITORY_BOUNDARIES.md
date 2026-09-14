@@ -1,24 +1,15 @@
 # Repository Boundary Design
 
-## Current implementation note (2026-09-09)
+## Current implementation note (2026-09-14)
 
-This file preserves the original repository-boundary design and migration
-sequence as historical architecture evidence. The repository layer is now
-implemented and used by runtime data-source switches. Production application
-data and sessions target Supabase/PostgreSQL; MySQL remains local development,
-fallback, and rehearsal. Current migration and release authority lives in
-`database/supabase/README.md` and `docs/current-authority.md`. Statements below
-such as "will be introduced", "no controller imports a repository", or "MySQL
-remains the live runtime" describe the historical design phase and are not
-current runtime status.
-
-Current invariants remain valid: controllers own HTTP/EJS shapes, repositories
-remain server-only data boundaries, Supabase Auth is unused, privileged keys
-never enter browser code, and Express login/role/CSRF checks remain the per-user
-authorization layer even where database RLS and revoked grants provide defense
-in depth. Current pushed authority is `7b4e818`; its Production deployment is
-independently verified, while this document remains architecture guidance and
-not live database or complete deployed-byte evidence.
+The repository layer is implemented. Production application data and Express
+sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
+rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
+Express login/role/CSRF checks enforce per-user access even though the service
+role bypasses RLS. Current pushed product source is `4e9d579`; the later
+authority-only successor must be read from live Git, and current MySQL parity is
+deferred. The design text below is historical architecture guidance where it
+uses future tense. See `docs/current-authority.md` for current evidence.
 
 Design document for the data-access boundary that will be introduced
 between CampuSphere's controllers and the database.

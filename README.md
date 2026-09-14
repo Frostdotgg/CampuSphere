@@ -22,29 +22,16 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
   shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
-## Current source release (2026-09-10)
+## Current source release (2026-09-14)
 
-The Guided-VR route release starts from pushed Git commit SHA-1
-`05b0545ccefbf282c365244c7f9edf8f2be5810c` (`05b0545`); the final commit
-contains self-referential authority text, so read its exact SHA from live Git.
-The release updates Academic Building II, MULTI-PURPOSE-BUILDING I, and Green
-Building guidance, with Green now arriving at `scene-green-1st-floor-1`.
-The refreshed route freeze has MySQL at 34 buildings, 44 route nodes, 100
-directed edges, 50 reverse pairs, and 100 valid geometries; Supabase has 25
-buildings, 26 route nodes, 50 directed edges, 25 reverse pairs, and 50 valid
-geometries. The shared Guided-VR catalog contains 25 active destinations, 484
-configured steps, and 100 unique scene keys.
-The shared catalog contains 25 destinations, 484 steps, and 100 unique scene
-keys. Migration `0027` remains owner-applied and the final 2D routes are
-unchanged. Entry lines are blue (`#2563eb`) and exit lines are red (`#dc2626`)
-in online and offline views. Vercel deployment
-`dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently verified as
-Ready/Production/Current for `7b4e818`, which remains the verified Production
-baseline until the owner promotes the new release. Its bounded anonymous smoke
-passed `127/127`; sampled asset bytes matched source, but complete
-deployed-package equality was not established. See
-[current authority](docs/current-authority.md) and the
-[thesis teammate handoff](docs/thesis-teammate-handoff.md).
+Pushed and owner-promoted release `4e9d579` completes Walking exits and
+direction-aware Guided VR after `f9679f6` delivered the Walking catalog,
+travel-mode chooser, MapLibre/PMTiles maps, labels, and offline UI corrections.
+Current source contains 25 Vehicle destinations / 486 steps and 25 Walking
+destinations / 690 steps. The corrected Production smoke passed `207/207` and
+bounded guest UAT opened all 25 online and offline building panels. See
+[current authority](docs/current-authority.md) for exact evidence limits,
+deferred MySQL/full-suite work, and the next-task boundary.
 
 ## Tech Stack
 

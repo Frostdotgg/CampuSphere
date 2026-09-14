@@ -1,21 +1,13 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-09-09): use `docs/current-authority.md` for release
-truth. Route-metric release `918f721` changes stored scalar metrics when a
-directed geometry is saved but does not change the offline package format:
-published entry and exit lines still use independently authored geometry.
-Google Drive media release `83f247a` also leaves the offline package boundary
-unchanged; Drive-backed pictures, schedules, and panoramas remain online-only.
-Route-color implementation `3d0a2b6` renders cached entry lines blue and exit
-lines red; current pushed authority ends at `7b4e818`. The service-worker shell
-is `v41`, and the PMTiles bounds, publisher,
-signed manifest, IndexedDB activation, and user-controlled update model are
-unchanged. The older 197-file package pin is historical. Deployment identity
-and bounded Production behavior are independently verified for `7b4e818`; four
-sampled assets matched Git, without proving the entire deployed package. The
-current route-color source package is 199 files, 7,344,623 bytes, aggregate
-SHA-256 `9420ce6a273e6ce52856936c7343efe4b864f23df17e030a0ac5b184595f2d4e`;
-this is source/package evidence, not deployed-byte proof.
+Current handoff note (2026-09-14): use `docs/current-authority.md` for release
+truth. Online `/map` and the home preview use the bundled MapLibre/PMTiles
+basemap. GitHub Actions publishes signed OSM-derived PMTiles for explicit
+offline-guide updates through the configured public Drive delivery path. A
+signed-in user downloads validated guide JSON and the map Blob into IndexedDB;
+the service worker `v45` caches the reviewed shell/static allowlist. Production
+guest UAT opened all 25 offline building panels and exercised Academic VI's
+entry and exit, but did not prove a disconnected cold reload or every route.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

@@ -2,62 +2,37 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration status (2026-09-09)
+## Current migration and release status (2026-09-14)
 
-Migration sources are contiguous from `0001` through `0027`. Migrations
-`0001`-`0027` are owner-applied on the selected Supabase project. Codex did not
-apply or reapply the owner-managed migrations. Migration `0027` must not be
-reapplied without fresh explicit database authorization.
-Do not reapply an owner-applied migration without fresh explicit database authorization.
-`0020_room_schedule_documents.sql` is the
-semester room-schedule image migration; it creates
-`room_schedule_documents` and adds the nullable indexed
-`vr_hotspots.schedule_document_id` foreign key. It was applied by the owner
-before dual-backend runtime verification; application acceptance remains a
-separate evidence boundary. Auth-only migration
-`0021_minimal_instructor_oauth_registration.sql` preserves the exact
-17-argument OAuth-profile RPC while removing the obsolete requirement for
-instructor position, department, and employee ID. The owner applied 0021 and
-supplied read-only postflight evidence; Codex did not apply it. Do not reapply
-either migration without fresh explicit database authorization. Migration
-`0022_user_presence.sql` adds an indexed, server-only `user_presence` table and
-service-role-only atomic touch function; it has no backfill and was applied by
-the owner in the Supabase SQL Editor. Read-only table/API postflight checks
-succeeded; do not reapply it without fresh explicit database authorization. The
-historical route/data freeze remains scoped to `0001`-`0020` because 0021 is
-auth-only and 0022 is presence-only. Migration 0023 adds the service-role-only
-`app_set_route_edge_geometry_one_way` backstop used by the directional admin
-geometry editor. It was applied by the owner before this candidate; do not
-reapply it without fresh explicit database authorization. Migration 0024 adds
-the fail-closed `vr_hotspots.guest_visible` policy bit. Scene/exit hotspots are
-canonicalized visible, schedules remain private, and only explicitly approved
-information hotspots survive guest filtering. It is owner-applied before
-Supabase-mode VR/admin hotspot reads and writes use the new column. Migration
-0025 adds the role-targeted `events.audience` column, its allowlist constraint,
-and the audience/date index. It was applied by the owner; Codex did not apply
-or reapply it. Do not reapply it without fresh explicit database authorization.
-Migration `0026_admin_instructor_profile_integrity.sql` is an auth/profile
-migration applied by the project owner. It backfills only instructor users that
-have no profile, makes the admin-create RPC always create the minimal
-`instructor_profiles` row, and adds an atomic admin-update RPC for role
-promotions into `instructor`. Existing profile values are preserved; role
-changes away from instructor do not delete a profile. Codex did not apply or
-reapply 0026. It does not change campus, route, VR, event, or selected-freeze
-data.
+Migration sources are contiguous from `0001` through `0027` and are
+owner-reported applied on the selected Supabase project. Do not reapply them
+without fresh explicit database authority. Production application data and
+sessions target Supabase, and `4e9d579` is the current pushed release. A
+SELECT-only check confirmed 670 VR scenes and the intentional road 85-94 loop
+plus `85 <-> 94` shortcut. Current MySQL parity remains deferred; older freeze
+and sync counts are historical. See `docs/current-authority.md` before any
+database, mapping, route, hotspot, migration, or session action.
 
-The current pushed source is `7b4e818`, after route-metric release `918f721`,
-Drive media release `83f247a`, and route-color implementation `3d0a2b6`.
-Owner-supplied postflight evidence for applied migration `0027` reported the
-expected service-role-only function/security contract, 26 route nodes, 50
-directed edges, 50 stored geometries, and zero null/invalid geometries or
-metrics. Deployment `dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs` is independently
-verified Ready/Production/Current for `7b4e818`; the database postflight remains
-owner-supplied and sampled Production bytes are not full package proof. See
-`docs/current-authority.md`.
+Current migration purposes remain:
 
-The older milestone-by-milestone application notes below are retained as
-historical setup guidance; this current-status block controls when their
-migration counts differ.
+- `0020_room_schedule_documents.sql`: semester schedule images and the nullable,
+  indexed VR-hotspot schedule-document reference.
+- `0021_minimal_instructor_oauth_registration.sql`: preserves the OAuth profile
+  RPC while removing obsolete required instructor fields.
+- `0022_user_presence.sql`: indexed, server-only presence state and the
+  service-role-only atomic touch function.
+- `0023_directional_route_edge_geometry.sql`: independent one-way route geometry
+  saves.
+- `0024_vr_hotspot_guest_visibility.sql`: explicit guest visibility for scene,
+  exit, approved information, and private schedule hotspots.
+- `0025_event_audience.sql`: role-targeted event audiences and their index.
+- `0026_admin_instructor_profile_integrity.sql`: conflict-safe minimal instructor
+  profile integrity for administrator create/promotion flows.
+- `0027_route_edge_geometry_metrics.sql`: service-role-only atomic directional
+  geometry and geometry-derived distance/walk-time persistence.
+
+These descriptions do not authorize application or reapplication. The owner
+applied the migrations; Codex did not apply or reapply them.
 
 ## 1. Purpose
 

@@ -6,6 +6,16 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
+## Current Release Checkpoint (2026-09-14)
+
+Pushed release `4e9d579` is owner-promoted and passed the corrected bounded
+Production smoke `207/207`. Signed-in guest UAT opened all 25 online and all 25
+offline building panels; Academic VI's offline entry and exit were exercised.
+Current source contains 25 Vehicle destinations / 486 steps and 25 Walking
+destinations / 690 steps. MySQL parity and a fresh full dual-backend suite were
+deferred for this release. Use `docs/current-authority.md` for the complete
+evidence and limitation record.
+
 ## What CampuSphere Is
 
 CampuSphere is a CSPC virtual-campus web application built with Node.js,
@@ -177,10 +187,11 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-The handoff next move is owner review and separate commit/push authorization
-for the synchronized documentation; a later source archive, if wanted, must be
-created from a clean committed SHA with `git archive`. The repository records
-that `7b4e818` was independently verified as the current technical Production
-baseline and passed the corrected bounded anonymous smoke `127/127`. An archive
-recipient cannot independently refresh that external state without owner
-access. The next product move is an owner-selected bug fix or feature.
+The synchronized authority is an authority-only successor to product release
+`4e9d579`; read its exact SHA from live Git because the handoff text is
+self-referential. A later source archive, if wanted, must be created from a clean
+committed SHA with `git archive`. The repository records that owner-promoted
+`4e9d579` passed the corrected bounded anonymous smoke `207/207` and the limited
+guest Production UAT described above. An archive recipient cannot independently
+refresh that external state without owner access. The next product move is an
+owner-selected bug fix or add/change/remove feature.
