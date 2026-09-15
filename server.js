@@ -37,6 +37,7 @@ const safeJson = require('./utils/safeJson');
 
 // Import middleware
 const logger = require('./middleware/logger');
+const { requestDiagnostics } = require('./utils/requestDiagnostics');
 const authenticatedHtmlNoStore = require('./middleware/authenticatedHtmlNoStore');
 const { notFound, serverError } = require('./middleware/errorHandler');
 const { requireLogin } = require('./middleware/roleAuth');
@@ -223,6 +224,13 @@ app.use(express.static(path.join(__dirname, 'public')));
    a session cookie, and can be cached at Vercel's edge while the browser keeps
    its explicit IndexedDB-only offline boundary. */
 app.get('/maps/cspc-campus-:sha256.pmtiles', offlineMapController.download);
+
+/* ---- Per-request diagnostic context ----
+   Generate an internal correlation id before express-session so session
+   get/touch callbacks, including a late post-response touch, can be tied back
+   to the same request without persisting or returning the id. Public static
+   and offline map delivery stays outside this diagnostic context. */
+app.use(requestDiagnostics);
 
 /* ---- Session Middleware (Milestone 8, Section 8.4) ----
    The policy, the store, and the readiness coordinator were all resolved once

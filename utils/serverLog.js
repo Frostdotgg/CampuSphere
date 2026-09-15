@@ -9,10 +9,12 @@
    data while still giving operators the method + path + call-site scope needed
    to locate a failure.
 
-   Line shape:  [ERROR] <ISO timestamp> <scope> <METHOD> <path>
+   Line shape:  [ERROR] <ISO timestamp> <scope> <METHOD> <path> request_id=<id>
    `scope` is a short FIXED label supplied by the call site (e.g.
    'map.search', 'admin.users'); it must contain no user/request data.
    ======================================== */
+
+const { requestCorrelationId } = require('./requestDiagnostics');
 
 /**
  * Return the request path only — never the query string. OAuth flows carry
@@ -41,7 +43,7 @@ function logServerError(scope, req) {
   const ts = new Date().toISOString();
   const method = (req && req.method) || '-';
   const label = typeof scope === 'string' && scope.length > 0 ? scope : 'unknown';
-  console.error(`[ERROR] ${ts} ${label} ${method} ${safePath(req)}`);
+  console.error(`[ERROR] ${ts} ${label} ${method} ${safePath(req)} request_id=${requestCorrelationId(req)}`);
 }
 
 module.exports = { logServerError, safePath };

@@ -50,6 +50,8 @@ const session = require('express-session');
 
 const { createSessionReadiness, UNAVAILABLE_BODY } = require('../services/sessionReadiness');
 const { cspNonce, securityHeaders } = require('../middleware/securityHeaders');
+const logger = require('../middleware/logger');
+const { requestCorrelationId, requestDiagnostics } = require('../utils/requestDiagnostics');
 
 const ROOT = path.join(__dirname, '..');
 const SERVER_PATH = path.join(ROOT, 'server.js');
@@ -668,10 +670,12 @@ async function sectionCompletedResponseTouchFailure() {
       this.getCalls = 0;
       this.setCalls = 0;
       this.touchCalls = 0;
+      this.contextIds = [];
     }
 
     get(sid, callback) {
       this.getCalls += 1;
+      this.contextIds.push(requestCorrelationId());
       const value = this.sessions.get(sid);
       setImmediate(() => callback(null, value ? JSON.parse(JSON.stringify(value)) : null));
     }
@@ -689,6 +693,7 @@ async function sectionCompletedResponseTouchFailure() {
 
     touch(_sid, _value, callback) {
       this.touchCalls += 1;
+      this.contextIds.push(requestCorrelationId());
       setImmediate(() => callback(new Error(CANARY)));
     }
   }
@@ -702,9 +707,11 @@ async function sectionCompletedResponseTouchFailure() {
   let terminalErrorCode = '';
   let handledState = null;
   const capturedLogs = [];
+  const capturedRequestLogs = [];
   let resolveHandled;
   const handled = new Promise((resolve) => { resolveHandled = resolve; });
 
+  app.use(requestDiagnostics);
   app.use(session({
     name: 'campusphere.r3.sid',
     secret: 'r3-local-regression-secret-with-safe-length',
@@ -713,6 +720,7 @@ async function sectionCompletedResponseTouchFailure() {
     saveUninitialized: false,
     cookie: { httpOnly: true, sameSite: 'lax', secure: false, maxAge: 60_000 },
   }));
+  app.use(logger);
   app.use((req, res, next) => {
     const json = res.json.bind(res);
     const render = res.render.bind(res);
@@ -751,10 +759,12 @@ async function sectionCompletedResponseTouchFailure() {
   let seedStatus = 0;
   let heartbeatStatus = 0;
   let heartbeatBody = '';
+  let heartbeatRequestIdHeader = null;
   let cookie = '';
   let handledInTime = false;
   let handledTimer = null;
   const originalConsoleError = console.error;
+  const originalConsoleLog = console.log;
 
   try {
     server = await new Promise((resolve, reject) => {
@@ -762,17 +772,20 @@ async function sectionCompletedResponseTouchFailure() {
       listener.once('error', reject);
     });
     const base = `http://127.0.0.1:${server.address().port}`;
+    console.log = (...args) => { capturedRequestLogs.push(args.map(String).join(' ')); };
+    console.error = (...args) => { capturedLogs.push(args.map(String).join(' ')); };
     const seed = await fetch(base + '/r3-session-seed');
     seedStatus = seed.status;
     cookie = String(seed.headers.get('set-cookie') || '').split(';')[0];
     await seed.text();
+    store.contextIds.length = 0;
 
-    console.error = (...args) => { capturedLogs.push(args.map(String).join(' ')); };
     const heartbeat = await fetch(base + '/api/presence/heartbeat', {
       method: 'POST',
-      headers: { Cookie: cookie, Accept: 'application/json' },
+      headers: { Cookie: cookie, Accept: 'application/json', 'X-Request-ID': CANARY },
     });
     heartbeatStatus = heartbeat.status;
+    heartbeatRequestIdHeader = heartbeat.headers.get('x-request-id');
     heartbeatBody = await heartbeat.text();
 
     const timeout = new Promise((resolve) => {
@@ -781,15 +794,33 @@ async function sectionCompletedResponseTouchFailure() {
     handledInTime = await Promise.race([handled.then(() => true), timeout]);
   } finally {
     console.error = originalConsoleError;
+    console.log = originalConsoleLog;
     if (handledTimer) clearTimeout(handledTimer);
     if (server) await new Promise((resolve) => server.close(resolve));
   }
 
   const postResponseLogs = capturedLogs.filter((line) => line.includes(' post-response '));
+  const heartbeatRequestLog = capturedRequestLogs.find((line) => line.includes(' /api/presence/heartbeat '));
+  const heartbeatRequestIdMatch = heartbeatRequestLog && heartbeatRequestLog.match(/request_id=([a-f0-9]{32})$/);
+  const heartbeatRequestId = heartbeatRequestIdMatch ? heartbeatRequestIdMatch[1] : '';
+  const requestIds = capturedRequestLogs
+    .map((line) => {
+      const match = line.match(/request_id=([a-f0-9]{32})$/);
+      return match ? match[1] : null;
+    })
+    .filter(Boolean);
   check('completed-response', 'the seed creates one disposable session without touching a database',
     seedStatus === 204 && cookie.length > 0 && store.setCalls === 1);
   check('completed-response', 'the heartbeat loads the disposable session and attempts exactly one touch',
     store.getCalls === 1 && store.touchCalls === 1);
+  check('completed-response', 'both session callbacks retain the heartbeat request correlation id',
+    heartbeatRequestId.length === 32 && store.contextIds.length === 2 &&
+    store.contextIds.every((id) => id === heartbeatRequestId));
+  check('completed-response', 'separate requests receive distinct correlation ids',
+    requestIds.length >= 2 && new Set(requestIds).size === requestIds.length);
+  check('completed-response', 'the correlation id is neither returned nor persisted in session data',
+    heartbeatRequestIdHeader === null &&
+    !JSON.stringify(Array.from(store.sessions.values())).includes(heartbeatRequestId));
   check('completed-response', 'the deferred touch failure reaches the application error handler',
     handledInTime === true && handlerCalls === 1);
   check('completed-response', 'the handler observes the original response as committed and ended',
@@ -802,9 +833,11 @@ async function sectionCompletedResponseTouchFailure() {
   check('completed-response', 'the completed-response branch does not reach another error handler',
     terminalErrors === 0 && terminalErrorCode !== 'ERR_HTTP_HEADERS_SENT');
   check('completed-response', 'one fixed post-response diagnostic is emitted',
-    postResponseLogs.length === 1 && postResponseLogs[0].includes('POST /api/presence/heartbeat'));
+    postResponseLogs.length === 1 && postResponseLogs[0].includes('POST /api/presence/heartbeat') &&
+    postResponseLogs[0].includes(`request_id=${heartbeatRequestId}`));
   check('completed-response', 'the diagnostic exposes neither the store error nor a stack',
-    !containsCanary(capturedLogs.join('\n')) && !capturedLogs.join('\n').includes('ERR_HTTP_HEADERS_SENT'));
+    !containsCanary(capturedLogs.join('\n')) && !containsCanary(capturedRequestLogs.join('\n')) &&
+    !capturedLogs.join('\n').includes('ERR_HTTP_HEADERS_SENT'));
 
   const partialError = new Error(CANARY);
   let delegatedError = null;
@@ -929,6 +962,7 @@ function sectionWiring() {
   const iUrlencoded = src.indexOf('app.use(express.urlencoded(');
   const iJson = src.indexOf('app.use(express.json())');
   const iStatic = src.indexOf('express.static(');
+  const iRequestDiagnostics = src.indexOf('app.use(requestDiagnostics)');
   const iSession = src.indexOf('app.use(session(');
   const iNoStore = src.indexOf('app.use(authenticatedHtmlNoStore)');
   const iCsrf = src.indexOf('app.use(attachCsrfToken)');
@@ -948,6 +982,8 @@ function sectionWiring() {
     iGate < iRoutes && iGate < iNotFound);
   check('wiring', 'OFF.1 ordering survives: static before session, no-store between session and routes',
     iStatic < iSession && iSession < iNoStore && iNoStore < iRoutes);
+  check('wiring', 'request diagnostics wrap dynamic session requests without wrapping public static delivery',
+    iStatic < iRequestDiagnostics && iRequestDiagnostics < iSession);
 
   const gateMounts = (src.match(/app\.use\(sessionReadiness\.middleware\)/g) || []).length;
   const coordinators = (src.match(/createSessionReadiness\(/g) || []).length;

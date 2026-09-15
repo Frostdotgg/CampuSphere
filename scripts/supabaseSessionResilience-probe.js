@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { SupabaseSessionStore } = require('../services/supabaseSessionStore');
+const { elapsedBucket, safeRequestCorrelationId } = require('../utils/requestDiagnostics');
 
 const failures = [];
 let checks = 0;
@@ -87,6 +88,36 @@ function createLogger() {
     warn(line) { lines.push(line); },
     error(line) { lines.push(line); },
   };
+}
+
+const REQUEST_ID = '0123456789abcdef0123456789abcdef';
+
+function testDiagnosticUtilityContract() {
+  const bucketCases = [
+    [-1, 'unknown'],
+    [Number.NaN, 'unknown'],
+    [Number.POSITIVE_INFINITY, 'unknown'],
+    [0, 'lt250ms'],
+    [249.999, 'lt250ms'],
+    [250, '250to999ms'],
+    [999.999, '250to999ms'],
+    [1000, '1000to1999ms'],
+    [1999.999, '1000to1999ms'],
+    [2000, 'gte2000ms'],
+  ];
+  const bucketContract = bucketCases.every(([value, expected]) => elapsedBucket(value) === expected);
+  const validId = safeRequestCorrelationId(REQUEST_ID) === REQUEST_ID;
+  const invalidIds = [
+    '0123456789ABCDEF0123456789ABCDEF',
+    'short',
+    '',
+    null,
+    123,
+  ];
+  const invalidIdsRejected = invalidIds.every((value) => safeRequestCorrelationId(value) === '-');
+
+  check('diagnostics', 'elapsed buckets cover invalid values and every exact boundary', bucketContract);
+  check('diagnostics', 'only a 32-character lowercase hex request id is accepted', validId && invalidIdsRejected);
 }
 
 function makeStore(client, extra) {
@@ -173,6 +204,32 @@ async function testAuthorizationAndTimeout() {
     timeoutResult.calls === 1);
 }
 
+async function testDiagnosticTimingAndCorrelation() {
+  let clock = 0;
+  const logger = createLogger();
+  const client = createClient({ touch: [{ hang: true }, { error: null, status: 204 }] });
+  const ticks = [0, 2000, 2000, 2050];
+  const store = makeStore(client, {
+    logger,
+    requestIdProvider: () => REQUEST_ID,
+    monotonicNow: () => ticks.shift(),
+    now: () => clock,
+  });
+  const result = await callStore(store, 'touch', 'probe-sid', { cookie: {} });
+  const lines = logger.lines.join('\n');
+
+  check('diagnostics', 'a timeout retry and recovery retain the callback contract',
+    client.calls.touch === 2 && !result.error && result.calls === 1);
+  check('diagnostics', 'anomaly diagnostics carry coarse per-attempt timing buckets',
+    logger.lines.length === 2 && lines.includes('state=retrying') &&
+    lines.includes('state=recovered') && lines.includes('attempts=1 attempt_elapsed=gte2000ms') &&
+    lines.includes('attempts=2 attempt_elapsed=lt250ms'));
+  check('diagnostics', 'both anomaly lines carry the same opaque request correlation id',
+    logger.lines.every((line) => line.includes(`request_id=${REQUEST_ID}`)));
+  check('diagnostics', 'timing/correlation diagnostics remain free of the session canary',
+    !lines.includes('probe-sid') && !lines.includes('url') && !lines.includes('key'));
+}
+
 async function testDestroyContract() {
   const absentClient = createClient({
     destroy: [failure(502)],
@@ -214,10 +271,12 @@ async function testDiagnosticRateLimitAndSourcePrivacy() {
 
 async function main() {
   console.log('=== CampuSphere Supabase session resilience probe (database-free) ===');
+  testDiagnosticUtilityContract();
   await testInitClassification();
   await testGetRetry();
   await testSetAndTouchRetry();
   await testAuthorizationAndTimeout();
+  await testDiagnosticTimingAndCorrelation();
   await testDestroyContract();
   await testDiagnosticRateLimitAndSourcePrivacy();
 

@@ -3,6 +3,8 @@
    Logs every incoming request with timestamp
    ======================================== */
 
+const { requestCorrelationId } = require('../utils/requestDiagnostics');
+
 const logger = (req, res, next) => {
   const timestamp = new Date().toISOString();
   const method = req.method;
@@ -11,7 +13,7 @@ const logger = (req, res, next) => {
   // persist those to server output. Splitting on the first '?' drops them.
   const pathname = (req.originalUrl || req.url || '').split('?')[0];
 
-  console.log(`[${timestamp}] ${method} ${pathname}`);
+  console.log(`[${timestamp}] ${method} ${pathname} request_id=${requestCorrelationId(req)}`);
 
   next();
 };
