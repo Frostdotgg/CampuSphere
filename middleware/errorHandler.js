@@ -38,6 +38,18 @@ const notFound = (req, res, next) => {
  * Catches all thrown errors and renders a generic error page.
  */
 const serverError = (err, req, res, next) => {
+  // express-session can report a late store save/touch failure through next()
+  // after the route response has already been committed. Never attempt a
+  // second JSON/render write in that state: retain the original response and
+  // record one fixed diagnostic without the Error object. If only the headers
+  // are committed and the stream is still open, delegate to Express's default
+  // handler so it can close the incomplete response safely.
+  if (res.headersSent) {
+    if (!res.writableEnded && !res.finished) return next(err);
+    logServerError('post-response', req);
+    return;
+  }
+
   // Malformed JSON request body. express.json() / body-parser throws an error
   // tagged `entity.parse.failed` (status 400). Detect it by that stable type,
   // not by message text. API/JSON clients get the standard JSON envelope

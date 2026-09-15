@@ -3,7 +3,7 @@
 /* ========================================
    CampuSphere — M12.P1-R3 awaited runtime / session bootstrap probe
 
-   DATABASE-FREE, network-free (beyond one loopback GET), self-terminating.
+   DATABASE-FREE, external-network-free (loopback HTTP only), self-terminating.
    Verifies the single-flight session-readiness coordinator
    (services/sessionReadiness.js) and its wiring in server.js:
 
@@ -14,7 +14,9 @@
         HTML refusal responses, and single timer/listener creation. Plus a
         REAL in-process Express app (loopback, OS-assigned port) proving that
         a synchronous route throw and a rejected async route both reach the
-        application's own error handler rather than the readiness 503.
+         application's own error handler rather than the readiness 503. A
+         failed express-session touch after a completed 204 also proves the
+         global error handler cannot attempt a second response write.
      2. STATIC: the R2 preflight ordering invariant is intact, the security
         headers precede the readiness gate, the gate precedes static/session/
         routes, start() awaits the shared promise before app.listen(), the
@@ -44,6 +46,7 @@ const { spawn, spawnSync } = require('child_process');
 // Already a production dependency; used only to build a throwaway in-process
 // app for the real downstream-error propagation test below.
 const express = require('express');
+const session = require('express-session');
 
 const { createSessionReadiness, UNAVAILABLE_BODY } = require('../services/sessionReadiness');
 const { cspNonce, securityHeaders } = require('../middleware/securityHeaders');
@@ -72,6 +75,38 @@ function check(scope, label, ok) {
 }
 function containsCanary(text) {
   return String(text == null ? '' : text).includes(CANARY);
+}
+
+/* Load the real error-handler implementation without pulling roleAuth's audit
+   dependency (and therefore an application data adapter) into this otherwise
+   database-free probe. The isolated wantsJson double implements only the
+   /api/ behavior needed by this focused response-lifecycle regression. */
+function loadIsolatedServerError() {
+  const roleAuthPath = require.resolve('../middleware/roleAuth');
+  const errorHandlerPath = require.resolve('../middleware/errorHandler');
+  const previousRoleAuth = require.cache[roleAuthPath];
+  const previousErrorHandler = require.cache[errorHandlerPath];
+
+  require.cache[roleAuthPath] = {
+    id: roleAuthPath,
+    filename: roleAuthPath,
+    loaded: true,
+    exports: {
+      wantsJson(req) {
+        return Boolean(req && req.originalUrl && req.originalUrl.includes('/api/'));
+      },
+    },
+  };
+  delete require.cache[errorHandlerPath];
+
+  try {
+    return require(errorHandlerPath).serverError;
+  } finally {
+    if (previousRoleAuth) require.cache[roleAuthPath] = previousRoleAuth;
+    else delete require.cache[roleAuthPath];
+    if (previousErrorHandler) require.cache[errorHandlerPath] = previousErrorHandler;
+    else delete require.cache[errorHandlerPath];
+  }
 }
 
 /* ---------------- test doubles ---------------- */
@@ -617,6 +652,211 @@ async function sectionExpressErrorPropagation() {
     !fs.readFileSync(__filename, 'utf8').includes(ABSORBER_NEEDLE));
 }
 
+/* ---------------- completed-response session-touch failure ----------------
+   express-session defers a store touch error through next(err), then completes
+   the response. The application error handler therefore receives that error
+   only after the route's 204 is already committed and ended. This real
+   loopback regression proves the original response stays authoritative and the
+   handler neither writes a second payload nor leaks the store error. */
+async function sectionCompletedResponseTouchFailure() {
+  const serverError = loadIsolatedServerError();
+
+  class FailingTouchStore extends session.Store {
+    constructor() {
+      super();
+      this.sessions = new Map();
+      this.getCalls = 0;
+      this.setCalls = 0;
+      this.touchCalls = 0;
+    }
+
+    get(sid, callback) {
+      this.getCalls += 1;
+      const value = this.sessions.get(sid);
+      setImmediate(() => callback(null, value ? JSON.parse(JSON.stringify(value)) : null));
+    }
+
+    set(sid, value, callback) {
+      this.setCalls += 1;
+      this.sessions.set(sid, JSON.parse(JSON.stringify(value)));
+      setImmediate(() => callback(null));
+    }
+
+    destroy(sid, callback) {
+      this.sessions.delete(sid);
+      setImmediate(() => callback(null));
+    }
+
+    touch(_sid, _value, callback) {
+      this.touchCalls += 1;
+      setImmediate(() => callback(new Error(CANARY)));
+    }
+  }
+
+  const store = new FailingTouchStore();
+  const app = express();
+  let jsonAttempts = 0;
+  let renderAttempts = 0;
+  let handlerCalls = 0;
+  let terminalErrors = 0;
+  let terminalErrorCode = '';
+  let handledState = null;
+  const capturedLogs = [];
+  let resolveHandled;
+  const handled = new Promise((resolve) => { resolveHandled = resolve; });
+
+  app.use(session({
+    name: 'campusphere.r3.sid',
+    secret: 'r3-local-regression-secret-with-safe-length',
+    store,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax', secure: false, maxAge: 60_000 },
+  }));
+  app.use((req, res, next) => {
+    const json = res.json.bind(res);
+    const render = res.render.bind(res);
+    res.json = (...args) => { jsonAttempts += 1; return json(...args); };
+    res.render = (...args) => { renderAttempts += 1; return render(...args); };
+    next();
+  });
+  app.get('/r3-session-seed', (req, res) => {
+    req.session.user = { id: 1, role: 'guest' };
+    res.status(204).end();
+  });
+  app.post('/api/presence/heartbeat', (req, res) => {
+    // Read without modifying the session, matching the real heartbeat route.
+    void req.session.user;
+    res.status(204).end();
+  });
+  app.use((err, req, res, next) => {
+    handlerCalls += 1;
+    handledState = {
+      headersSent: res.headersSent,
+      writableEnded: res.writableEnded,
+      finished: res.finished,
+    };
+    try {
+      return serverError(err, req, res, next);
+    } finally {
+      resolveHandled();
+    }
+  });
+  app.use((err, _req, _res, _next) => {
+    terminalErrors += 1;
+    terminalErrorCode = String((err && err.code) || '');
+  });
+
+  let server = null;
+  let seedStatus = 0;
+  let heartbeatStatus = 0;
+  let heartbeatBody = '';
+  let cookie = '';
+  let handledInTime = false;
+  let handledTimer = null;
+  const originalConsoleError = console.error;
+
+  try {
+    server = await new Promise((resolve, reject) => {
+      const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      listener.once('error', reject);
+    });
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const seed = await fetch(base + '/r3-session-seed');
+    seedStatus = seed.status;
+    cookie = String(seed.headers.get('set-cookie') || '').split(';')[0];
+    await seed.text();
+
+    console.error = (...args) => { capturedLogs.push(args.map(String).join(' ')); };
+    const heartbeat = await fetch(base + '/api/presence/heartbeat', {
+      method: 'POST',
+      headers: { Cookie: cookie, Accept: 'application/json' },
+    });
+    heartbeatStatus = heartbeat.status;
+    heartbeatBody = await heartbeat.text();
+
+    const timeout = new Promise((resolve) => {
+      handledTimer = setTimeout(() => resolve(false), 3000);
+    });
+    handledInTime = await Promise.race([handled.then(() => true), timeout]);
+  } finally {
+    console.error = originalConsoleError;
+    if (handledTimer) clearTimeout(handledTimer);
+    if (server) await new Promise((resolve) => server.close(resolve));
+  }
+
+  const postResponseLogs = capturedLogs.filter((line) => line.includes(' post-response '));
+  check('completed-response', 'the seed creates one disposable session without touching a database',
+    seedStatus === 204 && cookie.length > 0 && store.setCalls === 1);
+  check('completed-response', 'the heartbeat loads the disposable session and attempts exactly one touch',
+    store.getCalls === 1 && store.touchCalls === 1);
+  check('completed-response', 'the deferred touch failure reaches the application error handler',
+    handledInTime === true && handlerCalls === 1);
+  check('completed-response', 'the handler observes the original response as committed and ended',
+    handledState && handledState.headersSent === true &&
+      handledState.writableEnded === true && handledState.finished === true);
+  check('completed-response', 'the client keeps the original empty 204 response',
+    heartbeatStatus === 204 && heartbeatBody === '');
+  check('completed-response', 'the completed-response branch attempts no JSON or HTML second write',
+    jsonAttempts === 0 && renderAttempts === 0);
+  check('completed-response', 'the completed-response branch does not reach another error handler',
+    terminalErrors === 0 && terminalErrorCode !== 'ERR_HTTP_HEADERS_SENT');
+  check('completed-response', 'one fixed post-response diagnostic is emitted',
+    postResponseLogs.length === 1 && postResponseLogs[0].includes('POST /api/presence/heartbeat'));
+  check('completed-response', 'the diagnostic exposes neither the store error nor a stack',
+    !containsCanary(capturedLogs.join('\n')) && !capturedLogs.join('\n').includes('ERR_HTTP_HEADERS_SENT'));
+
+  const partialError = new Error(CANARY);
+  let delegatedError = null;
+  let partialWrites = 0;
+  const partialLogs = [];
+  console.error = (...args) => { partialLogs.push(args.map(String).join(' ')); };
+  try {
+    serverError(partialError,
+      { method: 'GET', originalUrl: '/stream' },
+      {
+        headersSent: true,
+        writableEnded: false,
+        finished: false,
+        status() { partialWrites += 1; return this; },
+        json() { partialWrites += 1; return this; },
+        render() { partialWrites += 1; return this; },
+      },
+      (err) => { delegatedError = err; });
+  } finally {
+    console.error = originalConsoleError;
+  }
+  check('completed-response', 'a committed but unfinished stream delegates the original error',
+    delegatedError === partialError && partialWrites === 0 && partialLogs.length === 0);
+
+  const ordinary = {
+    statusCode: null,
+    payload: null,
+    headersSent: false,
+    writableEnded: false,
+    finished: false,
+    status(code) { this.statusCode = code; return this; },
+    json(payload) { this.payload = payload; this.headersSent = true; return this; },
+    render() { throw new Error('ordinary JSON regression rendered HTML'); },
+  };
+  const ordinaryLogs = [];
+  console.error = (...args) => { ordinaryLogs.push(args.map(String).join(' ')); };
+  try {
+    serverError(new Error(CANARY),
+      { method: 'GET', originalUrl: '/api/r3-ordinary-error' }, ordinary, () => {});
+  } finally {
+    console.error = originalConsoleError;
+  }
+  check('completed-response', 'an unsent API error preserves the fixed generic 500 response',
+    ordinary.statusCode === 500 && ordinary.payload && ordinary.payload.success === false &&
+      ordinary.payload.message === 'Something went wrong on our end. Please try again later.');
+  check('completed-response', 'the ordinary error path keeps one sanitized unhandled diagnostic',
+    ordinaryLogs.length === 1 && ordinaryLogs[0].includes(' unhandled GET /api/r3-ordinary-error') &&
+      !containsCanary(ordinaryLogs.join('\n')));
+  check('completed-response', 'the temporary integration listener is closed',
+    server !== null && server.listening === false);
+}
+
 async function sectionHtmlSecurityIntegration() {
   const readiness = createTestReadiness(makeStore({ reject: true, status: 502 }));
   await readiness.whenReady().then(() => {}, () => {});
@@ -870,6 +1110,7 @@ async function main() {
   await sectionSingleResource();
   await sectionDiagnostics();
   await sectionExpressErrorPropagation();
+  await sectionCompletedResponseTouchFailure();
   await sectionHtmlSecurityIntegration();
   sectionWiring();
   sectionImportNoListener();
