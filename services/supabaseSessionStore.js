@@ -17,11 +17,12 @@
    Mirrors services/mysqlSessionStore.js in shape and privacy posture so the two
    stores are interchangeable behind express-session.
 
-   Privacy: this module logs NOTHING — never a session id, cookie value, the
-   session JSON, the Supabase URL, the service-role key, PostgREST/SQL detail, a
-   stack, or a raw error. Store-operation failures surface a fixed, sanitized
-   Error to express-session; init failure throws a fixed, sanitized Error so the
-   caller can fail closed at startup (Section 9.4).
+   Privacy: diagnostics contain only a fixed operation/state, a safe failure
+   category, an optional numeric HTTP status, and an attempt count. They never
+   contain a session id, cookie value, session JSON, Supabase URL/key,
+   PostgREST/SQL detail, stack, or raw error. Store-operation failures surface a
+   fixed sanitized Error to express-session; init failure throws a fixed
+   sanitized Error so the readiness coordinator can fail closed and recover.
 
    Supabase Auth is NOT used.
    ======================================== */
@@ -33,17 +34,71 @@ const { getSupabaseClient } = require('../config/supabase');
 const DEFAULT_TABLE = 'app_sessions';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REAP_INTERVAL_MS = 60 * 60 * 1000; // hourly expired-row purge (capped by ttl)
+const REQUEST_TIMEOUT_MS = 2000;
+const RETRY_DELAY_MS = 200;
+const DIAGNOSTIC_WINDOW_MS = 60000;
+const FAILURE_CATEGORIES = new Set(['authorization', 'rate-limit', 'upstream', 'timeout', 'network', 'unknown']);
 
-function sanitizedStoreError() {
-  // Fixed message; carries no sid, session JSON, Supabase URL/key, SQL/PostgREST
-  // detail, or raw error.
-  return new Error('Session store operation failed.');
+function safeStatus(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 100 && number <= 599 ? number : null;
 }
 
-function sanitizedInitError() {
+function classifyFailure(value, timedOut = false) {
+  const error = value && value.error ? value.error : value;
+  const status = safeStatus((value && value.status) || (error && error.status));
+  if (error && FAILURE_CATEGORIES.has(error.category)) return { category: error.category, status };
+  if (timedOut || (error && (error.name === 'AbortError' || error.code === 'SESSION_STORE_TIMEOUT'))) {
+    return { category: 'timeout', status };
+  }
+  if (status === 401 || status === 403) return { category: 'authorization', status };
+  if (status === 429) return { category: 'rate-limit', status };
+  if (status === 408) return { category: 'timeout', status };
+  if (status !== null && status >= 500) return { category: 'upstream', status };
+  const networkCode = error && (error.code || (error.cause && error.cause.code));
+  if (error && (error.name === 'TypeError' || networkCode === 'ECONNRESET' || networkCode === 'ECONNREFUSED' || networkCode === 'ENOTFOUND' || networkCode === 'EAI_AGAIN')) {
+    return { category: 'network', status };
+  }
+  return { category: 'unknown', status };
+}
+
+function safeError(message, failure) {
+  const error = new Error(message);
+  error.category = failure && FAILURE_CATEGORIES.has(failure.category) ? failure.category : 'unknown';
+  const status = safeStatus(failure && failure.status);
+  if (status !== null) error.status = status;
+  return error;
+}
+
+function sanitizedStoreError(failure) {
+  // Fixed message; carries no sid, session JSON, Supabase URL/key, SQL/PostgREST
+  // detail, or raw error.
+  const error = safeError('Session store operation failed.', failure);
+  error.code = 'SESSION_STORE_OPERATION_FAILED';
+  return error;
+}
+
+function sanitizedInitError(failure) {
   // Fixed message; suitable for fail-closed startup handling (Section 9.4).
   // Never carries Supabase host/key, table name detail, or a raw error.
-  return new Error('Session store initialization failed.');
+  const error = safeError('Session store initialization failed.', failure);
+  error.code = 'SESSION_STORE_INIT_FAILED';
+  return error;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withAbortSignal(query, signal) {
+  if (query && signal && typeof query.abortSignal === 'function') return query.abortSignal(signal);
+  return query;
+}
+
+function isRuntimeRetryable(failure) {
+  return failure.category === 'timeout' || failure.category === 'network' ||
+    failure.category === 'rate-limit' || failure.category === 'upstream' ||
+    failure.status === 408;
 }
 
 function utcTimestamp(ms) {
@@ -52,7 +107,16 @@ function utcTimestamp(ms) {
 }
 
 class SupabaseSessionStore extends Store {
-  constructor({ client = null, tableName = DEFAULT_TABLE, ttlMs = DAY_MS } = {}) {
+  constructor({
+    client = null,
+    tableName = DEFAULT_TABLE,
+    ttlMs = DAY_MS,
+    requestTimeoutMs = REQUEST_TIMEOUT_MS,
+    retryDelayMs = RETRY_DELAY_MS,
+    logger = console,
+    now = Date.now,
+    sleep = wait,
+  } = {}) {
     super();
     if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
       throw new Error('SupabaseSessionStore table name must be alphanumeric/underscore.');
@@ -62,6 +126,14 @@ class SupabaseSessionStore extends Store {
     this.client = client || null;
     this.table = tableName;
     this.ttlMs = ttlMs > 0 ? ttlMs : DAY_MS;
+    this.requestTimeoutMs = Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0
+      ? requestTimeoutMs : REQUEST_TIMEOUT_MS;
+    this.retryDelayMs = Number.isFinite(retryDelayMs) && retryDelayMs >= 0
+      ? retryDelayMs : RETRY_DELAY_MS;
+    this.logger = logger && typeof logger === 'object' ? logger : console;
+    this._now = typeof now === 'function' ? now : Date.now;
+    this._sleep = typeof sleep === 'function' ? sleep : wait;
+    this._lastDiagnosticAt = new Map();
     this._reapTimer = null;
   }
 
@@ -73,16 +145,87 @@ class SupabaseSessionStore extends Store {
     return this.client;
   }
 
+  _diagnostic(operation, state, failure, attempts) {
+    const key = `${operation}:${state}:${failure.category}:${failure.status || 0}`;
+    const timestamp = this._now();
+    const previous = this._lastDiagnosticAt.get(key) || 0;
+    if (previous && timestamp - previous < DIAGNOSTIC_WINDOW_MS) return;
+    this._lastDiagnosticAt.set(key, timestamp);
+
+    const level = state === 'recovered' ? 'info' : (state === 'failed' ? 'error' : 'warn');
+    const writer = this.logger && typeof this.logger[level] === 'function' ? this.logger[level] : null;
+    if (!writer) return;
+    let line = `[session-store] operation=${operation} state=${state} category=${failure.category}`;
+    if (failure.status !== null) line += ` status=${failure.status}`;
+    line += ` attempts=${attempts}`;
+    writer.call(this.logger, line);
+  }
+
+  async _requestOnce(makeQuery, { initialization = false, signal: externalSignal = null } = {}) {
+    const controller = new AbortController();
+    let timer = null;
+    let timedOut = false;
+    const signals = [controller.signal];
+    if (externalSignal && typeof externalSignal.aborted === 'boolean') signals.push(externalSignal);
+    const signal = signals.length > 1 && typeof AbortSignal.any === 'function'
+      ? AbortSignal.any(signals) : controller.signal;
+    const timeout = new Promise((resolve, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        reject(sanitizedStoreError({ category: 'timeout', status: null }));
+      }, this.requestTimeoutMs);
+    });
+
+    try {
+      const request = Promise.resolve().then(() => withAbortSignal(makeQuery(), signal));
+      const result = await Promise.race([request, timeout]);
+      if (!result || result.error) {
+        const failure = classifyFailure(result || null);
+        throw initialization ? sanitizedInitError(failure) : sanitizedStoreError(failure);
+      }
+      return result;
+    } catch (error) {
+      const failure = classifyFailure(error, timedOut || Boolean(externalSignal && externalSignal.aborted));
+      throw initialization ? sanitizedInitError(failure) : sanitizedStoreError(failure);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async _runtimeRequest(operation, makeQuery) {
+    let lastFailure = { category: 'unknown', status: null };
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const result = await this._requestOnce(makeQuery);
+        if (attempt > 1) this._diagnostic(operation, 'recovered', lastFailure, attempt);
+        return result;
+      } catch (error) {
+        lastFailure = classifyFailure(error);
+        if (attempt < 2 && isRuntimeRetryable(lastFailure)) {
+          this._diagnostic(operation, 'retrying', lastFailure, attempt);
+          if (this.retryDelayMs > 0) await this._sleep(this.retryDelayMs);
+          continue;
+        }
+        this._diagnostic(operation, 'failed', lastFailure, attempt);
+        throw sanitizedStoreError(lastFailure);
+      }
+    }
+    throw sanitizedStoreError(lastFailure);
+  }
+
   // Startup verification: confirm the service role can reach app_sessions, then
   // arm the cleanup timer. Must finish before app.listen in production so we
   // never serve a request without a working session backend (wired in 9.4).
-  async init() {
+  async init({ signal = null } = {}) {
     try {
       const client = this._getClient();
-      const { error } = await client.from(this.table).select('sid').limit(1);
-      if (error) throw error;
+      await this._requestOnce(
+        () => client.from(this.table).select('sid').limit(1),
+        { initialization: true, signal }
+      );
     } catch (e) {
-      throw sanitizedInitError();
+      throw sanitizedInitError(classifyFailure(e));
     }
     if (!this._reapTimer) {
       const interval = Math.min(this.ttlMs, REAP_INTERVAL_MS);
@@ -112,9 +255,9 @@ class SupabaseSessionStore extends Store {
   get(sid, cb) {
     let client;
     try { client = this._getClient(); } catch (e) { return cb(sanitizedStoreError()); }
-    client.from(this.table).select('sess, expires_at').eq('sid', sid).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) return cb(sanitizedStoreError());
+    this._runtimeRequest('get', () =>
+      client.from(this.table).select('sess, expires_at').eq('sid', sid).maybeSingle())
+      .then(({ data }) => {
         if (!data) return cb(null, null);
         if (Number(data.expires_at) <= Date.now()) {
           this.destroy(sid, () => {}); // expired -> treat as missing + best-effort delete
@@ -156,8 +299,8 @@ class SupabaseSessionStore extends Store {
       // created_at intentionally omitted: DB default on insert, preserved on
       // conflict-update (only provided columns are written).
     };
-    client.from(this.table).upsert(row, { onConflict: 'sid' })
-      .then(({ error }) => { if (error) return cb(sanitizedStoreError()); cb(null); })
+    this._runtimeRequest('set', () => client.from(this.table).upsert(row, { onConflict: 'sid' }))
+      .then(() => cb(null))
       .catch(() => cb(sanitizedStoreError()));
   }
 
@@ -165,10 +308,10 @@ class SupabaseSessionStore extends Store {
     let client;
     try { client = this._getClient(); } catch (e) { return cb(sanitizedStoreError()); }
     const now = Date.now();
-    client.from(this.table)
+    this._runtimeRequest('touch', () => client.from(this.table)
       .update({ expires_at: this._expiryFor(sess), updated_at: utcTimestamp(now) })
-      .eq('sid', sid)
-      .then(({ error }) => { if (error) return cb(sanitizedStoreError()); cb(null); })
+      .eq('sid', sid))
+      .then(() => cb(null))
       .catch(() => cb(sanitizedStoreError()));
   }
 
@@ -186,14 +329,11 @@ class SupabaseSessionStore extends Store {
       callbackCalled = true;
       cb(error || null);
     };
-    const deleteSid = () => client.from(this.table).delete().eq('sid', sid);
+    const deleteSid = () => this._requestOnce(
+      () => client.from(this.table).delete().eq('sid', sid));
     const sidIsAbsent = async () => {
-      const { data, error } = await client
-        .from(this.table)
-        .select('sid')
-        .eq('sid', sid)
-        .maybeSingle();
-      if (error) throw error;
+      const { data } = await this._requestOnce(() => client
+        .from(this.table).select('sid').eq('sid', sid).maybeSingle());
       return !data;
     };
 

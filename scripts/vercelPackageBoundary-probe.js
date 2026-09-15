@@ -17,7 +17,8 @@
        and evidence media, Docker packaging, local agent metadata, temporary
        material, node_modules, Git metadata, `public/img/sample 360/**`) stays
        out of the enumerated package;
-     - `vercel.json` carries EXACTLY `$schema` and `headers`, its header rules
+     - `vercel.json` carries EXACTLY `$schema`, `regions`, and `headers`, pins
+       the single reviewed Mumbai function region, and its header rules
        match the reviewed contract one-for-one, no rule is broad/dynamic, and no
        rule other than `/offline.html` defines a Content-Security-Policy — so
        Express's per-response nonce CSP remains the sole CSP authority for
@@ -77,8 +78,8 @@ const VERCEL_JSON_FILE = 'vercel.json';
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
   files: 200,
-  bytes: 7449738,
-  sha256: '297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4',
+  bytes: 7461052,
+  sha256: '3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f',
 });
 
 /* M12.P1-R8 label correction.
@@ -247,13 +248,14 @@ const EXPECTED_OFFLINE_CSP =
   "connect-src 'self'; worker-src 'self' blob:";
 
 const EXPECTED_SCHEMA = 'https://openapi.vercel.sh/vercel.json';
-const EXPECTED_VERCEL_JSON_KEYS = Object.freeze(['$schema', 'headers']);
+const EXPECTED_FUNCTION_REGIONS = Object.freeze(['bom1']);
+const EXPECTED_VERCEL_JSON_KEYS = Object.freeze(['$schema', 'regions', 'headers']);
 
 /** Top-level keys that would turn the config into a build/routing authority. */
 const FORBIDDEN_VERCEL_JSON_KEYS = Object.freeze([
   'builds', 'functions', 'routes', 'rewrites', 'redirects', 'outputDirectory',
   'framework', 'installCommand', 'buildCommand', 'devCommand', 'ignoreCommand',
-  'cleanUrls', 'trailingSlash', 'public', 'regions', 'crons',
+  'cleanUrls', 'trailingSlash', 'public', 'crons',
 ]);
 
 /** The reviewed header rules, in order. */
@@ -544,6 +546,11 @@ function analyzeVercelJson(text) {
   }
   if (keys.includes('$schema') && config.$schema !== EXPECTED_SCHEMA) {
     problems.push('$schema is not the expected Vercel schema URL');
+  }
+  if (keys.includes('regions') && (!Array.isArray(config.regions) ||
+      config.regions.length !== EXPECTED_FUNCTION_REGIONS.length ||
+      config.regions.some((region, index) => region !== EXPECTED_FUNCTION_REGIONS[index]))) {
+    problems.push('regions is not the single reviewed Mumbai function region');
   }
   if (keys.includes('headers') && !Array.isArray(config.headers)) {
     problems.push('headers is not an array');
@@ -1029,13 +1036,13 @@ async function main() {
   const vercelRaw = fs.existsSync(path.join(ROOT, VERCEL_JSON_FILE))
     ? fs.readFileSync(path.join(ROOT, VERCEL_JSON_FILE), 'utf8') : '';
   const vj = analyzeVercelJson(vercelRaw);
-  check('headers', `${VERCEL_JSON_FILE} exposes exactly $schema and headers`, vj.ok === true);
+  check('headers', `${VERCEL_JSON_FILE} exposes exactly $schema, regions, and headers`, vj.ok === true);
   vj.problems.forEach((p) => console.error('    - vercel.json: ' + p));
   const headerProblems = evaluateHeaderContract(vj.config);
   check('headers', 'the header rules match the reviewed static/PWA contract exactly',
     headerProblems.length === 0);
   headerProblems.forEach((p) => console.error('    - headers: ' + p));
-  check('headers', 'no build, function, route, rewrite, redirect, or framework override is declared',
+  check('headers', 'no unreviewed build, function, route, rewrite, redirect, or framework override is declared',
     vj.config !== null && FORBIDDEN_VERCEL_JSON_KEYS.every((k) => !Object.prototype.hasOwnProperty.call(vj.config, k)));
   check('headers', 'only the offline shell declares a static Content-Security-Policy',
     vj.config !== null && Array.isArray(vj.config.headers) &&
@@ -1132,6 +1139,7 @@ module.exports = {
   EXPECTED_VENDOR_MANIFEST_FILE,
   EXPECTED_OFFLINE_MAP_RUNTIME_FILES,
   EXPECTED_HEADER_RULES,
+  EXPECTED_FUNCTION_REGIONS,
   EXPECTED_VERCEL_JSON_KEYS,
   FORBIDDEN_VERCEL_JSON_KEYS,
   EXPECTED_OFFLINE_CSP,

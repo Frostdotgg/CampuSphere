@@ -9,9 +9,9 @@
 
      1. DYNAMIC: fake stores + mocked Express responses drive the real
         coordinator — resolve paths, the pending hold, a 25-request
-        concurrent burst sharing ONE init, rejected and synchronously-thrown
-        init producing the exact sanitized 503, no-retry-after-failure,
-        single timer/listener creation, and per-request log silence. Plus a
+        concurrent burst sharing ONE init wave, bounded retry, cooldown and
+        automatic recovery, timeout handling, sanitized diagnostics, JSON and
+        HTML refusal responses, and single timer/listener creation. Plus a
         REAL in-process Express app (loopback, OS-assigned port) proving that
         a synchronous route throw and a rejected async route both reach the
         application's own error handler rather than the readiness 503.
@@ -46,6 +46,7 @@ const { spawn, spawnSync } = require('child_process');
 const express = require('express');
 
 const { createSessionReadiness, UNAVAILABLE_BODY } = require('../services/sessionReadiness');
+const { cspNonce, securityHeaders } = require('../middleware/securityHeaders');
 
 const ROOT = path.join(__dirname, '..');
 const SERVER_PATH = path.join(ROOT, 'server.js');
@@ -80,6 +81,7 @@ function makeRes() {
   const state = { status: null, headers: {}, type: null, body: null, sends: 0, headersSent: false };
   const res = {
     state,
+    locals: { cspNonce: 'R3TestNonce123456' },
     status(code) { state.status = code; return res; },
     set(key, value) { state.headers[key] = value; return res; },
     type(value) { state.type = value; return res; },
@@ -95,10 +97,35 @@ function makeStore(options) {
   const opts = options || {};
   const store = { initCalls: 0 };
   if (opts.noInit) return store;
-  store.init = function init() {
+  store.init = function init({ signal } = {}) {
     store.initCalls += 1;
+    if (Array.isArray(opts.outcomes) && opts.outcomes.length) {
+      const outcome = opts.outcomes.shift();
+      if (outcome && outcome.hang) {
+        return new Promise((resolve, reject) => {
+          if (signal) signal.addEventListener('abort', () => {
+            const error = new Error(CANARY);
+            error.name = 'AbortError';
+            reject(error);
+          }, { once: true });
+        });
+      }
+      if (outcome && outcome.reject) {
+        const error = new Error(CANARY);
+        if (outcome.status) error.status = outcome.status;
+        if (outcome.category) error.category = outcome.category;
+        return Promise.reject(error);
+      }
+      if (outcome && outcome.delayMs) return new Promise((resolve) => setTimeout(resolve, outcome.delayMs));
+      return Promise.resolve();
+    }
     if (opts.throwSync) throw new Error(CANARY);
-    if (opts.reject) return Promise.reject(new Error(CANARY));
+    if (opts.reject) {
+      const error = new Error(CANARY);
+      if (opts.status) error.status = opts.status;
+      if (opts.category) error.category = opts.category;
+      return Promise.reject(error);
+    }
     if (opts.delayMs) return new Promise((resolve) => setTimeout(resolve, opts.delayMs));
     return Promise.resolve();
   };
@@ -109,8 +136,20 @@ function makeStore(options) {
 function dispatch(readiness) {
   const res = makeRes();
   const record = { res, nextCalls: 0 };
-  readiness.middleware({}, res, () => { record.nextCalls += 1; });
+  const req = arguments.length > 1 ? arguments[1] : {};
+  readiness.middleware(req, res, () => { record.nextCalls += 1; });
   return record;
+}
+
+function createTestReadiness(store, overrides) {
+  return createSessionReadiness(store, Object.assign({
+    attempts: 1,
+    attemptTimeoutMs: 250,
+    attemptDelaysMs: [],
+    transientCooldownsMs: [5000, 15000, 30000, 60000],
+    authorizationCooldownMs: 60000,
+    logger: { info() {}, warn() {}, error() {} },
+  }, overrides || {}));
 }
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
@@ -121,6 +160,7 @@ function isExactUnavailable(record) {
   return record.nextCalls === 0
     && s.status === 503
     && s.headers['Cache-Control'] === 'no-store'
+    && /^\d+$/.test(String(s.headers['Retry-After'] || ''))
     && s.type === 'application/json'
     && s.body === EXPECTED_BODY
     && s.sends === 1;
@@ -128,18 +168,18 @@ function isExactUnavailable(record) {
 
 /* ---------------- 1. resolve paths ---------------- */
 async function sectionResolve() {
-  const noStore = createSessionReadiness(undefined);
+  const noStore = createTestReadiness(undefined);
   let resolved = false;
   await noStore.whenReady().then(() => { resolved = true; }, () => {});
   check('ready', 'no store (development memory profile) resolves successfully', resolved === true);
 
   const bare = makeStore({ noInit: true });
   let bareResolved = false;
-  await createSessionReadiness(bare).whenReady().then(() => { bareResolved = true; }, () => {});
+  await createTestReadiness(bare).whenReady().then(() => { bareResolved = true; }, () => {});
   check('ready', 'store without init() resolves successfully', bareResolved === true);
 
   const store = makeStore({});
-  const readiness = createSessionReadiness(store);
+  const readiness = createTestReadiness(store);
   let storeResolved = false;
   await readiness.whenReady().then(() => { storeResolved = true; }, () => {});
   check('ready', 'store with init() resolves and init runs exactly once',
@@ -157,7 +197,7 @@ async function sectionResolve() {
 /* ---------------- 2. pending hold ---------------- */
 async function sectionPending() {
   const store = makeStore({ delayMs: 120 });
-  const readiness = createSessionReadiness(store);
+  const readiness = createTestReadiness(store);
   const record = dispatch(readiness);
 
   await settle(8);
@@ -177,7 +217,7 @@ async function sectionPending() {
 async function sectionConcurrent() {
   const CONCURRENCY = 25;
   const store = makeStore({ delayMs: 80 });
-  const readiness = createSessionReadiness(store);
+  const readiness = createTestReadiness(store);
   const first = readiness.whenReady();
 
   const records = [];
@@ -203,7 +243,7 @@ async function sectionConcurrent() {
 /* ---------------- 4. rejected init ---------------- */
 async function sectionRejected() {
   const store = makeStore({ reject: true });
-  const readiness = createSessionReadiness(store);
+  const readiness = createTestReadiness(store);
   await readiness.whenReady().then(() => {}, () => {});
 
   const record = dispatch(readiness);
@@ -227,7 +267,7 @@ async function sectionSyncThrow() {
   let constructed = true;
   let readiness = null;
   try {
-    readiness = createSessionReadiness(makeStore({ throwSync: true }));
+    readiness = createTestReadiness(makeStore({ throwSync: true }));
   } catch (e) {
     constructed = false;
   }
@@ -244,21 +284,120 @@ async function sectionSyncThrow() {
     !containsCanary(record.res.state.body));
 }
 
-/* ---------------- 6. no retry after failure ---------------- */
-async function sectionNoRetry() {
-  const store = makeStore({ reject: true });
-  const readiness = createSessionReadiness(store);
+/* ---------------- 6. bounded retries and single-flight recovery ---------------- */
+async function sectionRecovery() {
+  let clock = 1000;
+  const logs = [];
+  const logger = {
+    info(line) { logs.push(line); },
+    warn(line) { logs.push(line); },
+    error(line) { logs.push(line); },
+  };
+  const store = makeStore({ outcomes: [
+    { reject: true, status: 502 },
+    { reject: true, status: 502 },
+    { reject: true, status: 502 },
+    {},
+  ] });
+  const readiness = createTestReadiness(store, {
+    attempts: 3,
+    attemptDelaysMs: [0, 0],
+    now: () => clock,
+    logger,
+  });
   await readiness.whenReady().then(() => {}, () => {});
 
-  const later = [];
-  for (let i = 0; i < 3; i++) later.push(dispatch(readiness));
+  check('recovery', 'the failed startup wave performs exactly three bounded attempts', store.initCalls === 3);
+  const beforeCooldown = [];
+  for (let i = 0; i < 3; i++) beforeCooldown.push(dispatch(readiness));
   await settle();
+  check('recovery', 'requests before the cooldown expires receive the exact sanitized 503',
+    beforeCooldown.every((r) => isExactUnavailable(r)));
+  check('recovery', 'requests before the cooldown do not start another wave', store.initCalls === 3);
+  check('recovery', 'the first transient failure advertises a five-second Retry-After',
+    beforeCooldown.every((r) => r.res.state.headers['Retry-After'] === '5'));
 
-  check('no-retry', 'every subsequent request after failure stays failed with the exact 503',
-    later.every((r) => isExactUnavailable(r)));
-  check('no-retry', 'no subsequent request triggers a second init() attempt', store.initCalls === 1);
-  check('no-retry', 'the failed coordinator keeps returning the same promise instance',
-    readiness.whenReady() === readiness.whenReady());
+  clock += 5000;
+  const burst = [];
+  for (let i = 0; i < 50; i++) burst.push(dispatch(readiness));
+  await settle(10);
+  check('recovery', 'fifty requests after cooldown share exactly one recovery wave', store.initCalls === 4);
+  check('recovery', 'all held requests continue after automatic recovery',
+    burst.every((r) => r.nextCalls === 1 && r.res.state.sends === 0));
+  check('recovery', 'sanitized logs record one unavailable state and one recovery',
+    logs.filter((line) => line.includes('state=unavailable')).length === 1 &&
+    logs.filter((line) => line.includes('state=recovered')).length === 1);
+  check('recovery', 'readiness diagnostics never contain the raw failure canary',
+    !containsCanary(logs.join('\n')));
+}
+
+async function sectionWithinWaveRecovery() {
+  const store = makeStore({ outcomes: [
+    { reject: true, status: 502 },
+    { reject: true, status: 401 },
+    {},
+  ] });
+  const readiness = createTestReadiness(store, {
+    attempts: 3,
+    attemptDelaysMs: [0, 0],
+  });
+  let resolved = false;
+  await readiness.whenReady().then(() => { resolved = true; }, () => {});
+  const request = dispatch(readiness);
+  await settle();
+  check('within-wave', 'the observed 502 then 401 pattern can recover on the third attempt',
+    resolved === true && store.initCalls === 3);
+  check('within-wave', 'a recovered initial wave serves the request without a 503',
+    request.nextCalls === 1 && request.res.state.sends === 0);
+}
+
+async function sectionCooldownProgression() {
+  let clock = 3000;
+  const store = makeStore({ reject: true, status: 502 });
+  const readiness = createTestReadiness(store, { now: () => clock });
+  await readiness.whenReady().then(() => {}, () => {});
+
+  const advertised = [];
+  let current = dispatch(readiness);
+  await settle();
+  advertised.push(Number(current.res.state.headers['Retry-After']));
+  for (const advance of [5000, 15000, 30000, 60000]) {
+    clock += advance;
+    current = dispatch(readiness);
+    await settle(8);
+    advertised.push(Number(current.res.state.headers['Retry-After']));
+  }
+  check('cooldown', 'transient failure waves advance through 5, 15, 30, and 60 seconds with a 60-second cap',
+    JSON.stringify(advertised) === JSON.stringify([5, 15, 30, 60, 60]));
+  check('cooldown', 'each expired cooldown starts one and only one new wave', store.initCalls === 5);
+}
+
+async function sectionTimeoutAndHtml() {
+  let clock = 2000;
+  const store = makeStore({ outcomes: [{ hang: true }, {}] });
+  const readiness = createTestReadiness(store, {
+    attemptTimeoutMs: 25,
+    now: () => clock,
+  });
+  await readiness.whenReady().then(() => {}, () => {});
+  const json = dispatch(readiness, { url: '/healthz', accepts: () => 'html' });
+  const html = dispatch(readiness, { url: '/', accepts: () => 'html' });
+  await settle();
+  check('timeout', 'a hung store attempt is aborted and returns a bounded 503',
+    store.initCalls === 1 && isExactUnavailable(json));
+  check('html', 'browser navigation receives the branded recovery page',
+    html.res.state.status === 503 && html.res.state.type === 'text/html' &&
+    /CampuSphere is reconnecting/.test(html.res.state.body) &&
+    html.res.state.headers['Cache-Control'] === 'no-store' &&
+    /^\d+$/.test(html.res.state.headers['Retry-After']));
+  check('html', 'the branded page contains no raw failure or backend detail',
+    !containsCanary(html.res.state.body) && !/Supabase|app_sessions|service.role/i.test(html.res.state.body));
+
+  clock += 5000;
+  const recovered = dispatch(readiness);
+  await settle(10);
+  check('timeout', 'the coordinator recovers after a timed-out startup attempt',
+    store.initCalls === 2 && recovered.nextCalls === 1 && recovered.res.state.sends === 0);
 }
 
 /* ---------------- 7. single timer / listener creation ---------------- */
@@ -281,7 +420,7 @@ async function sectionSingleResource() {
       return Promise.resolve();
     };
 
-    const readiness = createSessionReadiness(store);
+    const readiness = createTestReadiness(store);
     const records = [];
     for (let i = 0; i < 10; i++) records.push(dispatch(readiness));
     await readiness.whenReady();
@@ -302,35 +441,27 @@ async function sectionSingleResource() {
     process.listenerCount(EVENT) === before);
 }
 
-/* ---------------- 8. per-request log silence ---------------- */
-async function sectionSilence() {
-  const original = { log: console.log, error: console.error, warn: console.warn };
-  let writes = 0;
-  const count = () => { writes += 1; };
-  let readyRecords = [];
-  let failedRecords = [];
+/* ---------------- 8. bounded diagnostics ---------------- */
+async function sectionDiagnostics() {
+  const logs = [];
+  const logger = {
+    info(line) { logs.push(line); },
+    warn(line) { logs.push(line); },
+    error(line) { logs.push(line); },
+  };
+  const failed = createTestReadiness(makeStore({ reject: true, status: 401 }), { logger });
+  await failed.whenReady().then(() => {}, () => {});
+  const records = [];
+  for (let i = 0; i < 30; i++) records.push(dispatch(failed));
+  await settle();
 
-  try {
-    console.log = count; console.error = count; console.warn = count;
-
-    const okReadiness = createSessionReadiness(makeStore({}));
-    await okReadiness.whenReady().then(() => {}, () => {});
-    for (let i = 0; i < 15; i++) readyRecords.push(dispatch(okReadiness));
-
-    const badReadiness = createSessionReadiness(makeStore({ reject: true }));
-    await badReadiness.whenReady().then(() => {}, () => {});
-    for (let i = 0; i < 15; i++) failedRecords.push(dispatch(badReadiness));
-
-    await settle();
-  } finally {
-    console.log = original.log; console.error = original.error; console.warn = original.warn;
-  }
-
-  check('silence', 'the readiness gate writes no log output across 30 ready/failed requests', writes === 0);
-  check('silence', 'the silent ready requests still proceeded exactly once each',
-    readyRecords.every((r) => r.nextCalls === 1));
-  check('silence', 'the silent failed requests still produced the exact 503',
-    failedRecords.every((r) => isExactUnavailable(r)));
+  check('diagnostics', 'thirty failed requests emit only one per-wave diagnostic', logs.length === 1);
+  check('diagnostics', 'the diagnostic exposes only fixed classification and counters',
+    logs[0].includes('state=unavailable') && logs[0].includes('category=authorization') &&
+    logs[0].includes('status=401') && logs[0].includes('attempts=1'));
+  check('diagnostics', 'the diagnostic contains no failure canary', !containsCanary(logs.join('\n')));
+  check('diagnostics', 'every failed request still receives the exact JSON refusal',
+    records.every((r) => isExactUnavailable(r)));
 }
 
 /* ---------------- 9. real Express downstream-error propagation ----------------
@@ -359,7 +490,7 @@ async function sectionExpressErrorPropagation() {
     init() { initCalls += 1; return pendingInit; },
   };
 
-  const readiness = createSessionReadiness(store);
+  const readiness = createTestReadiness(store, { attemptTimeoutMs: 5000 });
 
   let syncEntries = 0;
   let asyncEntries = 0;
@@ -486,6 +617,43 @@ async function sectionExpressErrorPropagation() {
     !fs.readFileSync(__filename, 'utf8').includes(ABSORBER_NEEDLE));
 }
 
+async function sectionHtmlSecurityIntegration() {
+  const readiness = createTestReadiness(makeStore({ reject: true, status: 502 }));
+  await readiness.whenReady().then(() => {}, () => {});
+  const app = express();
+  app.use(cspNonce);
+  app.use(securityHeaders);
+  app.use(readiness.middleware);
+  app.get('/', (req, res) => res.status(200).send('must-not-run'));
+
+  let server = null;
+  let result = { status: 0, body: '', csp: '', retryAfter: '' };
+  try {
+    server = await new Promise((resolve, reject) => {
+      const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      listener.once('error', reject);
+    });
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/`, {
+      headers: { Accept: 'text/html' },
+    });
+    result = {
+      status: response.status,
+      body: await response.text(),
+      csp: response.headers.get('content-security-policy') || '',
+      retryAfter: response.headers.get('retry-after') || '',
+    };
+  } finally {
+    if (server) await new Promise((resolve) => server.close(resolve));
+  }
+
+  const nonceMatch = result.body.match(/<style nonce="([A-Za-z0-9+/=_-]+)">/);
+  check('html-security', 'the real Express failure response is a bounded branded 503',
+    result.status === 503 && /CampuSphere is reconnecting/.test(result.body) && /^\d+$/.test(result.retryAfter));
+  check('html-security', 'the inline recovery style carries the exact per-response CSP nonce',
+    Boolean(nonceMatch) && result.csp.includes(`'nonce-${nonceMatch[1]}'`));
+  check('html-security', 'the temporary integration listener is closed', server && server.listening === false);
+}
+
 /* ---------------- 10. static wiring ---------------- */
 function sectionWiring() {
   const src = fs.readFileSync(SERVER_PATH, 'utf8');
@@ -581,12 +749,15 @@ function sectionWiring() {
   }
   check('wiring', 'the fixed 503 literal exists only in the readiness implementation', leaked.length === 0);
 
-  check('wiring', 'the readiness module arms no timeout/interval of its own',
-    !/setTimeout\s*\(/.test(readiness) && !/setInterval\s*\(/.test(readiness));
-  check('wiring', 'the readiness module starts exactly one init attempt',
-    (readiness.match(/sessionStore\.init\(\)/g) || []).length === 1);
-  check('wiring', 'the readiness module logs nothing',
-    !/console\.(log|warn|error|info|debug)\s*\(/.test(readiness));
+  check('wiring', 'the readiness module uses bounded timeouts and no repeating interval',
+    /setTimeout\s*\(/.test(readiness) && !/setInterval\s*\(/.test(readiness));
+  check('wiring', 'the readiness module invokes only the selected store init interface',
+    (readiness.match(/sessionStore\.init\(/g) || []).length === 1);
+  check('wiring', 'the readiness module carries the bounded retry and cooldown defaults',
+    /DEFAULT_ATTEMPTS\s*=\s*3/.test(readiness) && /5000,\s*15000,\s*30000,\s*60000/.test(readiness));
+  check('wiring', 'the readiness module logs only constructed sanitized lines',
+    !/console\.(log|warn|error|info|debug)\s*\(/.test(readiness) &&
+    /\[session-readiness\]/.test(readiness));
 }
 
 /* ---------------- 11. subprocess: import opens no listener ---------------- */
@@ -692,10 +863,14 @@ async function main() {
   await sectionConcurrent();
   await sectionRejected();
   await sectionSyncThrow();
-  await sectionNoRetry();
+  await sectionRecovery();
+  await sectionWithinWaveRecovery();
+  await sectionCooldownProgression();
+  await sectionTimeoutAndHtml();
   await sectionSingleResource();
-  await sectionSilence();
+  await sectionDiagnostics();
   await sectionExpressErrorPropagation();
+  await sectionHtmlSecurityIntegration();
   sectionWiring();
   sectionImportNoListener();
   await sectionRealListener();

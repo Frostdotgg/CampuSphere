@@ -1,113 +1,257 @@
 'use strict';
 /* ========================================
-   CampuSphere — Session readiness coordinator (M12.P1-R3)
+   CampuSphere — recoverable session-readiness coordinator
 
-   ONE single-flight readiness attempt shared by local startup and every
-   request. It exists because `server.js` exports the Express app
-   (`module.exports = app`): on Vercel the platform imports that app and
-   routes requests into it immediately, with no `app.listen()` and therefore
-   no place to `await` the session-store bootstrap. Without this gate an
-   imported app can reach `express-session` — and the application routes
-   behind it — while the Supabase session store is still initializing.
+   The Vercel entry point exports the Express app without awaiting app.listen(),
+   so every request must wait until the selected persistent session store is
+   reachable. A failed probe remains fail-closed, but it is no longer cached
+   forever: bounded single-flight recovery waves let a warm function recover
+   after a temporary upstream outage without a redeploy or instance restart.
 
-   Contract:
-     - Exactly ONE initialization attempt per coordinator. The attempt is
-       started EAGERLY at construction inside `Promise.resolve().then(...)`,
-       so a synchronous throw from `init()` and a rejected promise from
-       `init()` share the identical failure path.
-     - A store without `init()` (and the development-only memory store, where
-       there is no store object at all) resolves successfully.
-     - The SAME promise instance backs `whenReady()` and the request gate, so
-       concurrent first requests can never trigger a second `init()`, a second
-       store, a second cleanup timer, or a second listener.
-     - There is NO retry, NO timeout, and NO fallback store. Once the attempt
-       rejects, this coordinator stays failed for the life of the process;
-       recovery is a deploy/restart concern, not a per-request one.
-     - Rejection is observed at construction so an exported (Vercel) app can
-       never emit an unhandled-rejection warning before its first request.
-
-   Request gate behaviour:
-     - pending  -> hold the request; neither `next()` nor a response.
-     - ready    -> `next()` exactly once.
-     - failed   -> respond directly with a fixed sanitized 503. It does NOT
-                   call `next(err)`: the error pipeline renders EJS/JSON error
-                   pages through middleware that has not been mounted yet at
-                   this point in the chain, and a partially-served application
-                   is exactly what this gate exists to prevent.
-
-   Privacy: this module logs NOTHING — not per request, not once, not a
-   sanitized summary. It never inspects, stores, or emits the initialization
-   error, so a backend host, key, DSN, or stack can never reach a response
-   body or the process output through this path. The 503 body below is a
-   fixed literal with no interpolation.
+   Privacy: only fixed categories, numeric HTTP status values, attempt counts,
+   and cooldowns are logged. Raw errors, URLs, keys, session ids, cookies,
+   request headers, and backend response bodies are never logged or returned.
    ======================================== */
 
-// The exact sanitized unavailable payload. Written as a literal (not
-// JSON.stringify of an object) so the serialized bytes are pinned and can
-// never drift with key ordering or a future field addition.
 const UNAVAILABLE_BODY = '{"success":false,"message":"Service temporarily unavailable."}';
+const DEFAULT_ATTEMPTS = 3;
+const DEFAULT_TIMEOUT_MS = 2000;
+const DEFAULT_ATTEMPT_DELAYS_MS = Object.freeze([250, 750]);
+const DEFAULT_TRANSIENT_COOLDOWNS_MS = Object.freeze([5000, 15000, 30000, 60000]);
+const DEFAULT_AUTHORIZATION_COOLDOWN_MS = 60000;
+const FAILURE_CATEGORIES = new Set(['authorization', 'rate-limit', 'upstream', 'timeout', 'network', 'unknown']);
 
 function noop() { /* intentionally empty */ }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function safeNumber(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 100 && number <= 599 ? number : null;
+}
+
+function classifyFailure(error) {
+  const status = safeNumber(error && error.status);
+  const declared = error && FAILURE_CATEGORIES.has(error.category) ? error.category : null;
+  if (declared) return { category: declared, status };
+  if (status === 401 || status === 403) return { category: 'authorization', status };
+  if (status === 429) return { category: 'rate-limit', status };
+  if (status === 408) return { category: 'timeout', status };
+  if (status !== null && status >= 500) return { category: 'upstream', status };
+  if (error && (error.name === 'AbortError' || error.code === 'SESSION_STORE_TIMEOUT')) {
+    return { category: 'timeout', status };
+  }
+  const networkCode = error && (error.code || (error.cause && error.cause.code));
+  if (error && (error.name === 'TypeError' || networkCode === 'ECONNRESET' || networkCode === 'ECONNREFUSED' || networkCode === 'ENOTFOUND' || networkCode === 'EAI_AGAIN')) {
+    return { category: 'network', status };
+  }
+  return { category: 'unknown', status };
+}
+
+function readinessError(classification) {
+  const error = new Error('Session store initialization failed.');
+  error.code = 'SESSION_STORE_INIT_FAILED';
+  error.category = classification.category;
+  if (classification.status !== null) error.status = classification.status;
+  return error;
+}
+
+function makeHtmlUnavailable(retryAfterSeconds, nonce) {
+  const nonceAttribute = typeof nonce === 'string' && /^[A-Za-z0-9+/=_-]{8,256}$/.test(nonce)
+    ? ` nonce="${nonce}"` : '';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>CampuSphere is reconnecting</title>' +
+    `<style${nonceAttribute}>` +
+    'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;color:#e5eefc;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}' +
+    'main{width:min(32rem,calc(100% - 2rem));padding:2rem;border:1px solid #334155;border-radius:1rem;background:#111c30;box-shadow:0 1.25rem 3rem #02061755}' +
+    'h1{margin:0 0 .75rem;font-size:clamp(1.45rem,4vw,2rem)}p{margin:.5rem 0;color:#bfcee3;line-height:1.55}' +
+    'a{display:inline-block;margin-top:1.25rem;padding:.7rem 1rem;border-radius:.65rem;background:#3b82f6;color:white;text-decoration:none;font-weight:700}' +
+    'small{display:block;margin-top:1rem;color:#8fa3bf}</style></head><body><main>' +
+    '<h1>CampuSphere is reconnecting</h1>' +
+    '<p>The service it uses to keep you signed in is temporarily unavailable. Your account and campus data have not been removed.</p>' +
+    '<a href="">Try again</a>' +
+    `<small>Please wait about ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'} before retrying.</small>` +
+    '</main></body></html>';
+}
+
 /**
- * Create the process's single session-readiness coordinator.
- *
- * @param {object|undefined} sessionStore the ALREADY-CONSTRUCTED persistent
- *   session store (or undefined for the development-only memory store). This
- *   function never creates, selects, or replaces a store.
+ * @param {object|undefined} sessionStore already-selected persistent store
+ * @param {object} options testable timing/logging overrides
  * @returns {{ whenReady: function(): Promise<void>, middleware: function }}
  */
-function createSessionReadiness(sessionStore) {
-  /* The one eager attempt. Promise.resolve().then(...) defers the call by a
-     microtask, which is what makes a SYNCHRONOUS throw inside init() become a
-     rejection of `ready` instead of a throw out of createSessionReadiness().
-     Both failure shapes therefore land on the identical path. */
-  const ready = Promise.resolve().then(function initOnce() {
-    if (!sessionStore || typeof sessionStore.init !== 'function') {
-      // No persistent store to bootstrap (memory store / store without init).
-      return undefined;
+function createSessionReadiness(sessionStore, options = {}) {
+  const attempts = Number.isInteger(options.attempts) && options.attempts > 0
+    ? options.attempts : DEFAULT_ATTEMPTS;
+  const attemptTimeoutMs = Number.isFinite(options.attemptTimeoutMs) && options.attemptTimeoutMs > 0
+    ? options.attemptTimeoutMs : DEFAULT_TIMEOUT_MS;
+  const attemptDelaysMs = Array.isArray(options.attemptDelaysMs)
+    ? options.attemptDelaysMs.map((ms) => Math.max(0, Number(ms) || 0))
+    : DEFAULT_ATTEMPT_DELAYS_MS;
+  const transientCooldownsMs = Array.isArray(options.transientCooldownsMs) && options.transientCooldownsMs.length
+    ? options.transientCooldownsMs.map((ms) => Math.max(1, Number(ms) || 1))
+    : DEFAULT_TRANSIENT_COOLDOWNS_MS;
+  const authorizationCooldownMs = Number.isFinite(options.authorizationCooldownMs) && options.authorizationCooldownMs > 0
+    ? options.authorizationCooldownMs : DEFAULT_AUTHORIZATION_COOLDOWN_MS;
+  const sleep = typeof options.sleep === 'function' ? options.sleep : delay;
+  const now = typeof options.now === 'function' ? options.now : Date.now;
+  const logger = options.logger && typeof options.logger === 'object' ? options.logger : console;
+
+  let state = 'checking';
+  let currentWave = null;
+  let nextRetryAt = 0;
+  let transientFailureWaves = 0;
+  let hasFailed = false;
+
+  function log(level, fields) {
+    const writer = logger && typeof logger[level] === 'function' ? logger[level] : null;
+    if (!writer) return;
+    const parts = ['[session-readiness]'];
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== null && value !== undefined && value !== '') parts.push(`${key}=${value}`);
     }
-    return sessionStore.init();
-  });
+    writer.call(logger, parts.join(' '));
+  }
 
-  /* Observe the rejection immediately. `ready.then(noop, noop)` returns a NEW
-     already-handled promise; it does not swallow the rejection for the real
-     consumers below, but it does mean an exported app that has not yet served
-     a request cannot trigger an unhandled-rejection warning. */
-  ready.then(noop, noop);
+  async function runAttempt() {
+    const controller = new AbortController();
+    let timer = null;
+    let timedOut = false;
+    const timeout = new Promise((resolve, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        const error = new Error('Session store initialization failed.');
+        error.code = 'SESSION_STORE_TIMEOUT';
+        error.category = 'timeout';
+        reject(error);
+      }, attemptTimeoutMs);
+    });
 
-  // Fixed sanitized refusal. No logging, no error detail, no interpolation.
-  function sendUnavailable(res) {
+    try {
+      const initialization = Promise.resolve().then(() => {
+        if (!sessionStore || typeof sessionStore.init !== 'function') return undefined;
+        return sessionStore.init({ signal: controller.signal });
+      });
+      return await Promise.race([initialization, timeout]);
+    } catch (error) {
+      if (timedOut) {
+        const safe = new Error('Session store initialization failed.');
+        safe.code = 'SESSION_STORE_TIMEOUT';
+        safe.category = 'timeout';
+        throw safe;
+      }
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  function startWave(reason) {
+    if (state === 'ready') return currentWave || Promise.resolve();
+    if (state === 'checking' && currentWave) return currentWave;
+    state = 'checking';
+
+    const wave = (async () => {
+      let last = { category: 'unknown', status: null };
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          await runAttempt();
+          state = 'ready';
+          nextRetryAt = 0;
+          transientFailureWaves = 0;
+          if (hasFailed) log('info', { state: 'recovered', reason, attempts: attempt });
+          return undefined;
+        } catch (error) {
+          last = classifyFailure(error);
+          if (attempt < attempts) {
+            const waitMs = attemptDelaysMs[Math.min(attempt - 1, attemptDelaysMs.length - 1)] || 0;
+            if (waitMs > 0) await sleep(waitMs);
+          }
+        }
+      }
+
+      hasFailed = true;
+      state = 'cooldown';
+      let cooldownMs;
+      if (last.category === 'authorization') {
+        cooldownMs = authorizationCooldownMs;
+      } else {
+        const index = Math.min(transientFailureWaves, transientCooldownsMs.length - 1);
+        cooldownMs = transientCooldownsMs[index];
+        transientFailureWaves += 1;
+      }
+      nextRetryAt = now() + cooldownMs;
+      log('warn', {
+        state: 'unavailable',
+        reason,
+        category: last.category,
+        status: last.status,
+        attempts,
+        retry_after_seconds: Math.max(1, Math.ceil(cooldownMs / 1000)),
+      });
+      throw readinessError(last);
+    })();
+
+    currentWave = wave;
+    wave.then(noop, noop);
+    return wave;
+  }
+
+  function readinessPromise() {
+    if (state === 'ready' || state === 'checking') return currentWave;
+    if (now() < nextRetryAt) return currentWave;
+    return startWave('request-recovery');
+  }
+
+  function retryAfterSeconds() {
+    return Math.max(1, Math.ceil(Math.max(0, nextRetryAt - now()) / 1000));
+  }
+
+  function wantsHtml(req) {
+    const path = String(req && (req.originalUrl || req.url) || '').split('?')[0];
+    if (path === '/healthz' || path.startsWith('/api/')) return false;
+    if (!req || typeof req.accepts !== 'function') return false;
+    return req.accepts(['html', 'json']) === 'html';
+  }
+
+  function sendUnavailable(req, res) {
     if (res.headersSent) return;
+    const retrySeconds = retryAfterSeconds();
     res.status(503);
     res.set('Cache-Control', 'no-store');
+    res.set('Retry-After', String(retrySeconds));
+    if (wantsHtml(req)) {
+      res.type('text/html');
+      res.send(makeHtmlUnavailable(retrySeconds, res.locals && res.locals.cspNonce));
+      return;
+    }
     res.type('application/json');
     res.send(UNAVAILABLE_BODY);
   }
 
-  /**
-   * Express middleware. Mounted immediately after the security headers and
-   * BEFORE rate limiting, body parsers, static serving, express-session, the
-   * authenticated middleware, CSRF, logging, routes, and error handlers.
-   */
   function middleware(req, res, next) {
-    /* Two SEPARATE handlers, deliberately. `then(onReady, onUnavailable)`
-       routes only a rejection of `ready` to onUnavailable — an exception
-       thrown by downstream middleware inside next() propagates as it normally
-       would and can never be misreported as a readiness failure. A
-       .then(...).catch(...) chain would wrongly convert it into a 503. */
-    ready.then(
+    readinessPromise().then(
       function onReady() { next(); },
-      function onUnavailable() { sendUnavailable(res); }
+      function onUnavailable() { sendUnavailable(req, res); }
     );
   }
 
+  // Eager first wave: local startup and imported Vercel apps share it.
+  state = 'idle';
+  startWave('startup');
+
   return {
-    // The EXACT shared promise — local startup awaits the same instance the
-    // request gate awaits.
-    whenReady: function whenReady() { return ready; },
-    middleware: middleware,
+    whenReady: readinessPromise,
+    middleware,
   };
 }
 
-module.exports = { createSessionReadiness, UNAVAILABLE_BODY };
+module.exports = {
+  createSessionReadiness,
+  UNAVAILABLE_BODY,
+  DEFAULT_ATTEMPTS,
+  DEFAULT_TIMEOUT_MS,
+};

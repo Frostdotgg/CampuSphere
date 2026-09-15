@@ -5704,12 +5704,15 @@ function runVercelPackageBoundaryGate() {
   const liveVercelJson = readIf('vercel.json');
   ok('vercel.json exists and is non-empty', liveVercelJson.trim() !== '');
   const liveVj = R7.analyzeVercelJson(liveVercelJson);
-  ok('vercel.json exposes exactly $schema and headers', liveVj.ok === true);
+  ok('vercel.json exposes exactly $schema, regions, and headers', liveVj.ok === true);
   if (!liveVj.ok) liveVj.problems.forEach((p) => console.error('    - vercel.json: ' + p));
   const liveHeaderProblems = R7.evaluateHeaderContract(liveVj.config);
   ok('the live header rules match the reviewed static/PWA contract exactly',
     liveHeaderProblems.length === 0);
   liveHeaderProblems.forEach((p) => console.error('    - headers: ' + p));
+  ok('vercel.json pins exactly one Mumbai function region',
+    liveVj.config !== null && Array.isArray(liveVj.config.regions) &&
+    liveVj.config.regions.length === 1 && liveVj.config.regions[0] === 'bom1');
 
   /* Express keeps sole authority over dynamic CSP: the only static CSP is the
      session-neutral offline shell, and no rule uses a broad matcher. */
@@ -5942,6 +5945,7 @@ function runVercelPackageBoundaryGate() {
   {
     const canonical = () => ({
       $schema: R7.EXPECTED_SCHEMA,
+      regions: JSON.parse(JSON.stringify(R7.EXPECTED_FUNCTION_REGIONS)),
       headers: JSON.parse(JSON.stringify(R7.EXPECTED_HEADER_RULES)),
     });
     const json = (obj) => JSON.stringify(obj);
@@ -5959,8 +5963,13 @@ function runVercelPackageBoundaryGate() {
     ok('fixture: an extra or missing top-level key is rejected',
       rejectedJson(Object.assign(canonical(), { version: 2 })) === true &&
       rejectedJson(Object.assign(canonical(), { name: 'campusphere' })) === true &&
-      rejectedJson({ headers: canonical().headers }) === true &&
-      rejectedJson({ $schema: R7.EXPECTED_SCHEMA }) === true);
+      rejectedJson({ regions: canonical().regions, headers: canonical().headers }) === true &&
+      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, headers: canonical().headers }) === true &&
+      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, regions: canonical().regions }) === true);
+    ok('fixture: a missing, additional, or different function region is rejected',
+      rejectedJson(Object.assign(canonical(), { regions: [] })) === true &&
+      rejectedJson(Object.assign(canonical(), { regions: ['iad1'] })) === true &&
+      rejectedJson(Object.assign(canonical(), { regions: ['bom1', 'sin1'] })) === true);
     ok('fixture: builds/functions/routes/rewrites/redirects are rejected',
       rejectedJson(Object.assign(canonical(), { builds: [] })) === true &&
       rejectedJson(Object.assign(canonical(), { functions: {} })) === true &&
@@ -5976,31 +5985,36 @@ function runVercelPackageBoundaryGate() {
     ok('fixture: a wrong $schema is rejected',
       rejectedJson(Object.assign(canonical(), { $schema: 'https://example.invalid/vercel.json' })) === true);
     ok('fixture: a missing, duplicated, or reordered header rule is rejected',
-      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, headers: canonical().headers.slice(1) }) === true &&
-      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, headers: canonical().headers.concat([canonical().headers[0]]) }) === true &&
-      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, headers: canonical().headers.slice().reverse() }) === true);
+      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, regions: canonical().regions, headers: canonical().headers.slice(1) }) === true &&
+      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, regions: canonical().regions, headers: canonical().headers.concat([canonical().headers[0]]) }) === true &&
+      rejectedJson({ $schema: R7.EXPECTED_SCHEMA, regions: canonical().regions, headers: canonical().headers.slice().reverse() }) === true);
     ok('fixture: a broadened header source is rejected',
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.map((r, i) => (i === 0 ? Object.assign({}, r, { source: '/:path*' }) : r)),
       }) === true &&
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.concat([{ source: '/(.*)', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }] }]),
       }) === true);
     ok('fixture: an altered, added, or dropped header key/value is rejected',
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.map((r, i) => (i === 0
           ? { source: r.source, headers: [{ key: 'X-Content-Type-Options', value: 'sniff' }] } : r)),
       }) === true &&
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.map((r) => (r.source === '/sw.js'
           ? { source: r.source, headers: r.headers.filter((h) => h.key !== 'Service-Worker-Allowed') } : r)),
       }) === true &&
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.map((r) => (r.source === '/offline.html'
           ? { source: r.source, headers: r.headers.map((h) => (h.key === 'Content-Security-Policy'
             ? { key: h.key, value: h.value.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'") } : h)) } : r)),
@@ -6008,15 +6022,18 @@ function runVercelPackageBoundaryGate() {
     ok('fixture: a catch-all or dynamic-route CSP is rejected',
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.concat([{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: "default-src 'self'" }] }]),
       }) === true &&
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.concat([{ source: '/dashboard', headers: [{ key: 'Content-Security-Policy', value: "default-src 'self'" }] }]),
       }) === true);
     ok('fixture: long-lived immutable caching on a non-hashed asset URL is rejected',
       rejectedJson({
         $schema: R7.EXPECTED_SCHEMA,
+        regions: canonical().regions,
         headers: canonical().headers.map((r, i) => (i === 0
           ? { source: r.source, headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] } : r)),
       }) === true &&
@@ -8800,8 +8817,8 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 200,
-  bytes: '7,437,974',
-  sha256: '375a6f26dcd375837621fc9fc2fe07f1bc1ee5886255cbe9c56f05a7c1907bc6',
+  bytes: '7,461,052',
+  sha256: '3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */

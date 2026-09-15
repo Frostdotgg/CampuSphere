@@ -118,11 +118,11 @@ if (sessionRuntime.storeKind === 'supabase') {
   sessionStore = createMysqlSessionStore({ pool: db, ttlMs: sessionRuntime.cookie.maxAge });
 }
 
-/* THE single-flight readiness attempt. Constructing the coordinator starts
-   exactly one eager store init(); the same promise instance gates every
-   request AND is awaited by start() below, so a local listener and an
-   imported (Vercel) app can never disagree about readiness and can never run
-   two initializations, stores, timers, or listeners. */
+/* The recoverable single-flight readiness coordinator starts one eager
+   initialization wave. A local listener awaits that wave; imported Vercel
+   instances use the same state through the request gate. Transient failures
+   stay fail-closed, then permit one bounded shared recovery wave after the
+   cooldown instead of leaving a warm instance permanently unavailable. */
 const sessionReadiness = createSessionReadiness(sessionStore);
 
 /* ---- Security headers + per-request CSP nonce (Milestone 8, Section 8.5) ----
