@@ -6,10 +6,11 @@ The repository layer is implemented. Production application data and Express
 sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
 rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
 Express login/role/CSRF checks enforce per-user access even though the service
-role bypasses RLS. Current pushed and promoted product source is `13adb9d`; it
-adds recoverable session readiness without changing repository interfaces,
-schemas, migrations, or data. Pushed authority successor `58298c9` records that
-checkpoint. The retained incident evidence confirms a temporary Supabase `401`
+role bypasses RLS. Current pushed and promoted product source is `b8d2bf2`; it
+retains recoverable session readiness and guards completed responses against a
+late session-touch error without changing repository interfaces, schemas,
+migrations, or data. Authority predecessors `58298c9` and `55d634a` record the
+session-resilience checkpoint and incident investigation. The retained incident evidence confirms a temporary Supabase `401`
 on the readiness query but not the provider's underlying reason. Any later
 authority-only successor must be read from live Git, and current MySQL parity is
 deferred. The design text below is

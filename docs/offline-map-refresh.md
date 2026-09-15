@@ -10,9 +10,10 @@ guest UAT for predecessor `4e9d579` opened all 25 offline building panels and
 exercised Academic VI's entry and exit, but was not rerun after `13adb9d` and
 did not prove a disconnected cold reload or every route.
 
-Pushed authority successor `58298c9` and the September 14 session-readiness
-incident record change no map, offline package, publisher, or IndexedDB
-behavior. The next focused diagnostic is unrelated to offline map delivery.
+Current pushed and promoted release `b8d2bf2`, authority predecessors
+`58298c9`/`55d634a`, and the September 14 session-readiness incident record
+change no map, offline package, publisher, or IndexedDB behavior. The current
+completed-response guard is unrelated to offline map delivery.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

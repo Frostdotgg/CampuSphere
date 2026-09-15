@@ -6,19 +6,24 @@ Last updated: 2026-09-15 (Asia/Manila)
 
 `docs/current-authority.md` is canonical and
 `docs/thesis-teammate-handoff.md` is the portable guide. At the start of the
-September 15 synchronization, pushed `main` ended at `58298c9`, an authority-
-only successor to product release `13adb9d`. Any later authority successor is
-self-referential, so read its exact SHA from live Git. The product release is
-owner-promoted; bounded anonymous Production smoke passed `301/301`. The
+September 15 synchronization, pushed `main` ended at `b8d2bf2`, after authority
+predecessor `55d634a` and readiness release `13adb9d`. Any later authority
+successor is self-referential, so read its exact SHA from live Git. Product
+release `b8d2bf2` is owner-promoted as
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`; bounded anonymous Production smoke passed
+`301/301`, and matching logs contained no `5xx` or
+`ERR_HTTP_HEADERS_SENT`. The
 retained September 14 incident log confirms a Supabase `401` on the exact
 session-readiness query at 21:29:01 Asia/Manila, but not why the provider issued
 that temporary response. Read `docs/session-readiness-incident-2026-09-14.md`.
 The 25/25 online/offline guest UAT remains predecessor evidence for `4e9d579`
 and was not rerun. Current source still has 25 Vehicle destinations / 486 steps
 and 25 Walking destinations / 690 steps. MySQL parity and full dual-backend
-testing remain deferred. The next focused product move is a read-only diagnosis
-of the separate presence-heartbeat double-response observation. Use only the
-two current owner prompts below; every older prompt is historical.
+testing remain deferred. The next release-closeout move is review of this
+documentation/static-contract synchronization and, if separately authorized,
+commit and push. After closeout, the owner may choose a focused bug or
+add/change/remove feature. Use only the two current owner prompts below; every
+older prompt is historical.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -61,7 +66,111 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 incident investigation and verified Production)
+## Current Release Continuity (2026-09-15 completed-response guard and verified Production)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+sections below are historical evidence and do not override this section. At the
+start of this synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at
+`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`), with an empty
+index, a clean worktree, and zero stashes. The owner authorized the bounded
+Production smoke, deployment-specific log inspection, and—if green—the
+established 19-file authority/static-contract synchronization. A later commit
+and push remain a separate owner decision; any authority commit is
+self-referential, so fresh sessions must recompute its exact SHA and status.
+
+The current product lineage is `13adb9d` (recoverable fail-closed session
+readiness), `58298c9` and `55d634a` (authority-only successors and the
+September 14 incident record), and `b8d2bf2` (completed-response error guard
+and regression coverage). Production application data and Express sessions
+still target Supabase/PostgreSQL. MySQL remains local-development, fallback,
+and rehearsal. Supabase Auth is not used.
+
+The separate heartbeat defect is now diagnosed and fixed. A route could
+successfully finish `POST /api/presence/heartbeat` with `204`, after which
+`express-session` could report a late store `touch` failure through
+`next(err)`. The global error handler then tried to write a second error
+response even though the original response had already ended, producing
+`ERR_HTTP_HEADERS_SENT`. This was not the cause of the September 14
+session-readiness incident.
+
+`middleware/errorHandler.js` now checks `res.headersSent` before any status,
+JSON, or render write. If headers are committed but the stream is unfinished,
+it delegates to Express's default handler so the incomplete stream can close.
+If the response is already finished, it preserves the original response,
+records one fixed sanitized `post-response` diagnostic, and returns without a
+second write. It never logs the Error object, raw provider response, URL secret,
+cookie, session id/data, key, stack, or backend body. Unsent ordinary errors
+retain the existing fixed generic response.
+
+The database-free regression in
+`scripts/vercelRuntimeSessionBootstrap-probe.js` uses a real in-process
+Express application, `express-session`, and a disposable store whose
+`touch` fails after a completed `204`. It proves that the client keeps the
+empty `204`, the application error handler runs once, no JSON/render second
+write is attempted, no terminal `ERR_HTTP_HEADERS_SENT` occurs, the diagnostic
+is sanitized, and a committed but unfinished stream delegates correctly.
+Recorded final local/source evidence for `b8d2bf2` is user presence `34/34`,
+Vercel runtime/session bootstrap `117/117`, Supabase session-store resilience
+`15/15`, plus passing syntax and whitespace checks. These focused checks did
+not use MySQL or mutate Supabase.
+
+The owner promoted Vercel deployment
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` for exact commit `b8d2bf2`. A signed-in
+Vercel dashboard observation showed it `Ready`, `Latest`, in `Production`,
+with `https://campusphere-cspc.vercel.app` assigned. The deployment was
+created September 15, 2026 at 2:00:07 PM Asia/Manila and built in 18 seconds.
+
+A bounded anonymous, read-only, GET-only Production smoke passed `301/301`
+against the canonical alias for exact Git commit `b8d2bf2`. Ten consecutive
+`/healthz` requests returned exact `{"status":"ok"}`; public pages returned
+`200`; protected HTML redirected `302` to `/auth`; protected JSON returned
+the exact expected `401`; security headers, no-cookie behavior, safe
+`400`/`404` rejection, and four committed Git-blob asset comparisons passed.
+
+The matching deployment-filtered Vercel runtime-log view covered the smoke
+window. Its console-level counters were Warning `0`, Error `0`, and Fatal
+`0`. A separate exact search for `ERR_HTTP_HEADERS_SENT` returned no request
+logs. The only displayed status codes were `200` (16), `302` (7), `401`
+(8), and `404` (3); no `5xx` status was present. The `302`, `401`, and
+`404` rows were intentional anonymous security checks, not failures. This log
+evidence belongs only to deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`;
+older heartbeat errors from predecessor deployment
+`dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` do not describe the new release.
+
+This release changed no public endpoint or success-response schema, database
+schema, migration, application row, session row, route, Guided-VR
+sequence/mapping/hotspot, map, offline package, publisher, IndexedDB contract,
+or service-worker cache. Migrations remain `0001` through `0027` and are
+owner-reported applied. Migration `0027` and approved route/VR data require
+fresh focused authority before change. Vehicle remains 25 destinations / 486
+steps / 101 unique scenes; Walking remains 25 / 690 / 133, with Walking-only
+reversed exits. The service worker remains `v45`.
+
+The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
+predecessor evidence for `4e9d579`; it was not rerun after `b8d2bf2`. The
+post-promotion verification did not authenticate a guest, deliberately induce a
+Supabase/session-store failure, POST a real Production presence heartbeat,
+exercise OAuth or administrator writes, traverse every VR/route, perform a
+disconnected cold reload, fetch real Drive media, rerun full `npm test`, prove
+current MySQL parity, or compare every deployed byte. The four sampled assets
+are not complete immutable-package equality. Final client/panel acceptance
+remains external.
+
+Evidence classes remain separate: source/Git, recorded local focused checks,
+historical Supabase evidence, owner/vendor observations, independently executed
+anonymous Production smoke and deployment-specific log inspection, predecessor
+UAT, and external acceptance. Fresh Codex and Claude Code sessions must
+inventory their actual capabilities, ground read-only from the current
+authority, report discrepancies, and stop for the owner's focused task. After
+this documentation synchronization, the next release-closeout move is review of
+the exact authority/static-contract diff and checks, followed by a separately
+authorized commit and push if green. Any other feature, data action, test,
+deployment, promotion, rollback, or remediation requires its own focused owner
+task.
+
+## Historical Release Continuity (2026-09-15 incident investigation and verified Production; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
@@ -1468,21 +1577,23 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `58298c9fbef860692af30439e7a59b98dcfe5ff0`,
-  clean and equal locally/upstream/remotely before documentation edits;
-- `58298c9` is the preceding authority-only commit; any authority successor
+- starting authority-sync baseline:
+  `b8d2bf26a73d25cff2c53af695396d2f695ae631`, clean and equal at local
+  `HEAD`, `origin/main`, and remote `main`, with zero stashes before
+  documentation edits;
+- `55d634a` is the preceding authority-only commit; any authority successor
   created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
   `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority,
-  `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`) recoverable
-  Production session readiness, and `58298c9`
-  authority synchronization;
-- the observed fixed unavailable response came from the fail-closed readiness
-  gate. A retained Supabase log confirms the exact readiness query received
-  `401` at 21:29:01 Asia/Manila in the reported incident window; a nearby
-  session write received `502`. This proves the trigger presented to the app,
-  not why Supabase issued the temporary `401`. The old application defect was
-  lifetime caching of a failed eager initialization in a warm Vercel function;
+  `13adb9d` recoverable Production session readiness, `58298c9` and
+  `55d634a` authority/incident records, and `b8d2bf2` completed-response
+  guard;
+- the fixed unavailable response came from the fail-closed readiness gate. A
+  retained Supabase log confirms the exact readiness query received `401` at
+  21:29:01 Asia/Manila; a nearby session write received `502`. This proves the
+  trigger presented to the app, not why Supabase issued the temporary `401`.
+  The old application defect was lifetime caching of a failed eager
+  initialization in a warm Vercel function;
 - readiness uses single-flight recovery, three attempts, two-second per-attempt
   timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
   a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
@@ -1491,46 +1602,51 @@ Recorded checkpoint to verify rather than repeat blindly:
   delay only for timeout/network/408/429/5xx. Authorization is not retried;
   destroy remains scoped to one exact session id with an absence check and one
   bounded retry; diagnostics never expose secrets or session data;
-- Vercel functions are pinned to `bom1`. No public endpoint or success-response
-  schema changed; the only response-format addition is readable unavailable
-  HTML. No database migration/row, session row, route, VR, map, offline package,
-  or service-worker cache changed;
+- the separate header-sent cause is confirmed: `express-session` could report
+  a late failed `touch` after `POST /api/presence/heartbeat` had completed
+  `204`, and the global error handler attempted a second response.
+  `middleware/errorHandler.js` now checks `res.headersSent`, delegates a
+  committed unfinished stream, and preserves a finished response with one
+  fixed sanitized `post-response` diagnostic and no second write. This is not
+  the cause of the September 14 readiness incident;
+- final focused source evidence for `b8d2bf2`: user presence `34/34`, Vercel
+  runtime/session bootstrap `117/117`, Supabase session-store resilience
+  `15/15`, syntax PASS, and whitespace PASS. The real Express-session
+  failing-touch regression is database-free and external-network-free;
+- owner-promoted deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` for exact
+  commit `b8d2bf2` was observed `Ready`, `Latest`, in `Production`, with
+  the canonical alias. Anonymous GET-only smoke passed `301/301`, including
+  ten healthy requests, expected public/protected responses, security/no-cookie
+  checks, safe path rejection, and four committed Git-blob comparisons;
+- deployment-specific logs showed Warning `0`, Error `0`, Fatal `0`, no
+  `ERR_HTTP_HEADERS_SENT`, and no `5xx`. Displayed statuses were only
+  `200` (16), `302` (7), `401` (8), and `404` (3);
+- Vercel functions remain pinned to `bom1`. No public endpoint or success
+  schema, database migration/row, session row, route, VR, map, offline package,
+  publisher, IndexedDB contract, or service-worker cache changed;
 - current source: Vehicle 25 destinations / 486 steps / 101 unique scenes;
   Walking 25 / 690 / 133; `direction=exit` requires Walking;
-- Academic IV and VI retain `38 -> 85 -> 94`. Academic VI continues
+- Academic IV and VI retain `38 -> 85 -> 94`; Academic VI continues
   `94 -> 93 -> 92 -> 91 -> scene-chs-1st-floor-001`; scenes 86-90 remain the
-  owner-confirmed loop/Free-Roam path;
-- Green Vehicle ends at `scene-green-1st-floor-1`, Green Walking at
-  `scene-green-1st-floor-9`, and Staff House Walking starts at
-  `scene-guard-house-walk-1st-floor-1`;
-- SELECT-only Supabase evidence: 670 scenes, 11 loop/shortcut scenes with
-  approved media, and 22/22 expected directed loop/shortcut links;
+  owner-confirmed loop/Free-Roam path. Green and Staff House decisions are
+  unchanged;
+- SELECT-only Supabase predecessor evidence records 670 scenes, 11
+  loop/shortcut scenes with approved media, and 22/22 expected directed links;
 - migrations `0001-0027` are owner-reported applied; never reapply `0027` or
   change approved 2D/VR routes without fresh authority;
-- local/source evidence: readiness `104/104`, session-store resilience `15/15`,
-  Vercel Production profile `119/119`, Supabase smoke PASS, Supabase-backed
-  local health `200`, zero audit vulnerabilities, and syntax/whitespace PASS;
-- package boundary `74/74`: 200 files, 7,461,052 bytes, SHA-256
-  `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`;
+- the `13adb9d` package boundary `74/74` (200 files, 7,461,052 bytes,
+  SHA-256 `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`)
+  is predecessor evidence and was not rerun for `b8d2bf2`;
 - full `npm test`, current MySQL parity, `qa:db`, and complete identity
-  verification were deferred; no current dual-backend full-suite claim exists;
-- owner-promoted deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for `13adb9d`
-  was observed `Ready`, `Latest`, in `Production`, with the canonical alias.
-  Anonymous GET-only smoke passed `301/301`, including ten healthy requests,
-  expected public/protected responses, security/no-cookie checks, safe path
-  rejection, and four committed Git-blob comparisons; the inspected window had
-  no `5xx`;
+  verification remain deferred; no current dual-backend full-suite claim exists;
 - guest Production UAT 25/25 online and 25/25 offline belongs to `4e9d579` and
-  was not rerun. Current Production did not undergo an induced Supabase outage,
-  authenticated/OAuth/admin testing, every VR/route journey, disconnected cold
-  reload, real Drive media, or complete immutable-package verification;
+  was not rerun after `b8d2bf2`. Current Production did not undergo an induced
+  Supabase outage, authenticated heartbeat/UAT, OAuth/admin testing, every VR/
+  route journey, disconnected cold reload, real Drive media, or complete
+  immutable-package verification;
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
-- a separate September 15 Vercel observation found two
-  `ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after
-  `204` responses near one session-store touch timeout/retry. It is not the
-  cause of the September 14 readiness incident and remains undiagnosed.
 
 Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
 session-readiness and bounded session-store retry model, route metric/color
@@ -1541,13 +1657,16 @@ Report Git truth and discrepancies; architecture and repository map; current
 features and intentional decisions; migrations/no-reapply boundary; security,
 route, VR, media, online/offline behavior; source/local/SELECT-only/owner/vendor/
 Production/external evidence; excluded external systems; limitations; and the
-next move. Do not repair discrepancies during grounding. State that the next
-focused product move is a read-only diagnosis of the separate
-`/api/presence/heartbeat` double-response observation. Do not begin that
-diagnostic during grounding. Any fix, review/testing, commit/push, or deployment
-needs a later explicit owner task. If a future verification fails, stop and ask
-before rollback, patch, promotion, or redeployment. Stop and wait for the
-owner's explicit task.
+next move. Do not repair discrepancies during grounding. State that the
+heartbeat double-response defect is diagnosed and fixed in promoted `b8d2bf2`,
+with focused local regression, bounded anonymous Production smoke, and
+deployment-specific log evidence; do not overstate it as an authenticated live
+heartbeat test. State that the next release-closeout move is review of the
+authority/static-contract synchronization and, only if separately authorized,
+commit and push. Any fix, review/testing, commit/push, or deployment needs a
+later explicit owner task. If a future verification fails, stop and ask before
+rollback, patch, promotion, or redeployment. Stop and wait for the owner's
+explicit task.
 ```
 
 ## Claude Code Grounding Prompt
@@ -1638,21 +1757,23 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `58298c9fbef860692af30439e7a59b98dcfe5ff0`,
-  clean and equal locally/upstream/remotely before documentation edits;
-- `58298c9` is the preceding authority-only commit; any authority successor
+- starting authority-sync baseline:
+  `b8d2bf26a73d25cff2c53af695396d2f695ae631`, clean and equal at local
+  `HEAD`, `origin/main`, and remote `main`, with zero stashes before
+  documentation edits;
+- `55d634a` is the preceding authority-only commit; any authority successor
   created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
   `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority,
-  `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`) recoverable
-  Production session readiness, and `58298c9`
-  authority synchronization;
-- the observed fixed unavailable response came from the fail-closed readiness
-  gate. A retained Supabase log confirms the exact readiness query received
-  `401` at 21:29:01 Asia/Manila in the reported incident window; a nearby
-  session write received `502`. This proves the trigger presented to the app,
-  not why Supabase issued the temporary `401`. The old application defect was
-  lifetime caching of a failed eager initialization in a warm Vercel function;
+  `13adb9d` recoverable Production session readiness, `58298c9` and
+  `55d634a` authority/incident records, and `b8d2bf2` completed-response
+  guard;
+- the fixed unavailable response came from the fail-closed readiness gate. A
+  retained Supabase log confirms the exact readiness query received `401` at
+  21:29:01 Asia/Manila; a nearby session write received `502`. This proves the
+  trigger presented to the app, not why Supabase issued the temporary `401`.
+  The old application defect was lifetime caching of a failed eager
+  initialization in a warm Vercel function;
 - readiness uses single-flight recovery, three attempts, two-second per-attempt
   timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
   a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
@@ -1661,46 +1782,51 @@ Recorded checkpoint to verify rather than repeat blindly:
   delay only for timeout/network/408/429/5xx. Authorization is not retried;
   destroy remains scoped to one exact session id with an absence check and one
   bounded retry; diagnostics never expose secrets or session data;
-- Vercel functions are pinned to `bom1`. No public endpoint or success-response
-  schema changed; the only response-format addition is readable unavailable
-  HTML. No database migration/row, session row, route, VR, map, offline package,
-  or service-worker cache changed;
+- the separate header-sent cause is confirmed: `express-session` could report
+  a late failed `touch` after `POST /api/presence/heartbeat` had completed
+  `204`, and the global error handler attempted a second response.
+  `middleware/errorHandler.js` now checks `res.headersSent`, delegates a
+  committed unfinished stream, and preserves a finished response with one
+  fixed sanitized `post-response` diagnostic and no second write. This is not
+  the cause of the September 14 readiness incident;
+- final focused source evidence for `b8d2bf2`: user presence `34/34`, Vercel
+  runtime/session bootstrap `117/117`, Supabase session-store resilience
+  `15/15`, syntax PASS, and whitespace PASS. The real Express-session
+  failing-touch regression is database-free and external-network-free;
+- owner-promoted deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` for exact
+  commit `b8d2bf2` was observed `Ready`, `Latest`, in `Production`, with
+  the canonical alias. Anonymous GET-only smoke passed `301/301`, including
+  ten healthy requests, expected public/protected responses, security/no-cookie
+  checks, safe path rejection, and four committed Git-blob comparisons;
+- deployment-specific logs showed Warning `0`, Error `0`, Fatal `0`, no
+  `ERR_HTTP_HEADERS_SENT`, and no `5xx`. Displayed statuses were only
+  `200` (16), `302` (7), `401` (8), and `404` (3);
+- Vercel functions remain pinned to `bom1`. No public endpoint or success
+  schema, database migration/row, session row, route, VR, map, offline package,
+  publisher, IndexedDB contract, or service-worker cache changed;
 - current source: Vehicle 25 destinations / 486 steps / 101 unique scenes;
   Walking 25 / 690 / 133; `direction=exit` requires Walking;
-- Academic IV and VI retain `38 -> 85 -> 94`. Academic VI continues
+- Academic IV and VI retain `38 -> 85 -> 94`; Academic VI continues
   `94 -> 93 -> 92 -> 91 -> scene-chs-1st-floor-001`; scenes 86-90 remain the
-  owner-confirmed loop/Free-Roam path;
-- Green Vehicle ends at `scene-green-1st-floor-1`, Green Walking at
-  `scene-green-1st-floor-9`, and Staff House Walking starts at
-  `scene-guard-house-walk-1st-floor-1`;
-- SELECT-only Supabase evidence: 670 scenes, 11 loop/shortcut scenes with
-  approved media, and 22/22 expected directed loop/shortcut links;
+  owner-confirmed loop/Free-Roam path. Green and Staff House decisions are
+  unchanged;
+- SELECT-only Supabase predecessor evidence records 670 scenes, 11
+  loop/shortcut scenes with approved media, and 22/22 expected directed links;
 - migrations `0001-0027` are owner-reported applied; never reapply `0027` or
   change approved 2D/VR routes without fresh authority;
-- local/source evidence: readiness `104/104`, session-store resilience `15/15`,
-  Vercel Production profile `119/119`, Supabase smoke PASS, Supabase-backed
-  local health `200`, zero audit vulnerabilities, and syntax/whitespace PASS;
-- package boundary `74/74`: 200 files, 7,461,052 bytes, SHA-256
-  `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`;
+- the `13adb9d` package boundary `74/74` (200 files, 7,461,052 bytes,
+  SHA-256 `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`)
+  is predecessor evidence and was not rerun for `b8d2bf2`;
 - full `npm test`, current MySQL parity, `qa:db`, and complete identity
-  verification were deferred; no current dual-backend full-suite claim exists;
-- owner-promoted deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for `13adb9d`
-  was observed `Ready`, `Latest`, in `Production`, with the canonical alias.
-  Anonymous GET-only smoke passed `301/301`, including ten healthy requests,
-  expected public/protected responses, security/no-cookie checks, safe path
-  rejection, and four committed Git-blob comparisons; the inspected window had
-  no `5xx`;
+  verification remain deferred; no current dual-backend full-suite claim exists;
 - guest Production UAT 25/25 online and 25/25 offline belongs to `4e9d579` and
-  was not rerun. Current Production did not undergo an induced Supabase outage,
-  authenticated/OAuth/admin testing, every VR/route journey, disconnected cold
-  reload, real Drive media, or complete immutable-package verification;
+  was not rerun after `b8d2bf2`. Current Production did not undergo an induced
+  Supabase outage, authenticated heartbeat/UAT, OAuth/admin testing, every VR/
+  route journey, disconnected cold reload, real Drive media, or complete
+  immutable-package verification;
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
-- a separate September 15 Vercel observation found two
-  `ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after
-  `204` responses near one session-store touch timeout/retry. It is not the
-  cause of the September 14 readiness incident and remains undiagnosed.
 
 Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
 session-readiness and bounded session-store retry model, route metric/color
@@ -1711,13 +1837,16 @@ Report Git truth and discrepancies; architecture and repository map; current
 features and intentional decisions; migrations/no-reapply boundary; security,
 route, VR, media, online/offline behavior; source/local/SELECT-only/owner/vendor/
 Production/external evidence; excluded external systems; limitations; and the
-next move. Do not repair discrepancies during grounding. State that the next
-focused product move is a read-only diagnosis of the separate
-`/api/presence/heartbeat` double-response observation. Do not begin that
-diagnostic during grounding. Any fix, review/testing, commit/push, or deployment
-needs a later explicit owner task. If a future verification fails, stop and ask
-before rollback, patch, promotion, or redeployment. Stop and wait for the
-owner's explicit task.
+next move. Do not repair discrepancies during grounding. State that the
+heartbeat double-response defect is diagnosed and fixed in promoted `b8d2bf2`,
+with focused local regression, bounded anonymous Production smoke, and
+deployment-specific log evidence; do not overstate it as an authenticated live
+heartbeat test. State that the next release-closeout move is review of the
+authority/static-contract synchronization and, only if separately authorized,
+commit and push. Any fix, review/testing, commit/push, or deployment needs a
+later explicit owner task. If a future verification fails, stop and ask before
+rollback, patch, promotion, or redeployment. Stop and wait for the owner's
+explicit task.
 ```
 
 ## Portable Teammate Codex Grounding Prompt (source-only)

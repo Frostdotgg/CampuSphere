@@ -63,14 +63,25 @@ is strong evidence for the released recovery path, but it is not a deliberately
 induced outage test and cannot guarantee that an external provider will never
 fail again.
 
-## Separate current observation
+## Separate heartbeat observation and resolution
 
 During the September 15 read-only log review, two Vercel entries for
 `POST /api/presence/heartbeat` showed `ERR_HTTP_HEADERS_SENT` after the request
 had already returned `204`; a nearby session-store `touch` diagnostic recorded
-one timeout/retry. This is a separate current observation. It is not evidence
-that the September 14 readiness incident came from the presence endpoint, and
-it was not diagnosed or changed during this authority synchronization.
+one timeout/retry. This was a separate defect and is not evidence that the
+September 14 readiness incident came from the presence endpoint.
+
+Release `b8d2bf2` fixes the confirmed response-lifecycle defect. A late
+`express-session` store-touch error can reach the global handler after the
+route's `204` is already complete. The handler now preserves a completed
+response and emits one fixed sanitized diagnostic instead of attempting a
+second write; a committed but unfinished stream delegates to Express's default
+handler. A real in-process regression passed inside the `117/117` Vercel
+runtime/session bootstrap probe. The owner promoted deployment
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`; bounded anonymous Production smoke passed
+`301/301`, and its deployment-filtered logs showed no `5xx` or
+`ERR_HTTP_HEADERS_SENT`. The anonymous smoke did not send an authenticated
+Production heartbeat, so that exact live path was not exercised.
 
 ## Plain-English explanation for clients and panelists
 
@@ -82,9 +93,10 @@ it was not diagnosed or changed during this authority synchronization.
 > categories so the team can diagnose a future incident without exposing user
 > or credential data.
 
-## Next move
+## Current next move
 
-The next focused engineering task is a read-only diagnosis of the separate
-`/api/presence/heartbeat` double-response observation. Any implementation,
-session/database mutation, commit, push, deployment, or Production test still
-requires its own explicit owner task.
+The heartbeat observation is diagnosed, fixed, pushed, promoted, and boundedly
+verified. The next release-closeout move is review of the authority/static-
+contract synchronization and, if green and separately authorized, commit and
+push. Any new implementation, session/database mutation, deployment, or broader
+Production test still requires its own explicit owner task.

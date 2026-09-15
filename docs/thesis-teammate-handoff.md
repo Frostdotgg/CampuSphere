@@ -8,16 +8,19 @@ history and may describe superseded states.
 
 ## Current Release Checkpoint (2026-09-15)
 
-Pushed release `13adb9d` is owner-promoted and passed bounded anonymous
-Production smoke `301/301`. It improves recovery from temporary Production
-session-store failures without changing routes, VR, maps, offline content, or
-database data. The signed-in 25/25 online/offline guest UAT remains predecessor
+Pushed release `b8d2bf2` is owner-promoted as
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` and passed bounded anonymous Production smoke
+`301/301`; matching logs contained no `5xx` or `ERR_HTTP_HEADERS_SENT`. It keeps
+the session recovery from `13adb9d` and prevents a late session-touch failure
+from writing a second response after a completed heartbeat `204`, without
+changing routes, VR, maps, offline content, or database data. The signed-in
+25/25 online/offline guest UAT remains predecessor
 evidence for `4e9d579` and was not rerun. Current source contains 25 Vehicle
 destinations / 486 steps and 25 Walking destinations / 690 steps. MySQL parity
 and a fresh full dual-backend suite remain deferred. Use
 `docs/current-authority.md` for the complete evidence and limitation record.
-Pushed authority successor `58298c9` records that checkpoint. The correlated
-September 14 incident evidence is in
+Authority predecessors `58298c9` and `55d634a` record the session-resilience
+checkpoint and correlated September 14 incident evidence in
 `docs/session-readiness-incident-2026-09-14.md`.
 
 ## What CampuSphere Is

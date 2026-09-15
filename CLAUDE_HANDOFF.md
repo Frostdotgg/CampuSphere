@@ -8,9 +8,10 @@ absolute path. Canonical current authority: `docs/current-authority.md`.
 Current owner-continuity decisions, evidence classes, and next moves are in the
 canonical authority file and the synchronized September 15 block below. At the
 start of this documentation sync, pushed source and remote `main` ended at
-`58298c9fbef860692af30439e7a59b98dcfe5ff0`. Product release `13adb9d` remains
-owner-promoted and passed the bounded anonymous Production smoke `301/301`.
-The retained incident log is summarized in
+`b8d2bf26a73d25cff2c53af695396d2f695ae631`. Product release `b8d2bf2` is
+owner-promoted as `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`, passed the bounded
+anonymous Production smoke `301/301`, and has deployment-specific logs with no
+`5xx` or `ERR_HTTP_HEADERS_SENT`. The retained readiness incident is summarized in
 `docs/session-readiness-incident-2026-09-14.md`. The signed-in 25/25 online/
 offline guest UAT belongs to predecessor `4e9d579` and was not rerun. Read the
 recorded coverage limits before making a broader claim. Older records are
@@ -63,7 +64,111 @@ deployment afterward. Its exact deployment SHA, Ready/Current state,
 Production behavior, and immutable bytes remain independently unverified.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 incident investigation and verified Production)
+## Current Release Continuity (2026-09-15 completed-response guard and verified Production)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+sections below are historical evidence and do not override this section. At the
+start of this synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at
+`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`), with an empty
+index, a clean worktree, and zero stashes. The owner authorized the bounded
+Production smoke, deployment-specific log inspection, and—if green—the
+established 19-file authority/static-contract synchronization. A later commit
+and push remain a separate owner decision; any authority commit is
+self-referential, so fresh sessions must recompute its exact SHA and status.
+
+The current product lineage is `13adb9d` (recoverable fail-closed session
+readiness), `58298c9` and `55d634a` (authority-only successors and the
+September 14 incident record), and `b8d2bf2` (completed-response error guard
+and regression coverage). Production application data and Express sessions
+still target Supabase/PostgreSQL. MySQL remains local-development, fallback,
+and rehearsal. Supabase Auth is not used.
+
+The separate heartbeat defect is now diagnosed and fixed. A route could
+successfully finish `POST /api/presence/heartbeat` with `204`, after which
+`express-session` could report a late store `touch` failure through
+`next(err)`. The global error handler then tried to write a second error
+response even though the original response had already ended, producing
+`ERR_HTTP_HEADERS_SENT`. This was not the cause of the September 14
+session-readiness incident.
+
+`middleware/errorHandler.js` now checks `res.headersSent` before any status,
+JSON, or render write. If headers are committed but the stream is unfinished,
+it delegates to Express's default handler so the incomplete stream can close.
+If the response is already finished, it preserves the original response,
+records one fixed sanitized `post-response` diagnostic, and returns without a
+second write. It never logs the Error object, raw provider response, URL secret,
+cookie, session id/data, key, stack, or backend body. Unsent ordinary errors
+retain the existing fixed generic response.
+
+The database-free regression in
+`scripts/vercelRuntimeSessionBootstrap-probe.js` uses a real in-process
+Express application, `express-session`, and a disposable store whose
+`touch` fails after a completed `204`. It proves that the client keeps the
+empty `204`, the application error handler runs once, no JSON/render second
+write is attempted, no terminal `ERR_HTTP_HEADERS_SENT` occurs, the diagnostic
+is sanitized, and a committed but unfinished stream delegates correctly.
+Recorded final local/source evidence for `b8d2bf2` is user presence `34/34`,
+Vercel runtime/session bootstrap `117/117`, Supabase session-store resilience
+`15/15`, plus passing syntax and whitespace checks. These focused checks did
+not use MySQL or mutate Supabase.
+
+The owner promoted Vercel deployment
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` for exact commit `b8d2bf2`. A signed-in
+Vercel dashboard observation showed it `Ready`, `Latest`, in `Production`,
+with `https://campusphere-cspc.vercel.app` assigned. The deployment was
+created September 15, 2026 at 2:00:07 PM Asia/Manila and built in 18 seconds.
+
+A bounded anonymous, read-only, GET-only Production smoke passed `301/301`
+against the canonical alias for exact Git commit `b8d2bf2`. Ten consecutive
+`/healthz` requests returned exact `{"status":"ok"}`; public pages returned
+`200`; protected HTML redirected `302` to `/auth`; protected JSON returned
+the exact expected `401`; security headers, no-cookie behavior, safe
+`400`/`404` rejection, and four committed Git-blob asset comparisons passed.
+
+The matching deployment-filtered Vercel runtime-log view covered the smoke
+window. Its console-level counters were Warning `0`, Error `0`, and Fatal
+`0`. A separate exact search for `ERR_HTTP_HEADERS_SENT` returned no request
+logs. The only displayed status codes were `200` (16), `302` (7), `401`
+(8), and `404` (3); no `5xx` status was present. The `302`, `401`, and
+`404` rows were intentional anonymous security checks, not failures. This log
+evidence belongs only to deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`;
+older heartbeat errors from predecessor deployment
+`dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` do not describe the new release.
+
+This release changed no public endpoint or success-response schema, database
+schema, migration, application row, session row, route, Guided-VR
+sequence/mapping/hotspot, map, offline package, publisher, IndexedDB contract,
+or service-worker cache. Migrations remain `0001` through `0027` and are
+owner-reported applied. Migration `0027` and approved route/VR data require
+fresh focused authority before change. Vehicle remains 25 destinations / 486
+steps / 101 unique scenes; Walking remains 25 / 690 / 133, with Walking-only
+reversed exits. The service worker remains `v45`.
+
+The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
+predecessor evidence for `4e9d579`; it was not rerun after `b8d2bf2`. The
+post-promotion verification did not authenticate a guest, deliberately induce a
+Supabase/session-store failure, POST a real Production presence heartbeat,
+exercise OAuth or administrator writes, traverse every VR/route, perform a
+disconnected cold reload, fetch real Drive media, rerun full `npm test`, prove
+current MySQL parity, or compare every deployed byte. The four sampled assets
+are not complete immutable-package equality. Final client/panel acceptance
+remains external.
+
+Evidence classes remain separate: source/Git, recorded local focused checks,
+historical Supabase evidence, owner/vendor observations, independently executed
+anonymous Production smoke and deployment-specific log inspection, predecessor
+UAT, and external acceptance. Fresh Codex and Claude Code sessions must
+inventory their actual capabilities, ground read-only from the current
+authority, report discrepancies, and stop for the owner's focused task. After
+this documentation synchronization, the next release-closeout move is review of
+the exact authority/static-contract diff and checks, followed by a separately
+authorized commit and push if green. Any other feature, data action, test,
+deployment, promotion, rollback, or remediation requires its own focused owner
+task.
+
+## Historical Release Continuity (2026-09-15 incident investigation and verified Production; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity

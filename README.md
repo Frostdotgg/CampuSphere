@@ -24,16 +24,18 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 
 ## Current source release (2026-09-15)
 
-Pushed and owner-promoted release `13adb9d` adds recoverable fail-closed session
-readiness and bounded Supabase session-store retries to the complete Walking/
-MapLibre release lineage. Its bounded anonymous Production smoke passed
-`301/301`. The earlier 25/25 online/offline signed-in guest UAT remains
+Pushed and owner-promoted release `b8d2bf2` retains the recoverable fail-closed
+session handling from `13adb9d` and prevents a late session-touch failure from
+writing a second response after a completed heartbeat `204`. Deployment
+`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` passed bounded anonymous Production smoke
+`301/301`; matching logs contained no `5xx` or `ERR_HTTP_HEADERS_SENT`. The
+earlier 25/25 online/offline signed-in guest UAT remains
 predecessor evidence for `4e9d579` and was not rerun. Current routes remain 25
 Vehicle destinations / 486 steps and 25 Walking destinations / 690 steps. See
 [current authority](docs/current-authority.md) for exact evidence limits,
-deferred MySQL/full-suite work, and the next-task boundary. Pushed authority
-successor `58298c9` records that release; the correlated September 14 incident
-evidence is in
+deferred MySQL/full-suite work, and the next-task boundary. Authority-only
+predecessors `58298c9` and `55d634a` record the session-resilience checkpoint
+and correlated September 14 incident evidence in
 [the session-readiness incident record](docs/session-readiness-incident-2026-09-14.md).
 
 ## Tech Stack
