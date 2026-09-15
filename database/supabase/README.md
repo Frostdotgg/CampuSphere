@@ -8,8 +8,12 @@ Migration sources are contiguous from `0001` through `0027` and are
 owner-reported applied on the selected Supabase project. Do not reapply them
 without fresh explicit database authority. Production application data and
 sessions target Supabase, and `13adb9d` is the current pushed and promoted
-release. It changed session resilience only and did not add or alter any
-migration or database row. A
+product release; pushed authority successor `58298c9` records that checkpoint.
+The retained September 14 incident log confirms a `401` on the exact session-
+readiness query, without recording the provider's reason for that temporary
+response. See `docs/session-readiness-incident-2026-09-14.md`. The product
+release changed session resilience only and did not add or alter any migration
+or database row. A
 SELECT-only check confirmed 670 VR scenes and the intentional road 85-94 loop
 plus `85 <-> 94` shortcut. Current MySQL parity remains deferred; older freeze
 and sync counts are historical. See `docs/current-authority.md` before any

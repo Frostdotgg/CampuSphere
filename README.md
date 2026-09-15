@@ -31,7 +31,10 @@ MapLibre release lineage. Its bounded anonymous Production smoke passed
 predecessor evidence for `4e9d579` and was not rerun. Current routes remain 25
 Vehicle destinations / 486 steps and 25 Walking destinations / 690 steps. See
 [current authority](docs/current-authority.md) for exact evidence limits,
-deferred MySQL/full-suite work, and the next-task boundary.
+deferred MySQL/full-suite work, and the next-task boundary. Pushed authority
+successor `58298c9` records that release; the correlated September 14 incident
+evidence is in
+[the session-readiness incident record](docs/session-readiness-incident-2026-09-14.md).
 
 ## Tech Stack
 

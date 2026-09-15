@@ -8,8 +8,11 @@ rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
 Express login/role/CSRF checks enforce per-user access even though the service
 role bypasses RLS. Current pushed and promoted product source is `13adb9d`; it
 adds recoverable session readiness without changing repository interfaces,
-schemas, migrations, or data. Any later authority-only successor must be read
-from live Git, and current MySQL parity is deferred. The design text below is
+schemas, migrations, or data. Pushed authority successor `58298c9` records that
+checkpoint. The retained incident evidence confirms a temporary Supabase `401`
+on the readiness query but not the provider's underlying reason. Any later
+authority-only successor must be read from live Git, and current MySQL parity is
+deferred. The design text below is
 historical architecture guidance where it uses future tense. See
 `docs/current-authority.md` for current evidence.
 

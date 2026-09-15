@@ -6,14 +6,19 @@ Last updated: 2026-09-15 (Asia/Manila)
 
 `docs/current-authority.md` is canonical and
 `docs/thesis-teammate-handoff.md` is the portable guide. At the start of the
-September 15 synchronization, pushed `main` ended at `13adb9d`. Any later
-authority-only successor is self-referential, so read its exact SHA from live
-Git. The product release is owner-promoted; bounded anonymous Production smoke
-passed `301/301`. The 25/25 online/offline guest UAT remains predecessor evidence
-for `4e9d579` and was not rerun. Current source still has 25 Vehicle destinations
-/ 486 steps and 25 Walking destinations / 690 steps. MySQL parity and full dual-
-backend testing remain deferred. Use only the two current owner prompts below;
-every older prompt is historical.
+September 15 synchronization, pushed `main` ended at `58298c9`, an authority-
+only successor to product release `13adb9d`. Any later authority successor is
+self-referential, so read its exact SHA from live Git. The product release is
+owner-promoted; bounded anonymous Production smoke passed `301/301`. The
+retained September 14 incident log confirms a Supabase `401` on the exact
+session-readiness query at 21:29:01 Asia/Manila, but not why the provider issued
+that temporary response. Read `docs/session-readiness-incident-2026-09-14.md`.
+The 25/25 online/offline guest UAT remains predecessor evidence for `4e9d579`
+and was not rerun. Current source still has 25 Vehicle destinations / 486 steps
+and 25 Walking destinations / 690 steps. MySQL parity and full dual-backend
+testing remain deferred. The next focused product move is a read-only diagnosis
+of the separate presence-heartbeat double-response observation. Use only the
+two current owner prompts below; every older prompt is historical.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -56,38 +61,49 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 session resilience and verified Production)
+## Current Release Continuity (2026-09-15 incident investigation and verified Production)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
 blocks below are historical evidence and do not override this section. At the
 start of this authority synchronization, Git branch `main` had local `HEAD`,
 `origin/main`, and remote `main` equal at
-`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with an empty index,
-a clean worktree, and zero stashes. The owner authorized review of the exact
-18-file authority/static-contract synchronization. Any later commit and push
-remain separately authorized; because an authority commit is self-referential,
-fresh sessions must recompute its exact SHA and status.
+`58298c9fbef860692af30439e7a59b98dcfe5ff0` (`58298c9`), with an empty index,
+a clean worktree, and zero stashes. The owner authorized review of the exact 18
+existing authority/static-contract files plus one new incident record. Any
+later commit and push remain separately authorized; because an authority commit
+is self-referential, fresh sessions must recompute its exact SHA and status.
 
 The current product lineage is `13ae67c` (destination-route corrections),
 `f9679f6` (Walking catalog, chooser, MapLibre/PMTiles maps, labels, and offline
 alignment), `4e9d579` (Walking exits and Academic VI safeguards), `173efef`
-(its authority-only successor), and `13adb9d` (recoverable Production session
-readiness). Production application data and Express sessions target
+(its authority-only successor),
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`; recoverable Production session
+readiness), and `58298c9` (authority-only synchronization for `13adb9d`).
+Production application data and Express sessions target
 Supabase/PostgreSQL; MySQL remains local-development, fallback, and rehearsal.
 Supabase Auth is not used.
 
 The intermittent fixed `Service temporarily unavailable` response came from
-the fail-closed session-readiness gate. The precise upstream trigger for each
-observed incident was not independently proven. The corrected application
-defect was that one failed eager initialization could remain cached for the
-lifetime of a warm Vercel function. `13adb9d` keeps the gate fail-closed but
-adds recoverable single-flight waves: three attempts, a two-second timeout per
-attempt, 250/750 ms retry delays, transient cooldowns of 5/15/30/60 seconds,
-and a 60-second authorization cooldown. Unavailable HTML receives a readable
-reconnecting page; health/API clients retain the fixed sanitized JSON. Both
-use `503`, `Cache-Control: no-store`, and `Retry-After` without exposing backend
-details.
+the fail-closed session-readiness gate. A September 15 read-only review of the
+retained Supabase 24-hour log found the exact readiness query receiving HTTP
+`401` at `2026-09-14 21:29:01` Asia/Manila, within the reported 9:30 PM
+incident window. A session write received `502` at 21:28:30 and a settings read
+received `401` at 21:28:09. This confirms that Supabase's API/gateway rejected
+the readiness verification that activated the gate. The retained row contains
+no provider response body or diagnostic, so it does not prove why Supabase
+temporarily issued the `401`. The Vercel dashboard no longer retained the
+requested invocation window. The full evidence and plain-English explanation
+are in `docs/session-readiness-incident-2026-09-14.md`.
+
+The corrected application defect was that one failed eager initialization
+could remain cached for the lifetime of a warm Vercel function. `13adb9d`
+keeps the gate fail-closed but adds recoverable single-flight waves: three
+attempts, a two-second timeout per attempt, 250/750 ms retry delays, transient
+cooldowns of 5/15/30/60 seconds, and a 60-second authorization cooldown.
+Unavailable HTML receives a readable reconnecting page; health/API clients
+retain the fixed sanitized JSON. Both use `503`, `Cache-Control: no-store`,
+and `Retry-After` without exposing backend details.
 
 Supabase session `get`, `set`, and `touch` operations now use at most two
 attempts with a 200 ms delay only for timeout, network, `408`, `429`, or `5xx`
@@ -136,6 +152,12 @@ admin-write test, exhaustive VR/route traversal, disconnected cold reload, or
 complete immutable-package comparison. Sampled deployed assets are not complete
 deployed-byte equality, and final client/panel acceptance remains external.
 
+A separate September 15 read-only Vercel observation found two
+`ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after `204`
+responses, near one session-store `touch` timeout/retry diagnostic. This is
+not the cause of the September 14 readiness incident and was not diagnosed or
+changed in this authority synchronization.
+
 Online `/map` and the home preview still use the bundled MapLibre/PMTiles campus
 basemap. GitHub Actions publishes signed OSM-derived PMTiles releases to the
 configured public Google Drive delivery location; a signed-in user explicitly
@@ -149,9 +171,10 @@ SELECT-only Supabase evidence, owner/vendor observations, independently run
 Production smoke/UAT, and external acceptance. Fresh Codex and Claude Code
 sessions must inventory actual tools/MCP/skills, ground read-only, report
 discrepancies, and stop for the owner's focused task. After this documentation
-sync, the next product move is one owner-selected bug fix or add/change/remove
-feature. Review/testing and commit/push/deployment require their own authority;
-if verification fails, stop and ask before rollback, patch, promotion, or
+sync, the next focused product move is a read-only diagnosis of the separate
+`/api/presence/heartbeat` double-response observation. Any fix, other feature,
+review/testing, commit/push, or deployment requires its own authority; if
+verification fails, stop and ask before rollback, patch, promotion, or
 redeployment.
 
 ## Historical Release Continuity (2026-09-14 walking exits and verified Production; superseded)
@@ -1388,11 +1411,15 @@ actually available. If an installed `campusphere-readonly-grounding` skill is
 present, read and follow it; do not install or invent it. Reserve the
 `code-reviewer` skill for a later explicitly authorized review. Use repository
 and purpose-built MCP sources before general web research when they are
-available and authorized.
+available and authorized. If a later owner task authorizes live dashboard
+diagnostics and the `computer-use` skill/browser MCP is installed, read and use
+it; do not install, invent, or invoke it during this grounding turn.
 
 Read current authority in this order:
 1. `AGENTS.md` and `CLAUDE.md`.
-2. `docs/current-authority.md`, `CODEX_HANDOFF.md`, and `CLAUDE_HANDOFF.md`.
+2. `docs/current-authority.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, `CODEX_HANDOFF.md`, and
+   `CLAUDE_HANDOFF.md`.
 3. `plan.md`, `ROADMAP.md`, `README.md`, and
    `docs/thesis-teammate-handoff.md`.
 4. `docs/deployment.md`, `docs/security-checklist.md`,
@@ -1411,6 +1438,7 @@ Inspect only enough source to verify the current snapshot:
   and `scripts/vercelPackageBoundary-probe.js`;
 - security/session: `middleware/roleAuth.js`,
   `middleware/securityHeaders.js`, `middleware/rateLimit.js`,
+  `middleware/errorHandler.js`, `controllers/presenceController.js`,
   `config/sessionConfig.js`, `config/supabase.js`,
   `services/sessionReadiness.js`, `services/sessionRevocation.js`,
   `services/mysqlSessionStore.js`, `services/supabaseSessionStore.js`,
@@ -1440,17 +1468,21 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207`,
+- starting authority-sync baseline: `58298c9fbef860692af30439e7a59b98dcfe5ff0`,
   clean and equal locally/upstream/remotely before documentation edits;
-- `173efef` is the preceding authority-only commit; any authority successor
+- `58298c9` is the preceding authority-only commit; any authority successor
   created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
-  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority, and
-  `13adb9d` recoverable Production session readiness;
+  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority,
+  `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`) recoverable
+  Production session readiness, and `58298c9`
+  authority synchronization;
 - the observed fixed unavailable response came from the fail-closed readiness
-  gate. The precise upstream trigger was not independently proven; the repaired
-  application defect was lifetime caching of a failed eager initialization in
-  a warm Vercel function;
+  gate. A retained Supabase log confirms the exact readiness query received
+  `401` at 21:29:01 Asia/Manila in the reported incident window; a nearby
+  session write received `502`. This proves the trigger presented to the app,
+  not why Supabase issued the temporary `401`. The old application defect was
+  lifetime caching of a failed eager initialization in a warm Vercel function;
 - readiness uses single-flight recovery, three attempts, two-second per-attempt
   timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
   a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
@@ -1495,6 +1527,10 @@ Recorded checkpoint to verify rather than repeat blindly:
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
+- a separate September 15 Vercel observation found two
+  `ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after
+  `204` responses near one session-store touch timeout/retry. It is not the
+  cause of the September 14 readiness incident and remains undiagnosed.
 
 Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
 session-readiness and bounded session-store retry model, route metric/color
@@ -1506,10 +1542,12 @@ features and intentional decisions; migrations/no-reapply boundary; security,
 route, VR, media, online/offline behavior; source/local/SELECT-only/owner/vendor/
 Production/external evidence; excluded external systems; limitations; and the
 next move. Do not repair discrepancies during grounding. State that the next
-product move is an owner-selected bug fix or add/change/remove feature, with
-review/testing and later separately authorized commit/push/deployment. If a
-future verification fails, stop and ask before rollback, patch, promotion, or
-redeployment. Stop and wait for the owner's explicit task.
+focused product move is a read-only diagnosis of the separate
+`/api/presence/heartbeat` double-response observation. Do not begin that
+diagnostic during grounding. Any fix, review/testing, commit/push, or deployment
+needs a later explicit owner task. If a future verification fails, stop and ask
+before rollback, patch, promotion, or redeployment. Stop and wait for the
+owner's explicit task.
 ```
 
 ## Claude Code Grounding Prompt
@@ -1543,11 +1581,15 @@ actually available. If an installed `campusphere-readonly-grounding` skill is
 present, read and follow it; do not install or invent it. Reserve the
 `code-reviewer` skill for a later explicitly authorized review. Use repository
 and purpose-built MCP sources before general web research when they are
-available and authorized.
+available and authorized. If a later owner task authorizes live dashboard
+diagnostics and the `computer-use` skill/browser MCP is installed, read and use
+it; do not install, invent, or invoke it during this grounding turn.
 
 Read current authority in this order:
 1. `AGENTS.md` and `CLAUDE.md`.
-2. `docs/current-authority.md`, `CODEX_HANDOFF.md`, and `CLAUDE_HANDOFF.md`.
+2. `docs/current-authority.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, `CODEX_HANDOFF.md`, and
+   `CLAUDE_HANDOFF.md`.
 3. `plan.md`, `ROADMAP.md`, `README.md`, and
    `docs/thesis-teammate-handoff.md`.
 4. `docs/deployment.md`, `docs/security-checklist.md`,
@@ -1566,6 +1608,7 @@ Inspect only enough source to verify the current snapshot:
   and `scripts/vercelPackageBoundary-probe.js`;
 - security/session: `middleware/roleAuth.js`,
   `middleware/securityHeaders.js`, `middleware/rateLimit.js`,
+  `middleware/errorHandler.js`, `controllers/presenceController.js`,
   `config/sessionConfig.js`, `config/supabase.js`,
   `services/sessionReadiness.js`, `services/sessionRevocation.js`,
   `services/mysqlSessionStore.js`, `services/supabaseSessionStore.js`,
@@ -1595,17 +1638,21 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207`,
+- starting authority-sync baseline: `58298c9fbef860692af30439e7a59b98dcfe5ff0`,
   clean and equal locally/upstream/remotely before documentation edits;
-- `173efef` is the preceding authority-only commit; any authority successor
+- `58298c9` is the preceding authority-only commit; any authority successor
   created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
-  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority, and
-  `13adb9d` recoverable Production session readiness;
+  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority,
+  `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`) recoverable
+  Production session readiness, and `58298c9`
+  authority synchronization;
 - the observed fixed unavailable response came from the fail-closed readiness
-  gate. The precise upstream trigger was not independently proven; the repaired
-  application defect was lifetime caching of a failed eager initialization in
-  a warm Vercel function;
+  gate. A retained Supabase log confirms the exact readiness query received
+  `401` at 21:29:01 Asia/Manila in the reported incident window; a nearby
+  session write received `502`. This proves the trigger presented to the app,
+  not why Supabase issued the temporary `401`. The old application defect was
+  lifetime caching of a failed eager initialization in a warm Vercel function;
 - readiness uses single-flight recovery, three attempts, two-second per-attempt
   timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
   a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
@@ -1650,6 +1697,10 @@ Recorded checkpoint to verify rather than repeat blindly:
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
+- a separate September 15 Vercel observation found two
+  `ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after
+  `204` responses near one session-store touch timeout/retry. It is not the
+  cause of the September 14 readiness incident and remains undiagnosed.
 
 Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
 session-readiness and bounded session-store retry model, route metric/color
@@ -1661,10 +1712,12 @@ features and intentional decisions; migrations/no-reapply boundary; security,
 route, VR, media, online/offline behavior; source/local/SELECT-only/owner/vendor/
 Production/external evidence; excluded external systems; limitations; and the
 next move. Do not repair discrepancies during grounding. State that the next
-product move is an owner-selected bug fix or add/change/remove feature, with
-review/testing and later separately authorized commit/push/deployment. If a
-future verification fails, stop and ask before rollback, patch, promotion, or
-redeployment. Stop and wait for the owner's explicit task.
+focused product move is a read-only diagnosis of the separate
+`/api/presence/heartbeat` double-response observation. Do not begin that
+diagnostic during grounding. Any fix, review/testing, commit/push, or deployment
+needs a later explicit owner task. If a future verification fails, stop and ask
+before rollback, patch, promotion, or redeployment. Stop and wait for the
+owner's explicit task.
 ```
 
 ## Portable Teammate Codex Grounding Prompt (source-only)

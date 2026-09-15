@@ -16,6 +16,9 @@ evidence for `4e9d579` and was not rerun. Current source contains 25 Vehicle
 destinations / 486 steps and 25 Walking destinations / 690 steps. MySQL parity
 and a fresh full dual-backend suite remain deferred. Use
 `docs/current-authority.md` for the complete evidence and limitation record.
+Pushed authority successor `58298c9` records that checkpoint. The correlated
+September 14 incident evidence is in
+`docs/session-readiness-incident-2026-09-14.md`.
 
 ## What CampuSphere Is
 
@@ -78,7 +81,8 @@ server.js                Application entry point
 Read current decisions in this order:
 
 1. `AGENTS.md` and `CLAUDE.md` for repository working rules.
-2. `docs/current-authority.md` and this guide.
+2. `docs/current-authority.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, and this guide.
 3. `CODEX_HANDOFF.md`, `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`, and
    `README.md` for detailed history and sequencing.
 4. `docs/deployment.md`, `docs/security-checklist.md`,
@@ -189,10 +193,11 @@ evidence. Tool availability never grants permission to access external systems.
 ## Handoff and Product Next Moves
 
 The synchronized authority is an authority-only successor to product release
-`4e9d579`; read its exact SHA from live Git because the handoff text is
+`13adb9d`; read its exact SHA from live Git because the handoff text is
 self-referential. A later source archive, if wanted, must be created from a clean
 committed SHA with `git archive`. The repository records that owner-promoted
-`4e9d579` passed the corrected bounded anonymous smoke `207/207` and the limited
-guest Production UAT described above. An archive recipient cannot independently
-refresh that external state without owner access. The next product move is an
-owner-selected bug fix or add/change/remove feature.
+`13adb9d` passed bounded anonymous smoke `301/301`; the limited signed-in guest
+UAT belongs to predecessor `4e9d579`. An archive recipient cannot independently
+refresh that external state without owner access. The next focused product move
+is a read-only diagnosis of the separate presence-heartbeat double-response
+observation.

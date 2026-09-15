@@ -7,7 +7,8 @@ outside the repo unless they have been reviewed and explicitly approved.
 ## Current release evidence boundary (2026-09-15)
 
 Current pushed and owner-promoted product source is `13adb9d`, after authority
-predecessor `173efef` and Walking release `4e9d579`. Session readiness passed
+predecessor `173efef` and Walking release `4e9d579`; pushed authority successor
+`58298c9` records the promoted checkpoint. Session readiness passed
 `104/104`, session-store resilience `15/15`, Vercel profile `119/119`, and the
 database-free Vercel package boundary `74/74` at 200 files / 7,461,052 bytes /
 SHA-256 `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
@@ -18,6 +19,12 @@ Full `npm test`, current MySQL parity, `qa:db`, complete identity verification,
 an induced Supabase outage, exhaustive VR/route traversal, disconnected cold
 reload, admin/OAuth/schedule, and real Drive-media coverage remain unestablished.
 See `docs/current-authority.md` for exact evidence classes and limits.
+
+The retained Supabase 24-hour log independently correlates the September 14
+9:30 PM incident with a `401` on the exact readiness query at 21:29:01. A nearby
+session write returned `502`. This proves the trigger presented to the app, not
+the provider's reason for issuing the temporary `401`; see the dedicated
+incident record.
 
 ## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
@@ -42,38 +49,49 @@ authority commit `d294cfd`. This is owner-observed vendor evidence, not an
 independent deployment-identity or Production-behavior result.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 session resilience and verified Production)
+## Current Release Continuity (2026-09-15 incident investigation and verified Production)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
 blocks below are historical evidence and do not override this section. At the
 start of this authority synchronization, Git branch `main` had local `HEAD`,
 `origin/main`, and remote `main` equal at
-`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with an empty index,
-a clean worktree, and zero stashes. The owner authorized review of the exact
-18-file authority/static-contract synchronization. Any later commit and push
-remain separately authorized; because an authority commit is self-referential,
-fresh sessions must recompute its exact SHA and status.
+`58298c9fbef860692af30439e7a59b98dcfe5ff0` (`58298c9`), with an empty index,
+a clean worktree, and zero stashes. The owner authorized review of the exact 18
+existing authority/static-contract files plus one new incident record. Any
+later commit and push remain separately authorized; because an authority commit
+is self-referential, fresh sessions must recompute its exact SHA and status.
 
 The current product lineage is `13ae67c` (destination-route corrections),
 `f9679f6` (Walking catalog, chooser, MapLibre/PMTiles maps, labels, and offline
 alignment), `4e9d579` (Walking exits and Academic VI safeguards), `173efef`
-(its authority-only successor), and `13adb9d` (recoverable Production session
-readiness). Production application data and Express sessions target
+(its authority-only successor),
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`; recoverable Production session
+readiness), and `58298c9` (authority-only synchronization for `13adb9d`).
+Production application data and Express sessions target
 Supabase/PostgreSQL; MySQL remains local-development, fallback, and rehearsal.
 Supabase Auth is not used.
 
 The intermittent fixed `Service temporarily unavailable` response came from
-the fail-closed session-readiness gate. The precise upstream trigger for each
-observed incident was not independently proven. The corrected application
-defect was that one failed eager initialization could remain cached for the
-lifetime of a warm Vercel function. `13adb9d` keeps the gate fail-closed but
-adds recoverable single-flight waves: three attempts, a two-second timeout per
-attempt, 250/750 ms retry delays, transient cooldowns of 5/15/30/60 seconds,
-and a 60-second authorization cooldown. Unavailable HTML receives a readable
-reconnecting page; health/API clients retain the fixed sanitized JSON. Both
-use `503`, `Cache-Control: no-store`, and `Retry-After` without exposing backend
-details.
+the fail-closed session-readiness gate. A September 15 read-only review of the
+retained Supabase 24-hour log found the exact readiness query receiving HTTP
+`401` at `2026-09-14 21:29:01` Asia/Manila, within the reported 9:30 PM
+incident window. A session write received `502` at 21:28:30 and a settings read
+received `401` at 21:28:09. This confirms that Supabase's API/gateway rejected
+the readiness verification that activated the gate. The retained row contains
+no provider response body or diagnostic, so it does not prove why Supabase
+temporarily issued the `401`. The Vercel dashboard no longer retained the
+requested invocation window. The full evidence and plain-English explanation
+are in `docs/session-readiness-incident-2026-09-14.md`.
+
+The corrected application defect was that one failed eager initialization
+could remain cached for the lifetime of a warm Vercel function. `13adb9d`
+keeps the gate fail-closed but adds recoverable single-flight waves: three
+attempts, a two-second timeout per attempt, 250/750 ms retry delays, transient
+cooldowns of 5/15/30/60 seconds, and a 60-second authorization cooldown.
+Unavailable HTML receives a readable reconnecting page; health/API clients
+retain the fixed sanitized JSON. Both use `503`, `Cache-Control: no-store`,
+and `Retry-After` without exposing backend details.
 
 Supabase session `get`, `set`, and `touch` operations now use at most two
 attempts with a 200 ms delay only for timeout, network, `408`, `429`, or `5xx`
@@ -122,6 +140,12 @@ admin-write test, exhaustive VR/route traversal, disconnected cold reload, or
 complete immutable-package comparison. Sampled deployed assets are not complete
 deployed-byte equality, and final client/panel acceptance remains external.
 
+A separate September 15 read-only Vercel observation found two
+`ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after `204`
+responses, near one session-store `touch` timeout/retry diagnostic. This is
+not the cause of the September 14 readiness incident and was not diagnosed or
+changed in this authority synchronization.
+
 Online `/map` and the home preview still use the bundled MapLibre/PMTiles campus
 basemap. GitHub Actions publishes signed OSM-derived PMTiles releases to the
 configured public Google Drive delivery location; a signed-in user explicitly
@@ -135,9 +159,10 @@ SELECT-only Supabase evidence, owner/vendor observations, independently run
 Production smoke/UAT, and external acceptance. Fresh Codex and Claude Code
 sessions must inventory actual tools/MCP/skills, ground read-only, report
 discrepancies, and stop for the owner's focused task. After this documentation
-sync, the next product move is one owner-selected bug fix or add/change/remove
-feature. Review/testing and commit/push/deployment require their own authority;
-if verification fails, stop and ask before rollback, patch, promotion, or
+sync, the next focused product move is a read-only diagnosis of the separate
+`/api/presence/heartbeat` double-response observation. Any fix, other feature,
+review/testing, commit/push, or deployment requires its own authority; if
+verification fails, stop and ask before rollback, patch, promotion, or
 redeployment.
 
 ## Historical Release Continuity (2026-09-14 walking exits and verified Production; superseded)

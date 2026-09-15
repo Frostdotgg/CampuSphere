@@ -6969,6 +6969,8 @@ const CURRENT_AUTHORITY_SYNC_PREDECESSOR_SHA =
   '173efefc70662d58af1c2959b7c7e1a8117a1f37';
 const CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA =
   '13adb9da0e3ff01b6ed853ed1f993c3d2a12a207';
+const CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA =
+  '58298c9fbef860692af30439e7a59b98dcfe5ff0';
 const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
   'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_SESSION_RESILIENCE_VERCEL_DEPLOYMENT_ID =
@@ -7024,16 +7026,18 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 15 session-resilience release and verified Production. */
+  /* Current September 15 incident investigation and verified Production. */
   if (t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
+        !/docs\/session-readiness-incident-2026-09-14\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,140}13adb9d/i.test(t) ||
+        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,140}58298c9/i.test(t) ||
         !/empty index/i.test(t) || !/clean worktree/i.test(t) || !/zero stashes/i.test(t) ||
-        !/authorized review of the exact 18-file authority\/static-contract synchronization/i.test(t) ||
+        !/authorized review of the exact 18 existing authority\/static-contract files plus one new incident record/i.test(t) ||
         !/later commit and push remain separately authorized/i.test(t) ||
         !/self-referential[^.]{0,120}recompute its exact SHA and status/i.test(t) ||
+        !t.includes(CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_AUTHORITY_SYNC_PREDECESSOR_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) ||
@@ -7043,7 +7047,12 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
     if (!/Service temporarily unavailable/i.test(t) ||
         !/fail-closed session-readiness gate/i.test(t) ||
-        !/precise upstream trigger[^.]{0,100}not independently proven/i.test(t) ||
+        !/readiness query receiving HTTP `?401`?[^.]{0,120}2026-09-14 21:29:01/i.test(t) ||
+        !/session write received `?502`? at 21:28:30/i.test(t) ||
+        !/settings read received `?401`? at 21:28:09/i.test(t) ||
+        !/confirms[^.]{0,120}Supabase's API\/gateway rejected the readiness verification/i.test(t) ||
+        !/does not prove why Supabase temporarily issued the `?401`?/i.test(t) ||
+        !/Vercel dashboard no longer retained the requested invocation window/i.test(t) ||
         !/failed eager initialization[^.]{0,120}cached[^.]{0,100}warm Vercel function/i.test(t) ||
         !/recoverable single-flight waves/i.test(t) ||
         !/three attempts/i.test(t) || !/two-second timeout per attempt/i.test(t) ||
@@ -7123,13 +7132,15 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/stores validated guide data[^.]{0,120}IndexedDB/i.test(t) ||
         !/Offline excludes VR panoramas[^.]{0,180}sessions/i.test(t) ||
         !/Evidence classes remain separate/i.test(t) ||
-        !/next product move is one owner-selected bug fix or add\/change\/remove feature/i.test(t) ||
-        !/commit\/push\/deployment require their own authority/i.test(t) ||
+        !/ERR_HTTP_HEADERS_SENT[^.]{0,160}POST `?\/api\/presence\/heartbeat`?[^.]{0,100}`?204`?/i.test(t) ||
+        !/not the cause of the September 14 readiness incident/i.test(t) ||
+        !/next focused product move is a read-only diagnosis[^.]{0,160}`?\/api\/presence\/heartbeat`?/i.test(t) ||
+        !/review\/testing, commit\/push, or deployment requires its own authority/i.test(t) ||
         !/stop and ask before rollback, patch, promotion, or redeployment/i.test(t)) {
       problems.push('UAT scope, offline flow, evidence classes, or next-move boundary is incomplete');
     }
 
-    if (/precise upstream trigger[^.]{0,80}(?:was|is) (?:confirmed|proven|caused by Supabase)/i.test(t) ||
+    if (/reason Supabase[^.]{0,80}(?:issued|returned)[^.]{0,80}(?:was|is) (?:confirmed|proven)/i.test(t) ||
         /current MySQL parity (?:is|was|remains) (?:complete|verified|green)/i.test(t) ||
         /25\/25 online and 25\/25 offline[^.]{0,120}was rerun after `?13adb9d`?/i.test(t) ||
         /complete immutable-package (?:equality|comparison)[^.]{0,80}(?:passed|proven)/i.test(t)) {
@@ -8228,6 +8239,7 @@ function reusablePromptIsCurrent(body) {
   if (t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
+      'docs/session-readiness-incident-2026-09-14.md',
       'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md', 'plan.md', 'ROADMAP.md',
       'README.md', 'docs/thesis-teammate-handoff.md', 'docs/deployment.md',
       'docs/security-checklist.md', 'docs/test-evidence.md',
@@ -8241,6 +8253,7 @@ function reusablePromptIsCurrent(body) {
       'scripts/vercelProductionProfile-probe.js',
       'scripts/vercelPackageBoundary-probe.js', 'middleware/roleAuth.js',
       'middleware/securityHeaders.js', 'middleware/rateLimit.js',
+      'middleware/errorHandler.js', 'controllers/presenceController.js',
       'config/sessionConfig.js', 'config/supabase.js',
       'services/sessionReadiness.js', 'services/sessionRevocation.js',
       'services/mysqlSessionStore.js', 'services/supabaseSessionStore.js',
@@ -8269,16 +8282,21 @@ function reusablePromptIsCurrent(body) {
       /inventory the tools, MCP servers\/connectors[^.]{0,160}browser surfaces[^.]{0,160}skills/i.test(t) &&
       /campusphere-readonly-grounding/i.test(t) && /do not install or invent it/i.test(t) &&
       /code-reviewer[^.]{0,120}later explicitly authorized review/i.test(t) &&
+      /live dashboard diagnostics[^.]{0,160}computer-use/i.test(t) &&
+      /do not install, invent, or invoke it during this grounding turn/i.test(t) &&
       /availability does not expand authority/i.test(t) &&
       /Never read, print, summarize, compare, or package `?\.env`?/i.test(t) &&
       /This prompt grants no access to Supabase, Vercel, Cloudinary, Google Drive/i.test(t) &&
       requiredSurfaces.every((surface) => t.includes(surface)) &&
+      t.includes(CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA) &&
       t.includes(CURRENT_AUTHORITY_SYNC_PREDECESSOR_SHA.slice(0, 7)) &&
       t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA.slice(0, 7)) &&
       t.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) &&
       t.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) &&
       /fail-closed (?:session-)?readiness gate/i.test(t) &&
-      /precise upstream trigger[^.]{0,100}not independently proven/i.test(t) &&
+      /readiness query[^.]{0,80}`?401`?[^.]{0,100}21:29:01 Asia\/Manila/i.test(t) &&
+      /session write received `?502`?/i.test(t) &&
+      /not why Supabase issued the temporary `?401`?/i.test(t) &&
       /(?:failed eager initialization[^.]{0,120}cached|lifetime caching of a failed eager initialization)[^.]{0,100}warm Vercel function/i.test(t) &&
       /three attempts/i.test(t) && /two-second per-attempt timeouts/i.test(t) &&
       /250\/750 ms retry delays/i.test(t) && /5\/15\/30\/60-second transient cooldowns/i.test(t) &&
@@ -8308,6 +8326,9 @@ function reusablePromptIsCurrent(body) {
       /induced Supabase outage/i.test(t) && /disconnected cold reload/i.test(t) &&
       /MapLibre\/PMTiles basemap/i.test(t) && /GitHub Actions publishes/i.test(t) &&
       /users explicitly update IndexedDB/i.test(t) && /service worker is `?v45`?/i.test(t) &&
+      /ERR_HTTP_HEADERS_SENT[^.]{0,160}\/api\/presence\/heartbeat[^.]{0,100}204/i.test(t) &&
+      /not the cause of the September 14 readiness incident/i.test(t) &&
+      /next focused product move[^.]{0,140}read-only diagnosis[^.]{0,160}\/api\/presence\/heartbeat/i.test(t) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
       /evidence classes/i.test(t) && /Stop and wait/i.test(t) &&
@@ -10523,6 +10544,7 @@ function runDocsCurrentGate() {
     'docs/deployment.md': readIf(path.join('docs', 'deployment.md')),
     'docs/offline-map-refresh.md': readIf(path.join('docs', 'offline-map-refresh.md')),
     'docs/current-authority.md': readIf(path.join('docs', 'current-authority.md')),
+    'docs/session-readiness-incident-2026-09-14.md': readIf(path.join('docs', 'session-readiness-incident-2026-09-14.md')),
     'docs/thesis-teammate-handoff.md': readIf(path.join('docs', 'thesis-teammate-handoff.md')),
     'docs/new-session-grounding-prompts.md': readIf(path.join('docs', 'new-session-grounding-prompts.md')),
     'docs/demo-script.md': readIf(path.join('docs', 'demo-script.md')),
@@ -11078,7 +11100,7 @@ function runDocsCurrentGate() {
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-15 session resilience and verified Production)');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-15 incident investigation and verified Production)');
     const historical = raw.indexOf('## Historical Release Continuity', start);
     if (start < 0 || historical <= start) return '';
     return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
@@ -11090,14 +11112,18 @@ function runDocsCurrentGate() {
     new Set(currentSections).size === 1);
 
   const currentAuthority = docs['docs/current-authority.md'];
+  const incidentRecord = docs['docs/session-readiness-incident-2026-09-14.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
-  ok('canonical current authority records 13adb9d source, resilience, Production evidence, limits, and next move',
+  ok('canonical current authority records the correlated incident, 13adb9d resilience, Production evidence, limits, and next move',
     currentAuthority.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA.slice(0, 7)) &&
     currentAuthority.includes(CURRENT_AUTHORITY_SYNC_PREDECESSOR_SHA.slice(0, 7)) &&
     currentAuthority.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA.slice(0, 7)) &&
     currentAuthority.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) &&
     currentAuthority.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) &&
-    /precise upstream trigger[^.]{0,100}not independently proven/i.test(currentAuthority) &&
+    /readiness query receiving HTTP[^.]{0,40}401[^.]{0,120}2026-09-14 21:29:01/i.test(currentAuthority) &&
+    /reason Supabase temporarily[^.]{0,80}401[^.]{0,80}remains unproven/i.test(currentAuthority) &&
+    /session-readiness-incident-2026-09-14\.md/i.test(currentAuthority) &&
     /failed eager initialization[^.]{0,120}cached[^.]{0,100}warm Vercel function/i.test(currentAuthority) &&
     /three attempts[^.]{0,120}two-second timeout per attempt/i.test(currentAuthority) &&
     /Supabase session `?get`?, `?set`?, and `?touch`? use at most two attempts/i.test(currentAuthority) &&
@@ -11116,7 +11142,20 @@ function runDocsCurrentGate() {
     /not rerun after[^.]{0,40}13adb9d/i.test(currentAuthority) &&
     /did not undergo a deliberately induced Supabase outage/i.test(currentAuthority) &&
     /complete\s+immutable-package comparison/i.test(currentAuthority) &&
-    /next product move after this documentation sync is an owner-selected bug\s+fix or add\/change\/remove feature/i.test(currentAuthority));
+    /next focused product move after this documentation sync is a read-only\s+diagnosis[^.]{0,160}\/api\/presence\/heartbeat/i.test(currentAuthority));
+  ok('session-readiness incident record pins the correlated trigger without inventing the provider reason or exposing secrets',
+    /2026-09-14 21:29:01[^.]{0,100}2026-09-14T13:29:01\.899Z/i.test(incidentRecord) &&
+    /GET \/rest\/v1\/app_sessions[^.]{0,100}select=sid&limit=1/i.test(incidentRecord) &&
+    /session write received HTTP `?502`? at 21:28:30/i.test(incidentRecord) &&
+    /settings read received HTTP `?401`? at 21:28:09/i.test(incidentRecord) &&
+    /does not prove why Supabase issued that temporary `?401`?/i.test(incidentRecord) &&
+    /Vercel dashboard no longer retained[^.]{0,140}outside the allowed window/i.test(incidentRecord) &&
+    /predecessor `?4e9d579`?/i.test(incidentRecord) &&
+    /product release `?13adb9d`?/i.test(incidentRecord) &&
+    /\/api\/presence\/heartbeat[^.]{0,160}ERR_HTTP_HEADERS_SENT/i.test(incidentRecord) &&
+    /not evidence[^.]{0,120}September 14 readiness incident/i.test(incidentRecord) &&
+    !/(?:service[_ -]?role|api)[_ -]?key\s*[:=]\s*\S+/i.test(incidentRecord) &&
+    !/sid=eq\./i.test(incidentRecord));
   ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
     /Node\.js `?>=22`?/i.test(teammateHandoff) && /npm ci/i.test(teammateHandoff) &&
     /Repository Map/i.test(teammateHandoff) && /Technology and Security Model/i.test(teammateHandoff) &&
@@ -11151,8 +11190,12 @@ function runDocsCurrentGate() {
       'one stash')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /The owner authorized review of the exact\s+18-file/,
-      'The owner did not authorize review of these 18')).length > 0 &&
+      /The owner authorized review of the exact 18\s+existing authority\/static-contract files plus one new incident record/,
+      'The owner did not authorize review of these files')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      '2026-09-14 21:29:01',
+      '2026-09-14 21:39:01')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
       CURRENT_SESSION_RESILIENCE_VERCEL_DEPLOYMENT_ID,

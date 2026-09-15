@@ -10,11 +10,12 @@ live Git and external state before treating a recorded checkpoint as current.
 
 At the start of this documentation synchronization, branch `main` had local
 `HEAD`, `origin/main`, and remote `main` equal at
-`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with a clean index and
-worktree and zero stashes. The owner authorized the exact 18-file authority/
-static-contract synchronization and review. A later commit and push remain a
-separate owner decision. Because any resulting authority commit contains this
-self-referential record, fresh sessions must recompute its exact SHA and status.
+`58298c9fbef860692af30439e7a59b98dcfe5ff0` (`58298c9`), with a clean index and
+worktree and zero stashes. The owner authorized the exact 18 existing authority/
+static-contract files plus one new incident record and review. A later commit
+and push remain a separate owner decision. Because any resulting authority
+commit contains this self-referential record, fresh sessions must recompute its
+exact SHA and status.
 
 Current lineage:
 
@@ -24,8 +25,11 @@ Current lineage:
 - `4e9d579`: Walking exits, direction-aware navigation, Academic IV/VI shortcut
   preservation, and guarded Academic VI mapping diagnostics.
 - `173efef`: authority-only synchronization for the Walking release.
-- `13adb9d`: recoverable session readiness and bounded Supabase session-store
-  retries for transient Production failures.
+- `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`): recoverable session
+  readiness and bounded Supabase session-store retries for transient Production
+  failures.
+- `58298c9`: authority-only synchronization for the promoted `13adb9d`
+  checkpoint; it changed no product runtime.
 
 The owner promoted exact commit `13adb9d` as Vercel deployment
 `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb`. A signed-in dashboard observation showed it
@@ -53,13 +57,23 @@ support is a validated reference plus authenticated same-origin proxy. Only
 JPEG, PNG, and WebP are served; HEIC/HEIF requires conversion. CampuSphere does
 not manage vendor uploads or accounts.
 
-## Production session resilience
+## Production session incident and resilience
 
 The intermittent fixed `Service temporarily unavailable` response came from
-the fail-closed session-readiness gate. The precise upstream trigger for each
-observed incident was not independently proven. The corrected application
-defect was that one failed eager initialization could remain cached for the
-lifetime of a warm Vercel function.
+the fail-closed session-readiness gate. A September 15 read-only review of the
+retained Supabase 24-hour log found the exact readiness query receiving HTTP
+`401` at `2026-09-14 21:29:01` Asia/Manila, within the owner-reported 9:30 PM
+incident window. A session write received `502` at 21:28:30 and a settings read
+received `401` at 21:28:09. This confirms that Supabase's API/gateway rejected
+the readiness verification that activated the gate. The retained row has no
+provider response body or diagnostic, so the reason Supabase temporarily
+issued the `401` remains unproven. The Vercel dashboard no longer retained the
+requested invocation window.
+
+The corrected application defect was that one failed eager initialization
+could remain cached for the lifetime of a warm Vercel function. The complete
+source/evidence distinction and panel-ready explanation are recorded in
+`docs/session-readiness-incident-2026-09-14.md`.
 
 `13adb9d` preserves fail-closed startup while allowing bounded recovery through
 single-flight waves: three attempts, a two-second timeout per attempt, 250/750
@@ -127,9 +141,9 @@ write lock.
 
 ## Verification and evidence
 
-- **Current Git/source:** product release `13adb9d` is pushed and promoted. Its
-  later authority-only successor exists only after a separately authorized
-  documentation commit, so always read exact Git truth. Review found no
+- **Current Git/source:** product release `13adb9d` is pushed and promoted.
+  Authority-only successor `58298c9` is pushed; any later documentation commit
+  remains self-referential, so always read exact Git truth. Review found no
   Critical/High security, performance, or correctness blocker. Session
   readiness passed `104/104`; session-store resilience passed `15/15`; the
   Vercel Production profile passed `119/119`; Supabase smoke passed; a
@@ -160,6 +174,12 @@ The `401`, `404`, and `302` rows visible in the current Vercel log screenshot
 were created intentionally by the accepted negative security checks; they do
 not represent a failed smoke.
 
+A separate September 15 read-only Vercel observation found two
+`ERR_HTTP_HEADERS_SENT` entries for `POST /api/presence/heartbeat` after `204`
+responses, near one session-store `touch` timeout/retry diagnostic. This is not
+the cause of the September 14 readiness incident and has not been diagnosed or
+changed in this synchronization.
+
 ## Current limitations and next move
 
 No real CSPC instructor Gmail end-to-end OAuth observation is recorded. MySQL
@@ -168,8 +188,8 @@ secrets, live data, sessions, and vendor dashboards require authority from the
 owner's focused task and must never be inferred from repository access.
 
 The current release has no blocker in its bounded anonymous Production smoke.
-The next product move after this documentation sync is an owner-selected bug
-fix or add/change/remove feature. A later release should review and test its
-exact scope, then use separate commit/push and deployment authorization. If a
-future verification or smoke fails, stop and ask before rollback, patch,
-promotion, or redeployment.
+The next focused product move after this documentation sync is a read-only
+diagnosis of the separate `/api/presence/heartbeat` double-response observation.
+Any fix, other add/change/remove feature, review/testing, commit/push, or
+deployment needs its own focused owner task. If a future verification or smoke
+fails, stop and ask before rollback, patch, promotion, or redeployment.
