@@ -1,19 +1,19 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-09-14 (Asia/Manila)
+Last updated: 2026-09-15 (Asia/Manila)
 
 ## Current Handoff Override
 
 `docs/current-authority.md` is canonical and
 `docs/thesis-teammate-handoff.md` is the portable guide. At the start of the
-September 14 synchronization, pushed `main` ended at `4e9d579`. The later
+September 15 synchronization, pushed `main` ended at `13adb9d`. Any later
 authority-only successor is self-referential, so read its exact SHA from live
-Git. The product release is owner-promoted; corrected Production smoke passed
-`207/207` and bounded guest UAT opened 25/25 online and offline building panels.
-Current source has 25 Vehicle destinations / 486 steps and 25 Walking
-destinations / 690 steps.
-MySQL parity and full dual-backend testing remain deferred. Use only the two
-current owner prompts below; every older prompt is historical.
+Git. The product release is owner-promoted; bounded anonymous Production smoke
+passed `301/301`. The 25/25 online/offline guest UAT remains predecessor evidence
+for `4e9d579` and was not rerun. Current source still has 25 Vehicle destinations
+/ 486 steps and 25 Walking destinations / 690 steps. MySQL parity and full dual-
+backend testing remain deferred. Use only the two current owner prompts below;
+every older prompt is historical.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -56,7 +56,105 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-14 walking exits and verified Production)
+## Current Release Continuity (2026-09-15 session resilience and verified Production)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+blocks below are historical evidence and do not override this section. At the
+start of this authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with an empty index,
+a clean worktree, and zero stashes. The owner authorized review of the exact
+18-file authority/static-contract synchronization. Any later commit and push
+remain separately authorized; because an authority commit is self-referential,
+fresh sessions must recompute its exact SHA and status.
+
+The current product lineage is `13ae67c` (destination-route corrections),
+`f9679f6` (Walking catalog, chooser, MapLibre/PMTiles maps, labels, and offline
+alignment), `4e9d579` (Walking exits and Academic VI safeguards), `173efef`
+(its authority-only successor), and `13adb9d` (recoverable Production session
+readiness). Production application data and Express sessions target
+Supabase/PostgreSQL; MySQL remains local-development, fallback, and rehearsal.
+Supabase Auth is not used.
+
+The intermittent fixed `Service temporarily unavailable` response came from
+the fail-closed session-readiness gate. The precise upstream trigger for each
+observed incident was not independently proven. The corrected application
+defect was that one failed eager initialization could remain cached for the
+lifetime of a warm Vercel function. `13adb9d` keeps the gate fail-closed but
+adds recoverable single-flight waves: three attempts, a two-second timeout per
+attempt, 250/750 ms retry delays, transient cooldowns of 5/15/30/60 seconds,
+and a 60-second authorization cooldown. Unavailable HTML receives a readable
+reconnecting page; health/API clients retain the fixed sanitized JSON. Both
+use `503`, `Cache-Control: no-store`, and `Retry-After` without exposing backend
+details.
+
+Supabase session `get`, `set`, and `touch` operations now use at most two
+attempts with a 200 ms delay only for timeout, network, `408`, `429`, or `5xx`
+failures; `401`/`403` authorization failures are not retried. Session destroy
+still targets one exact session id, confirms absence after an ambiguous delete,
+and permits only one bounded retry. Diagnostics are fixed, categorized,
+rate-limited, and omit URLs, keys, cookies, session ids/data, raw errors, and
+backend bodies. Vercel functions are pinned to region `bom1`.
+
+This release changed no public endpoint or success-response schema. Its only
+response-format addition is human-readable HTML for unavailable browser
+requests. It changed no database schema, migration, application row, session
+row, route, Guided-VR sequence/mapping/hotspot, map, offline package, or
+service-worker cache. Migrations remain `0001` through `0027` and are
+owner-reported applied. Migration `0027` and approved route/VR data require
+fresh focused authority before change. Vehicle remains 25 destinations / 486
+steps / 101 unique scenes; Walking remains 25 / 690 / 133, with Walking-only
+reversed exits. Academic IV/VI retain `38 -> 85 -> 94`; Green and Staff House
+decisions remain unchanged. The service worker remains `v45`.
+
+Recorded local/source evidence for `13adb9d` includes session-readiness
+`104/104`, Supabase session-store resilience `15/15`, Vercel Production profile
+`119/119`, Supabase smoke PASS, a Supabase-backed local `/healthz` `200`, zero
+audit vulnerabilities, and passing syntax/whitespace checks. The Vercel package
+boundary passed `74/74`: 200 files, 7,461,052 bytes, aggregate SHA-256
+`3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
+Full `npm test`, current MySQL parity, `qa:db`, and complete identity verification
+were deliberately deferred; no current dual-backend full-suite claim exists.
+
+The owner promoted Vercel deployment
+`dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for exact commit `13adb9d`. A signed-in
+dashboard observation showed it `Ready`, `Latest`, in `Production`, with
+`https://campusphere-cspc.vercel.app` assigned. A bounded anonymous, read-only,
+GET-only Production smoke passed `301/301`: ten consecutive `/healthz` requests
+returned exact `{"status":"ok"}` responses; public pages returned `200`;
+protected HTML redirected `302` to `/auth`; protected JSON returned `401`;
+security headers, no-cookie behavior, safe `400`/`404` rejection, and four
+committed Git-blob asset comparisons passed. The inspected smoke log window
+showed no `5xx`; its orange `401`, `404`, and `302` rows were intentional
+negative checks.
+
+The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
+predecessor evidence for `4e9d579`; it was not rerun after `13adb9d`. Production
+did not undergo a deliberately induced Supabase outage, authenticated/OAuth/
+admin-write test, exhaustive VR/route traversal, disconnected cold reload, or
+complete immutable-package comparison. Sampled deployed assets are not complete
+deployed-byte equality, and final client/panel acceptance remains external.
+
+Online `/map` and the home preview still use the bundled MapLibre/PMTiles campus
+basemap. GitHub Actions publishes signed OSM-derived PMTiles releases to the
+configured public Google Drive delivery location; a signed-in user explicitly
+downloads or updates `/api/offline-guide`, which stores validated guide data and
+the map Blob in IndexedDB. The service worker caches only the reviewed shell and
+static assets. Offline excludes VR panoramas, schedules, photos, private/admin
+data, Drive media, and sessions.
+
+Evidence classes remain separate: source/Git, recorded local checks,
+SELECT-only Supabase evidence, owner/vendor observations, independently run
+Production smoke/UAT, and external acceptance. Fresh Codex and Claude Code
+sessions must inventory actual tools/MCP/skills, ground read-only, report
+discrepancies, and stop for the owner's focused task. After this documentation
+sync, the next product move is one owner-selected bug fix or add/change/remove
+feature. Review/testing and commit/push/deployment require their own authority;
+if verification fails, stop and ask before rollback, patch, promotion, or
+redeployment.
+
+## Historical Release Continuity (2026-09-14 walking exits and verified Production; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`. Older blocks in
 this file are retained as historical evidence and do not override this section.
@@ -1308,13 +1406,16 @@ Inspect only enough source to verify the current snapshot:
 - package/deployment: `package.json`, `package-lock.json`, `.env.example`
   names/placeholders only, `.gitignore`, `.vercelignore`, `.dockerignore`,
   `Dockerfile`, `docker-compose.yml`, `docker-compose.testing.yml`,
-  `vercel.json`, `server.js`, `config/selectedDemoFreeze.js`, and the
-  package-boundary probe;
+  `vercel.json`, `server.js`, `config/vercelProductionProfile.js`,
+  `config/selectedDemoFreeze.js`, `scripts/vercelProductionProfile-probe.js`,
+  and `scripts/vercelPackageBoundary-probe.js`;
 - security/session: `middleware/roleAuth.js`,
   `middleware/securityHeaders.js`, `middleware/rateLimit.js`,
   `config/sessionConfig.js`, `config/supabase.js`,
   `services/sessionReadiness.js`, `services/sessionRevocation.js`,
-  `services/mysqlSessionStore.js`, and `services/supabaseSessionStore.js`;
+  `services/mysqlSessionStore.js`, `services/supabaseSessionStore.js`,
+  `scripts/vercelRuntimeSessionBootstrap-probe.js`, and
+  `scripts/supabaseSessionResilience-probe.js`;
 - routes/maps/offline: `config/guidedVrRoutes.js`, `controllers/vrController.js`,
   `services/guidedVrResolution.js`, `views/vr-mode-choice.ejs`,
   `views/vr-route.ejs`, `utils/routeGeometry.js`,
@@ -1339,12 +1440,29 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `4e9d5798ec2230c861a088808c39abc8a2b59937`,
+- starting authority-sync baseline: `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207`,
   clean and equal locally/upstream/remotely before documentation edits;
-- the documentation/static-contract synchronization is a later authority-only
-  successor; its self-referential commit SHA must come from live Git;
+- `173efef` is the preceding authority-only commit; any authority successor
+  created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
-  `4e9d579` Walking exits and Academic VI safeguards;
+  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority, and
+  `13adb9d` recoverable Production session readiness;
+- the observed fixed unavailable response came from the fail-closed readiness
+  gate. The precise upstream trigger was not independently proven; the repaired
+  application defect was lifetime caching of a failed eager initialization in
+  a warm Vercel function;
+- readiness uses single-flight recovery, three attempts, two-second per-attempt
+  timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
+  a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
+  stays fixed and sanitized; both use `503`, no-store, and `Retry-After`;
+- Supabase session `get`/`set`/`touch` use at most two attempts with a 200 ms
+  delay only for timeout/network/408/429/5xx. Authorization is not retried;
+  destroy remains scoped to one exact session id with an absence check and one
+  bounded retry; diagnostics never expose secrets or session data;
+- Vercel functions are pinned to `bom1`. No public endpoint or success-response
+  schema changed; the only response-format addition is readable unavailable
+  HTML. No database migration/row, session row, route, VR, map, offline package,
+  or service-worker cache changed;
 - current source: Vehicle 25 destinations / 486 steps / 101 unique scenes;
   Walking 25 / 690 / 133; `direction=exit` requires Walking;
 - Academic IV and VI retain `38 -> 85 -> 94`. Academic VI continues
@@ -1357,24 +1475,31 @@ Recorded checkpoint to verify rather than repeat blindly:
   approved media, and 22/22 expected directed loop/shortcut links;
 - migrations `0001-0027` are owner-reported applied; never reapply `0027` or
   change approved 2D/VR routes without fresh authority;
-- package boundary `74/74`: 200 files, 7,449,738 bytes, SHA-256
-  `297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4`;
-- focused Supabase/source checks passed for `4e9d579`; full `npm test` and
-  current MySQL parity were deferred. September 10 full-suite evidence is
-  historical predecessor evidence;
-- owner-promoted `4e9d579` was observed `Ready` in `Production`. Corrected
-  anonymous GET-only smoke passed `207/207`, including Git-blob sampled bytes;
-- guest Production UAT opened 25/25 online and 25/25 offline building panels.
-  It exercised only Academic VI's offline entry and exit and did not prove every
-  VR journey, every 2D route, disconnected cold reload, admin/OAuth/schedule, or
-  real Drive-media behavior;
+- local/source evidence: readiness `104/104`, session-store resilience `15/15`,
+  Vercel Production profile `119/119`, Supabase smoke PASS, Supabase-backed
+  local health `200`, zero audit vulnerabilities, and syntax/whitespace PASS;
+- package boundary `74/74`: 200 files, 7,461,052 bytes, SHA-256
+  `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`;
+- full `npm test`, current MySQL parity, `qa:db`, and complete identity
+  verification were deferred; no current dual-backend full-suite claim exists;
+- owner-promoted deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for `13adb9d`
+  was observed `Ready`, `Latest`, in `Production`, with the canonical alias.
+  Anonymous GET-only smoke passed `301/301`, including ten healthy requests,
+  expected public/protected responses, security/no-cookie checks, safe path
+  rejection, and four committed Git-blob comparisons; the inspected window had
+  no `5xx`;
+- guest Production UAT 25/25 online and 25/25 offline belongs to `4e9d579` and
+  was not rerun. Current Production did not undergo an induced Supabase outage,
+  authenticated/OAuth/admin testing, every VR/route journey, disconnected cold
+  reload, real Drive media, or complete immutable-package verification;
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
 
-Confirm the Production/Supabase/MySQL/Auth/RLS model, route metric/color model,
-map publisher-versus-runtime flow, offline exclusions, Drive JPEG/PNG/WebP
-proxy boundary, and evidence classes from source and current authority.
+Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
+session-readiness and bounded session-store retry model, route metric/color
+model, map publisher-versus-runtime flow, offline exclusions, Drive JPEG/PNG/
+WebP proxy boundary, and evidence classes from source and current authority.
 
 Report Git truth and discrepancies; architecture and repository map; current
 features and intentional decisions; migrations/no-reapply boundary; security,
@@ -1436,13 +1561,16 @@ Inspect only enough source to verify the current snapshot:
 - package/deployment: `package.json`, `package-lock.json`, `.env.example`
   names/placeholders only, `.gitignore`, `.vercelignore`, `.dockerignore`,
   `Dockerfile`, `docker-compose.yml`, `docker-compose.testing.yml`,
-  `vercel.json`, `server.js`, `config/selectedDemoFreeze.js`, and the
-  package-boundary probe;
+  `vercel.json`, `server.js`, `config/vercelProductionProfile.js`,
+  `config/selectedDemoFreeze.js`, `scripts/vercelProductionProfile-probe.js`,
+  and `scripts/vercelPackageBoundary-probe.js`;
 - security/session: `middleware/roleAuth.js`,
   `middleware/securityHeaders.js`, `middleware/rateLimit.js`,
   `config/sessionConfig.js`, `config/supabase.js`,
   `services/sessionReadiness.js`, `services/sessionRevocation.js`,
-  `services/mysqlSessionStore.js`, and `services/supabaseSessionStore.js`;
+  `services/mysqlSessionStore.js`, `services/supabaseSessionStore.js`,
+  `scripts/vercelRuntimeSessionBootstrap-probe.js`, and
+  `scripts/supabaseSessionResilience-probe.js`;
 - routes/maps/offline: `config/guidedVrRoutes.js`, `controllers/vrController.js`,
   `services/guidedVrResolution.js`, `views/vr-mode-choice.ejs`,
   `views/vr-route.ejs`, `utils/routeGeometry.js`,
@@ -1467,12 +1595,29 @@ status, stash count, and a short recent graph. Do not fetch, pull, reset, clean,
 switch, restore, commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- starting authority-sync baseline: `4e9d5798ec2230c861a088808c39abc8a2b59937`,
+- starting authority-sync baseline: `13adb9da0e3ff01b6ed853ed1f993c3d2a12a207`,
   clean and equal locally/upstream/remotely before documentation edits;
-- the documentation/static-contract synchronization is a later authority-only
-  successor; its self-referential commit SHA must come from live Git;
+- `173efef` is the preceding authority-only commit; any authority successor
+  created after this sync is self-referential and must come from live Git;
 - lineage: `13ae67c` destination fixes, `f9679f6` Walking/MapLibre release,
-  `4e9d579` Walking exits and Academic VI safeguards;
+  `4e9d579` Walking exits/Academic VI safeguards, `173efef` authority, and
+  `13adb9d` recoverable Production session readiness;
+- the observed fixed unavailable response came from the fail-closed readiness
+  gate. The precise upstream trigger was not independently proven; the repaired
+  application defect was lifetime caching of a failed eager initialization in
+  a warm Vercel function;
+- readiness uses single-flight recovery, three attempts, two-second per-attempt
+  timeouts, 250/750 ms retry delays, 5/15/30/60-second transient cooldowns, and
+  a 60-second authorization cooldown. Browser HTML is readable; health/API JSON
+  stays fixed and sanitized; both use `503`, no-store, and `Retry-After`;
+- Supabase session `get`/`set`/`touch` use at most two attempts with a 200 ms
+  delay only for timeout/network/408/429/5xx. Authorization is not retried;
+  destroy remains scoped to one exact session id with an absence check and one
+  bounded retry; diagnostics never expose secrets or session data;
+- Vercel functions are pinned to `bom1`. No public endpoint or success-response
+  schema changed; the only response-format addition is readable unavailable
+  HTML. No database migration/row, session row, route, VR, map, offline package,
+  or service-worker cache changed;
 - current source: Vehicle 25 destinations / 486 steps / 101 unique scenes;
   Walking 25 / 690 / 133; `direction=exit` requires Walking;
 - Academic IV and VI retain `38 -> 85 -> 94`. Academic VI continues
@@ -1485,24 +1630,31 @@ Recorded checkpoint to verify rather than repeat blindly:
   approved media, and 22/22 expected directed loop/shortcut links;
 - migrations `0001-0027` are owner-reported applied; never reapply `0027` or
   change approved 2D/VR routes without fresh authority;
-- package boundary `74/74`: 200 files, 7,449,738 bytes, SHA-256
-  `297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4`;
-- focused Supabase/source checks passed for `4e9d579`; full `npm test` and
-  current MySQL parity were deferred. September 10 full-suite evidence is
-  historical predecessor evidence;
-- owner-promoted `4e9d579` was observed `Ready` in `Production`. Corrected
-  anonymous GET-only smoke passed `207/207`, including Git-blob sampled bytes;
-- guest Production UAT opened 25/25 online and 25/25 offline building panels.
-  It exercised only Academic VI's offline entry and exit and did not prove every
-  VR journey, every 2D route, disconnected cold reload, admin/OAuth/schedule, or
-  real Drive-media behavior;
+- local/source evidence: readiness `104/104`, session-store resilience `15/15`,
+  Vercel Production profile `119/119`, Supabase smoke PASS, Supabase-backed
+  local health `200`, zero audit vulnerabilities, and syntax/whitespace PASS;
+- package boundary `74/74`: 200 files, 7,461,052 bytes, SHA-256
+  `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`;
+- full `npm test`, current MySQL parity, `qa:db`, and complete identity
+  verification were deferred; no current dual-backend full-suite claim exists;
+- owner-promoted deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for `13adb9d`
+  was observed `Ready`, `Latest`, in `Production`, with the canonical alias.
+  Anonymous GET-only smoke passed `301/301`, including ten healthy requests,
+  expected public/protected responses, security/no-cookie checks, safe path
+  rejection, and four committed Git-blob comparisons; the inspected window had
+  no `5xx`;
+- guest Production UAT 25/25 online and 25/25 offline belongs to `4e9d579` and
+  was not rerun. Current Production did not undergo an induced Supabase outage,
+  authenticated/OAuth/admin testing, every VR/route journey, disconnected cold
+  reload, real Drive media, or complete immutable-package verification;
 - online/home use the bundled MapLibre/PMTiles basemap. GitHub Actions publishes
   signed OSM-derived offline releases; users explicitly update IndexedDB. The
   service worker is `v45`.
 
-Confirm the Production/Supabase/MySQL/Auth/RLS model, route metric/color model,
-map publisher-versus-runtime flow, offline exclusions, Drive JPEG/PNG/WebP
-proxy boundary, and evidence classes from source and current authority.
+Confirm the Production/Supabase/MySQL/Auth/RLS model, recoverable fail-closed
+session-readiness and bounded session-store retry model, route metric/color
+model, map publisher-versus-runtime flow, offline exclusions, Drive JPEG/PNG/
+WebP proxy boundary, and evidence classes from source and current authority.
 
 Report Git truth and discrepancies; architecture and repository map; current
 features and intentional decisions; migrations/no-reapply boundary; security,
@@ -1549,17 +1701,24 @@ and proxying; VR/content visibility; and relevant migration/probe source. Do not
 execute probes.
 
 Recompute repository root, branch, full HEAD, upstream/remote equality, status,
-stash count, and a short graph using read-only Git commands. Treat 7b4e818 as a
-recorded checkpoint to verify, not as guaranteed archive HEAD. Repository
-authority records its exact Vercel deployment as independently
-Ready/Production/Current with a corrected 127/127 anonymous smoke, while an
-archive recipient cannot independently refresh current Vercel state, live
-Supabase/vendor data, private assets, credentials, sessions, or client
-acceptance. Four recorded asset matches are sampled-byte evidence, not complete
-immutable deployed-package equality. Separate source, recorded QA,
-owner-observed database/UAT, independently verified Production, and external
-milestone evidence. Report contradictions without repairing them, cite
-repository files for technical claims, and wait.
+stash count, and a short graph using read-only Git commands. Treat
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` as the recorded source/Production
+checkpoint to verify, not as guaranteed archive HEAD. Repository authority
+records deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` as Ready, Latest, and in
+Production with a bounded `301/301` anonymous GET-only smoke. It records session
+readiness `104/104`, Supabase session-store resilience `15/15`, Vercel profile
+`119/119`, and package boundary `74/74` at 200 files / 7,461,052 bytes / SHA-256
+`3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
+The 25/25 online and 25/25 offline guest UAT belongs to predecessor `4e9d579`
+and was not rerun. Full `npm test`, current MySQL parity, `qa:db`, and complete
+identity verification were deferred. An archive recipient cannot independently
+refresh Vercel state, live Supabase/vendor data, private assets, credentials,
+sessions, or client acceptance. Four recorded asset matches are sampled-byte
+evidence, not complete immutable deployed-package equality. Separate source,
+recorded local checks, SELECT-only Supabase evidence, owner/vendor observations,
+independently run Production smoke/UAT, and external acceptance. Report
+contradictions without repairing them, cite repository files for technical
+claims, and wait.
 ```
 
 ## Portable Teammate Claude Code Grounding Prompt (source-only)
@@ -1597,17 +1756,24 @@ and proxying; VR/content visibility; and relevant migration/probe source. Do not
 execute probes.
 
 Recompute repository root, branch, full HEAD, upstream/remote equality, status,
-stash count, and a short graph using read-only Git commands. Treat 7b4e818 as a
-recorded checkpoint to verify, not as guaranteed archive HEAD. Repository
-authority records its exact Vercel deployment as independently
-Ready/Production/Current with a corrected 127/127 anonymous smoke, while an
-archive recipient cannot independently refresh current Vercel state, live
-Supabase/vendor data, private assets, credentials, sessions, or client
-acceptance. Four recorded asset matches are sampled-byte evidence, not complete
-immutable deployed-package equality. Separate source, recorded QA,
-owner-observed database/UAT, independently verified Production, and external
-milestone evidence. Report contradictions without repairing them, cite
-repository files for technical claims, and wait.
+stash count, and a short graph using read-only Git commands. Treat
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` as the recorded source/Production
+checkpoint to verify, not as guaranteed archive HEAD. Repository authority
+records deployment `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` as Ready, Latest, and in
+Production with a bounded `301/301` anonymous GET-only smoke. It records session
+readiness `104/104`, Supabase session-store resilience `15/15`, Vercel profile
+`119/119`, and package boundary `74/74` at 200 files / 7,461,052 bytes / SHA-256
+`3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
+The 25/25 online and 25/25 offline guest UAT belongs to predecessor `4e9d579`
+and was not rerun. Full `npm test`, current MySQL parity, `qa:db`, and complete
+identity verification were deferred. An archive recipient cannot independently
+refresh Vercel state, live Supabase/vendor data, private assets, credentials,
+sessions, or client acceptance. Four recorded asset matches are sampled-byte
+evidence, not complete immutable deployed-package equality. Separate source,
+recorded local checks, SELECT-only Supabase evidence, owner/vendor observations,
+independently run Production smoke/UAT, and external acceptance. Report
+contradictions without repairing them, cite repository files for technical
+claims, and wait.
 ```
 
 ## Historical Codex Grounding Prompt (2026-09-07; superseded; do not use)

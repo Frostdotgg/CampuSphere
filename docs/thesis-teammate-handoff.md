@@ -6,15 +6,16 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
-## Current Release Checkpoint (2026-09-14)
+## Current Release Checkpoint (2026-09-15)
 
-Pushed release `4e9d579` is owner-promoted and passed the corrected bounded
-Production smoke `207/207`. Signed-in guest UAT opened all 25 online and all 25
-offline building panels; Academic VI's offline entry and exit were exercised.
-Current source contains 25 Vehicle destinations / 486 steps and 25 Walking
-destinations / 690 steps. MySQL parity and a fresh full dual-backend suite were
-deferred for this release. Use `docs/current-authority.md` for the complete
-evidence and limitation record.
+Pushed release `13adb9d` is owner-promoted and passed bounded anonymous
+Production smoke `301/301`. It improves recovery from temporary Production
+session-store failures without changing routes, VR, maps, offline content, or
+database data. The signed-in 25/25 online/offline guest UAT remains predecessor
+evidence for `4e9d579` and was not rerun. Current source contains 25 Vehicle
+destinations / 486 steps and 25 Walking destinations / 690 steps. MySQL parity
+and a fresh full dual-backend suite remain deferred. Use
+`docs/current-authority.md` for the complete evidence and limitation record.
 
 ## What CampuSphere Is
 

@@ -1,15 +1,17 @@
 # Repository Boundary Design
 
-## Current implementation note (2026-09-14)
+## Current implementation note (2026-09-15)
 
 The repository layer is implemented. Production application data and Express
 sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
 rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
 Express login/role/CSRF checks enforce per-user access even though the service
-role bypasses RLS. Current pushed product source is `4e9d579`; the later
-authority-only successor must be read from live Git, and current MySQL parity is
-deferred. The design text below is historical architecture guidance where it
-uses future tense. See `docs/current-authority.md` for current evidence.
+role bypasses RLS. Current pushed and promoted product source is `13adb9d`; it
+adds recoverable session readiness without changing repository interfaces,
+schemas, migrations, or data. Any later authority-only successor must be read
+from live Git, and current MySQL parity is deferred. The design text below is
+historical architecture guidance where it uses future tense. See
+`docs/current-authority.md` for current evidence.
 
 Design document for the data-access boundary that will be introduced
 between CampuSphere's controllers and the database.

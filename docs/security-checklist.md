@@ -3,7 +3,7 @@
 Milestone 8, Section 8.10. Use this checklist for manual security review and
 defense evidence. Record pass/fail and sanitized notes only.
 
-## Current route/media security status (2026-09-14)
+## Current route/media security status (2026-09-15)
 
 Canonical authority is `docs/current-authority.md`. Owner-applied migration
 `0027` keeps directional geometry and positive geometry-derived metrics in one
@@ -53,14 +53,112 @@ Cloudinary and is cleared when Drive/local media is selected. Existing
 schedule media remain online-only and are excluded from offline-guide storage.
 
 The media implementation source is `83f247a` and is retained by current release
-`4e9d579`. The current corrected Production smoke passed `207/207`, but it did
-not exercise real Drive media. Application responses use CSP
+`13adb9d`. The current bounded Production smoke passed `301/301`, but it did not
+exercise real Drive media or authenticated behavior. Application responses use CSP
 `frame-ancestors 'none'` as the framing control; Vercel-served static files are
 not required to carry every dynamic Helmet header. Sampled static assets
 matched committed Git blobs, which is not complete immutable-package proof.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-14 walking exits and verified Production)
+## Current Release Continuity (2026-09-15 session resilience and verified Production)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+blocks below are historical evidence and do not override this section. At the
+start of this authority synchronization, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with an empty index,
+a clean worktree, and zero stashes. The owner authorized review of the exact
+18-file authority/static-contract synchronization. Any later commit and push
+remain separately authorized; because an authority commit is self-referential,
+fresh sessions must recompute its exact SHA and status.
+
+The current product lineage is `13ae67c` (destination-route corrections),
+`f9679f6` (Walking catalog, chooser, MapLibre/PMTiles maps, labels, and offline
+alignment), `4e9d579` (Walking exits and Academic VI safeguards), `173efef`
+(its authority-only successor), and `13adb9d` (recoverable Production session
+readiness). Production application data and Express sessions target
+Supabase/PostgreSQL; MySQL remains local-development, fallback, and rehearsal.
+Supabase Auth is not used.
+
+The intermittent fixed `Service temporarily unavailable` response came from
+the fail-closed session-readiness gate. The precise upstream trigger for each
+observed incident was not independently proven. The corrected application
+defect was that one failed eager initialization could remain cached for the
+lifetime of a warm Vercel function. `13adb9d` keeps the gate fail-closed but
+adds recoverable single-flight waves: three attempts, a two-second timeout per
+attempt, 250/750 ms retry delays, transient cooldowns of 5/15/30/60 seconds,
+and a 60-second authorization cooldown. Unavailable HTML receives a readable
+reconnecting page; health/API clients retain the fixed sanitized JSON. Both
+use `503`, `Cache-Control: no-store`, and `Retry-After` without exposing backend
+details.
+
+Supabase session `get`, `set`, and `touch` operations now use at most two
+attempts with a 200 ms delay only for timeout, network, `408`, `429`, or `5xx`
+failures; `401`/`403` authorization failures are not retried. Session destroy
+still targets one exact session id, confirms absence after an ambiguous delete,
+and permits only one bounded retry. Diagnostics are fixed, categorized,
+rate-limited, and omit URLs, keys, cookies, session ids/data, raw errors, and
+backend bodies. Vercel functions are pinned to region `bom1`.
+
+This release changed no public endpoint or success-response schema. Its only
+response-format addition is human-readable HTML for unavailable browser
+requests. It changed no database schema, migration, application row, session
+row, route, Guided-VR sequence/mapping/hotspot, map, offline package, or
+service-worker cache. Migrations remain `0001` through `0027` and are
+owner-reported applied. Migration `0027` and approved route/VR data require
+fresh focused authority before change. Vehicle remains 25 destinations / 486
+steps / 101 unique scenes; Walking remains 25 / 690 / 133, with Walking-only
+reversed exits. Academic IV/VI retain `38 -> 85 -> 94`; Green and Staff House
+decisions remain unchanged. The service worker remains `v45`.
+
+Recorded local/source evidence for `13adb9d` includes session-readiness
+`104/104`, Supabase session-store resilience `15/15`, Vercel Production profile
+`119/119`, Supabase smoke PASS, a Supabase-backed local `/healthz` `200`, zero
+audit vulnerabilities, and passing syntax/whitespace checks. The Vercel package
+boundary passed `74/74`: 200 files, 7,461,052 bytes, aggregate SHA-256
+`3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
+Full `npm test`, current MySQL parity, `qa:db`, and complete identity verification
+were deliberately deferred; no current dual-backend full-suite claim exists.
+
+The owner promoted Vercel deployment
+`dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` for exact commit `13adb9d`. A signed-in
+dashboard observation showed it `Ready`, `Latest`, in `Production`, with
+`https://campusphere-cspc.vercel.app` assigned. A bounded anonymous, read-only,
+GET-only Production smoke passed `301/301`: ten consecutive `/healthz` requests
+returned exact `{"status":"ok"}` responses; public pages returned `200`;
+protected HTML redirected `302` to `/auth`; protected JSON returned `401`;
+security headers, no-cookie behavior, safe `400`/`404` rejection, and four
+committed Git-blob asset comparisons passed. The inspected smoke log window
+showed no `5xx`; its orange `401`, `404`, and `302` rows were intentional
+negative checks.
+
+The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
+predecessor evidence for `4e9d579`; it was not rerun after `13adb9d`. Production
+did not undergo a deliberately induced Supabase outage, authenticated/OAuth/
+admin-write test, exhaustive VR/route traversal, disconnected cold reload, or
+complete immutable-package comparison. Sampled deployed assets are not complete
+deployed-byte equality, and final client/panel acceptance remains external.
+
+Online `/map` and the home preview still use the bundled MapLibre/PMTiles campus
+basemap. GitHub Actions publishes signed OSM-derived PMTiles releases to the
+configured public Google Drive delivery location; a signed-in user explicitly
+downloads or updates `/api/offline-guide`, which stores validated guide data and
+the map Blob in IndexedDB. The service worker caches only the reviewed shell and
+static assets. Offline excludes VR panoramas, schedules, photos, private/admin
+data, Drive media, and sessions.
+
+Evidence classes remain separate: source/Git, recorded local checks,
+SELECT-only Supabase evidence, owner/vendor observations, independently run
+Production smoke/UAT, and external acceptance. Fresh Codex and Claude Code
+sessions must inventory actual tools/MCP/skills, ground read-only, report
+discrepancies, and stop for the owner's focused task. After this documentation
+sync, the next product move is one owner-selected bug fix or add/change/remove
+feature. Review/testing and commit/push/deployment require their own authority;
+if verification fails, stop and ask before rollback, patch, promotion, or
+redeployment.
+
+## Historical Release Continuity (2026-09-14 walking exits and verified Production; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`. Older blocks in
 this file are retained as historical evidence and do not override this section.

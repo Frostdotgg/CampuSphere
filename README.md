@@ -22,14 +22,14 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
   shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
-## Current source release (2026-09-14)
+## Current source release (2026-09-15)
 
-Pushed and owner-promoted release `4e9d579` completes Walking exits and
-direction-aware Guided VR after `f9679f6` delivered the Walking catalog,
-travel-mode chooser, MapLibre/PMTiles maps, labels, and offline UI corrections.
-Current source contains 25 Vehicle destinations / 486 steps and 25 Walking
-destinations / 690 steps. The corrected Production smoke passed `207/207` and
-bounded guest UAT opened all 25 online and offline building panels. See
+Pushed and owner-promoted release `13adb9d` adds recoverable fail-closed session
+readiness and bounded Supabase session-store retries to the complete Walking/
+MapLibre release lineage. Its bounded anonymous Production smoke passed
+`301/301`. The earlier 25/25 online/offline signed-in guest UAT remains
+predecessor evidence for `4e9d579` and was not rerun. Current routes remain 25
+Vehicle destinations / 486 steps and 25 Walking destinations / 690 steps. See
 [current authority](docs/current-authority.md) for exact evidence limits,
 deferred MySQL/full-suite work, and the next-task boundary.
 

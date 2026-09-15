@@ -1,13 +1,14 @@
 # Offline CSPC map refresh
 
-Current handoff note (2026-09-14): use `docs/current-authority.md` for release
+Current handoff note (2026-09-15): use `docs/current-authority.md` for release
 truth. Online `/map` and the home preview use the bundled MapLibre/PMTiles
 basemap. GitHub Actions publishes signed OSM-derived PMTiles for explicit
 offline-guide updates through the configured public Drive delivery path. A
 signed-in user downloads validated guide JSON and the map Blob into IndexedDB;
 the service worker `v45` caches the reviewed shell/static allowlist. Production
-guest UAT opened all 25 offline building panels and exercised Academic VI's
-entry and exit, but did not prove a disconnected cold reload or every route.
+guest UAT for predecessor `4e9d579` opened all 25 offline building panels and
+exercised Academic VI's entry and exit, but was not rerun after `13adb9d` and
+did not prove a disconnected cold reload or every route.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

@@ -1,6 +1,6 @@
 # CampuSphere Current Authority
 
-Last updated: 2026-09-14 (Asia/Manila)
+Last updated: 2026-09-15 (Asia/Manila)
 
 This is the canonical current-state summary. Detailed historical evidence stays
 in the handoffs, plan, roadmap, deployment, and test-evidence files. Recompute
@@ -10,11 +10,11 @@ live Git and external state before treating a recorded checkpoint as current.
 
 At the start of this documentation synchronization, branch `main` had local
 `HEAD`, `origin/main`, and remote `main` equal at
-`4e9d5798ec2230c861a088808c39abc8a2b59937` (`4e9d579`), with a clean index and
-worktree and zero stashes. The owner separately authorized review of the exact
-18-file authority/static-contract candidate, one commit, and a push to `main`.
-Because the final authority commit contains this self-referential record, fresh
-sessions must recompute its exact SHA and status.
+`13adb9da0e3ff01b6ed853ed1f993c3d2a12a207` (`13adb9d`), with a clean index and
+worktree and zero stashes. The owner authorized the exact 18-file authority/
+static-contract synchronization and review. A later commit and push remain a
+separate owner decision. Because any resulting authority commit contains this
+self-referential record, fresh sessions must recompute its exact SHA and status.
 
 Current lineage:
 
@@ -23,11 +23,16 @@ Current lineage:
   building/start labels, home preview, and aligned offline start marker.
 - `4e9d579`: Walking exits, direction-aware navigation, Academic IV/VI shortcut
   preservation, and guarded Academic VI mapping diagnostics.
+- `173efef`: authority-only synchronization for the Walking release.
+- `13adb9d`: recoverable session readiness and bounded Supabase session-store
+  retries for transient Production failures.
 
-The owner promoted `4e9d579`. Vercel was observed signed-in with that `main`
-deployment `Ready` in `Production`. The canonical alias is
-`https://campusphere-cspc.vercel.app`. The corrected Production smoke and guest
-UAT described below passed.
+The owner promoted exact commit `13adb9d` as Vercel deployment
+`dpl_5oua8zBjmSpucXSstB2Gn3JUViRb`. A signed-in dashboard observation showed it
+`Ready`, `Latest`, in `Production`, with canonical alias
+`https://campusphere-cspc.vercel.app`. The bounded Production smoke described
+below passed. The signed-in guest UAT remains predecessor evidence for
+`4e9d579`, not a post-`13adb9d` rerun.
 
 ## Architecture and security
 
@@ -48,6 +53,28 @@ support is a validated reference plus authenticated same-origin proxy. Only
 JPEG, PNG, and WebP are served; HEIC/HEIF requires conversion. CampuSphere does
 not manage vendor uploads or accounts.
 
+## Production session resilience
+
+The intermittent fixed `Service temporarily unavailable` response came from
+the fail-closed session-readiness gate. The precise upstream trigger for each
+observed incident was not independently proven. The corrected application
+defect was that one failed eager initialization could remain cached for the
+lifetime of a warm Vercel function.
+
+`13adb9d` preserves fail-closed startup while allowing bounded recovery through
+single-flight waves: three attempts, a two-second timeout per attempt, 250/750
+ms retry delays, transient cooldowns of 5/15/30/60 seconds, and a 60-second
+authorization cooldown. HTML requests receive a readable reconnecting page;
+health/API requests retain the fixed sanitized JSON. Both use `503`,
+`Cache-Control: no-store`, and `Retry-After`.
+
+Supabase session `get`, `set`, and `touch` use at most two attempts with a 200
+ms delay only for timeout, network, `408`, `429`, or `5xx` failures. `401`/`403`
+authorization failures are not retried. Session destroy remains scoped to one
+exact session id and permits only one bounded retry after an absence check.
+Diagnostics expose fixed categories only. Vercel functions are pinned to
+region `bom1`.
+
 ## Current map, route, and Guided-VR behavior
 
 Online `/map` and the home preview use the bundled MapLibre/PMTiles campus
@@ -63,7 +90,7 @@ polyline and round to positive whole metres; walk time uses 1.2 m/s. Entry and
 exit geometries remain independently authored. Entry lines are blue (`#2563eb`),
 exit lines red (`#dc2626`), and written direction labels remain primary.
 
-At `4e9d579` the source catalogs contain:
+The route catalogs are unchanged at `13adb9d`:
 
 | Mode | Destinations | Steps | Unique scenes |
 | --- | ---: | ---: | ---: |
@@ -93,40 +120,45 @@ Migration `0027`, final 2D routes, Guided-VR sequences, mappings, hotspots,
 sessions, or application data require a fresh focused owner task before change.
 Earlier mapping repairs and session revocations are completed history.
 
-Current MySQL parity was deferred for `4e9d579`. Do not describe older MySQL
+Current MySQL parity was deferred for `13adb9d`. Do not describe older MySQL
 sync evidence as current dual-backend equality. The historical 484-step freeze
 also predates the current 486/690 source catalogs and is not a current runtime
 write lock.
 
 ## Verification and evidence
 
-- **Current Git/source:** product release `4e9d579` is pushed. Its later
-  authority-only successor is the live `HEAD` after this authorized push, so
-  read its exact SHA from Git. Focused syntax, whitespace,
-  Guided-VR resolution/navigation, public rendering, Supabase catalog/flow, and
-  Academic VI read-only preflight checks passed.
+- **Current Git/source:** product release `13adb9d` is pushed and promoted. Its
+  later authority-only successor exists only after a separately authorized
+  documentation commit, so always read exact Git truth. Review found no
+  Critical/High security, performance, or correctness blocker. Session
+  readiness passed `104/104`; session-store resilience passed `15/15`; the
+  Vercel Production profile passed `119/119`; Supabase smoke passed; a
+  Supabase-backed local `/healthz` returned `200`; syntax/whitespace checks and
+  audit with zero vulnerabilities passed.
 - **Package:** the database/session/network-free Vercel boundary passed `74/74`:
-  200 files, 7,449,738 bytes, SHA-256
-  `297eedb119406de523a350cb1c2d41969894f99354a79e3b47f1d081296bf6c4`.
-- **Deferred for this release:** full `npm test` and MySQL checks. The September
-  10 `QUALITY-GATES OK`, five-stage QA, residue `18/18`, and BE.6 `46/46` are
-  predecessor evidence.
-- **Production:** corrected anonymous GET-only smoke passed `207/207`. It
-  covered health, safe edge rejection, protected-route denial, security headers,
-  no-cookie behavior, and sampled Git-blob equality. It excluded login, OAuth,
-  schedules, administrator/vendor writes, and database mutation.
-- **Guest UAT:** all 25 online and all 25 offline building panels opened. The
-  offline guide reported 25 entry/25 exit routes. Academic VI entry rendered
-  375 m / 5-6 minutes and exit 461 m / 6-7 minutes.
-- **Limits:** the UAT did not traverse every Guided-VR scene, draw every route,
-  prove disconnected cold reload, test administrator writes, schedules, OAuth,
-  or real Drive media. Sampled assets do not prove immutable equality for the
-  complete deployed package. Final client/panel acceptance remains external.
+  200 files, 7,461,052 bytes, SHA-256
+  `3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f`.
+- **Deferred for this release:** full `npm test`, current MySQL parity,
+  `qa:db`, and complete identity verification. Older full-suite results are
+  predecessor evidence, not current dual-backend proof.
+- **Production:** bounded anonymous GET-only smoke passed `301/301`. Ten
+  consecutive `/healthz` requests returned exact `{"status":"ok"}` responses;
+  public pages returned `200`; protected HTML redirected `302` to `/auth`;
+  protected JSON returned `401`; security headers, no-cookie behavior, safe
+  `400`/`404` rejection, and four committed Git-blob comparisons passed. The
+  inspected smoke log window showed no `5xx`; orange `401`, `404`, and `302`
+  rows were intentional negative checks.
+- **Guest UAT:** the earlier 25/25 online and 25/25 offline building-panel result
+  remains bounded predecessor evidence for `4e9d579`. It was not rerun after
+  `13adb9d`.
+- **Limits:** Production did not undergo a deliberately induced Supabase outage,
+  post-`13adb9d` authenticated UAT, OAuth, administrator writes, exhaustive VR/
+  route traversal, disconnected cold reload, real Drive media, or complete
+  immutable-package comparison. Final client/panel acceptance remains external.
 
-The first Production smoke attempt had three verifier-contract mismatches: a
-stale expected health body, a `404`-only assertion where Vercel safely returned
-`400`, and comparison against CRLF-normalized Windows working-copy bytes. The
-corrected smoke compared deployed assets with committed Git blobs and passed.
+The `401`, `404`, and `302` rows visible in the current Vercel log screenshot
+were created intentionally by the accepted negative security checks; they do
+not represent a failed smoke.
 
 ## Current limitations and next move
 
@@ -135,9 +167,9 @@ parity and a current full dual-backend run remain deferred. External systems,
 secrets, live data, sessions, and vendor dashboards require authority from the
 owner's focused task and must never be inferred from repository access.
 
-The current release has no blocker in the bounded Production smoke or guest
-online/offline UAT. The next product move is an owner-selected bug fix or
-add/change/remove feature. A later release should review and test its exact
-scope, then use separate commit/push and deployment authorization. If a future
-verification or smoke fails, stop and ask before rollback, patch, promotion, or
-redeployment.
+The current release has no blocker in its bounded anonymous Production smoke.
+The next product move after this documentation sync is an owner-selected bug
+fix or add/change/remove feature. A later release should review and test its
+exact scope, then use separate commit/push and deployment authorization. If a
+future verification or smoke fails, stop and ask before rollback, patch,
+promotion, or redeployment.
