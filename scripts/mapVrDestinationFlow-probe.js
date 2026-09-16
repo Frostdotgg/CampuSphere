@@ -15,6 +15,7 @@ const { withServer } = require('./with-server');
 const { hasSupabaseConfig } = require('../config/supabase');
 const {
   GUIDED_VR_ROUTES,
+  VEHICLE_EXIT_GUIDED_VR_ROUTES,
   WALKING_GUIDED_VR_ROUTES,
   DEFERRED_GUIDED_VR_DESTINATIONS
 } = require('../config/guidedVrRoutes');
@@ -181,10 +182,14 @@ async function runMode(scope, base, authSource) {
       const exitWalkingKeys = Array.isArray(exitWalking.scenes)
         ? exitWalking.scenes.map((scene) => scene.scene_key) : [];
       const expectedExitKeys = walkingRoute.scene_keys.slice().reverse();
+      const expectedExitModes = VEHICLE_EXIT_GUIDED_VR_ROUTES.some((route) =>
+        canonical(route && route.destination_name) === canonical(walkingRoute.destination_name))
+        ? ['walking', 'vehicle']
+        : ['walking'];
       check(scope, `${walkingRoute.destination_node_key}: Walking exit reverses the configured chain to main-gate`,
         response.status === 200 && exitWalking.success === true &&
         exitWalking.travel_mode === 'walking' && exitWalking.direction === 'exit' &&
-        JSON.stringify(exitWalking.available_travel_modes) === JSON.stringify(['walking']) &&
+        JSON.stringify(exitWalking.available_travel_modes) === JSON.stringify(expectedExitModes) &&
         exitWalkingKeys.length === expectedExitKeys.length &&
         exitWalkingKeys.every((key, index) => key === expectedExitKeys[index]) &&
         exitWalking.destination_reached === true &&

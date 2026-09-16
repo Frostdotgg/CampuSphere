@@ -20,8 +20,10 @@ const {
 const {
   GUIDED_VR_ROUTES,
   VEHICLE_GUIDED_VR_ROUTES,
+  VEHICLE_EXIT_GUIDED_VR_ROUTES,
   WALKING_GUIDED_VR_ROUTES,
   GUIDED_VR_ROUTES_BY_MODE,
+  GUIDED_VR_EXIT_ROUTES_BY_MODE,
   DEFERRED_GUIDED_VR_DESTINATIONS
 } = require('../config/guidedVrRoutes');
 
@@ -90,6 +92,189 @@ function verifyReverseRoute(route) {
     destinationNodeKey: 'main-gate'
   });
 }
+
+function exitScenesFor(route) {
+  return route.scene_keys.map((sceneKey, index) => ({
+    id: index + 1,
+    scene_key: sceneKey,
+    image_url: `https://res.cloudinary.com/demo/image/upload/${sceneKey}.jpg`,
+    cloudinary_public_id: `campusphere/vr/${sceneKey}`,
+    node_key: index === 0
+      ? route.destination_node_key
+      : (index === route.scene_keys.length - 1 ? 'main-gate' : null)
+  }));
+}
+
+function verifyExplicitExitRoute(route) {
+  return verifyGuidedChain({
+    keys: route.scene_keys,
+    arrivalKey: route.arrival_scene_key,
+    scenes: exitScenesFor(route),
+    links: linksFor(route.scene_keys),
+    startNodeKey: route.destination_node_key,
+    destinationNodeKey: 'main-gate',
+    allowedMissingLinkPairs: route.allowed_missing_link_pairs,
+    allowMissingStartNode: route.allow_unmapped_start === true
+  });
+}
+
+const vehicleExitRoadRange = (start, end) => Array.from(
+  { length: end - start + 1 },
+  (_, offset) => `scene-general-road-${start + offset}`
+);
+
+const expectedVehicleExit = (name, node, sceneKeys) => Object.freeze({
+  name,
+  node,
+  scene_keys: Object.freeze(sceneKeys)
+});
+
+// Independent source-contract manifest for every owner-supplied Vehicle exit.
+// The application catalog is intentionally not used to create these arrays.
+const EXPECTED_VEHICLE_EXIT_ROUTES = Object.freeze([
+  expectedVehicleExit('Academic Building III', 'acad-3', [
+    'scene-cas-1st-floor', 'scene-general-road-39', 'scene-general-road-41',
+    'scene-general-road-42', 'scene-general-road-43', 'scene-general-road-44',
+    'scene-general-road-45', 'scene-general-road-46', 'scene-general-road-47',
+    'scene-general-road-48', 'scene-general-road-49', 'scene-general-road-50',
+    'scene-general-road-51', 'scene-general-road-52', 'scene-general-road-53',
+    ...vehicleExitRoadRange(57, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Academic Building IV', 'ccs', [
+    'scene-ccs-1st-floor', ...vehicleExitRoadRange(94, 94),
+    ...vehicleExitRoadRange(93, 93), ...vehicleExitRoadRange(92, 92),
+    ...vehicleExitRoadRange(91, 91), ...vehicleExitRoadRange(90, 90),
+    ...vehicleExitRoadRange(89, 89), ...vehicleExitRoadRange(88, 88),
+    ...vehicleExitRoadRange(87, 87), ...vehicleExitRoadRange(86, 86),
+    ...vehicleExitRoadRange(85, 85), 'scene-general-road-38',
+    'scene-general-road-38-5', 'scene-general-road-54', 'scene-general-road-53',
+    ...vehicleExitRoadRange(57, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Academic Building VI', 'acad-6', [
+    'scene-chs-1st-floor-001', ...vehicleExitRoadRange(91, 91),
+    ...vehicleExitRoadRange(90, 90), ...vehicleExitRoadRange(89, 89),
+    ...vehicleExitRoadRange(88, 88), ...vehicleExitRoadRange(87, 87),
+    ...vehicleExitRoadRange(86, 86), ...vehicleExitRoadRange(85, 85),
+    'scene-general-road-38', 'scene-general-road-38-5',
+    'scene-general-road-54', 'scene-general-road-53',
+    ...vehicleExitRoadRange(57, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Academic Building V', 'acad-5', [
+    'scene-acad-5-1st-floor-7', ...vehicleExitRoadRange(49, 52),
+    'scene-general-road-53', ...vehicleExitRoadRange(57, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Green Building', 'green', [
+    'scene-green-1st-floor-1', 'scene-general-road-38-5',
+    'scene-general-road-54', 'scene-general-road-53',
+    ...vehicleExitRoadRange(57, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Supply & Property Building', 'supply-property-bldg', [
+    'scene-supply-1st-floor-001', 'scene-general-road-32',
+    'scene-general-road-33', 'scene-general-road-33-5', 'scene-general-road-37',
+    'scene-general-road-38', 'scene-general-road-38-5', 'scene-general-road-54',
+    'scene-general-road-53', ...vehicleExitRoadRange(57, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Academic Building II', 'acad-2', [
+    'scene-acad-2-1st-floor-17', ...vehicleExitRoadRange(60, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('CITD Building', 'citd', [
+    'scene-citd-1st-floor-5', 'scene-general-road-30', 'scene-general-road-31',
+    'scene-general-road-32',
+    'scene-general-road-33', 'scene-general-road-33-5', 'scene-general-road-37',
+    'scene-general-road-38', 'scene-general-road-38-5', 'scene-general-road-54',
+    'scene-general-road-53', ...vehicleExitRoadRange(57, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('MULTI-PURPOSE-BUILDING I', 'multi-1', [
+    'scene-audit-building-006', ...vehicleExitRoadRange(64, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Gymnasium', 'gym', [
+    'scene-gym-1st-floor-bleacher-1', 'scene-general-road-25',
+    'scene-general-road-26', ...vehicleExitRoadRange(65, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Villafuerte Hall', 'villafuerte-hall', [
+    'scene-vh-1', 'scene-pearl-park-17', 'scene-pearl-park-16',
+    'scene-general-road-25', 'scene-general-road-26',
+    ...vehicleExitRoadRange(65, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Pearl Park', 'pearl-park', [
+    'scene-pearl-park-2', 'scene-general-road-25', 'scene-general-road-26',
+    ...vehicleExitRoadRange(65, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Laboratory & Shop Building', 'lab-shop', [
+    'scene-lab-and-shop-building-001', ...vehicleExitRoadRange(21, 26),
+    ...vehicleExitRoadRange(65, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Graduate School Building', 'graduate', [
+    'scene-graduate-school-1st-floor-4', ...vehicleExitRoadRange(20, 26),
+    ...vehicleExitRoadRange(65, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Technohub Building', 'techno-bldg', [
+    'scene-techno-1st-floor-1', 'scene-duran-1st-floor-13',
+    ...vehicleExitRoadRange(15, 18), ...vehicleExitRoadRange(73, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Academic Building I', 'acad-1', [
+    'scene-acad1-1st-floor-4', ...vehicleExitRoadRange(13, 18),
+    ...vehicleExitRoadRange(73, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Multi-Purpose Building II', 'multi-2', [
+    'scene-multi-2-1st-floor-3', ...vehicleExitRoadRange(11, 18),
+    ...vehicleExitRoadRange(73, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('College Dormitory', 'dorm', [
+    'scene-dorm-build-001', 'scene-csc', 'scene-audit-building-018',
+    'scene-audit-building-017', ...vehicleExitRoadRange(67, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Central Student Council', 'csc', [
+    'scene-csc', 'scene-audit-building-018', 'scene-audit-building-017',
+    ...vehicleExitRoadRange(67, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Library Building', 'library', [
+    'scene-library-1st-floor-4', ...vehicleExitRoadRange(69, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('FOOD LABORATORY BUILDING', 'food', [
+    'scene-foodlab-1st-floor-1', ...vehicleExitRoadRange(72, 78),
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Administration Building', 'admin-bldg', [
+    'scene-admin-1st-floor-3', 'scene-general-road-78',
+    'scene-general-road-80', 'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Duran Hall', 'duran', [
+    'scene-duran-1st-floor-6', 'scene-general-road-17', 'scene-general-road-18',
+    ...vehicleExitRoadRange(73, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Freedom Park', 'free-park', [
+    'scene-freedom-park-3', 'scene-general-road-17', 'scene-general-road-18',
+    ...vehicleExitRoadRange(73, 78), 'scene-general-road-80',
+    'scene-general-road-10', 'scene-guard-house'
+  ]),
+  expectedVehicleExit('Staff House', 'staff-house', [
+    'scene-staff-house-1st-floor-2', 'scene-general-road-83',
+    'scene-general-road-84',
+    'scene-general-road-10', 'scene-guard-house'
+  ])
+]);
 
 // Independent source-contract manifest for the walking routes added in this
 // release. The runtime catalog remains the application input; these arrays
@@ -411,6 +596,41 @@ check('destination node keys are unique',
   new Set(GUIDED_VR_ROUTES.map((route) => route.destination_node_key)).size === GUIDED_VR_ROUTES.length);
 check('legacy catalog alias remains the Vehicle catalog',
   GUIDED_VR_ROUTES === VEHICLE_GUIDED_VR_ROUTES && GUIDED_VR_ROUTES_BY_MODE.vehicle === GUIDED_VR_ROUTES);
+check('exactly 25 explicit Vehicle exit routes are configured',
+  VEHICLE_EXIT_GUIDED_VR_ROUTES.length === EXPECTED_VEHICLE_EXIT_ROUTES.length &&
+  GUIDED_VR_EXIT_ROUTES_BY_MODE.vehicle === VEHICLE_EXIT_GUIDED_VR_ROUTES &&
+  GUIDED_VR_EXIT_ROUTES_BY_MODE.walking === WALKING_GUIDED_VR_ROUTES);
+check('Vehicle exit catalog has 545 configured scene steps',
+  VEHICLE_EXIT_GUIDED_VR_ROUTES.reduce((total, route) => total + route.scene_keys.length, 0) === 545);
+check('Vehicle exit destination names and node keys are unique',
+  new Set(VEHICLE_EXIT_GUIDED_VR_ROUTES.map((route) => canonicalize(route.destination_name))).size ===
+    VEHICLE_EXIT_GUIDED_VR_ROUTES.length &&
+  new Set(VEHICLE_EXIT_GUIDED_VR_ROUTES.map((route) => route.destination_node_key)).size ===
+    VEHICLE_EXIT_GUIDED_VR_ROUTES.length);
+check('Vehicle exit routes have no missing-link exceptions after filling the gaps',
+  VEHICLE_EXIT_GUIDED_VR_ROUTES.every((route) =>
+    !Object.prototype.hasOwnProperty.call(route, 'allowed_missing_link_pairs')));
+check('only Staff House retains the unmapped-first-scene exception',
+  JSON.stringify(VEHICLE_EXIT_GUIDED_VR_ROUTES
+    .filter((route) => route.allow_unmapped_start === true)
+    .map((route) => route.destination_node_key)) === JSON.stringify(['staff-house']));
+for (const expected of EXPECTED_VEHICLE_EXIT_ROUTES) {
+  const route = VEHICLE_EXIT_GUIDED_VR_ROUTES.find((entry) =>
+    entry && entry.destination_node_key === expected.node);
+  check(`${expected.node}: Vehicle exit manifest matches the configured route`,
+    !!route && canonicalize(route.destination_name) === canonicalize(expected.name) &&
+    route.arrival_scene_key === 'scene-guard-house' && route.reverse_exit === false &&
+    route.scene_keys.length === expected.scene_keys.length &&
+    JSON.stringify(route.scene_keys) === JSON.stringify(expected.scene_keys) &&
+    new Set(route.scene_keys).size === route.scene_keys.length);
+  const chain = route
+    ? verifyExplicitExitRoute(route)
+    : { complete: false, verifiedKeys: [] };
+  check(`${expected.node}: Vehicle exit fixture reaches main-gate without reversing`,
+    chain.complete === true && chain.verifiedKeys.length === expected.scene_keys.length &&
+    chain.verifiedKeys[0] === expected.scene_keys[0] &&
+    chain.verifiedKeys[chain.verifiedKeys.length - 1] === 'scene-guard-house');
+}
 for (const mode of [
   ['Vehicle', VEHICLE_GUIDED_VR_ROUTES],
   ['Walking', WALKING_GUIDED_VR_ROUTES]
@@ -575,6 +795,36 @@ check('missing reverse link stops the chain', (function () {
   const links = linksFor(first.scene_keys).filter((link) => !(link.fromKey === to && link.toKey === from));
   const result = verifyRoute(first, scenesFor(first), links);
   return !result.complete && result.verifiedKeys.length === 2 && result.stoppedBefore === to;
+})());
+check('explicit exit may follow its approved ordered sequence without stored links', (function () {
+  const result = verifyGuidedChain({
+    keys: ['scene-a', 'scene-b'],
+    arrivalKey: 'scene-b',
+    scenes: [
+      { scene_key: 'scene-a', image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', cloudinary_public_id: 'campusphere/vr/a', node_key: 'sample-destination' },
+      { scene_key: 'scene-b', image_url: 'https://res.cloudinary.com/demo/image/upload/b.jpg', cloudinary_public_id: 'campusphere/vr/b', node_key: 'main-gate' }
+    ],
+    links: [],
+    startNodeKey: 'sample-destination',
+    destinationNodeKey: 'main-gate',
+    allowedMissingLinkPairs: [['scene-a', 'scene-b']]
+  });
+  return result.complete && result.verifiedKeys.length === 2;
+})());
+check('explicit exit may start at an unmapped road scene only when opted in', (function () {
+  const result = verifyGuidedChain({
+    keys: ['scene-road-start', 'scene-b'],
+    arrivalKey: 'scene-b',
+    scenes: [
+      { scene_key: 'scene-road-start', image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', cloudinary_public_id: 'campusphere/vr/a', node_key: null },
+      { scene_key: 'scene-b', image_url: 'https://res.cloudinary.com/demo/image/upload/b.jpg', cloudinary_public_id: 'campusphere/vr/b', node_key: 'main-gate' }
+    ],
+    links: linksFor(['scene-road-start', 'scene-b']),
+    startNodeKey: 'sample-destination',
+    destinationNodeKey: 'main-gate',
+    allowMissingStartNode: true
+  });
+  return result.complete && result.verifiedKeys.length === 2;
 })());
 
 console.log('=== Target-specific navigation ===');

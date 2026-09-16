@@ -74,7 +74,7 @@ function resetContract(source) {
 
 function workerContract(source) {
   const precache = (source.match(/PRECACHE_URLS\s*=\s*\[([\s\S]*?)\]/) || [])[1] || '';
-return /CACHE_VERSION\s*=\s*'v45'/.test(source) &&
+return /CACHE_VERSION\s*=\s*'v48'/.test(source) &&
     !/CACHE_VERSION\s*=\s*'v40'/.test(source) &&
     (precache.match(/\/css\/styles\.css\?v=\d+/g) || []).length === 1 &&
     precache.includes("'/css/styles.css?v=12'");
@@ -196,7 +196,7 @@ check('cache', 'every shared stylesheet consumer uses v11',
   stylesheetConsumers.every((source) =>
     (source.match(/\/css\/styles\.css\?v=\d+/g) || []).length === 1 &&
     source.includes('/css/styles.css?v=12')));
-check('cache', 'service worker advances to v45 and precaches only the v12 stylesheet',
+check('cache', 'service worker advances to v48 and precaches only the v12 stylesheet',
   workerContract(serviceWorker));
 
 console.log('\n[shared buttons] rejecting fixtures');
@@ -207,7 +207,7 @@ check('fixtures', 'removing the secondary variant is rejected',
 check('fixtures', 'a low-contrast route endpoint is rejected',
   !themeContrastIsAa({ ...lightVars, '--route-action-bg-end': '#22c55e' }));
 check('fixtures', 'a stale v40 worker is rejected',
-!workerContract(serviceWorker.replace("CACHE_VERSION = 'v45'", "CACHE_VERSION = 'v44'")));
+!workerContract(serviceWorker.replace("CACHE_VERSION = 'v48'", "CACHE_VERSION = 'v47'")));
 
 if (failures.length === 0) {
   console.log(`\nSHARED-BUTTON-THEME-PROBE OK: ${checks}/${checks}`);

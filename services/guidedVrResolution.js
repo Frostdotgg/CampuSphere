@@ -191,6 +191,17 @@ function hasApprovedMediaMetadata(row) {
  * @param {Array}  input.links       scene->scene links: { fromKey, toKey }
  *                                   (hotspot_type='scene' only; ids already
  *                                   translated to keys within the VR backend)
+ * @param {Array}  [input.allowedMissingLinkPairs=[]] explicit undirected
+ *                                   adjacent pairs that are intentionally
+ *                                   absent from stored hotspots. Every other
+ *                                   pair still requires exactly one forward
+ *                                   and reverse link; scene/key/media checks
+ *                                   remain mandatory.
+ * @param {boolean} [input.allowMissingStartNode=false] permit a null stored
+ *                                   node_key on the first scene. This is only
+ *                                   for an explicit route whose first
+ *                                   panorama is intentionally unmapped; a
+ *                                   non-null wrong node still fails closed.
  * @param {Function} [input.mediaOk] override the media predicate (test hook);
  *                                   defaults to approved Cloudinary metadata or
  *                                   an approved Google Drive file link
@@ -203,7 +214,9 @@ function hasApprovedMediaMetadata(row) {
  *   - every scene admitted must have approved Cloudinary metadata or an
  *     approved Google Drive file link;
  *   - stored first/final node keys must match the configured natural endpoints;
- *   - every adjacent pair needs exactly ONE forward and ONE reverse link;
+ *   - every adjacent pair needs exactly ONE forward and ONE reverse link,
+ *     except a pair explicitly present in allowedMissingLinkPairs, which
+ *     must have zero links in both directions;
  *   - the first failing condition stops the prefix BEFORE that scene;
  *   - complete requires ALL keys verified AND the last verified key equals
  *     arrivalKey (never scenes.length).
@@ -222,6 +235,14 @@ function verifyGuidedChain(input) {
   const destinationNodeKey = input && typeof input.destinationNodeKey === 'string'
     ? input.destinationNodeKey.trim()
     : '';
+  const allowMissingStartNode = input && input.allowMissingStartNode === true;
+  const allowedMissingLinkPairs = new Set(
+    (input && Array.isArray(input.allowedMissingLinkPairs) ? input.allowedMissingLinkPairs : [])
+      .filter((pair) => Array.isArray(pair) && pair.length === 2 &&
+        typeof pair[0] === 'string' && typeof pair[1] === 'string' &&
+        pair[0].trim() !== '' && pair[1].trim() !== '')
+      .map((pair) => [pair[0].trim(), pair[1].trim()].sort().join('>'))
+  );
 
   // Unique scene resolution by key; a duplicated key is ambiguous -> excluded.
   const byKey = new Map();
@@ -242,7 +263,8 @@ function verifyGuidedChain(input) {
 
   const configuredUnique = new Set(keys).size === keys.length;
   const endpointOk = (row, index) => {
-    if (startNodeKey !== '' && index === 0 && row.node_key !== startNodeKey) return false;
+    if (startNodeKey !== '' && index === 0 && row.node_key !== startNodeKey &&
+        !(allowMissingStartNode && row.node_key == null)) return false;
     if (destinationNodeKey !== '' && index === keys.length - 1 && row.node_key !== destinationNodeKey) {
       return false;
     }
@@ -266,8 +288,16 @@ function verifyGuidedChain(input) {
     const fromKey = keys[i];
     const toKey = keys[i + 1];
     if (!resolvable(toKey, i + 1)) { stoppedBefore = toKey; break; }
-    if ((linkCount.get(fromKey + '>' + toKey) || 0) !== 1) { stoppedBefore = toKey; break; }
-    if ((linkCount.get(toKey + '>' + fromKey) || 0) !== 1) { stoppedBefore = toKey; break; }
+    const forwardLinks = linkCount.get(fromKey + '>' + toKey) || 0;
+    const reverseLinks = linkCount.get(toKey + '>' + fromKey) || 0;
+    const pairKey = [fromKey, toKey].sort().join('>');
+    const pairIsExplicitlyUnlinked = allowedMissingLinkPairs.has(pairKey);
+    const linksAreValid = (forwardLinks === 1 && reverseLinks === 1) ||
+      (pairIsExplicitlyUnlinked && forwardLinks === 0 && reverseLinks === 0);
+    if (!linksAreValid) {
+      stoppedBefore = toKey;
+      break;
+    }
     verified.push(byKey.get(toKey));
   }
 

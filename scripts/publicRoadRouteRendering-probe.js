@@ -270,10 +270,10 @@ function runStaticSourceGate(src) {
   // Unchanged API endpoints.
   check(scope, 'unchanged API: /api/pathfind + /api/routes still queried',
     src.includes('/api/pathfind?start=') && src.includes('/api/routes?start='));
-  check(scope, 'directional exit action uses startBuildingId and exposes walking Exit VR',
+  check(scope, 'directional exit action uses startBuildingId and exposes Exit VR',
     src.includes('id="panelExitBtn"') && src.includes('startBuildingId=') &&
     src.includes("if (isExit && destId !== null)") &&
-    src.includes("direction=exit") && src.includes('Start Walking Exit VR') &&
+    src.includes("direction=exit") && src.includes('Start VR Exit VR') &&
     src.includes('Exit to Main Gate'));
   check(scope, 'route computation is not duplicated in the browser (no client Dijkstra/edges fetch)',
     !/dijkstra/i.test(src) && !src.includes('route_edges') && !src.includes('/api/route-edges'));

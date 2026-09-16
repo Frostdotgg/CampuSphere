@@ -20,12 +20,12 @@
         public/vendor/manifest.json). The former unpkg "lucide@latest" reference
         executed whatever build the CDN served at request time. %>
     <script src="/vendor/lucide/lucide.min.js"></script>
-    <!-- Leaflet 1.9.4 for the RF.4 road-geometry editor. M12.P1-R6: CSS is now
-         self-hosted alongside the already self-hosted JS, so the editor loads no
-         executable or style asset from a CDN. leaflet.css resolves its control
-         and marker images relatively from /vendor/leaflet/images/. -->
-    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
-    <script src="/vendor/leaflet/leaflet.js" defer></script>
+    <!-- The RF.4 road-geometry editor shares the online/offline campus
+         basemap: self-hosted MapLibre GL JS + PMTiles, with no public tile
+         service or CDN dependency. -->
+    <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css" />
+    <script src="/vendor/maplibre/maplibre-gl.js" defer></script>
+    <script src="/vendor/pmtiles/pmtiles.js" defer></script>
     <meta name="csrf-token" content="<%= csrfToken %>">
     <script src="/js/user-presence.js" defer></script>
     <script src="/js/admin/main.js" defer></script>
@@ -460,7 +460,8 @@
                             coordinates in the list for keyboard control. Endpoints are locked to the node coordinates. Saving
                             saves this direction only; “Clear” removes geometry from this direction. Edit the reverse edge separately for a dedicated exit path.
                         </p>
-                        <div id="edge-geo-map" style="height:260px;width:100%;max-width:100%;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;background:#11151c;"></div>
+                        <div id="edge-geo-map" style="height:260px;width:100%;max-width:100%;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;background:#11151c;" aria-label="Campus road geometry editor map"></div>
+                        <p id="edge-geo-map-status" class="text-muted-foreground" style="display:none;font-size:0.78rem;margin:0.35rem 0 0;" role="status" aria-live="polite"></p>
                         <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;">
                             <button type="button" id="edge-geo-add" class="ui-button ui-button-outline ui-button-size-sm">Add waypoint</button>
                             <button type="button" id="edge-geo-undo" class="ui-button ui-button-outline ui-button-size-sm">Undo</button>
@@ -554,6 +555,7 @@
          server-side (boolean + fixed reason code + route-source id) — no graph
          payload, node key, or backend error is exposed. -->
     <script id="buildings-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(buildings.map(b => ({ id: b.id, name: b.name, category: b.category, description: b.description, lat: b.lat, lng: b.lng, details: b.details, image_url: b.image_url, cloudinary_public_id: b.cloudinary_public_id, created_at: b.created_at, updated_at: b.updated_at, route_available: b.route_available, route_destination_id: b.route_destination_id, route_unavailable_reason: b.route_unavailable_reason, exit_route_available: b.exit_route_available, exit_route_unavailable_reason: b.exit_route_unavailable_reason }))) %></script>
+    <script id="admin-map-config" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({ basemap: mapBasemap || null }) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

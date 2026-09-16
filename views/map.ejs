@@ -63,6 +63,18 @@
         .map-free-roam__text { display: flex; flex-direction: column; min-width: 0; }
         .map-free-roam__label { font-weight: 700; font-size: .95rem; }
         .map-free-roam__hint { font-size: .78rem; opacity: .7; }
+
+        /* MAP_MOBILE_LABEL_SIZE_START: keep phone maps compact without
+           shrinking the 44px marker hit targets or the route-start label. */
+        @media (max-width: 768px) {
+            .map-page .map-building-label--leaflet,
+            .map-page .map-building-label--maplibre,
+            .map-page .map-building-label--fallback,
+            .map-page .map-start-label {
+                font-size: 8px;
+            }
+        }
+        /* MAP_MOBILE_LABEL_SIZE_END */
     </style>
 </head>
 
@@ -371,6 +383,10 @@
             ? MAP_CONFIG.basemap : null;
         const MAP_START_NODE = MAP_CONFIG.startNode && typeof MAP_CONFIG.startNode === 'object'
             ? MAP_CONFIG.startNode : null;
+        // Keep the full online map opening camera aligned with the offline map.
+        // MapLibre uses [longitude, latitude]; the manifest center remains
+        // release metadata rather than the user-facing opening position.
+        const MAP_OPENING_CENTER = Object.freeze([123.374590, 13.405872]);
 
         // Sidebar / search DOM
         const bldgList = document.getElementById('bldgList');
@@ -1838,7 +1854,7 @@
                     routePanelVrBtn.href = vrRouteId
                         ? '/vr/routes/' + vrRouteId + '?direction=exit'
                         : '/vr/to/' + destId + '?direction=exit';
-                    routePanelVrBtn.textContent = 'Start Walking Exit VR';
+                    routePanelVrBtn.textContent = 'Start VR Exit VR';
                     routePanelVrBtn.removeAttribute('aria-disabled');
                     routePanelVrBtn.classList.remove('is-disabled');
                     routePanelVrBtn.hidden = false;
@@ -2137,7 +2153,9 @@
             }
 
             try {
-                leafletMap = L.map('mapView').setView([13.40591, 123.37362], 17);
+                leafletMap = L.map('mapView').setView(
+                    [MAP_OPENING_CENTER[1], MAP_OPENING_CENTER[0]], 17
+                );
                 const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors',
                     // OSM's web-tile policy requires a valid Referer. Keep
@@ -2262,8 +2280,10 @@
                 maplibreMap = new maplibregl.Map({
                     container: 'mapView',
                     style,
-                    center: Array.isArray(MAP_BASEMAP.center) ? MAP_BASEMAP.center : [123.375604, 13.405885],
+                    center: MAP_OPENING_CENTER,
                     zoom: 16.5,
+                    bearing: 0,
+                    pitch: 0,
                     minZoom: 12,
                     maxZoom: 19,
                     maxBounds: Array.isArray(MAP_BASEMAP.bounds) && MAP_BASEMAP.bounds.length === 4
@@ -2333,7 +2353,12 @@
                         maplibreMarkers[b.id] = marker;
                     }
                 });
-                maplibreMap.on('move zoom resize', scheduleMapLabelLayout);
+                // MapLibre registers one event type per on() call. Keep each
+                // camera event separate so labels are reconsidered after a
+                // phone pans, zooms, or changes viewport size.
+                maplibreMap.on('move', scheduleMapLabelLayout);
+                maplibreMap.on('zoom', scheduleMapLabelLayout);
+                maplibreMap.on('resize', scheduleMapLabelLayout);
                 maplibreMap.once('idle', scheduleMapLabelLayout);
                 scheduleMapLabelLayout();
             } catch (e) {

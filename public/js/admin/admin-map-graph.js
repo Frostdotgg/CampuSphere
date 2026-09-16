@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveButton = $('edge-geo-save'); if (saveButton) saveButton.style.display = 'none';
     const map = geoEnsureMap();
     geoRender(); geoAutoCalculate(); geoStatus('Draw the path, then review the calculated distance and walk time before creating the edge.');
-    if (map) setTimeout(() => { try { map.invalidateSize(); geoFitBounds(); } catch (e) {} }, 60);
+    if (map) setTimeout(() => { try { map.resize(); geoFitBounds(); } catch (e) {} }, 60);
   }
   $('edge-from') && $('edge-from').addEventListener('change', () => { if (state.edgeMode === 'create') geoSetCreateEndpoints(false); });
   $('edge-to') && $('edge-to').addEventListener('change', () => { if (state.edgeMode === 'create') geoSetCreateEndpoints(false); });
@@ -678,14 +678,15 @@ document.addEventListener('DOMContentLoaded', () => {
   ============================================================ */
   const GEO_HISTORY_MAX = 50;
   const geo = {
-    map: null, editId: null,
+    map: null, protocol: null, editId: null,
     from: null, to: null,               // { lat, lng, label }
     waypoints: [], cleared: false,
     metricsMode: 'calculated',
     syncingMetrics: false,
     history: [],
-    layers: { from: null, to: null, mid: [], line: null },
-    busy: false, ready: false,
+    layers: { from: null, to: null, mid: [] },
+    busy: false, ready: false, basemapReady: false, basemapSourceLoaded: false,
+    basemapFailed: false, tileErrors: 0,
     // RF.4 repair (Finding 3): monotonic load generation. Every teardown
     // bumps it, so a slow async load/save from an older editor session is
     // discarded and can never overwrite a newer session's state.
@@ -740,7 +741,50 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isInteger(distance_meters) && distance_meters > 0 && Number.isInteger(walk_time_seconds) && walk_time_seconds > 0
       ? { distance_meters, walk_time_seconds } : null;
   }
-  function geoLeaflet() { return (typeof L !== 'undefined') ? L : null; }
+  const ADMIN_MAP_CONFIG = (() => {
+    try {
+      const el = $('admin-map-config');
+      const parsed = el ? JSON.parse(el.textContent || '{}') : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) { return {}; }
+  })();
+  const ADMIN_BASEMAP = ADMIN_MAP_CONFIG.basemap && typeof ADMIN_MAP_CONFIG.basemap === 'object'
+    ? ADMIN_MAP_CONFIG.basemap : null;
+  const ADMIN_MAP_OPENING_CENTER = [123.374590, 13.405872];
+  const GEO_LINE_SOURCE = 'edge-geometry';
+  const GEO_LINE_LAYER = 'edge-geometry-line';
+  function adminBasemapAsset() {
+    const asset = ADMIN_BASEMAP && typeof ADMIN_BASEMAP.asset === 'string' ? ADMIN_BASEMAP.asset : '';
+    return /^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/i.test(asset) ? asset : null;
+  }
+  function adminBasemapBounds() {
+    const bounds = ADMIN_BASEMAP && Array.isArray(ADMIN_BASEMAP.bounds) ? ADMIN_BASEMAP.bounds : null;
+    return bounds && bounds.length === 4 && bounds.every((value) => Number.isFinite(Number(value)))
+      ? bounds.map((value) => Number(value)) : null;
+  }
+  function buildAdminBasemapStyle(asset) {
+    const attribution = ADMIN_BASEMAP && typeof ADMIN_BASEMAP.attribution === 'string' && ADMIN_BASEMAP.attribution.trim()
+      ? ADMIN_BASEMAP.attribution : 'Protomaps © OpenStreetMap contributors';
+    return {
+      version: 8,
+      sources: {
+        campus: {
+          type: 'vector',
+          url: 'pmtiles://' + asset,
+          attribution
+        }
+      },
+      layers: [
+        { id: 'background', type: 'background', paint: { 'background-color': '#edf1e8' } },
+        { id: 'earth', type: 'fill', source: 'campus', 'source-layer': 'earth', paint: { 'fill-color': '#f5f2e8' } },
+        { id: 'landuse', type: 'fill', source: 'campus', 'source-layer': 'landuse', paint: { 'fill-color': '#dfead9', 'fill-opacity': 0.7 } },
+        { id: 'water', type: 'fill', source: 'campus', 'source-layer': 'water', paint: { 'fill-color': '#b8dbe8' } },
+        { id: 'roads-casing', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#c4c1b8', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 2, 18, 8] } },
+        { id: 'roads', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 5] } },
+        { id: 'buildings', type: 'fill', source: 'campus', 'source-layer': 'buildings', paint: { 'fill-color': '#c9c5b8', 'fill-outline-color': '#9d998f', 'fill-opacity': 0.88 } }
+      ]
+    };
+  }
   function edgeModalOpen() { const m = $('edge-modal'); return !!m && m.classList.contains('modal--open'); }
   // A pending async result is still valid only if its captured token, the
   // current editId, and the still-open edge modal all match.
@@ -768,27 +812,112 @@ document.addEventListener('DOMContentLoaded', () => {
     const ep = $('edge-geo-endpoints'); if (ep) ep.textContent = '';
     const btn = $('edge-geo-save'); if (btn) { btn.disabled = false; btn.style.display = 'none'; }
     geoSetMetricsBadge('calculated');
+    geoMapStatus(geo.basemapFailed ? 'Campus basemap is unavailable. The ordered coordinate list remains usable.' : '', geo.basemapFailed);
   }
   function geoClearLayers() {
     const map = geo.map; if (!map) return;
-    ['from', 'to', 'line'].forEach((k) => { if (geo.layers[k]) { try { map.removeLayer(geo.layers[k]); } catch (e) {} geo.layers[k] = null; } });
-    geo.layers.mid.forEach((mk) => { try { map.removeLayer(mk); } catch (e) {} });
+    ['from', 'to'].forEach((k) => { if (geo.layers[k]) { try { geo.layers[k].remove(); } catch (e) {} geo.layers[k] = null; } });
+    geo.layers.mid.forEach((mk) => { try { mk.remove(); } catch (e) {} });
     geo.layers.mid = [];
+    if (geo.basemapReady && typeof map.getSource === 'function') {
+      const source = map.getSource(GEO_LINE_SOURCE);
+      if (source && typeof source.setData === 'function') {
+        source.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+  }
+  function geoMapStatus(message, visible) {
+    const el = $('edge-geo-map-status'); if (!el) return;
+    el.textContent = message || '';
+    el.style.display = visible && message ? '' : 'none';
+  }
+  function geoMapUnavailable(message) {
+    geo.basemapFailed = true;
+    const text = message || 'Campus basemap is temporarily unavailable. The ordered coordinate list remains usable.';
+    geoMapStatus(text, true);
+    geoStatus(text);
+  }
+  function geoEnsureOverlay() {
+    const map = geo.map;
+    if (!map || !geo.basemapReady || typeof map.getSource !== 'function') return false;
+    if (!map.getSource(GEO_LINE_SOURCE)) {
+      map.addSource(GEO_LINE_SOURCE, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+    }
+    if (!map.getLayer(GEO_LINE_LAYER)) {
+      map.addLayer({
+        id: GEO_LINE_LAYER,
+        type: 'line',
+        source: GEO_LINE_SOURCE,
+        paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }
+      });
+    }
+    return true;
   }
   function geoEnsureMap() {
     if (geo.map) return geo.map;
-    const L = geoLeaflet(); const el = $('edge-geo-map');
-    if (!L || !el) return null;
+    const maplibre = (typeof maplibregl !== 'undefined') ? maplibregl : null;
+    const pmtilesApi = (typeof pmtiles !== 'undefined') ? pmtiles : null;
+    const el = $('edge-geo-map');
+    const asset = adminBasemapAsset();
+    if (!maplibre || !pmtilesApi || !el || !asset) {
+      geoMapUnavailable('Campus basemap is unavailable. The ordered coordinate list remains usable.');
+      return null;
+    }
     try {
-      geo.map = L.map(el, { zoomControl: true, attributionControl: true }).setView([13.4059, 123.3745], 17);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '© OpenStreetMap contributors'
-      }).addTo(geo.map);
-      geo.map.on('click', (e) => {
-        if (geo.busy || !geo.from) return;
-        geoAddWaypoint(e.latlng.lat, e.latlng.lng);
+      if (!geo.protocol) {
+        const archive = new pmtilesApi.PMTiles(new pmtilesApi.FetchSource(asset));
+        geo.protocol = new pmtilesApi.Protocol();
+        geo.protocol.add(archive);
+        maplibre.addProtocol('pmtiles', geo.protocol.tile);
+      }
+      const bounds = adminBasemapBounds();
+      const nextMap = new maplibre.Map({
+        container: el,
+        style: buildAdminBasemapStyle(asset),
+        center: ADMIN_MAP_OPENING_CENTER,
+        zoom: 16.5,
+        bearing: 0,
+        pitch: 0,
+        minZoom: 12,
+        maxZoom: 19,
+        maxBounds: bounds ? [[bounds[0], bounds[1]], [bounds[2], bounds[3]]] : undefined,
+        attributionControl: false
       });
-    } catch (e) { geo.map = null; }
+      geo.map = nextMap;
+      nextMap.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-left');
+      nextMap.addControl(new maplibre.AttributionControl({ compact: true }), 'bottom-right');
+      nextMap.on('sourcedata', (event) => {
+        if (geo.map === nextMap && event && event.sourceId === 'campus' && event.isSourceLoaded) {
+          geo.basemapSourceLoaded = true;
+          geo.basemapFailed = false;
+          geoMapStatus('', false);
+        }
+      });
+      nextMap.on('load', () => {
+        if (geo.map !== nextMap) return;
+        geo.basemapReady = true;
+        geoEnsureOverlay();
+        geoRender();
+      });
+      nextMap.on('error', () => {
+        if (geo.map !== nextMap || geo.basemapSourceLoaded) return;
+        geo.tileErrors += 1;
+        if (geo.tileErrors >= 2) geoMapUnavailable();
+      });
+      setTimeout(() => {
+        if (geo.map === nextMap && !geo.basemapSourceLoaded && !geo.basemapFailed) geoMapUnavailable();
+      }, 5000);
+      nextMap.on('click', (event) => {
+        if (geo.busy || !geo.from) return;
+        geoAddWaypoint(Number(event.lngLat.lat), Number(event.lngLat.lng));
+      });
+    } catch (e) {
+      geo.map = null;
+      geoMapUnavailable('Campus basemap could not be initialised. The ordered coordinate list remains usable.');
+    }
     return geo.map;
   }
   async function initGeometryEditor(id) {
@@ -832,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // The container just became visible inside the modal; recompute size
       // and fit the endpoints (avoids a blank/garbled first paint). Guarded so
       // a superseded session cannot re-fit the newer session's map.
-      setTimeout(() => { if (!geoStillCurrent(token, id)) return; try { map.invalidateSize(); geoFitBounds(); } catch (e) {} }, 60);
+      setTimeout(() => { if (!geoStillCurrent(token, id)) return; try { map.resize(); geoFitBounds(); } catch (e) {} }, 60);
     }
     geoStatus(stored ? 'Loaded stored geometry.' : 'No stored geometry — showing the straight endpoint line.');
   }
@@ -846,36 +975,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (message) geoStatus(message);
   }
   function geoFitBounds() {
-    const L = geoLeaflet(); if (!L || !geo.map) return;
+    const maplibre = (typeof maplibregl !== 'undefined') ? maplibregl : null;
+    if (!maplibre || !geo.map || !geo.basemapReady) return;
     const pts = geoFullPoints(); if (pts.length < 2) return;
-    try { geo.map.fitBounds(pts.map((p) => [p.lat, p.lng]), { padding: [30, 30] }); } catch (e) {}
+    try {
+      const bounds = new maplibre.LngLatBounds();
+      pts.forEach((point) => bounds.extend([point.lng, point.lat]));
+      if (!bounds.isEmpty()) geo.map.fitBounds(bounds, { padding: 30, maxZoom: 18, duration: 0 });
+    } catch (e) {}
   }
   function geoRender() { geoRenderMarkers(); geoRenderLine(); geoRenderList(); }
   function geoRenderLine() {
-    const L = geoLeaflet(); const map = geo.map; if (!L || !map) return;
-    if (geo.layers.line) { try { map.removeLayer(geo.layers.line); } catch (e) {} geo.layers.line = null; }
-    const pts = geoFullPoints().map((p) => [p.lat, p.lng]);
-    if (pts.length >= 2) geo.layers.line = L.polyline(pts, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(map);
+    const map = geo.map;
+    if (!map || !geoEnsureOverlay()) return;
+    const source = map.getSource(GEO_LINE_SOURCE); if (!source) return;
+    const coordinates = geoFullPoints().map((point) => [point.lng, point.lat]);
+    source.setData(coordinates.length >= 2 ? {
+      type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates }
+    } : { type: 'FeatureCollection', features: [] });
+  }
+  function setGeoMarkerA11y(marker, label) {
+    if (!marker || typeof marker.getElement !== 'function') return;
+    const element = marker.getElement();
+    element.title = label;
+    element.setAttribute('aria-label', label);
   }
   function geoRenderMarkers() {
-    const L = geoLeaflet(); const map = geo.map; if (!L || !map || !geo.from || !geo.to) return;
-    geo.layers.mid.forEach((mk) => { try { map.removeLayer(mk); } catch (e) {} });
+    const map = geo.map; if (!map || !geo.basemapReady || !geo.from || !geo.to) return;
+    geo.layers.mid.forEach((mk) => { try { mk.remove(); } catch (e) {} });
     geo.layers.mid = [];
-    if (!geo.layers.from) geo.layers.from = L.marker([geo.from.lat, geo.from.lng], { draggable: false, title: 'From: ' + geo.from.label, opacity: 0.9 }).addTo(map);
-    else geo.layers.from.setLatLng([geo.from.lat, geo.from.lng]);
-    if (!geo.layers.to) geo.layers.to = L.marker([geo.to.lat, geo.to.lng], { draggable: false, title: 'To: ' + geo.to.label, opacity: 0.9 }).addTo(map);
-    else geo.layers.to.setLatLng([geo.to.lat, geo.to.lng]);
+    if (!geo.layers.from) {
+      geo.layers.from = new maplibregl.Marker({ draggable: false })
+        .setLngLat([geo.from.lng, geo.from.lat]).addTo(map);
+    } else geo.layers.from.setLngLat([geo.from.lng, geo.from.lat]);
+    setGeoMarkerA11y(geo.layers.from, 'From: ' + geo.from.label);
+    if (!geo.layers.to) {
+      geo.layers.to = new maplibregl.Marker({ draggable: false })
+        .setLngLat([geo.to.lng, geo.to.lat]).addTo(map);
+    } else geo.layers.to.setLngLat([geo.to.lng, geo.to.lat]);
+    setGeoMarkerA11y(geo.layers.to, 'To: ' + geo.to.label);
     geo.waypoints.forEach((w, i) => {
-      // Draggable marker per intermediate waypoint (Leaflet markers support
-      // dragging; circleMarker does not).
-      const dm = L.marker([w.lat, w.lng], { draggable: true, title: 'Waypoint ' + (i + 1) });
+      const dm = new maplibregl.Marker({ draggable: true })
+        .setLngLat([w.lng, w.lat]).addTo(map);
+      setGeoMarkerA11y(dm, 'Waypoint ' + (i + 1));
       dm.on('dragend', () => {
-        const ll = dm.getLatLng();
-        if (!inRange(ll.lat, ll.lng)) { dm.setLatLng([w.lat, w.lng]); return; }
-        geoPushHistory(); geo.waypoints[i] = { lat: ll.lat, lng: ll.lng }; geo.cleared = false;
+        const ll = dm.getLngLat();
+        if (!inRange(Number(ll.lat), Number(ll.lng))) {
+          dm.setLngLat([w.lng, w.lat]); return;
+        }
+        geoPushHistory(); geo.waypoints[i] = { lat: Number(ll.lat), lng: Number(ll.lng) }; geo.cleared = false;
         geoGeometryChanged('Waypoint ' + (i + 1) + ' moved; metrics recalculated.');
       });
-      dm.addTo(map);
       geo.layers.mid.push(dm);
     });
   }

@@ -44,6 +44,7 @@ const { logServerError } = require('../utils/serverLog');
 const { normalizeMediaUrl, resolveMediaUrlForBrowser } = require('../utils/mediaUrl');
 const {
   GUIDED_VR_ROUTES_BY_MODE,
+  GUIDED_VR_EXIT_ROUTES_BY_MODE,
   DEFERRED_GUIDED_VR_DESTINATIONS
 } = require('../config/guidedVrRoutes');
 const { canonicalKey } = require('../services/routeAvailability');
@@ -214,7 +215,12 @@ async function resolveRouteScenes(routeIdRaw, sources, travelMode = 'vehicle', d
 async function resolveGraphScenes(route, sources, travelMode = 'vehicle', direction = 'entry') {
   const journeyDirection = direction === 'exit' ? 'exit' : 'entry';
   route = routeForDirection(route, journeyDirection);
-  if (journeyDirection === 'exit' && travelMode !== 'walking') {
+  const guidedPolicy = findGuidedVrPolicy(
+    route && route.destination && route.destination.name,
+    travelMode,
+    journeyDirection
+  );
+  if (journeyDirection === 'exit' && guidedPolicy.kind !== 'active') {
     return {
       ok: true,
       route,
@@ -222,11 +228,10 @@ async function resolveGraphScenes(route, sources, travelMode = 'vehicle', direct
       scenes: [],
       distance_meters: 0,
       walk_time_seconds: 0,
-      reason: 'exit_requires_walking',
+      reason: travelMode === 'walking' ? 'guided_vr_mode_unavailable' : 'exit_requires_walking',
       destination_reached: false
     };
   }
-  const guidedPolicy = findGuidedVrPolicy(route && route.destination && route.destination.name, travelMode);
   if (travelMode === 'walking' && guidedPolicy.kind !== 'active') {
     return {
       ok: true,
@@ -595,20 +600,26 @@ function attachHotspotNav(hotspots, orderedScenes, step, isFinal, prevUrl, nextU
    in the active VR backend. The controller never fabricates a start or arrival
    mapping. Nothing here writes node/building mappings to database rows.
 --------------------------------------------------------- */
-function findGuidedVrPolicy(destinationName, travelMode = 'vehicle') {
-  const activeRoutes = GUIDED_VR_ROUTES_BY_MODE[travelMode] || [];
+function findGuidedVrPolicy(destinationName, travelMode = 'vehicle', direction = 'entry') {
+  const catalog = direction === 'exit'
+    ? GUIDED_VR_EXIT_ROUTES_BY_MODE
+    : GUIDED_VR_ROUTES_BY_MODE;
+  const activeRoutes = catalog[travelMode] || [];
   return resolveGuidedDestinationPolicyByName({
     destinationName,
     activeRoutes,
-    deferredDestinations: travelMode === 'vehicle' ? DEFERRED_GUIDED_VR_DESTINATIONS : [],
+    deferredDestinations: direction === 'entry' && travelMode === 'vehicle'
+      ? DEFERRED_GUIDED_VR_DESTINATIONS
+      : [],
     canonicalize: canonicalKey
   });
 }
 
 async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, vrSupabase, direction = 'entry' }) {
   const configuredKeys = Array.from(guided.scene_keys);
-  const keys = direction === 'exit' ? configuredKeys.slice().reverse() : configuredKeys;
-  const arrivalKey = direction === 'exit' ? configuredKeys[0] : guided.arrival_scene_key;
+  const reverseExit = direction === 'exit' && guided.reverse_exit !== false;
+  const keys = reverseExit ? configuredKeys.slice().reverse() : configuredKeys;
+  const arrivalKey = reverseExit ? configuredKeys[0] : guided.arrival_scene_key;
   const startNodeKey = direction === 'exit' ? guided.destination_node_key : START_NODE_KEY;
   const destinationNodeKey = direction === 'exit' ? START_NODE_KEY : guided.destination_node_key;
 
@@ -704,7 +715,14 @@ async function buildGuidedNaturalKeyScenes({ route, guided, pathNodes, result, v
     scenes: verifiedSceneRows,
     links,
     startNodeKey,
-    destinationNodeKey
+    destinationNodeKey,
+    // Explicit Vehicle-exit catalogs remain source-controlled route
+    // authority. A small number intentionally skip a stored panorama link or
+    // start at an unmapped panorama; their allowlists relax only that narrow
+    // check. Scene identity, approved media, and the final main-gate mapping
+    // still fail closed through verifyGuidedChain.
+    allowedMissingLinkPairs: guided.allowed_missing_link_pairs,
+    allowMissingStartNode: guided.allow_unmapped_start === true
   });
   const verified = chain.verified;
   const complete = chain.complete;
@@ -792,6 +810,15 @@ const WALKING_DESTINATION_COUNTS = (() => {
   return counts;
 })();
 
+const VEHICLE_EXIT_DESTINATION_COUNTS = (() => {
+  const counts = new Map();
+  for (const route of GUIDED_VR_EXIT_ROUTES_BY_MODE.vehicle) {
+    const key = canonicalKey(route && route.destination_name);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return counts;
+})();
+
 function parseTravelMode(raw) {
   if (raw == null || raw === '') {
     return { ok: true, provided: false, mode: 'vehicle' };
@@ -808,7 +835,14 @@ function parseTravelMode(raw) {
 
 function availableTravelModes(destinationName, direction = 'entry') {
   const hasWalking = WALKING_DESTINATION_COUNTS.get(canonicalKey(destinationName)) === 1;
-  if (direction === 'exit') return hasWalking ? ['walking'] : [];
+  if (direction === 'exit') {
+    const modes = [];
+    if (hasWalking) modes.push('walking');
+    if (VEHICLE_EXIT_DESTINATION_COUNTS.get(canonicalKey(destinationName)) === 1) {
+      modes.push('vehicle');
+    }
+    return modes;
+  }
   const modes = ['vehicle'];
   if (hasWalking) modes.push('walking');
   return modes;
@@ -832,7 +866,10 @@ function unavailableModeMessage(destinationName) {
   return `Walking guided VR is not available for ${destinationName || 'this destination'} yet. Choose Vehicle to continue.`;
 }
 
-function exitModeMessage() {
+function exitModeMessage(availableModes = ['walking']) {
+  if (Array.isArray(availableModes) && availableModes.includes('vehicle')) {
+    return 'Choose Walking or Vehicle for the return trip to the Guard House / Main Gate.';
+  }
   return 'Walking is the only guided VR mode available for the return trip to the Guard House / Main Gate.';
 }
 
@@ -1017,18 +1054,6 @@ exports.routeViewer = async (req, res) => {
         direction
       );
     }
-    if (direction === 'exit' && requestedMode.provided && requestedMode.mode !== 'walking') {
-      return renderModeChoice(
-        res,
-        baseLocals,
-        { id: 0, title: 'VR Route', destination: { name: 'Destination' } },
-        routeBaseUrl,
-        ['walking'],
-        exitModeMessage(),
-        400,
-        direction
-      );
-    }
     // One decision per SOURCE per request (BE.4): route/graph/path reads
     // follow ROUTE_DATA_SOURCE, scene/hotspot reads follow VR_DATA_SOURCE;
     // neither switch is re-read mid-request.
@@ -1090,14 +1115,16 @@ exports.routeViewer = async (req, res) => {
     if (!requestedMode.provided && (direction === 'exit' || availableModes.length > 1)) {
       return renderModeChoice(res, baseLocals, route, routeBaseUrl, availableModes, null, 200, direction);
     }
-    if (requestedMode.mode === 'walking' && !availableModes.includes('walking')) {
+    if (requestedMode.provided && !availableModes.includes(requestedMode.mode)) {
       return renderModeChoice(
         res,
         baseLocals,
         route,
         routeBaseUrl,
         availableModes,
-        unavailableModeMessage(route.destination && route.destination.name),
+        direction === 'exit'
+          ? exitModeMessage(availableModes)
+          : unavailableModeMessage(route.destination && route.destination.name),
         400,
         direction
       );
@@ -1231,16 +1258,25 @@ exports.apiRoute = async (req, res) => {
         message: invalidModeMessage()
       });
     }
-    if (requestedDirection.direction === 'exit' &&
-        (!requestedMode.provided || requestedMode.mode !== 'walking')) {
+    const sources = requestSources();
+    if (requestedDirection.direction === 'exit' && !requestedMode.provided) {
+      const definition = await loadRouteDefinition(req.params.routeId, sources);
+      if (!definition.ok) {
+        return res
+          .status(definition.status || 400)
+          .json({ success: false, message: definition.message || 'Invalid route.' });
+      }
+      const availableModes = availableTravelModes(
+        definition.route.destination && definition.route.destination.name,
+        'exit'
+      );
       return res.status(400).json({
         success: false,
         code: 'exit_mode_unavailable',
-        message: exitModeMessage(),
-        available_travel_modes: ['walking']
+        message: exitModeMessage(availableModes),
+        available_travel_modes: availableModes
       });
     }
-    const sources = requestSources();
     const resolved = await resolveRouteScenes(
       req.params.routeId,
       sources,
@@ -1256,11 +1292,15 @@ exports.apiRoute = async (req, res) => {
       resolved.route.destination && resolved.route.destination.name,
       requestedDirection.direction
     );
-    if (requestedMode.mode === 'walking' && !availableModes.includes('walking')) {
+    if (!availableModes.includes(requestedMode.mode)) {
       return res.status(400).json({
         success: false,
-        code: 'travel_mode_unavailable',
-        message: unavailableModeMessage(resolved.route.destination && resolved.route.destination.name),
+        code: requestedDirection.direction === 'exit'
+          ? 'exit_mode_unavailable'
+          : 'travel_mode_unavailable',
+        message: requestedDirection.direction === 'exit'
+          ? exitModeMessage(availableModes)
+          : unavailableModeMessage(resolved.route.destination && resolved.route.destination.name),
         available_travel_modes: availableModes
       });
     }
@@ -1339,18 +1379,6 @@ exports.destinationViewer = async (req, res) => {
         direction
       );
     }
-    if (direction === 'exit' && requestedMode.provided && requestedMode.mode !== 'walking') {
-      return renderModeChoice(
-        res,
-        baseLocals,
-        { id: null, title: 'VR Route', destination: { name: 'Destination' } },
-        destinationBaseUrl,
-        ['walking'],
-        exitModeMessage(),
-        400,
-        direction
-      );
-    }
     // Per-source decisions, matching routeViewer (BE.4).
     const sources = requestSources();
     let resolved;
@@ -1410,14 +1438,16 @@ exports.destinationViewer = async (req, res) => {
     if (!requestedMode.provided && (direction === 'exit' || availableModes.length > 1)) {
       return renderModeChoice(res, baseLocals, route, destinationBaseUrl, availableModes, null, 200, direction);
     }
-    if (requestedMode.mode === 'walking' && !availableModes.includes('walking')) {
+    if (requestedMode.provided && !availableModes.includes(requestedMode.mode)) {
       return renderModeChoice(
         res,
         baseLocals,
         route,
         destinationBaseUrl,
         availableModes,
-        unavailableModeMessage(route.destination && route.destination.name),
+        direction === 'exit'
+          ? exitModeMessage(availableModes)
+          : unavailableModeMessage(route.destination && route.destination.name),
         400,
         direction
       );
@@ -1545,16 +1575,25 @@ exports.apiDestination = async (req, res) => {
         message: invalidModeMessage()
       });
     }
-    if (requestedDirection.direction === 'exit' &&
-        (!requestedMode.provided || requestedMode.mode !== 'walking')) {
+    const sources = requestSources();
+    if (requestedDirection.direction === 'exit' && !requestedMode.provided) {
+      const definition = await loadDestinationDefinition(req.params.buildingId, sources);
+      if (!definition.ok) {
+        return res
+          .status(definition.status || 400)
+          .json({ success: false, message: definition.message || 'Invalid building id.' });
+      }
+      const availableModes = availableTravelModes(
+        definition.route.destination && definition.route.destination.name,
+        'exit'
+      );
       return res.status(400).json({
         success: false,
         code: 'exit_mode_unavailable',
-        message: exitModeMessage(),
-        available_travel_modes: ['walking']
+        message: exitModeMessage(availableModes),
+        available_travel_modes: availableModes
       });
     }
-    const sources = requestSources();
     const resolved = await resolveDestinationScenes(
       req.params.buildingId,
       sources,
@@ -1570,11 +1609,15 @@ exports.apiDestination = async (req, res) => {
       resolved.route.destination && resolved.route.destination.name,
       requestedDirection.direction
     );
-    if (requestedMode.mode === 'walking' && !availableModes.includes('walking')) {
+    if (!availableModes.includes(requestedMode.mode)) {
       return res.status(400).json({
         success: false,
-        code: 'travel_mode_unavailable',
-        message: unavailableModeMessage(resolved.route.destination && resolved.route.destination.name),
+        code: requestedDirection.direction === 'exit'
+          ? 'exit_mode_unavailable'
+          : 'travel_mode_unavailable',
+        message: requestedDirection.direction === 'exit'
+          ? exitModeMessage(availableModes)
+          : unavailableModeMessage(resolved.route.destination && resolved.route.destination.name),
         available_travel_modes: availableModes
       });
     }

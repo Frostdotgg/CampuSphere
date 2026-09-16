@@ -7,6 +7,7 @@ const db = require('../config/db');
 const authDataSource = require('../config/authDataSource');
 const userRepository = require('../repositories/userRepository');
 const mapRuntime = require('../config/mapRuntime');
+const mapController = require('./mapController');
 const buildingRepository = require('../repositories/buildingRepository');
 const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
@@ -555,6 +556,10 @@ exports.campusMap = async (req, res) => {
       description: 'Manage campus map data and markers.',
       activePage: 'campus-map',
       buildings,
+      // The edge editor uses the same public, content-addressed PMTiles
+      // metadata as the online map. Only non-secret basemap metadata is sent
+      // to the browser; the editor remains an authenticated, online surface.
+      mapBasemap: mapController.getPublicBasemapConfig(),
       stats: { totalBuildings, totalCategories: categories.length }
     });
   } catch (error) {
@@ -564,6 +569,7 @@ exports.campusMap = async (req, res) => {
       description: 'Manage campus map data and markers.',
       activePage: 'campus-map',
       buildings: [],
+      mapBasemap: mapController.getPublicBasemapConfig(),
       stats: { totalBuildings: 0, totalCategories: 0 }
     });
   }

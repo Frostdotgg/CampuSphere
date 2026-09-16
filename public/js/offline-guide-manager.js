@@ -933,7 +933,12 @@
         });
         addMapMarkers(record);
       });
-      nextMap.on('move zoom resize', scheduleOfflineMapLabelLayout);
+      // MapLibre registers one event type per on() call. Re-run label layout
+      // after each offline camera change so labels follow phone pans, zooms,
+      // and viewport resizes.
+      nextMap.on('move', scheduleOfflineMapLabelLayout);
+      nextMap.on('zoom', scheduleOfflineMapLabelLayout);
+      nextMap.on('resize', scheduleOfflineMapLabelLayout);
       nextMap.on('error', function () {
         if (map !== nextMap) return;
         var canvas = container.querySelector('.maplibregl-canvas');

@@ -1769,8 +1769,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v45 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 45 &&
+    ok('sw.js is v48 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 48 &&
        /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
        /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\);/.test(offlineManager) &&
        /createOfflineMapLabel\('Start · ' \+ OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label'\)/.test(offlineManager) &&
@@ -14386,6 +14386,13 @@ const ADMIN_SEARCH_FILTER_PROBES = [
   ['admin campus-map search + filter contracts', 'adminCampusMapSearchFilter-probe.js'],
 ];
 
+// Admin road-geometry editor basemap: self-hosted MapLibre/PMTiles, exact
+// public style/source contract, coordinate-order adapters, marker locks, and
+// truthful list-preserving failure behavior. Database-free and network-free.
+const ADMIN_MAP_BASEMAP_PROBES = [
+  ['admin road-geometry basemap contracts', 'adminMapBasemap-probe.js'],
+];
+
 // M12.P1-D5: friendly building additional-details editor — structured
 // replacement for the raw details JSON textarea. Covers the pure
 // parse/serialize contract (supported keys, legacy {num,use} rooms, string
@@ -14565,6 +14572,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[VR theme QA] (light/dark page chrome + saved preference + accessible toggle)' },
   { key: 'admin-search-filter', prefix: 'admin-search-filter', probes: ADMIN_SEARCH_FILTER_PROBES,
     heading: '[Admin campus-map search/filter QA] (M12.P1-D4 bounded q + appliedFilters + graph/selector searches)' },
+  { key: 'admin-map-basemap', prefix: 'admin-map-basemap', probes: ADMIN_MAP_BASEMAP_PROBES,
+    heading: '[Admin road-geometry basemap QA] (MapLibre/PMTiles style + coordinate adapters + marker/fallback contracts)' },
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,
     heading: '[Building details editor QA] (M12.P1-D5 structured details editor + preservation contracts)' },
   { key: 'admin-analytics', prefix: 'admin-analytics', probes: ADMIN_ANALYTICS_PROBES,

@@ -465,6 +465,15 @@ html[data-theme="dark"] .offline-page .theme-toggle .icon-moon { display: block;
 @media (max-width: 768px) {
   body.offline-page { overflow: hidden; }
 
+  /* OFFLINE_MOBILE_LABEL_SIZE_START: keep phone building labels compact
+     without shrinking the 44px marker hit targets or the route-start label. */
+  .offline-page .map-building-label--offline,
+  .offline-page .map-building-label--fallback,
+  .offline-page .map-start-label {
+    font-size: 8px;
+  }
+  /* OFFLINE_MOBILE_LABEL_SIZE_END */
+
   .offline-page .dash-nav__right { display: none; }
 
   .offline-page .dash-nav__tabs {

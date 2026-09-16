@@ -16,6 +16,7 @@ const { withServer } = require('./with-server');
 const { hasSupabaseConfig } = require('../config/supabase');
 const {
   GUIDED_VR_ROUTES,
+  VEHICLE_EXIT_GUIDED_VR_ROUTES,
   WALKING_GUIDED_VR_ROUTES,
   DEFERRED_GUIDED_VR_DESTINATIONS
 } = require('../config/guidedVrRoutes');
@@ -196,6 +197,8 @@ async function runMode(scope, base, authSource) {
 
     const walkingDestinationNames = new Set(WALKING_GUIDED_VR_ROUTES.map((route) =>
       normName(route.destination_name)));
+    const vehicleExitDestinationNames = new Set(VEHICLE_EXIT_GUIDED_VR_ROUTES.map((route) =>
+      normName(route.destination_name)));
     for (const walkingRoute of WALKING_GUIDED_VR_ROUTES) {
       const walkingMatches = buildings.filter((building) =>
         normName(building && building.name) === normName(walkingRoute.destination_name));
@@ -228,10 +231,13 @@ async function runMode(scope, base, authSource) {
       const exitScenes = Array.isArray(exitPayload.scenes) ? exitPayload.scenes : [];
       const exitKeys = exitScenes.map((scene) => scene.scene_key);
       const reversedWalkingKeys = walkingRoute.scene_keys.slice().reverse();
+      const expectedExitModes = vehicleExitDestinationNames.has(normName(walkingRoute.destination_name))
+        ? ['walking', 'vehicle']
+        : ['walking'];
       check(scope, `${walkingRoute.destination_node_key}: Walking exit API reverses the complete chain to main-gate`,
         response.status === 200 && exitPayload.success === true &&
         exitPayload.travel_mode === 'walking' && exitPayload.direction === 'exit' &&
-        JSON.stringify(exitPayload.available_travel_modes) === JSON.stringify(['walking']) &&
+        JSON.stringify(exitPayload.available_travel_modes) === JSON.stringify(expectedExitModes) &&
         exitKeys.length === reversedWalkingKeys.length &&
         exitKeys.every((key, index) => key === reversedWalkingKeys[index]) &&
         exitPayload.destination_reached === true &&
@@ -272,11 +278,13 @@ async function runMode(scope, base, authSource) {
 
       response = await request(`/vr/to/${walkingBuildingId}?direction=exit`, { headers: htmlHeaders });
       const exitChooserHtml = response.text || '';
-      check(scope, `${walkingRoute.destination_node_key}: exit chooser keeps only Walking and the exit direction`,
+      check(scope, `${walkingRoute.destination_node_key}: exit chooser advertises the supported modes and direction`,
         response.status === 200 &&
         exitChooserHtml.includes('Exit to Guard House') &&
         exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=walking&amp;direction=exit`) &&
-        !exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle&amp;direction=exit`) &&
+        (vehicleExitDestinationNames.has(normName(walkingRoute.destination_name))
+          ? exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle&amp;direction=exit`)
+          : !exitChooserHtml.includes(`/vr/to/${walkingBuildingId}?mode=vehicle&amp;direction=exit`)) &&
         !exitChooserHtml.includes('id="vrPano"'));
 
       response = await request(`/vr/to/${walkingBuildingId}?mode=walking&direction=exit&step=1`, { headers: htmlHeaders });
@@ -295,6 +303,92 @@ async function runMode(scope, base, authSource) {
         !exitFinalHtml.includes(htmlStepHref(`/vr/to/${walkingBuildingId}`, 'walking', walkingFinalStep + 1, 'exit')) &&
         !exitFinalHtml.includes('Walk back to Guard House'));
     }
+
+    for (const vehicleExitRoute of VEHICLE_EXIT_GUIDED_VR_ROUTES) {
+      const key = vehicleExitRoute.destination_node_key;
+      const vehicleExitMatches = buildings.filter((building) =>
+        normName(building && building.name) === normName(vehicleExitRoute.destination_name));
+      const vehicleExitIds = vehicleExitMatches
+        .map((building) => Number(building.route_destination_id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+      check(scope, `${key}: exactly one Vehicle-exit route-source building`,
+        vehicleExitMatches.length === 1 && vehicleExitIds.length === 1);
+      if (vehicleExitIds.length !== 1) continue;
+
+      const vehicleExitBuildingId = vehicleExitIds[0];
+      response = await request(`/api/vr/to/${vehicleExitBuildingId}?mode=vehicle&direction=exit`, { headers: jsonHeaders });
+      const vehicleExitPayload = response.json || {};
+      const vehicleExitScenes = Array.isArray(vehicleExitPayload.scenes) ? vehicleExitPayload.scenes : [];
+      const vehicleExitKeys = vehicleExitScenes.map((scene) => scene.scene_key);
+      const vehicleExitPath = Array.isArray(vehicleExitPayload.path) ? vehicleExitPayload.path : [];
+      check(scope, `${key}: Vehicle exit API succeeds and advertises both exit modes`,
+        response.status === 200 && vehicleExitPayload.success === true &&
+        vehicleExitPayload.travel_mode === 'vehicle' && vehicleExitPayload.direction === 'exit' &&
+        JSON.stringify(vehicleExitPayload.available_travel_modes) === JSON.stringify(['walking', 'vehicle']));
+      check(scope, `${key}: Vehicle exit API returns the exact destination-to-main-gate scene order`,
+        vehicleExitKeys.length === vehicleExitRoute.scene_keys.length &&
+        vehicleExitKeys.every((sceneKey, index) => sceneKey === vehicleExitRoute.scene_keys[index]) &&
+        vehicleExitPayload.destination_reached === true &&
+        vehicleExitScenes[0] && vehicleExitScenes[0].node_key === vehicleExitRoute.destination_node_key &&
+        vehicleExitScenes[vehicleExitScenes.length - 1] &&
+        vehicleExitScenes[vehicleExitScenes.length - 1].node_key === 'main-gate' &&
+        vehicleExitPath.length >= 2 && vehicleExitPath[0] === vehicleExitRoute.destination_node_key &&
+        vehicleExitPath[vehicleExitPath.length - 1] === 'main-gate');
+
+      response = await request(`/api/vr/to/${vehicleExitBuildingId}?direction=exit`, { headers: jsonHeaders });
+      const vehicleExitModeRequired = response.json || {};
+      check(scope, `${key}: API exit chooser advertises both modes when mode is omitted`,
+        response.status === 400 && vehicleExitModeRequired.success === false &&
+        vehicleExitModeRequired.code === 'exit_mode_unavailable' &&
+        JSON.stringify(vehicleExitModeRequired.available_travel_modes) === JSON.stringify(['walking', 'vehicle']));
+
+      const vehicleExitFinalStep = vehicleExitRoute.scene_keys.length;
+      response = await request(`/vr/to/${vehicleExitBuildingId}?mode=vehicle&direction=exit&step=1`, { headers: htmlHeaders });
+      const vehicleExitFirstHtml = response.text || '';
+      check(scope, `${key}: first Vehicle exit HTML starts at the building and advances`,
+        response.status === 200 && !ARRIVAL_MARKERS.some((marker) => vehicleExitFirstHtml.includes(marker)) &&
+        vehicleExitFirstHtml.includes(htmlStepHref(`/vr/to/${vehicleExitBuildingId}`, 'vehicle', 2, 'exit')) &&
+        !vehicleExitFirstHtml.includes(htmlStepHref(`/vr/to/${vehicleExitBuildingId}`, 'vehicle', 0, 'exit')));
+
+      response = await request(`/vr/to/${vehicleExitBuildingId}?mode=vehicle&direction=exit&step=${vehicleExitFinalStep}`, { headers: htmlHeaders });
+      const vehicleExitFinalHtml = response.text || '';
+      check(scope, `${key}: final Vehicle exit HTML reports Guard House arrival`,
+        response.status === 200 && ARRIVAL_MARKERS.every((marker) => vehicleExitFinalHtml.includes(marker)) &&
+        vehicleExitFinalHtml.includes('You have arrived at Guard House / Main Gate') &&
+        vehicleExitFinalHtml.includes(htmlStepHref(`/vr/to/${vehicleExitBuildingId}`, 'vehicle', vehicleExitFinalStep - 1, 'exit')) &&
+        !vehicleExitFinalHtml.includes(htmlStepHref(`/vr/to/${vehicleExitBuildingId}`, 'vehicle', vehicleExitFinalStep + 1, 'exit')) &&
+        !vehicleExitFinalHtml.includes('Walk back to Guard House'));
+
+      response = await request(`/vr/to/${vehicleExitBuildingId}?direction=exit`, { headers: htmlHeaders });
+      const vehicleExitChooserHtml = response.text || '';
+      check(scope, `${key}: Vehicle exit chooser offers Walking and Vehicle`,
+        response.status === 200 &&
+        vehicleExitChooserHtml.includes(`/vr/to/${vehicleExitBuildingId}?mode=walking&amp;direction=exit`) &&
+        vehicleExitChooserHtml.includes(`/vr/to/${vehicleExitBuildingId}?mode=vehicle&amp;direction=exit`) &&
+        !vehicleExitChooserHtml.includes('id="vrPano"'));
+
+      response = await request(`/api/routes?destination=${vehicleExitBuildingId}`, { headers: jsonHeaders });
+      const routeSummaries = Array.isArray(response.json && response.json.routes) ? response.json.routes : [];
+      const matchingRoute = routeSummaries.find((route) =>
+        normName(route && route.destination && route.destination.name) === normName(vehicleExitRoute.destination_name));
+      if (matchingRoute && Number.isInteger(Number(matchingRoute.id)) && Number(matchingRoute.id) > 0) {
+        response = await request(`/api/vr/routes/${Number(matchingRoute.id)}?mode=vehicle&direction=exit`, { headers: jsonHeaders });
+        const routeExitPayload = response.json || {};
+        const routeExitKeys = Array.isArray(routeExitPayload.scenes)
+          ? routeExitPayload.scenes.map((scene) => scene.scene_key) : [];
+        check(scope, `${key}: predefined route Vehicle exit API shares the destination flow`,
+          response.status === 200 && routeExitPayload.success === true &&
+          routeExitPayload.travel_mode === 'vehicle' && routeExitPayload.direction === 'exit' &&
+          JSON.stringify(routeExitPayload.available_travel_modes) === JSON.stringify(['walking', 'vehicle']) &&
+          routeExitKeys.length === vehicleExitRoute.scene_keys.length &&
+          routeExitKeys.every((sceneKey, index) => sceneKey === vehicleExitRoute.scene_keys[index]) &&
+          routeExitPayload.destination_reached === true);
+      } else {
+        check(scope, `${key}: predefined route summary is available for Vehicle exit verification`, false);
+      }
+    }
+    check(scope, 'all Walking destinations also have a Vehicle exit catalog entry',
+      WALKING_GUIDED_VR_ROUTES.every((route) => vehicleExitDestinationNames.has(normName(route.destination_name))));
 
     const invalidModeRoute = WALKING_GUIDED_VR_ROUTES[0];
     const invalidModeBuilding = buildings.find((building) =>
