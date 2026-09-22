@@ -6975,6 +6975,12 @@ const CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA =
   '55d634a6f8da80c511a2f0827969e709e733ec8a';
 const CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA =
   'b8d2bf26a73d25cff2c53af695396d2f695ae631';
+const CURRENT_AUTHENTICATED_HEARTBEAT_AUTHORITY_BASELINE_SHA =
+  '75d5bbe405b100c9921c8ff00efdfbedd7178589';
+const CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA =
+  '0e7fe8bb50708bbcfaa4297f6ca133a547da4d76';
+const CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID =
+  'dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS';
 const CURRENT_VERIFIED_VERCEL_DEPLOYMENT_ID =
   'dpl_CG3M2Wp4hdMUR1abBFJdv5mqgtNs';
 const CURRENT_SESSION_RESILIENCE_VERCEL_DEPLOYMENT_ID =
@@ -7032,20 +7038,106 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 15 completed-response guard and verified Production. */
+  /* Current September 22 production load-test closeout checkpoint. */
+  if (t.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA)) {
+    if (!/docs\/current-authority\.md/i.test(t) ||
+        !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
+        !/Git branch `?main`?/i.test(t) ||
+        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,160}0e7fe8b/i.test(t) ||
+        !/retained LT-01 through LT-08/i.test(t) ||
+        !/recoverable archive outside the repository/i.test(t) ||
+        !/authorized review, validation, two dedicated commits, and a normal push to `?main`?/i.test(t) ||
+        !/No deployment, promotion, database action, or migration action is authorized/i.test(t) ||
+        !/self-referential[^.]{0,160}recompute their exact SHA/i.test(t)) {
+      problems.push('September 22 Git baseline, archive, or authorization boundary is incomplete');
+    }
+
+    if (!/`?ab4ae61`?[^.]{0,100}sanitized session timeout diagnostics/i.test(t) ||
+        !/`?0e7fe8b`?[^.]{0,120}Vehicle exit Guided-VR routes/i.test(t) ||
+        !/25 Vehicle entry destinations \/ 486 steps \/ 101 unique scenes/i.test(t) ||
+        !/25 Vehicle exit destinations \/ 545 steps \/ 105 unique scenes/i.test(t) ||
+        !/25 Walking destinations \/ 690 steps \/ 133 unique scenes/i.test(t) ||
+        !/service-worker cache key is `?v48`?/i.test(t) ||
+        !/Migrations remain contiguous through `?0027`?/i.test(t) ||
+        !/changes no schema, migration, application row, session row/i.test(t)) {
+      problems.push('current product, catalog, service-worker, or no-data-change boundary is incomplete');
+    }
+
+    if (!t.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) ||
+        !/owner-observed current Production deployment/i.test(t) ||
+        !/exact commit `?0e7fe8b`?/i.test(t) ||
+        !/https:\/\/campusphere-cspc\.vercel\.app/i.test(t) ||
+        !/not immutable deployed-byte equality/i.test(t) ||
+        !/not authority to redeploy/i.test(t)) {
+      problems.push('current Production identity or observation boundary is incomplete');
+    }
+
+    if (!/LT-01, LT-02, LT-03, LT-04, LT-05, and LT-06 passed/i.test(t) ||
+        !/LT-07 passed[^.]{0,180}authenticated Chrome profile/i.test(t) ||
+        !/k6 offline-browser attempt[^.]{0,120}rejected harness evidence/i.test(t) ||
+        !/LT-08 passed all 26 configured thresholds/i.test(t) ||
+        !/PASS WITH WARNING/i.test(t) ||
+        !/three session-store timeout-retry warnings/i.test(t) ||
+        !/5\.6K function invocations/i.test(t) ||
+        !/0% function errors[^.]{0,80}0% function timeouts/i.test(t) ||
+        !/341 MB average \/ 352 MB P75 \/ 356 MB P95/i.test(t) ||
+        !/GET \/api\/pathfind[^.]{0,120}GET \/api\/routes[^.]{0,120}GET \/api\/search/i.test(t) ||
+        !/do not prove the later retry outcome/i.test(t) ||
+        !/not a zero-warning window/i.test(t)) {
+      problems.push('load-test or Vercel monitoring closeout is incomplete');
+    }
+
+    if (!/fresh local `?npm test`?[^.]{0,120}rejected[^.]{0,120}acceptance evidence/i.test(t) ||
+        !/did not emit `?QUALITY-GATES OK`?/i.test(t) ||
+        !/documentation hash-label finding[^.]{0,160}focused documentation secret scanner is green/i.test(t) ||
+        !/Staff House Vehicle-exit[^.]{0,160}Supabase\/Supabase leg/i.test(t) ||
+        !/stale or incomplete MySQL VR parity for CCS and Academic VI/i.test(t) ||
+        !/zero unexpired canonical Supabase sessions[^.]{0,180}could not resolve the canonical MySQL administrator and student identities/i.test(t) ||
+        !/owner explicitly directed that MySQL synchronization be skipped/i.test(t) ||
+        !/no MySQL seed, data, route, VR, session, schema, or migration repair was performed/i.test(t) ||
+        !/makes no full-suite or current MySQL parity claim/i.test(t) ||
+        !/bounded checkpoint-specific validations/i.test(t)) {
+      problems.push('rejected full-suite result or owner-deferred MySQL boundary is incomplete');
+    }
+
+    if (!/Evidence classes remain separate/i.test(t) ||
+        !/does not prove 50 distinct accounts/i.test(t) ||
+        !/50 simultaneous Chromium\/WebGL sessions/i.test(t) ||
+        !/current MySQL parity/i.test(t) ||
+        !/physical-device offline acceptance/i.test(t) ||
+        !/complete immutable deployed-byte equality/i.test(t) ||
+        !/owner-selected focused add\/change\/remove feature or bug fix on a fresh branch/i.test(t) ||
+        !/bounded checkpoint-specific validation/i.test(t) ||
+        !/pre-push remote recheck fails, stop and ask/i.test(t) ||
+        !/rejected full-suite\/MySQL-parity result is deferred by owner decision/i.test(t) ||
+        !/must not be rewritten as a pass/i.test(t) ||
+        !/do not weaken a test[^.]{0,180}force-push[^.]{0,160}patch around the failure/i.test(t)) {
+      problems.push('evidence limits, next-task isolation, or failure boundary is incomplete');
+    }
+
+    if (/current MySQL parity (?:is|was|remains) (?:complete|verified|green)/i.test(t) ||
+        /complete immutable deployed-byte equality[^.]{0,80}(?:passed|proven)/i.test(t) ||
+        /LT-08[^.]{0,120}(?:zero-warning|clean Production window)/i.test(t)) {
+      problems.push('unsupported parity, immutable-byte, or zero-warning claim is operative');
+    }
+    return problems;
+  }
+
+  /* Current September 15 completed-response guard and authenticated observation. */
   if (t.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
         !/Git branch `?main`?/i.test(t) ||
-        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,160}b8d2bf2/i.test(t) ||
+        !/HEAD[^.]{0,100}origin\/main[^.]{0,100}remote `?main`?[^.]{0,160}75d5bbe/i.test(t) ||
         !/empty index/i.test(t) || !/clean worktree/i.test(t) || !/zero stashes/i.test(t) ||
-        !/authorized the bounded Production smoke[^.]{0,180}deployment-specific log inspection/i.test(t) ||
+        !/authorized the authenticated heartbeat observation/i.test(t) ||
         !/established 19-file authority\/static-contract synchronization/i.test(t) ||
         !/later commit and push remain a separate owner decision/i.test(t) ||
         !/self-referential[^.]{0,120}recompute its exact SHA and status/i.test(t) ||
         !t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA.slice(0, 7)) ||
         !t.includes(CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA.slice(0, 7)) ||
-        !t.includes(CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA.slice(0, 7))) {
+        !t.includes(CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA.slice(0, 7)) ||
+        !t.includes(CURRENT_AUTHENTICATED_HEARTBEAT_AUTHORITY_BASELINE_SHA.slice(0, 7))) {
       problems.push('current Git start truth, lineage, or synchronization boundary is incomplete');
     }
 
@@ -7095,20 +7187,32 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
         !/service worker remains `?v45`?/i.test(t) ||
         !/25\/25 online and 25\/25 offline building-panel UAT[^.]{0,100}predecessor evidence/i.test(t) ||
         !/not rerun after `?b8d2bf2`?/i.test(t) ||
-        !/did not authenticate a guest/i.test(t) ||
-        !/POST a real Production presence heartbeat/i.test(t) ||
+        !/bounded authenticated observation/i.test(t) ||
+        !/POST `?\/api\/presence\/heartbeat`? requests? returning `?204`?/i.test(t) ||
+        !/three consecutive correlated rows/i.test(t) ||
+        !/touch[^.]{0,100}timeouts?[^.]{0,100}retried/i.test(t) ||
+        !/exhausted both attempts/i.test(t) ||
+        !/sanitized `?post-response`? diagnostic/i.test(t) ||
+        !/client response remained `?204`?/i.test(t) ||
+        !/signed-in page remained usable/i.test(t) ||
+        !/exact deployment search[^.]{0,100}ERR_HTTP_HEADERS_SENT[^.]{0,100}no request logs/i.test(t) ||
+        !/filtered status view[^.]{0,100}no `?5xx`?/i.test(t) ||
+        !/not a zero-diagnostic/i.test(t) ||
         !/four sampled assets are not complete immutable-package equality/i.test(t) ||
         !/Final client\/panel acceptance remains external/i.test(t) ||
         !/Evidence classes remain separate/i.test(t) ||
-        !/next release-closeout move is review[^.]{0,160}authority\/static-contract diff and checks/i.test(t) ||
-        !/separately authorized commit and push if green/i.test(t)) {
+        !/next focused product task is[^.]{0,120}separately authorized[^.]{0,120}read-only investigation/i.test(t) ||
+        !/`?app_sessions`? touch timeouts/i.test(t) ||
+        !/must not change retries, configuration, data,[^.]{0,80}infrastructure/i.test(t) ||
+        !/commit\/push[^.]{0,120}separately authorized/i.test(t)) {
       problems.push('unchanged-product, UAT-limit, evidence-class, or next-move boundary is incomplete');
     }
 
     if (/current MySQL parity (?:is|was|remains) (?:complete|verified|green)/i.test(t) ||
         /25\/25 online and 25\/25 offline[^.]{0,120}was rerun after `?b8d2bf2`?/i.test(t) ||
         /complete immutable-package (?:equality|comparison)[^.]{0,80}(?:passed|proven)/i.test(t) ||
-        /authenticated Production (?:heartbeat|UAT)[^.]{0,80}(?:passed|completed|green)/i.test(t)) {
+        /authenticated Production UAT[^.]{0,80}(?:passed|completed|green)/i.test(t) ||
+        /authenticated heartbeat[^.]{0,100}(?:zero warnings|zero errors|error-free|no diagnostics)/i.test(t)) {
       problems.push('unsupported parity, current-UAT, heartbeat, or immutable-package claim is operative');
     }
     return problems;
@@ -8324,6 +8428,47 @@ function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
 
+  if (t.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA)) {
+    const requiredSurfaces = [
+      'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
+      'docs/test-evidence.md', 'CODEX_HANDOFF.md', 'CLAUDE_HANDOFF.md',
+      'plan.md', 'ROADMAP.md', 'README.md',
+      'docs/thesis-teammate-handoff.md', 'docs/deployment.md',
+      'docs/security-checklist.md',
+      'docs/session-readiness-incident-2026-09-14.md',
+      'docs/offline-map-refresh.md', 'database/supabase/README.md',
+      'database/supabase/REPOSITORY_BOUNDARIES.md'
+    ];
+    return /initial grounding turn/i.test(t) &&
+      /Discover the repository root/i.test(t) &&
+      /read-only and context-only/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Never read, print, summarize, compare, or package `?\.env`?/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /availability does not expand authority/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      requiredSurfaces.every((surface) => t.includes(surface)) &&
+      /git ls-remote/i.test(t) &&
+      /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
+      t.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) &&
+      /25 Vehicle entry destinations \/ 486 steps \/ 101 unique scenes/i.test(t) &&
+      /25 Vehicle exit destinations \/ 545 steps \/ 105 unique scenes/i.test(t) &&
+      /25 Walking destinations \/ 690 steps \/ 133 unique scenes/i.test(t) &&
+      /service worker `?v48`?/i.test(t) &&
+      /LT-01 through LT-06 passed/i.test(t) &&
+      /LT-07 passed[^.]{0,140}authenticated Chrome/i.test(t) &&
+      /rejected harness evidence/i.test(t) &&
+      /LT-08 passed all 26 thresholds[^.]{0,100}PASS WITH WARNING/i.test(t) &&
+      /three session-store retry warnings/i.test(t) &&
+      /does not prove 50 distinct accounts/i.test(t) &&
+      /current MySQL parity/i.test(t) &&
+      /complete deployed-byte equality/i.test(t) &&
+      /no deployment, promotion, database, migration, or vendor action is authorized/i.test(t) &&
+      /owner-selected focused feature or bug fix/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t) &&
+      !/[A-Z]:\\Users\\/i.test(t) && !declaresStaleOrPrematureAuthority(t);
+  }
+
   if (t.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA)) {
     const requiredSurfaces = [
       'AGENTS.md', 'CLAUDE.md', 'docs/current-authority.md',
@@ -8352,6 +8497,7 @@ function reusablePromptIsCurrent(body) {
       /Never read, print, summarize, compare, or package `?\.env`?/i.test(t) &&
       /This prompt grants no access to Supabase, Vercel, Cloudinary, Google Drive/i.test(t) &&
       requiredSurfaces.every((surface) => t.includes(surface)) &&
+      t.includes(CURRENT_AUTHENTICATED_HEARTBEAT_AUTHORITY_BASELINE_SHA) &&
       t.includes(CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA.slice(0, 7)) &&
       t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA.slice(0, 7)) &&
       t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA.slice(0, 7)) &&
@@ -8375,16 +8521,23 @@ function reusablePromptIsCurrent(body) {
       /four committed Git-blob comparisons/i.test(t) &&
       /Warning `?0`?, Error `?0`?, Fatal `?0`?/i.test(t) &&
       /no `?ERR_HTTP_HEADERS_SENT`?[^.]{0,80}no `?5xx`?/i.test(t) &&
+      /bounded authenticated guest observation/i.test(t) &&
+      /POST `?\/api\/presence\/heartbeat`? responses? at `?204`?/i.test(t) &&
+      /exhausted both attempts/i.test(t) &&
+      /sanitized `?post-response`? diagnostic/i.test(t) &&
+      /usable signed-in page/i.test(t) &&
+      /not a zero-diagnostic result/i.test(t) &&
       /full `?npm test`?, current MySQL parity, `?qa:db`?, and complete identity[^.]{0,100}deferred/i.test(t) &&
       /not rerun after `?b8d2bf2`?/i.test(t) &&
-      /authenticated heartbeat\/UAT/i.test(t) &&
+      /post-`?b8d2bf2`? 25\/25 UAT/i.test(t) &&
       /MapLibre\/PMTiles basemap/i.test(t) && /GitHub Actions publishes/i.test(t) &&
       /users explicitly update IndexedDB/i.test(t) && /service worker is `?v45`?/i.test(t) &&
       /git ls-remote/i.test(t) &&
       /Do not fetch, pull, reset, clean, switch, restore, commit, or push/i.test(t) &&
       /evidence classes/i.test(t) &&
-      /next release-closeout move is review[^.]{0,180}authority\/static-contract synchronization/i.test(t) &&
-      /only if separately authorized[^.]{0,80}commit and push/i.test(t) &&
+      /next focused product task is[^.]{0,120}separately authorized[^.]{0,120}read-only investigation/i.test(t) &&
+      /`?app_sessions`? touch timeouts/i.test(t) &&
+      /must not change retries, configuration, data, sessions, or infrastructure/i.test(t) &&
       /Stop and wait/i.test(t) &&
       !/[A-Z]:\\Users\\/i.test(t) && !declaresStaleOrPrematureAuthority(t);
   }
@@ -8848,6 +9001,22 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
+  if (t.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
   if (t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA) ||
       t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
@@ -8908,6 +9077,22 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
+  if (t.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn/i.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Report and stop after grounding/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /Stop and wait for the owner's explicit task/i.test(t);
+  }
   if (t.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA) ||
       t.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA)) {
     return reusablePromptIsCurrent(t) &&
@@ -9905,6 +10090,23 @@ function recordsPostDeploymentAuthority(text) {
   const current = currentDeploymentAuthorityScope(text);
   const t = current.replace(/\s+/g, ' ');
 
+  /* September 22 live authority binds the current product release to its
+     owner-observed Production deployment and bounded LT-08 monitoring window. */
+  if (current.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA)) {
+    return current.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) &&
+      /owner-observed current Production deployment/i.test(t) &&
+      /exact commit `?0e7fe8b`?/i.test(t) &&
+      /https:\/\/campusphere-cspc\.vercel\.app/i.test(t) &&
+      /LT-08 passed all 26 configured thresholds/i.test(t) &&
+      /PASS WITH WARNING/i.test(t) &&
+      /0% function errors[^.]{0,80}0% function timeouts/i.test(t) &&
+      /no displayed `?5xx`?/i.test(t) &&
+      /three session-store timeout-retry warnings/i.test(t) &&
+      /not immutable deployed-byte equality/i.test(t) &&
+      /not authority to redeploy/i.test(t) &&
+      /external client\/panel acceptance/i.test(t);
+  }
+
   /* September 15 live authority binds the completed-response guard to its
      exact promoted deployment and bounded anonymous/log verification. */
   if (current.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA)) {
@@ -10727,8 +10929,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-15';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-15';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-22';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-09-22';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -10767,17 +10969,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-15)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-15)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-15 (Asia/Manila)\n## Current Release Continuity (2026-09-15)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-15 (Asia/Manila)\n## Current Release Continuity (2026-09-15)',
-    'plan.md': '## Current Release Continuity (2026-09-15)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-15)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-15 (Asia/Manila)\n## Current Release Continuity (2026-09-15)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-15)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-15)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-15)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-15)',
+    'AGENTS.md': '## Current Release Continuity (2026-09-22)',
+    'CLAUDE.md': '## Current Release Continuity (2026-09-22)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
+    'plan.md': '## Current Release Continuity (2026-09-22)',
+    'ROADMAP.md': '## Current Release Continuity (2026-09-22)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-09-22)',
+    'docs/deployment.md': '## Current Release Continuity (2026-09-22)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-09-22)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-09-22)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -11264,66 +11466,59 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 15 completed-response release and verified-Production boundary`,
+    ok(`${name} records the September 22 production load-test closeout boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-15 completed-response guard and verified Production)');
+    const start = raw.indexOf('## Current Release Continuity (2026-09-22 production load-test closeout checkpoint)');
     const historical = raw.indexOf('## Historical Release Continuity', start);
     if (start < 0 || historical <= start) return '';
     return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative September 15 release summaries are exactly synchronized',
+  ok('all eleven operative September 22 release summaries are exactly synchronized',
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
 
   const currentAuthority = docs['docs/current-authority.md'];
+  const currentAuthorityText = currentAuthority.replace(/\s+/g, ' ').trim();
   const incidentRecord = docs['docs/session-readiness-incident-2026-09-14.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
-  ok('canonical current authority records the completed-response fix, verified Production evidence, limits, and next move',
-    currentAuthority.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_INCIDENT_AUTHORITY_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_WALKING_EXIT_RELEASE_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_DESTINATION_ROUTE_RELEASE_COMMIT_SHA) &&
-    currentAuthority.includes(CURRENT_WALKING_MAP_RELEASE_COMMIT_SHA) &&
-    /readiness query receiving HTTP[^.]{0,40}401[^.]{0,120}2026-09-14 21:29:01/i.test(currentAuthority) &&
-    /reason Supabase temporarily[^.]{0,80}401[^.]{0,80}remains unproven/i.test(currentAuthority) &&
-    /session-readiness-incident-2026-09-14\.md/i.test(currentAuthority) &&
-    /failed eager initialization[^.]{0,120}cached[^.]{0,100}warm Vercel function/i.test(currentAuthority) &&
-    /three attempts[^.]{0,120}two-second timeout per attempt/i.test(currentAuthority) &&
-    /Supabase session `?get`?, `?set`?, and `?touch`? use at most two attempts/i.test(currentAuthority) &&
-    /Vercel functions are pinned to[^.]{0,40}`?bom1`?/i.test(currentAuthority) &&
-    /express-session[^.]{0,160}failed store `?touch`?/i.test(currentAuthority) &&
-    /global error handler[^.]{0,160}second error response/i.test(currentAuthority) &&
-    /checks `?res\.headersSent`? before any\s+write/i.test(currentAuthority) &&
-    /fixed sanitized[^.]{0,80}`?post-response`? diagnostic/i.test(currentAuthority) &&
-    /Vehicle[^.]{0,80}25[^.]{0,80}486[^.]{0,80}101/i.test(currentAuthority) &&
-    /Walking[^.]{0,80}25[^.]{0,80}690[^.]{0,80}133/i.test(currentAuthority) &&
-    /670 scenes/i.test(currentAuthority) && /22\/22 expected directed links/i.test(currentAuthority) &&
-    /Migration sources are contiguous through[^.]{0,40}0027/i.test(currentAuthority) &&
-    currentAuthority.includes(CURRENT_SESSION_RESILIENCE_PACKAGE_SHA256) &&
-    /user presence[^.]{0,40}34\/34/i.test(currentAuthority) &&
-    /runtime[^.]{0,40}session bootstrap[^.]{0,40}117\/117/i.test(currentAuthority) &&
-    /session-store resilience[^.]{0,40}15\/15/i.test(currentAuthority) &&
-    /Deferred for this release:[^.]{0,120}npm test[^.]{0,100}current MySQL parity/i.test(currentAuthority) &&
-    currentAuthority.includes(CURRENT_COMPLETED_RESPONSE_VERCEL_DEPLOYMENT_ID) &&
-    /anonymous GET-only smoke passed[^.]{0,40}301\/301/i.test(currentAuthority) &&
-    /Warning[^.]{0,20}0[^.]{0,40}Error[^.]{0,20}0[^.]{0,40}Fatal[^.]{0,20}0/i.test(currentAuthority) &&
-    /no `?ERR_HTTP_HEADERS_SENT`?[^.]{0,100}no `?5xx`?/i.test(currentAuthority) &&
-    /25\/25 online and 25\/25 offline[^.]{0,120}predecessor evidence/i.test(currentAuthority) &&
-    /not rerun after[^.]{0,40}b8d2bf2/i.test(currentAuthority) &&
-    /did not undergo a deliberately induced Supabase outage/i.test(currentAuthority) &&
-    /authenticated Production presence[^.]{0,40}heartbeat/i.test(currentAuthority) &&
-    /complete\s+immutable-package\s+comparison/i.test(currentAuthority) &&
-    /next release-closeout move is review[^.]{0,160}authority\/static-contract/i.test(currentAuthority) &&
-    /separately authorized commit and push if green/i.test(currentAuthority));
+  ok('canonical current authority records the September 22 product, load-test, monitoring, scope, and next-move boundaries',
+    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA) &&
+    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) &&
+    currentAuthority.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA.slice(0, 7)) &&
+    currentAuthority.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA.slice(0, 7)) &&
+    /Last updated: 2026-09-22/i.test(currentAuthority) &&
+    /owner authorized validation, two dedicated[^.]{0,80}commits[^.]{0,80}push to `?main`?/i.test(currentAuthority) &&
+    /No deployment,[^.]{0,100}database,[^.]{0,100}migration/i.test(currentAuthority) &&
+    /Vehicle entry \| 25 \| 486 \| 101/i.test(currentAuthority) &&
+    /Vehicle exit \| 25 \| 545 \| 105/i.test(currentAuthority) &&
+    /Walking \| 25 \| 690 \| 133/i.test(currentAuthority) &&
+    /cache key is `?v48`?/i.test(currentAuthority) &&
+    /Migration sources remain contiguous through `?0027`?/i.test(currentAuthority) &&
+    /LT-01 through LT-08/i.test(currentAuthority) &&
+    /LT-07 passed[^.]{0,160}authenticated Chrome/i.test(currentAuthority) &&
+    /rejected harness evidence/i.test(currentAuthority) &&
+    /LT-08 passed all 26 configured thresholds/i.test(currentAuthority) &&
+    /PASS WITH\s+WARNING/i.test(currentAuthority) &&
+    /5\.6K function invocations/i.test(currentAuthority) &&
+    /0% function errors[^.]{0,80}0% function timeouts/i.test(currentAuthority) &&
+    /341 MB average \/ 352 MB P75 \/ 356 MB P95/i.test(currentAuthority) &&
+    /fresh local `?npm test`?[^.]{0,120}rejected[^.]{0,120}acceptance evidence/i.test(currentAuthorityText) &&
+    /did not emit `?QUALITY-GATES OK`?/i.test(currentAuthorityText) &&
+    /Staff House Vehicle-exit[^.]{0,160}Supabase\/Supabase leg/i.test(currentAuthorityText) &&
+    /owner explicitly directed that MySQL synchronization be skipped/i.test(currentAuthorityText) &&
+    /no MySQL seed, data, route, VR, session, schema, or migration repair was performed/i.test(currentAuthorityText) &&
+    /makes no full-suite or current MySQL parity claim/i.test(currentAuthorityText) &&
+    /does not prove 50 distinct accounts/i.test(currentAuthority) &&
+    /complete immutable deployed-byte equality/i.test(currentAuthority) &&
+    /owner-selected focused add\/change\/remove feature or bug fix on a fresh branch/i.test(currentAuthority) &&
+    /pre-push remote recheck fails, stop and ask/i.test(currentAuthorityText));
   ok('session-readiness incident record pins the correlated trigger without inventing the provider reason or exposing secrets',
     /2026-09-14 21:29:01[^.]{0,100}2026-09-14T13:29:01\.899Z/i.test(incidentRecord) &&
     /GET \/rest\/v1\/app_sessions[^.]{0,100}select=sid&limit=1/i.test(incidentRecord) &&
@@ -11337,7 +11532,11 @@ function runDocsCurrentGate() {
     /not evidence[^.]{0,120}September 14 readiness incident/i.test(incidentRecord) &&
     /Release `?b8d2bf2`? fixes the confirmed response-lifecycle defect/i.test(incidentRecord) &&
     incidentRecord.includes(CURRENT_COMPLETED_RESPONSE_VERCEL_DEPLOYMENT_ID) &&
-    /anonymous smoke did not send an authenticated[^.]{0,80}heartbeat/i.test(incidentRecord) &&
+    /bounded authenticated observation/i.test(incidentRecord) &&
+    /three consecutive correlated rows/i.test(incidentRecord) &&
+    /client responses remained `?204`?/i.test(incidentRecord) &&
+    /exact deployment search returned no[^.]{0,80}ERR_HTTP_HEADERS_SENT/i.test(incidentRecord) &&
+    /not a zero-diagnostic result/i.test(incidentRecord) &&
     !/(?:service[_ -]?role|api)[_ -]?key\s*[:=]\s*\S+/i.test(incidentRecord) &&
     !/sid=eq\./i.test(incidentRecord));
   ok('portable teammate handoff documents setup, architecture, exclusions, and AI question workflow without an owner path',
@@ -11354,36 +11553,32 @@ function runDocsCurrentGate() {
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
-  ok('fixture: current September 15 continuity is accepted and Git, response guard, deployment, smoke, scope, and marker drift fail closed',
+  ok('fixture: current September 22 continuity is accepted and Git, deployment, workload, scope, and marker drift fail closed',
     currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_FIXTURE).length === 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA,
+      CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA,
       'cccccccccccccccccccccccccccccccccccccccc')).length > 0 &&
     currentReleaseContinuityProblems(replaceAllLiteral(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_HEARTBEAT_AUTHORITY_COMMIT_SHA.slice(0, 7),
-      'eeeeeee')).length > 0 &&
-    currentReleaseContinuityProblems(replaceAllLiteral(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      'zero stashes',
-      'one stash')).length > 0 &&
-    currentReleaseContinuityProblems(replaceWrapped(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /The owner authorized the bounded\s+Production smoke, deployment-specific log inspection, and[^.]{0,100}established 19-file authority\/static-contract synchronization/,
-      'The owner did not authorize this synchronization')).length > 0 &&
-    currentReleaseContinuityProblems(replaceAllLiteral(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      CURRENT_COMPLETED_RESPONSE_VERCEL_DEPLOYMENT_ID,
+      CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID,
       'dpl_wrong')).length > 0 &&
-    currentReleaseContinuityProblems(replaceAllLiteral(
-      CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      '301/301',
-      '300/301')).length > 0 &&
     currentReleaseContinuityProblems(replaceWrapped(
       CURRENT_RELEASE_CONTINUITY_FIXTURE,
-      /it was not rerun after `b8d2bf2`/i,
-      'it was rerun after `b8d2bf2`')).length > 0 &&
+      /25 Vehicle exit destinations\s*\/\s*545 steps\s*\/\s*105\s+unique scenes/i,
+      '25 Vehicle exit destinations / 544 steps / 105 unique scenes')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      'LT-08 passed all 26 configured thresholds',
+      'LT-08 failed one configured threshold')).length > 0 &&
+    currentReleaseContinuityProblems(replaceWrapped(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      /not a zero-warning\s+window/i,
+      'a zero-warning window')).length > 0 &&
+    currentReleaseContinuityProblems(replaceAllLiteral(
+      CURRENT_RELEASE_CONTINUITY_FIXTURE,
+      'MySQL synchronization be skipped',
+      'MySQL synchronization was completed')).length > 0 &&
     currentReleaseContinuityProblems(
       CURRENT_RELEASE_CONTINUITY_FIXTURE + '\n' + CURRENT_RELEASE_CONTINUITY_START).length > 0);
 

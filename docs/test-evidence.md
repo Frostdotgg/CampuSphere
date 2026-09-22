@@ -4,28 +4,250 @@ Milestone 8, Section 8.10. Use this checklist to record defense and deployment
 evidence without committing private data. Store actual screenshots or recordings
 outside the repo unless they have been reviewed and explicitly approved.
 
-## Current release evidence boundary (2026-09-15)
+## Current release evidence boundary (2026-09-22)
 
-Current pushed and owner-promoted product source is `b8d2bf2`, after readiness
-release `13adb9d` and authority predecessors `58298c9` and `55d634a`. Final
-focused source checks passed: presence `34/34`, Vercel runtime/session bootstrap
-`117/117`, and Supabase session-store resilience `15/15`. Bounded anonymous
-GET-only Production smoke passed `301/301`; matching deployment logs contained
-no `5xx` or `ERR_HTTP_HEADERS_SENT`. The earlier
-signed-in 25/25 online/offline guest UAT was not rerun. Sampled deployed assets
-matched Git blobs but do not establish complete immutable-package equality.
-Full `npm test`, current MySQL parity, `qa:db`, complete identity verification,
-an induced Supabase outage, authenticated Production heartbeat, exhaustive VR/
-route traversal, disconnected cold reload, admin/OAuth/schedule, and real
-Drive-media coverage remain unestablished. The earlier `13adb9d` package
-boundary `74/74` is predecessor evidence, not a current `b8d2bf2` package run.
-See `docs/current-authority.md` for exact evidence classes and limits.
+The current owner-observed Production product source is `0e7fe8b`, after
+session-diagnostic release `ab4ae61`; the observed Vercel Production deployment
+is `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`. The retained LT-01 through LT-08 suite
+is bounded read and browser evidence: LT-01 through LT-06 passed, LT-07 passed
+through the owner's already authenticated Chrome profile while its preceding
+k6 offline run remains rejected harness evidence, and LT-08 is **PASS WITH
+WARNING** after passing all 26 configured thresholds. The matching LT-08
+Vercel window showed zero function errors, zero function timeouts, no displayed
+`5xx`, and no memory pressure, but it contained three session-store
+timeout-retry warnings whose later retry outcomes were not explicit in the
+captured rows.
+
+A fresh local `npm test` attempt is rejected acceptance evidence and did not
+emit `QUALITY-GATES OK`. The documentation hash-label finding from that attempt
+was corrected and its focused scanner is green, but the run also exposed a
+Staff House Vehicle-exit exact scene-order assertion in the Supabase/Supabase
+leg, additional Staff House mixed/local failures, and stale or incomplete
+MySQL VR parity for CCS and Academic VI. The follow-up SELECT-only residue audit
+found zero unexpired canonical Supabase sessions but could not resolve the
+canonical MySQL administrator and student identities. The owner explicitly
+directed that MySQL synchronization be skipped for this checkpoint, so there is
+no fresh full-suite or current MySQL parity claim and no MySQL repair was made.
+
+The suite does not establish 50 distinct accounts, 50 simultaneous
+Chromium/WebGL sessions, write capacity, current MySQL parity, complete
+OAuth/admin coverage, exhaustive route/VR traversal, three physical offline
+devices, a zero-warning Production window, permanent provider availability, or
+complete immutable deployed-byte equality. See `docs/current-authority.md` for
+the canonical evidence classes, current route counts, and change boundaries.
 
 The retained Supabase 24-hour log independently correlates the September 14
 9:30 PM incident with a `401` on the exact readiness query at 21:29:01. A nearby
 session write returned `502`. This proves the trigger presented to the app, not
 the provider's reason for issuing the temporary `401`; see the dedicated
 incident record.
+
+## Production load-test evidence (2026-09-17 through 2026-09-21)
+
+### LT-01 baseline browser closeout (2026-09-17)
+
+The baseline Production browser run passed with k6 exit `0`: one Chromium VU,
+one completed iteration, 5/5 checks, and 65 browser requests with zero failed
+requests. Browser-request p95 was `286.99 ms`, and LCP p95 was `1.14 s`.
+This establishes one authenticated browser baseline only; it is not a
+concurrency, write-capacity, or multi-account result.
+
+Evidence: [`LT-01 artifacts`](../artifacts/production-load/2026-09-17/LT-01/),
+including [`summary.json`](../artifacts/production-load/2026-09-17/LT-01/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-17/LT-01/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-17/LT-01/k6-dashboard.png),
+[`lt-01-map.png`](../artifacts/production-load/2026-09-17/LT-01/lt-01-map.png),
+[`metadata.json`](../artifacts/production-load/2026-09-17/LT-01/metadata.json),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-17/LT-01/SHA256SUMS.txt).
+
+### LT-02 concurrent browser closeout (2026-09-17)
+
+The accepted LT-02 run passed with k6 exit `0`: one setup login, one shared
+guest session copied into 50 isolated browser contexts, 50/50 successful VUs,
+300/300 checks, and 1,200 browser requests with zero failures. All 7 configured
+thresholds passed. Map-ready p95 was `10.48 s`, browser-request p95 was
+`4.61 s`, and the four setup HTTP requests had zero failures. The browser
+heartbeat was fulfilled locally and was not sent to Production.
+
+This is 50 isolated browser contexts sharing one account and one authenticated
+session; it is not evidence for 50 distinct accounts or 50 independently
+authenticated sessions.
+
+Evidence: [`run-194254061` artifacts](../artifacts/production-load/2026-09-17/LT-02/run-194254061/),
+including [`summary.json`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/k6-dashboard.png),
+[`lt-02-map.png`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/lt-02-map.png),
+[`metadata.json`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/metadata.json),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-17/LT-02/run-194254061/SHA256SUMS.txt).
+
+### LT-03 and LT-04 initial closeout (2026-09-19)
+
+The completed Production LT-03 run is recorded separately from the older
+localhost performance rehearsals. It used one dedicated guest account and four
+temporary sessions: 199 authenticated HTTP users plus one Chromium canary,
+with the canary's presence heartbeat fulfilled locally. The workload was
+read-only and sent no Production presence-heartbeat request.
+
+| Test | Workload | Result | Evidence |
+| --- | --- | --- | --- |
+| LT-03 peak enrollment | 200 peak VUs: 199 HTTP users plus one browser canary | **PASS** — k6 exit `0`; 15,554/15,554 checks; 15,386/15,386 authenticated journeys; 28/28 browser checks; 15,641 HTTP requests with 0 failures, `429`, or `5xx`; dynamic-request p95 `403.98 ms`; map-ready p95 `654.15 ms`; LCP p95 `344 ms` | [`run-180228238` artifacts](../artifacts/production-load/2026-09-19/LT-03/run-180228238/), including [`summary.json`](../artifacts/production-load/2026-09-19/LT-03/run-180228238/summary.json), [`transcript.txt`](../artifacts/production-load/2026-09-19/LT-03/run-180228238/transcript.txt), [`k6-dashboard.png`](../artifacts/production-load/2026-09-19/LT-03/run-180228238/k6-dashboard.png), [`lt-03-map-peak.png`](../artifacts/production-load/2026-09-19/LT-03/run-180228238/lt-03-map-peak.png), and [`lt-03-terminal-summary.png`](../artifacts/production-load/2026-09-19/LT-03/run-180228238/lt-03-terminal-summary.png) |
+| LT-04 VR asset stress | One setup login; at most 25 route probes; five planned asset VUs and ten planned panorama requests | **NOT STARTED** — setup found 0 approved Cloudinary panorama URLs and exited with code `107`; asset requests `0`; no CDN workload or capacity result was produced | [`run-185241031` setup-blocked artifacts](../artifacts/production-load/2026-09-19/LT-04/run-185241031/), including [`summary.json`](../artifacts/production-load/2026-09-19/LT-04/run-185241031/summary.json) and [`transcript.txt`](../artifacts/production-load/2026-09-19/LT-04/run-185241031/transcript.txt) |
+
+These results establish the bounded 200-client Production map/read workload
+and a separate, low-concurrency Cloudinary delivery result. They do not
+establish 200 browser sessions, 200 distinct accounts, complete VR asset
+coverage, upload capacity, or application route-data wiring for the explicit
+Cloudinary override. The asset delivery scope is defined in the Production
+load-test README.
+
+### LT-04 final delivery closeout (2026-09-19)
+
+The earlier LT-04 table row records the setup-blocked discovery attempt. The
+final explicit-target run passed: one dedicated setup login, five approved
+Cloudinary targets, five asset VUs, ten direct panorama requests, k6 exit `0`,
+10/10 asset successes, 50/50 checks, zero request failures or status/content-
+type failures, asset-duration p95 `3.19 s`, and maximum `3.42 s`. The explicit
+target list bypassed route discovery, so this is CDN delivery evidence only;
+it does not prove that application route records reference those assets.
+Evidence: [`run-201524014` artifacts](../artifacts/production-load/2026-09-19/LT-04/run-201524014/),
+including [`summary.json`](../artifacts/production-load/2026-09-19/LT-04/run-201524014/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-19/LT-04/run-201524014/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-19/LT-04/run-201524014/k6-dashboard.png),
+[`metadata.json`](../artifacts/production-load/2026-09-19/LT-04/run-201524014/metadata.json),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-19/LT-04/run-201524014/SHA256SUMS.txt).
+
+### LT-05 final Production closeout (2026-09-21)
+
+The final LT-05 run passed with a 50-client peak: 49 authenticated HTTP users
+and one Chromium canary. The run completed with k6 exit `0`, 4,147/4,147
+search journeys, 12,587/12,587 checks, and 4,348 HTTP requests with zero
+failed requests, authentication failures, redirects, rate limits, or `5xx`
+responses. API search p95 was `397.01 ms` with a `1.30 s` maximum; browser
+search-settle p95 was `585.5 ms`; all 12 browser canary cycles, map results,
+building filters, and marker-stability checks passed. Setup preflight examined
+25 candidate names, retained 5 unambiguous names, and rejected 20 ambiguous
+substring/route matches. Four temporary sessions from one dedicated guest
+account were used; this is not evidence for 50 distinct accounts or 50 local
+browsers.
+
+Evidence: [`run-104050081` artifacts](../artifacts/production-load/2026-09-21/LT-05/run-104050081/),
+including [`summary.json`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/k6-dashboard.png),
+[`lt-05-buildings-search-peak.png`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/lt-05-buildings-search-peak.png),
+[`lt-05-map-search-peak.png`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/lt-05-map-search-peak.png),
+[`metadata.json`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/metadata.json),
+[`privacy-scan.txt`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/privacy-scan.txt),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-21/LT-05/run-104050081/SHA256SUMS.txt).
+
+### LT-06 final Production closeout (2026-09-21)
+
+The final LT-06 run passed the supported route-playback policy at a 50-client
+HTTP peak: 25 vehicle-entry, 25 walking-entry, and 25 walking-exit variants
+were preflighted and selected; vehicle-exit remained intentionally excluded.
+The run completed with k6 exit `0`, 248 completed playbacks, 7,174/7,174
+checks, and 6,772 HTTP requests with zero failed requests, redirects, rate
+limits, or `5xx` responses. The route API correctness, exact scene ordering,
+server-rendered scene pages, completion state, and journey checks were all
+100%. Six iterations were interrupted only at the final graceful shutdown
+boundary after the workload had completed; they were not assertion failures.
+Route-API p95 was `833.41 ms`, scene-page p95 was `931.45 ms`, and overall
+HTTP p95 was `930.51 ms` (overall maximum `2.55 s`).
+
+This is HTTP route/API and SSR scene-page evidence, not 50 simultaneous
+Chromium/WebGL sessions or panorama/CDN delivery; LT-04 remains the separate
+VR asset delivery measurement.
+
+Evidence: [`run-112438362` artifacts](../artifacts/production-load/2026-09-21/LT-06/run-112438362/),
+including [`summary.json`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/k6-dashboard.png),
+[`metadata.json`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/metadata.json),
+[`privacy-scan.txt`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/privacy-scan.txt),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-21/LT-06/run-112438362/SHA256SUMS.txt).
+
+### LT-07 bounded browser-recovery closeout (2026-09-21)
+
+The final LT-07 application check used the owner's already authenticated school-
+account Chrome profile, but opened a separate LT-07 tab and left the existing
+dashboard tab untouched. The explicit download stored schema
+`campusphere.offline-guide/1`, 25 buildings, 25 Main Gate entry routes, 25 Main
+Gate exit routes, and a 617,076-byte PMTiles Blob. The active service worker
+controlled the page and the offline shell was present in Cache Storage.
+
+With that LT-07 tab disconnected through Chrome's network control, the stored
+offline workspace loaded at phone (`390x844`), tablet (`820x1180`), and desktop
+(`1440x900`) sizes. Every size remained on `/offline.html`, reported
+`navigator.onLine === false`, exposed downloaded building controls, and rendered
+a MapLibre canvas. The desktop interaction opened downloaded building
+information, rendered a saved Main Gate entry route, and rendered the matching
+saved exit route. After reconnection, **Update Offline Map** completed with the
+safe **Offline map is already up to date** result. A final package inspection
+found no Cloudinary, panorama, VR, or scene reference, and Free Roam remained
+visibly online-only.
+
+This is a bounded **PASS** for the real-Chrome offline/reconnect application
+path across three responsive device sizes. It is one Chrome profile and one
+authenticated account, not three physical devices, three isolated storage
+profiles, or three accounts. Physical-device acceptance remains external if
+the test owner requires that stronger interpretation of "several devices."
+
+The preceding k6 result is rejected harness evidence, not an application
+failure or pass. In [`run-124016186`](../artifacts/production-load/2026-09-21/LT-07/run-124016186/),
+all three isolated k6 profiles downloaded the guide, had service-worker control,
+and had the offline shell cached, but all three browser processes became
+unreadable after k6 switched them offline. The same failure was reproduced
+against a minimal localhost service-worker fixture: 2/3 checks passed and only
+the scheduled offline navigation failed. No Production rerun or threshold
+weakening was used to obtain the browser UAT result.
+
+Evidence: [`browser-control-closeout.md`](../artifacts/production-load/2026-09-21/LT-07/browser-control-closeout.md),
+the rejected diagnostic [`summary.json`](../artifacts/production-load/2026-09-21/LT-07/run-124016186/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-21/LT-07/run-124016186/transcript.txt),
+and [`k6-harness-regression.md`](../artifacts/production-load/2026-09-21/LT-07/k6-harness-regression.md).
+
+### LT-08 final Production closeout (2026-09-21)
+
+The sustained read-only endurance run is a **PASS WITH WARNING**. Its load-test
+criteria passed at a 50-client peak: 49 authenticated HTTP users plus one
+Chromium map canary, using four temporary sessions from one dedicated guest
+account. The run completed with k6 exit `0`, all 26/26 configured thresholds,
+10,892/10,892 checks, 5,322/5,322 journeys, and 5,517 HTTP requests. Request-
+failure, rate-limit, and `5xx` rates were zero. Overall dynamic-request p95 was
+`457.77 ms`; early/middle/late p95 values were `455.63/429.13/442.28 ms`, with
+a `2.56 s` maximum. Browser map-ready p95 was `6.83 s` against the `15 s`
+threshold, and all 13 browser canary cycles passed.
+
+The separately observed matching Vercel Production window showed approximately
+5.6K function invocations, `0%` function errors, and `0%` function timeouts.
+Memory remained well below the displayed `2.05 GB` limit: `341 MB` average,
+`352 MB` P75, and `356 MB` P95, without visible upward drift. The Hobby
+dashboard did not expose memory P99, and its TTFB chart was labeled demo data,
+so neither is claimed as measured Production evidence. Deployment-filtered
+logs contained no displayed `5xx`, Error, or Fatal rows, but did contain three
+session-store timeout-retry warnings on `GET /api/pathfind`, `GET /api/routes`,
+and `GET /api/search`. Each request row displayed HTTP `200`; the warning rows
+show the first retry starting, not the explicit outcome of a later retry.
+
+The warning qualification preserves those three operational diagnostics; it
+does not overturn the passed endurance thresholds or establish a session-store
+defect. The four `302` rows were setup-login redirects. Eleven `204` heartbeat
+rows belonged to the already-open signed-in Chrome application, while the k6
+canary stubbed its own heartbeat locally. This result is not evidence for 50
+distinct accounts, 50 Chromium sessions, write capacity, or a zero-diagnostic
+Production window.
+
+Evidence: [`run-140359792` artifacts](../artifacts/production-load/2026-09-21/LT-08/run-140359792/),
+including [`vercel-monitoring-closeout.md`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/vercel-monitoring-closeout.md),
+[`summary.json`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/summary.json),
+[`transcript.txt`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/transcript.txt),
+[`k6-dashboard.png`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/k6-dashboard.png),
+[`lt-08-peak.png`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/lt-08-peak.png),
+[`lt-08-final.png`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/lt-08-final.png),
+[`metadata.json`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/metadata.json),
+[`privacy-scan.txt`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/privacy-scan.txt),
+and [`SHA256SUMS.txt`](../artifacts/production-load/2026-09-21/LT-08/run-140359792/SHA256SUMS.txt).
 
 ## Guest building/VR visibility policy (pushed source release, 2026-09-07)
 
@@ -50,26 +272,116 @@ authority commit `d294cfd`. This is owner-observed vendor evidence, not an
 independent deployment-identity or Production-behavior result.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 completed-response guard and verified Production)
+## Current Release Continuity (2026-09-22 production load-test closeout checkpoint)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+sections below are historical evidence and do not override this section.
+
+At the start of this checkpoint, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`0e7fe8bb50708bbcfaa4297f6ca133a547da4d76` (`0e7fe8b`). The worktree carried
+the reviewed authority synchronization and the retained LT-01 through LT-08
+load-test candidate; superseded and failed run artifacts were moved to a
+recoverable archive outside the repository. The owner authorized review,
+validation, two dedicated commits, and a normal push to `main`. No deployment,
+promotion, database action, or migration action is authorized by this
+checkpoint. Because the resulting documentation commits are self-referential,
+fresh sessions must recompute their exact SHA, branch, upstream, worktree, and
+stash status before relying on them.
+
+Current product lineage includes `ab4ae61` (fixed, sanitized session timeout
+diagnostics) and `0e7fe8b` (explicit Vehicle exit Guided-VR routes and aligned
+campus maps). Current source contains 25 Vehicle entry destinations / 486
+steps / 101 unique scenes, 25 Vehicle exit destinations / 545 steps / 105
+unique scenes, and 25 Walking destinations / 690 steps / 133 unique scenes.
+The service-worker cache key is `v48`. Migrations remain contiguous through
+`0027`; this checkpoint changes no schema, migration, application row, session
+row, approved route data, VR data, Production setting, or vendor state.
+
+The owner-observed current Production deployment is
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact commit `0e7fe8b`, on `main` in
+the Production environment with canonical alias
+`https://campusphere-cspc.vercel.app`. This identity and the monitoring facts
+below are recorded observation, not immutable deployed-byte equality and not
+authority to redeploy.
+
+The retained Production load-test evidence closes LT-01 through LT-08 with
+explicit scope limits. LT-01, LT-02, LT-03, LT-04, LT-05, and LT-06 passed
+their bounded acceptance criteria. LT-07 passed through the owner's already
+authenticated Chrome profile across phone, tablet, and desktop viewport sizes;
+the preceding k6 offline-browser attempt is retained as rejected harness
+evidence because k6 lost the browser process after switching it offline.
+LT-08 passed all 26 configured thresholds and is recorded **PASS WITH
+WARNING** because the matching read-only Vercel window contained three
+session-store timeout-retry warnings. Exact workloads, counts, timings,
+artifacts, and limitations are in `docs/test-evidence.md` and
+`artifacts/production-load/`.
+
+For LT-08, the matching September 21 Production window showed approximately
+5.6K function invocations, 0% function errors, 0% function timeouts, no
+displayed `5xx`, and memory at 341 MB average / 352 MB P75 / 356 MB P95
+against the displayed 2.05 GB limit. Three warnings occurred on
+`GET /api/pathfind`, `GET /api/routes`, and `GET /api/search`; each associated
+request row displayed `200`, but the captured rows show only the first retry
+starting and do not prove the later retry outcome. This was not a zero-warning
+window and does not establish permanent provider availability.
+
+A fresh local `npm test` was attempted during checkpoint review but is rejected
+as acceptance evidence and did not emit `QUALITY-GATES OK`. Its documentation
+hash-label finding was corrected afterward and the focused documentation
+secret scanner is green, but the run also exposed a Staff House Vehicle-exit
+exact scene-order assertion in the Supabase/Supabase leg, additional Staff
+House mixed/local failures, and stale or incomplete MySQL VR parity for CCS and
+Academic VI. A subsequent SELECT-only residue audit found zero unexpired
+canonical Supabase sessions but could not resolve the canonical MySQL
+administrator and student identities. The owner explicitly directed that
+MySQL synchronization be skipped for this checkpoint; no MySQL seed, data,
+route, VR, session, schema, or migration repair was performed. This checkpoint
+therefore makes no full-suite or current MySQL parity claim and relies only on
+its bounded checkpoint-specific validations.
+
+Evidence classes remain separate: Git/source truth, local validation,
+retained k6 summaries, owner-controlled Chrome observations, read-only Vercel
+dashboard observations, historical Supabase evidence, predecessor UAT, and
+external client/panel acceptance. The suite does not prove 50 distinct
+accounts, 50 simultaneous Chromium/WebGL sessions, write capacity, current
+MySQL parity, complete OAuth/admin coverage, exhaustive route/VR traversal,
+physical-device offline acceptance, or complete immutable deployed-byte
+equality.
+
+After this checkpoint is validated and pushed, the next move is an
+owner-selected focused add/change/remove feature or bug fix on a fresh branch.
+That future task requires its own scope and authority. If any bounded
+checkpoint-specific validation or the pre-push remote recheck fails, stop and
+ask; the explicitly rejected full-suite/MySQL-parity result is deferred by
+owner decision and must not be rewritten as a pass. Do not weaken a test,
+rewrite evidence, force-push, deploy, promote, roll back, or patch around the
+failure.
+
+## Historical Release Continuity (2026-09-15 authenticated heartbeat observation)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
 sections below are historical evidence and do not override this section. At the
 start of this synchronization, Git branch `main` had local `HEAD`,
 `origin/main`, and remote `main` equal at
-`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`), with an empty
-index, a clean worktree, and zero stashes. The owner authorized the bounded
-Production smoke, deployment-specific log inspection, and—if green—the
-established 19-file authority/static-contract synchronization. A later commit
-and push remain a separate owner decision; any authority commit is
-self-referential, so fresh sessions must recompute its exact SHA and status.
+`75d5bbe405b100c9921c8ff00efdfbedd7178589` (`75d5bbe`), with an empty
+index, a clean worktree, and zero stashes. `75d5bbe` is an authority-only
+successor to product release `b8d2bf2`. The owner authorized the authenticated
+heartbeat observation and the established 19-file authority/static-contract
+synchronization. A later commit and push remain a separate owner decision; any
+authority commit is self-referential, so fresh sessions must recompute its exact
+SHA and status.
 
 The current product lineage is `13adb9d` (recoverable fail-closed session
 readiness), `58298c9` and `55d634a` (authority-only successors and the
-September 14 incident record), and `b8d2bf2` (completed-response error guard
-and regression coverage). Production application data and Express sessions
-still target Supabase/PostgreSQL. MySQL remains local-development, fallback,
-and rehearsal. Supabase Auth is not used.
+September 14 incident record),
+`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`; completed-response
+error guard and regression coverage), and `75d5bbe` (authority-only Production-verification
+synchronization). Production application data and Express sessions still
+target Supabase/PostgreSQL. MySQL remains local-development, fallback, and
+rehearsal. Supabase Auth is not used.
 
 The separate heartbeat defect is now diagnosed and fixed. A route could
 successfully finish `POST /api/presence/heartbeat` with `204`, after which
@@ -123,6 +435,23 @@ evidence belongs only to deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`;
 older heartbeat errors from predecessor deployment
 `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` do not describe the new release.
 
+A later bounded authenticated observation used an already signed-in guest
+browser against the same exact deployment. Deployment-filtered logs showed
+repeated `POST /api/presence/heartbeat` requests returning `204`, including
+three consecutive correlated rows at 19:09:36, 19:10:36, and 19:11:36
+Asia/Manila; observation continued through 19:17:36. First-attempt Supabase
+session-store `touch` timeouts were retried, and at least one request explicitly
+recorded recovery on attempt two. Later `touch` operations exhausted both
+attempts and produced the intended fixed sanitized `post-response` diagnostic,
+while the client response remained `204` and the signed-in page remained
+usable. An exact deployment search for `ERR_HTTP_HEADERS_SENT` returned no
+request logs, and the filtered status view contained no `5xx`. Unlike the
+anonymous smoke window, this authenticated window contained expected warning
+and error-level retry/guard diagnostics; it was not a zero-diagnostic result.
+It verifies the completed-response
+guard under a naturally occurring late `touch` failure; it is not proof that
+Supabase will never time out.
+
 This release changed no public endpoint or success-response schema, database
 schema, migration, application row, session row, route, Guided-VR
 sequence/mapping/hotspot, map, offline package, publisher, IndexedDB contract,
@@ -134,25 +463,27 @@ reversed exits. The service worker remains `v45`.
 
 The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
 predecessor evidence for `4e9d579`; it was not rerun after `b8d2bf2`. The
-post-promotion verification did not authenticate a guest, deliberately induce a
-Supabase/session-store failure, POST a real Production presence heartbeat,
-exercise OAuth or administrator writes, traverse every VR/route, perform a
-disconnected cold reload, fetch real Drive media, rerun full `npm test`, prove
-current MySQL parity, or compare every deployed byte. The four sampled assets
-are not complete immutable-package equality. Final client/panel acceptance
-remains external.
+authenticated heartbeat observation was not a deliberately induced Supabase
+outage, a post-`b8d2bf2` 25/25 UAT, or full signed-in application acceptance.
+Production still did not exercise OAuth or administrator writes, traverse every
+VR/route, perform a disconnected cold reload, fetch real Drive media, rerun
+full `npm test`, prove current MySQL parity, or compare every deployed byte.
+The four sampled assets are not complete immutable-package equality. Final
+client/panel acceptance remains external.
 
 Evidence classes remain separate: source/Git, recorded local focused checks,
 historical Supabase evidence, owner/vendor observations, independently executed
-anonymous Production smoke and deployment-specific log inspection, predecessor
-UAT, and external acceptance. Fresh Codex and Claude Code sessions must
-inventory their actual capabilities, ground read-only from the current
+anonymous Production smoke, bounded authenticated heartbeat observation,
+predecessor UAT, and external acceptance. Fresh Codex and Claude Code sessions
+must inventory their actual capabilities, ground read-only from the current
 authority, report discrepancies, and stop for the owner's focused task. After
-this documentation synchronization, the next release-closeout move is review of
-the exact authority/static-contract diff and checks, followed by a separately
-authorized commit and push if green. Any other feature, data action, test,
-deployment, promotion, rollback, or remediation requires its own focused owner
-task.
+review of this documentation synchronization, the next focused product task is
+a separately authorized, read-only investigation of intermittent Supabase
+`app_sessions` touch timeouts using source, deployment-filtered Vercel logs, and
+permitted Supabase logs. It must not change retries, configuration, data,
+sessions, or infrastructure. Commit/push of this authority synchronization and
+any implementation, deployment, promotion, rollback, or remediation remain
+separately authorized.
 
 ## Historical Release Continuity (2026-09-15 incident investigation and verified Production; superseded)
 
@@ -738,10 +1069,11 @@ application; the current pushed release above records the later owner action.
 
 The selected data/route freeze is the owner-approved 2026-09-06 freeze after
 the separately authored Supabase exit geometries were verified.
-MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 exact
-reverse pairs, 100 valid geometries, 671 scenes, 1,397 hotspots, and one
-selected schedule hotspot. Supabase remains at 25 buildings, 26 route nodes,
-50 directed edges, 25 reverse pairs, 0 exact reverse geometries, 50 valid geometries, 664 scenes,
+MySQL remains at 34 buildings, 44 route nodes, 100 directed edges, 50 reverse
+pairs, 50 exact reverse geometries, 100 valid geometries, 671 scenes, 1,397
+hotspots, and one selected schedule hotspot. Supabase remains at 25 buildings,
+26 route nodes, 50 directed edges, 25 reverse pairs, 0 exact reverse
+geometries, 50 valid geometries, 664 scenes,
 1,374 hotspots, and zero selected schedule hotspots. Both backends retain 25
 active Guided-VR destinations, 472 configured steps, and 99 unique scene keys.
 The MySQL building/route SHA-256

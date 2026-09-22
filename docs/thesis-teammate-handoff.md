@@ -6,22 +6,18 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
-## Current Release Checkpoint (2026-09-15)
+## Current Release Checkpoint (2026-09-22)
 
-Pushed release `b8d2bf2` is owner-promoted as
-`dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct` and passed bounded anonymous Production smoke
-`301/301`; matching logs contained no `5xx` or `ERR_HTTP_HEADERS_SENT`. It keeps
-the session recovery from `13adb9d` and prevents a late session-touch failure
-from writing a second response after a completed heartbeat `204`, without
-changing routes, VR, maps, offline content, or database data. The signed-in
-25/25 online/offline guest UAT remains predecessor
-evidence for `4e9d579` and was not rerun. Current source contains 25 Vehicle
-destinations / 486 steps and 25 Walking destinations / 690 steps. MySQL parity
-and a fresh full dual-backend suite remain deferred. Use
-`docs/current-authority.md` for the complete evidence and limitation record.
-Authority predecessors `58298c9` and `55d634a` record the session-resilience
-checkpoint and correlated September 14 incident evidence in
-`docs/session-readiness-incident-2026-09-14.md`.
+The owner-observed current Production product source is `0e7fe8b`, deployed as
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`. It includes sanitized session diagnostics,
+explicit Vehicle exit Guided-VR routes, aligned campus maps, and service worker
+`v48`. Current source has 25 Vehicle entry destinations / 486 steps / 101
+unique scenes, 25 Vehicle exit destinations / 545 steps / 105 unique scenes,
+and 25 Walking destinations / 690 steps / 133 unique scenes. Retained LT-01
+through LT-06 passed; LT-07 passed through the owner's authenticated Chrome
+profile with its earlier k6 run retained as rejected harness evidence; and
+LT-08 passed all 26 thresholds with a **PASS WITH WARNING** disposition. Use
+`docs/current-authority.md` and `docs/test-evidence.md` for exact limitations.
 
 ## What CampuSphere Is
 
@@ -166,6 +162,9 @@ application code. It does not reproduce the current live Production dataset.
 - `middleware/securityHeaders.js`, `middleware/roleAuth.js`, and
   `config/sessionConfig.js` show the browser, authorization, and session
   controls.
+- `services/supabaseSessionStore.js`, `middleware/errorHandler.js`, and
+  `scripts/vercelRuntimeSessionBootstrap-probe.js` show bounded session-touch
+  retries and the completed-response guard.
 - `services/offlineGuideService.js`, `public/js/offline-guide-manager.js`, and
   `public/sw.js` show offline package and PWA behavior.
 
@@ -195,12 +194,14 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-The synchronized authority is an authority-only successor to product release
-`13adb9d`; read its exact SHA from live Git because the handoff text is
+The current authority is an authority-only successor to promoted product
+release `b8d2bf2`; its pre-synchronization Git checkpoint is `75d5bbe`, but any
+later authority commit must be read from live Git because this handoff is
 self-referential. A later source archive, if wanted, must be created from a clean
-committed SHA with `git archive`. The repository records that owner-promoted
-`13adb9d` passed bounded anonymous smoke `301/301`; the limited signed-in guest
-UAT belongs to predecessor `4e9d579`. An archive recipient cannot independently
-refresh that external state without owner access. The next focused product move
-is a read-only diagnosis of the separate presence-heartbeat double-response
-observation.
+committed SHA with `git archive`. The repository records bounded anonymous smoke
+`301/301` and the later authenticated completed-response observation separately;
+the 25/25 signed-in guest UAT still belongs to predecessor `4e9d579`. An archive
+recipient cannot independently refresh external evidence without owner access.
+The next focused product task is a separately authorized, read-only
+investigation of intermittent Supabase `app_sessions` touch timeouts. It must
+not change retry policy, configuration, data, sessions, or infrastructure.

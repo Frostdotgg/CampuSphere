@@ -6,18 +6,22 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtual campus map tour for Camarines Sur Polytechnic Colleges (CSPC). Authentication uses session cookies (express-session) with bcrypt for local credentials and Google OAuth as a second sign-in path. Persistence spans two backends selected at runtime: **Supabase/PostgreSQL is the production data store and production session-store target**, while **MySQL (via the `mysql2/promise` pool) remains the local-development / fallback / local-rehearsal store**. Supabase Auth is not used — CampuSphere keeps Express sessions, bcrypt local login, and Google OAuth. Server-side data access goes through the `repositories/` and `services/` layers (the session stores also live in `services/`).
 
-## Current authority (2026-09-15)
+## Current authority (2026-09-22)
 
 Read `docs/current-authority.md` first and
 `docs/thesis-teammate-handoff.md` for the portable repository guide. At the
-start of the current documentation sync, local/upstream/remote `main` matched
-`b8d2bf2` with a clean tree and zero stashes. Product release `b8d2bf2` is
-owner-promoted as `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`; its bounded anonymous
-Production smoke passed `301/301`, and deployment-specific logs contained no
-`5xx` or `ERR_HTTP_HEADERS_SENT`. It prevents a late session-touch failure from
-writing a second response after a completed `204`. The earlier signed-in 25/25
-online/offline guest UAT remains predecessor evidence for `4e9d579` and was not
-rerun. Full `npm test` and current MySQL parity remain deferred.
+start of this checkpoint, local/upstream/remote `main` matched `0e7fe8b`.
+The owner-observed current Production deployment is
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for that exact product commit. Retained
+LT-01 through LT-06 passed; LT-07 passed through the owner's authenticated
+Chrome profile while the preceding k6 result remains rejected harness evidence;
+and LT-08 passed all 26 configured thresholds with a **PASS WITH WARNING**
+disposition because three session-store timeout-retry warnings appeared in the
+matching Vercel window. Current source has 25 Vehicle entry / 25 Vehicle exit /
+25 Walking destinations and service worker `v48`. Current MySQL parity and
+complete deployed-byte equality remain unestablished. After this checkpoint is
+validated and pushed, the next task is an owner-selected focused feature or bug
+fix on a fresh branch.
 Migration `0027` and approved routes must not be reapplied or changed without
 fresh authority.
 
@@ -109,26 +113,116 @@ campus; admin edits and later additions remain supported but invalidate freeze
 evidence until it is deliberately refreshed.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-15 completed-response guard and verified Production)
+## Current Release Continuity (2026-09-22 production load-test closeout checkpoint)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+sections below are historical evidence and do not override this section.
+
+At the start of this checkpoint, Git branch `main` had local `HEAD`,
+`origin/main`, and remote `main` equal at Git commit SHA-1
+`0e7fe8bb50708bbcfaa4297f6ca133a547da4d76` (`0e7fe8b`). The worktree carried
+the reviewed authority synchronization and the retained LT-01 through LT-08
+load-test candidate; superseded and failed run artifacts were moved to a
+recoverable archive outside the repository. The owner authorized review,
+validation, two dedicated commits, and a normal push to `main`. No deployment,
+promotion, database action, or migration action is authorized by this
+checkpoint. Because the resulting documentation commits are self-referential,
+fresh sessions must recompute their exact SHA, branch, upstream, worktree, and
+stash status before relying on them.
+
+Current product lineage includes `ab4ae61` (fixed, sanitized session timeout
+diagnostics) and `0e7fe8b` (explicit Vehicle exit Guided-VR routes and aligned
+campus maps). Current source contains 25 Vehicle entry destinations / 486
+steps / 101 unique scenes, 25 Vehicle exit destinations / 545 steps / 105
+unique scenes, and 25 Walking destinations / 690 steps / 133 unique scenes.
+The service-worker cache key is `v48`. Migrations remain contiguous through
+`0027`; this checkpoint changes no schema, migration, application row, session
+row, approved route data, VR data, Production setting, or vendor state.
+
+The owner-observed current Production deployment is
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact commit `0e7fe8b`, on `main` in
+the Production environment with canonical alias
+`https://campusphere-cspc.vercel.app`. This identity and the monitoring facts
+below are recorded observation, not immutable deployed-byte equality and not
+authority to redeploy.
+
+The retained Production load-test evidence closes LT-01 through LT-08 with
+explicit scope limits. LT-01, LT-02, LT-03, LT-04, LT-05, and LT-06 passed
+their bounded acceptance criteria. LT-07 passed through the owner's already
+authenticated Chrome profile across phone, tablet, and desktop viewport sizes;
+the preceding k6 offline-browser attempt is retained as rejected harness
+evidence because k6 lost the browser process after switching it offline.
+LT-08 passed all 26 configured thresholds and is recorded **PASS WITH
+WARNING** because the matching read-only Vercel window contained three
+session-store timeout-retry warnings. Exact workloads, counts, timings,
+artifacts, and limitations are in `docs/test-evidence.md` and
+`artifacts/production-load/`.
+
+For LT-08, the matching September 21 Production window showed approximately
+5.6K function invocations, 0% function errors, 0% function timeouts, no
+displayed `5xx`, and memory at 341 MB average / 352 MB P75 / 356 MB P95
+against the displayed 2.05 GB limit. Three warnings occurred on
+`GET /api/pathfind`, `GET /api/routes`, and `GET /api/search`; each associated
+request row displayed `200`, but the captured rows show only the first retry
+starting and do not prove the later retry outcome. This was not a zero-warning
+window and does not establish permanent provider availability.
+
+A fresh local `npm test` was attempted during checkpoint review but is rejected
+as acceptance evidence and did not emit `QUALITY-GATES OK`. Its documentation
+hash-label finding was corrected afterward and the focused documentation
+secret scanner is green, but the run also exposed a Staff House Vehicle-exit
+exact scene-order assertion in the Supabase/Supabase leg, additional Staff
+House mixed/local failures, and stale or incomplete MySQL VR parity for CCS and
+Academic VI. A subsequent SELECT-only residue audit found zero unexpired
+canonical Supabase sessions but could not resolve the canonical MySQL
+administrator and student identities. The owner explicitly directed that
+MySQL synchronization be skipped for this checkpoint; no MySQL seed, data,
+route, VR, session, schema, or migration repair was performed. This checkpoint
+therefore makes no full-suite or current MySQL parity claim and relies only on
+its bounded checkpoint-specific validations.
+
+Evidence classes remain separate: Git/source truth, local validation,
+retained k6 summaries, owner-controlled Chrome observations, read-only Vercel
+dashboard observations, historical Supabase evidence, predecessor UAT, and
+external client/panel acceptance. The suite does not prove 50 distinct
+accounts, 50 simultaneous Chromium/WebGL sessions, write capacity, current
+MySQL parity, complete OAuth/admin coverage, exhaustive route/VR traversal,
+physical-device offline acceptance, or complete immutable deployed-byte
+equality.
+
+After this checkpoint is validated and pushed, the next move is an
+owner-selected focused add/change/remove feature or bug fix on a fresh branch.
+That future task requires its own scope and authority. If any bounded
+checkpoint-specific validation or the pre-push remote recheck fails, stop and
+ask; the explicitly rejected full-suite/MySQL-parity result is deferred by
+owner decision and must not be rewritten as a pass. Do not weaken a test,
+rewrite evidence, force-push, deploy, promote, roll back, or patch around the
+failure.
+
+## Historical Release Continuity (2026-09-15 authenticated heartbeat observation)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
 sections below are historical evidence and do not override this section. At the
 start of this synchronization, Git branch `main` had local `HEAD`,
 `origin/main`, and remote `main` equal at
-`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`), with an empty
-index, a clean worktree, and zero stashes. The owner authorized the bounded
-Production smoke, deployment-specific log inspection, and—if green—the
-established 19-file authority/static-contract synchronization. A later commit
-and push remain a separate owner decision; any authority commit is
-self-referential, so fresh sessions must recompute its exact SHA and status.
+`75d5bbe405b100c9921c8ff00efdfbedd7178589` (`75d5bbe`), with an empty
+index, a clean worktree, and zero stashes. `75d5bbe` is an authority-only
+successor to product release `b8d2bf2`. The owner authorized the authenticated
+heartbeat observation and the established 19-file authority/static-contract
+synchronization. A later commit and push remain a separate owner decision; any
+authority commit is self-referential, so fresh sessions must recompute its exact
+SHA and status.
 
 The current product lineage is `13adb9d` (recoverable fail-closed session
 readiness), `58298c9` and `55d634a` (authority-only successors and the
-September 14 incident record), and `b8d2bf2` (completed-response error guard
-and regression coverage). Production application data and Express sessions
-still target Supabase/PostgreSQL. MySQL remains local-development, fallback,
-and rehearsal. Supabase Auth is not used.
+September 14 incident record),
+`b8d2bf26a73d25cff2c53af695396d2f695ae631` (`b8d2bf2`; completed-response
+error guard and regression coverage), and `75d5bbe` (authority-only Production-verification
+synchronization). Production application data and Express sessions still
+target Supabase/PostgreSQL. MySQL remains local-development, fallback, and
+rehearsal. Supabase Auth is not used.
 
 The separate heartbeat defect is now diagnosed and fixed. A route could
 successfully finish `POST /api/presence/heartbeat` with `204`, after which
@@ -182,6 +276,23 @@ evidence belongs only to deployment `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`;
 older heartbeat errors from predecessor deployment
 `dpl_5oua8zBjmSpucXSstB2Gn3JUViRb` do not describe the new release.
 
+A later bounded authenticated observation used an already signed-in guest
+browser against the same exact deployment. Deployment-filtered logs showed
+repeated `POST /api/presence/heartbeat` requests returning `204`, including
+three consecutive correlated rows at 19:09:36, 19:10:36, and 19:11:36
+Asia/Manila; observation continued through 19:17:36. First-attempt Supabase
+session-store `touch` timeouts were retried, and at least one request explicitly
+recorded recovery on attempt two. Later `touch` operations exhausted both
+attempts and produced the intended fixed sanitized `post-response` diagnostic,
+while the client response remained `204` and the signed-in page remained
+usable. An exact deployment search for `ERR_HTTP_HEADERS_SENT` returned no
+request logs, and the filtered status view contained no `5xx`. Unlike the
+anonymous smoke window, this authenticated window contained expected warning
+and error-level retry/guard diagnostics; it was not a zero-diagnostic result.
+It verifies the completed-response
+guard under a naturally occurring late `touch` failure; it is not proof that
+Supabase will never time out.
+
 This release changed no public endpoint or success-response schema, database
 schema, migration, application row, session row, route, Guided-VR
 sequence/mapping/hotspot, map, offline package, publisher, IndexedDB contract,
@@ -193,25 +304,27 @@ reversed exits. The service worker remains `v45`.
 
 The signed-in 25/25 online and 25/25 offline building-panel UAT remains bounded
 predecessor evidence for `4e9d579`; it was not rerun after `b8d2bf2`. The
-post-promotion verification did not authenticate a guest, deliberately induce a
-Supabase/session-store failure, POST a real Production presence heartbeat,
-exercise OAuth or administrator writes, traverse every VR/route, perform a
-disconnected cold reload, fetch real Drive media, rerun full `npm test`, prove
-current MySQL parity, or compare every deployed byte. The four sampled assets
-are not complete immutable-package equality. Final client/panel acceptance
-remains external.
+authenticated heartbeat observation was not a deliberately induced Supabase
+outage, a post-`b8d2bf2` 25/25 UAT, or full signed-in application acceptance.
+Production still did not exercise OAuth or administrator writes, traverse every
+VR/route, perform a disconnected cold reload, fetch real Drive media, rerun
+full `npm test`, prove current MySQL parity, or compare every deployed byte.
+The four sampled assets are not complete immutable-package equality. Final
+client/panel acceptance remains external.
 
 Evidence classes remain separate: source/Git, recorded local focused checks,
 historical Supabase evidence, owner/vendor observations, independently executed
-anonymous Production smoke and deployment-specific log inspection, predecessor
-UAT, and external acceptance. Fresh Codex and Claude Code sessions must
-inventory their actual capabilities, ground read-only from the current
+anonymous Production smoke, bounded authenticated heartbeat observation,
+predecessor UAT, and external acceptance. Fresh Codex and Claude Code sessions
+must inventory their actual capabilities, ground read-only from the current
 authority, report discrepancies, and stop for the owner's focused task. After
-this documentation synchronization, the next release-closeout move is review of
-the exact authority/static-contract diff and checks, followed by a separately
-authorized commit and push if green. Any other feature, data action, test,
-deployment, promotion, rollback, or remediation requires its own focused owner
-task.
+review of this documentation synchronization, the next focused product task is
+a separately authorized, read-only investigation of intermittent Supabase
+`app_sessions` touch timeouts using source, deployment-filtered Vercel logs, and
+permitted Supabase logs. It must not change retries, configuration, data,
+sessions, or infrastructure. Commit/push of this authority synchronization and
+any implementation, deployment, promotion, rollback, or remediation remain
+separately authorized.
 
 ## Historical Release Continuity (2026-09-15 incident investigation and verified Production; superseded)
 

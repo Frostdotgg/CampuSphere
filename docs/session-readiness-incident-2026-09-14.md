@@ -1,6 +1,6 @@
 # Production Session-Readiness Incident — 2026-09-14
 
-Last updated: 2026-09-15 (Asia/Manila)
+Last updated: 2026-09-22 (Asia/Manila)
 
 ## Outcome
 
@@ -56,12 +56,12 @@ Diagnostics now record only fixed operation/state/category/status/attempt
 fields and never credentials, URLs, cookies, session ids/data, raw errors, or
 backend bodies.
 
-The owner promoted the `13adb9d` Vercel deployment recorded in
-`docs/current-authority.md`. Its bounded anonymous, read-only Production smoke
-passed `301/301`, including ten consecutive healthy `/healthz` requests. This
-is strong evidence for the released recovery path, but it is not a deliberately
-induced outage test and cannot guarantee that an external provider will never
-fail again.
+The owner promoted the later `b8d2bf2` Vercel deployment recorded in
+`docs/current-authority.md`; it includes the `13adb9d` recovery behavior. Its
+bounded anonymous, read-only Production smoke passed `301/301`, including ten
+consecutive healthy `/healthz` requests. This is strong bounded evidence for
+the released recovery path, but it is not a deliberately induced outage test
+and cannot guarantee that an external provider will never fail again.
 
 ## Separate heartbeat observation and resolution
 
@@ -80,8 +80,21 @@ handler. A real in-process regression passed inside the `117/117` Vercel
 runtime/session bootstrap probe. The owner promoted deployment
 `dpl_5aBjCeWeBj1ZcST2LJCqZhSv7Tct`; bounded anonymous Production smoke passed
 `301/301`, and its deployment-filtered logs showed no `5xx` or
-`ERR_HTTP_HEADERS_SENT`. The anonymous smoke did not send an authenticated
-Production heartbeat, so that exact live path was not exercised.
+`ERR_HTTP_HEADERS_SENT`.
+
+A later bounded authenticated observation used an already signed-in guest
+browser against that exact deployment. Repeated heartbeat requests returned
+`204`, including three consecutive correlated rows at 19:09:36, 19:10:36, and
+19:11:36 Asia/Manila, and the signed-in page remained usable. First-attempt
+session-store `touch` timeouts were retried; at least one request explicitly
+recorded recovery on attempt two. Later requests exhausted both attempts and
+emitted the fixed sanitized `post-response` diagnostic. Client responses remained `204`;
+an exact deployment search returned no
+`ERR_HTTP_HEADERS_SENT`, and the filtered status view contained no `5xx`.
+Unlike the earlier anonymous smoke, this window contained warning and
+error-level retry/guard diagnostics. It verifies the response guard during a
+naturally occurring late failure; it is not a zero-diagnostic result, an
+induced outage, or proof that Supabase will never time out.
 
 ## Plain-English explanation for clients and panelists
 
@@ -91,12 +104,18 @@ Production heartbeat, so that exact live path was not exercised.
 > The old version stayed stuck after that first failure. The current version
 > retries safely, recovers automatically, and records non-sensitive failure
 > categories so the team can diagnose a future incident without exposing user
-> or credential data.
+> or credential data. A later signed-in check confirmed that even when a
+> background session refresh timed out, the page kept its successful response
+> and did not produce the previous double-response error.
 
-## Current next move
+## Current follow-up boundary
 
-The heartbeat observation is diagnosed, fixed, pushed, promoted, and boundedly
-verified. The next release-closeout move is review of the authority/static-
-contract synchronization and, if green and separately authorized, commit and
-push. Any new implementation, session/database mutation, deployment, or broader
-Production test still requires its own explicit owner task.
+The heartbeat double-response is diagnosed, fixed, pushed, promoted, and
+boundedly verified. The September 21 LT-08 window later recorded three
+session-store timeout-retry warnings on successful read-request rows. The
+captured rows show only the first retry starting, so they do not prove a later
+retry outcome or a new application defect. Preserve this as an operational
+follow-up. After the September 22 checkpoint, the next product task is an
+owner-selected focused feature or bug fix; any session-reliability change,
+database mutation, Production test, deployment, or promotion still requires
+its own explicit authority.

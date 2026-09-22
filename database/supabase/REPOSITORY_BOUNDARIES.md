@@ -1,16 +1,18 @@
 # Repository Boundary Design
 
-## Current implementation note (2026-09-15)
+## Current implementation note (2026-09-22)
 
 The repository layer is implemented. Production application data and Express
 sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
 rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
 Express login/role/CSRF checks enforce per-user access even though the service
-role bypasses RLS. Current pushed and promoted product source is `b8d2bf2`; it
-retains recoverable session readiness and guards completed responses against a
-late session-touch error without changing repository interfaces, schemas,
-migrations, or data. Authority predecessors `58298c9` and `55d634a` record the
-session-resilience checkpoint and incident investigation. The retained incident evidence confirms a temporary Supabase `401`
+role bypasses RLS. The owner-observed current Production product source is
+`0e7fe8b`, after sanitized session diagnostics in `ab4ae61`. It retains
+recoverable session readiness and the completed-response guard without changing
+repository interfaces, schemas, migrations, or data. The LT-08 observation
+recorded three session-store retry warnings on successful read-request rows but
+did not prove their later retry outcomes. The retained incident evidence
+confirms a temporary Supabase `401`
 on the readiness query but not the provider's underlying reason. Any later
 authority-only successor must be read from live Git, and current MySQL parity is
 deferred. The design text below is
