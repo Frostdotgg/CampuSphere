@@ -7,15 +7,18 @@ sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
 rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
 Express login/role/CSRF checks enforce per-user access even though the service
 role bypasses RLS. The owner-observed current Production product source is
-`0e7fe8b`, after sanitized session diagnostics in `ab4ae61`. It retains
+`0e7fe8b`, after sanitized session diagnostics in `ab4ae61`; later
+documentation/test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. It retains
 recoverable session readiness and the completed-response guard without changing
 repository interfaces, schemas, migrations, or data. The LT-08 observation
 recorded three session-store retry warnings on successful read-request rows but
 did not prove their later retry outcomes. The retained incident evidence
 confirms a temporary Supabase `401`
 on the readiness query but not the provider's underlying reason. Any later
-authority-only successor must be read from live Git, and current MySQL parity is
-deferred. The design text below is
+authority-only successor must be read from live Git. Current MySQL parity is
+deferred, and its required later synchronization is not the immediate next
+move. The design text below is
 historical architecture guidance where it uses future tense. See
 `docs/current-authority.md` for current evidence.
 

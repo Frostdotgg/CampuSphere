@@ -8,8 +8,10 @@ Migration sources are contiguous from `0001` through `0027` and are
 owner-reported applied on the selected Supabase project. Do not reapply them
 without fresh explicit database authority. Production application data and
 sessions target Supabase. The owner-observed current Production product commit
-is `0e7fe8b`, deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; its lineage
-includes fixed sanitized session diagnostics from `ab4ae61`.
+is `0e7fe8b`, deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; later
+documentation/test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. Its lineage includes fixed sanitized session diagnostics from
+`ab4ae61`.
 The retained September 14 incident log confirms a `401` on the exact session-
 readiness query, without recording the provider's reason for that temporary
 response. See `docs/session-readiness-incident-2026-09-14.md`. The current
@@ -20,7 +22,9 @@ not prove the later retry outcomes or permanent Supabase availability. No
 checkpoint action added or altered a migration or database row. A
 SELECT-only check confirmed 670 VR scenes and the intentional road 85-94 loop
 plus `85 <-> 94` shortcut. Current MySQL parity remains deferred; older freeze
-and sync counts are historical. See `docs/current-authority.md` before any
+and sync counts are historical. MySQL synchronization remains required later,
+but it is not the immediate next move and is not authorized by grounding. See
+`docs/current-authority.md` before any
 database, mapping, route, hotspot, migration, or session action.
 
 Current migration purposes remain:

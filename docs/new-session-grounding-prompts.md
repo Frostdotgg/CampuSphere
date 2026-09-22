@@ -6,18 +6,22 @@ Last updated: 2026-09-22 (Asia/Manila)
 
 `docs/current-authority.md` is canonical and
 `docs/thesis-teammate-handoff.md` is the portable guide. At the start of the
-September 22 checkpoint, local/upstream/remote `main` matched product commit
-`0e7fe8b`; the owner-observed Vercel Production deployment is
-`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`. Any later authority successor is
-self-referential, so read its exact SHA from live Git. Retained LT-01 through
+current authority synchronization, clean local/upstream/remote `main` matched
+`3d43650` with ahead/behind `0/0` and zero stashes. The owner-observed Vercel
+Production deployment remains `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for product
+commit `0e7fe8b`; later documentation/test commits were deliberately not
+promoted. Any later authority successor is self-referential, so read its exact
+SHA from live Git. Retained LT-01 through
 LT-06 passed, LT-07 passed through the owner's authenticated Chrome profile
 while its preceding k6 result remains rejected harness evidence, and LT-08
 passed all 26 configured thresholds with a **PASS WITH WARNING** disposition.
 Current source has 25 Vehicle entry, 25 Vehicle exit, and 25 Walking
-destinations and service worker `v48`. After this checkpoint is validated and
-pushed, the next task is an owner-selected focused feature or bug fix on a fresh
-branch. Use only the two current owner prompts below; every older prompt is
-historical.
+destinations and service worker `v48`. The owner authorized one dedicated
+authority commit and a normal push to `main`. After that push, the next task is
+an owner-selected focused feature or bug fix on a fresh branch after a new
+read-only grounding turn. MySQL synchronization remains required later but is
+not the next move. Use only the two current owner prompts below; every older
+prompt is historical.
 
 ## Historical Pushed-Candidate Override (2026-08-29; superseded)
 
@@ -60,7 +64,94 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-09-22 production load-test closeout checkpoint)
+## Current Release Continuity (2026-09-22 post-load-test handoff checkpoint)
+
+The canonical current snapshot is `docs/current-authority.md`; the reusable
+owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
+sections below are historical evidence and do not override this section.
+
+Immediately before this authority synchronization, Git branch `main` was clean,
+had zero stashes, and had local `HEAD`, `origin/main`, and remote `main` equal at
+`3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5` (`3d43650`), with ahead/behind
+`0/0`. The owner subsequently authorized review, bounded validation, one
+dedicated authority commit, and a normal push to `main`. Because authority text
+is self-referential, every fresh session must recompute the exact branch, full
+SHA, upstream/remote SHA, ahead/behind, index, worktree, and stash state rather
+than treating this pre-synchronization baseline as the resulting commit.
+
+Current lineage is `ab4ae61` (sanitized session timeout diagnostics),
+`0e7fe8b` (the current product release: explicit Vehicle exit Guided-VR routes
+and aligned campus maps), `26f8cc6` (authority documentation), and `3d43650`
+(the retained Production load suite and closeouts). Current source contains 25
+Vehicle entry destinations / 486 steps / 101 unique scenes, 25 Vehicle exit
+destinations / 545 steps / 105 unique scenes, and 25 Walking destinations /
+690 steps / 133 unique scenes. The service-worker cache key is `v48`.
+Migrations remain contiguous through `0027`; do not apply or reapply them or
+change approved route/VR data without fresh focused owner authority.
+
+The owner-observed current Production deployment remains
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact product commit `0e7fe8b`, on
+`main`, with canonical alias `https://campusphere-cspc.vercel.app`. The later
+documentation/test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. The root `.vercelignore` allowlist excludes their documentation,
+load-test, artifact, database, script, and `.gitattributes` surfaces by default.
+These are source/package observations, not complete immutable deployed-byte
+equality and not authority to deploy, promote, or otherwise mutate Vercel.
+
+The retained Production evidence closes LT-01 through LT-08 within explicit
+limits. LT-01 through LT-06 passed their bounded criteria. LT-07 passed through
+the owner's already authenticated Chrome profile at phone, tablet, and desktop
+viewport sizes; the preceding k6 offline-browser result remains rejected
+harness evidence because k6 lost its browser process after switching offline.
+LT-08 passed all 26 configured thresholds and is **PASS WITH WARNING** because
+the matching read-only Vercel window contained three session-store
+timeout-retry warnings. Exact workloads and limitations are in `docs/test-evidence.md`
+and `artifacts/production-load/`.
+
+The LT-08 window showed approximately 5.6K function invocations, 0% function
+errors, 0% function timeouts, no displayed `5xx`, and memory at 341 MB average /
+352 MB P75 / 356 MB P95 against a displayed 2.05 GB limit. The three warnings
+were on `GET /api/pathfind`, `GET /api/routes`, and `GET /api/search`. Each
+associated row displayed `200`, but the captured rows show only the first retry
+starting and do not prove its later outcome; this was not a zero-warning window.
+
+Checkpoint-specific source validation passed the focused current-documentation
+gate, `node --check scripts/quality-gates.js`, byte-identical comparison of the
+11 current continuity blocks after line-ending normalization, inspection of all
+14 current k6 scripts, five network-free k6 regression scripts, parsing of all
+eight PowerShell runners, the artifact privacy scan, verification of all 58
+manifest entries against committed Git bytes, and the scoped non-artifact
+whitespace check. This bounded evidence is not the full quality suite.
+
+A fresh local `npm test` attempt remains rejected as acceptance evidence and
+did not emit `QUALITY-GATES OK`. Besides a corrected documentation hash-label
+finding, it exposed a Staff House Vehicle-exit exact scene-order assertion in
+the Supabase/Supabase leg, additional Staff House mixed/local failures, and
+stale or incomplete MySQL VR parity for CCS and Academic VI. A SELECT-only
+residue audit found zero unexpired canonical Supabase sessions but could not
+resolve the canonical MySQL administrator and student identities. MySQL
+synchronization is postponed, not abandoned; it is still required later, is
+not the next move, and is not authorized by a grounding turn. No MySQL or
+Supabase seed, data, route, VR, session, schema, or migration repair occurred.
+
+Evidence classes remain separate: Git/source truth, bounded local validation,
+retained k6 summaries, owner-controlled Chrome observations, read-only Vercel
+dashboard observations, historical Supabase evidence, predecessor UAT, and
+external client/panel acceptance. This checkpoint does not prove 50 distinct
+accounts, 50 simultaneous Chromium/WebGL sessions, write capacity, current
+MySQL parity, complete OAuth/admin coverage, exhaustive route/VR traversal,
+three physical offline devices, permanent provider availability, a zero-warning
+window, or complete immutable deployed-byte equality.
+
+After the authorized authority commit and push, open a new owner Codex or
+Claude Code session, use its first turn for read-only grounding, and let the
+owner select one focused add/change/remove feature or bug fix. Create a fresh
+branch only from the then-current clean `main`. MySQL synchronization remains
+deferred work, not that immediate feature/bug task. The commit/push authority
+does not authorize browser, server, database, session, vendor, deployment,
+promotion, rollback, or any other external action.
+
+## Historical Release Continuity (2026-09-22 pre-push production load-test closeout; superseded)
 
 The canonical current snapshot is `docs/current-authority.md`; the reusable
 owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
@@ -1613,14 +1704,25 @@ task. Tool, MCP, browser, skill, or subagent availability does not expand
 authority. Completed repair, revocation, commit, push, and promotion permissions
 from earlier tasks do not carry forward.
 
-Read `AGENTS.md`, `CLAUDE.md`, `docs/current-authority.md`,
-`docs/test-evidence.md`, `CODEX_HANDOFF.md`, `CLAUDE_HANDOFF.md`, `plan.md`,
-`ROADMAP.md`, `README.md`, `docs/thesis-teammate-handoff.md`,
-`docs/deployment.md`, `docs/security-checklist.md`,
-`docs/session-readiness-incident-2026-09-14.md`,
-`docs/offline-map-refresh.md`, `database/supabase/README.md`, and
-`database/supabase/REPOSITORY_BOUNDARIES.md`. Older continuity sections are
-historical and must not override the first September 22 current section.
+Inventory the tools, MCP/connectors, and skills actually available in this
+session. Availability is not authorization. Read an applicable skill's complete
+instructions before using it in a later owner-authorized task. For this initial
+grounding, use only local read-only filesystem and Git inspection: do not invoke
+browser/computer-use, database/vendor MCP, testing, servers, or deployment.
+
+Read in this order:
+1. `AGENTS.md`, `CLAUDE.md`, and `docs/current-authority.md`.
+2. `CODEX_HANDOFF.md`, `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`,
+   `README.md`, and `docs/thesis-teammate-handoff.md`.
+3. `docs/test-evidence.md`, `docs/deployment.md`,
+   `docs/security-checklist.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, and
+   `docs/offline-map-refresh.md`.
+4. `database/supabase/README.md` and
+   `database/supabase/REPOSITORY_BOUNDARIES.md`.
+5. `load-tests/production/README.md`, `.vercelignore`, and `.gitattributes`.
+Older continuity sections are historical and must not override the first
+September 22 current section.
 
 Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
 using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
@@ -1628,13 +1730,20 @@ and a short recent graph. Do not fetch, pull, reset, clean, switch, restore,
 commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- the checkpoint baseline was exact product commit
-  0e7fe8bb50708bbcfaa4297f6ca133a547da4d76 on local HEAD, origin/main, and
-  remote main; later documentation commits are self-referential and must be
-  recomputed from live Git;
+- immediately before the current authority synchronization, clean main had
+  local HEAD, origin/main, and remote main equal at
+  3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5, ahead/behind 0/0, and zero
+  stashes; the owner subsequently authorized review, bounded validation, one
+  dedicated authority commit, and a normal push to main, so recompute every
+  live Git fact rather than treating 3d43650 as the resulting commit;
+- current lineage is ab4ae61 for sanitized timeout diagnostics, 0e7fe8b for the
+  current product release, 26f8cc6 for authority documentation, and 3d43650 for
+  the retained Production load suite and closeouts;
 - owner-observed Vercel Production deployment
   dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS corresponds to product commit 0e7fe8b;
-  this is not complete immutable deployed-byte proof or deployment authority;
+  26f8cc6 and 3d43650 were deliberately not promoted, `.vercelignore` excludes
+  their non-runtime surfaces by default, and none of this is complete immutable
+  deployed-byte proof or deployment authority;
 - current source has 25 Vehicle entry destinations / 486 steps / 101 unique
   scenes, 25 Vehicle exit destinations / 545 steps / 105 unique scenes, 25
   Walking destinations / 690 steps / 133 unique scenes, and service worker v48;
@@ -1649,14 +1758,22 @@ Recorded checkpoint to verify rather than repeat blindly:
   average/P75/P95 against 2.05 GB. Three session-store retry warnings appeared
   on /api/pathfind, /api/routes, and /api/search; the associated rows displayed
   200 but did not show the later retry outcome;
+- a fresh `npm test` attempt is rejected evidence and did not emit
+  `QUALITY-GATES OK`; it exposed a separate Staff House Vehicle-exit assertion,
+  additional mixed/local failures, and stale/incomplete MySQL VR parity for CCS
+  and Academic VI. MySQL synchronization is postponed rather than abandoned:
+  it remains required later, is not the next move, and is not authorized by
+  this grounding turn;
 - evidence does not prove 50 distinct accounts, 50 Chromium/WebGL sessions,
   write capacity, current MySQL parity, complete OAuth/admin coverage,
   exhaustive route/VR traversal, three physical offline devices, a zero-warning
   Production window, permanent provider availability, or complete deployed-byte
   equality;
 - no deployment, promotion, database, migration, or vendor action is authorized
-  by grounding. The next product task must be one owner-selected focused
-  feature or bug fix with its own scope, preferably on a fresh branch.
+  by grounding. First report and stop. After the authority delta is committed
+  or otherwise isolated under separate authorization, the next product task is
+  one owner-selected focused add/change/remove feature or bug fix with its own
+  scope on a fresh branch from then-current clean main.
 
 Report current Git truth and discrepancies, architecture, security/session
 boundaries, route/VR/map/offline behavior, migration/no-reapply boundary,
@@ -1685,14 +1802,25 @@ task. Tool, MCP, browser, skill, or subagent availability does not expand
 authority. Completed repair, revocation, commit, push, and promotion permissions
 from earlier tasks do not carry forward.
 
-Read `AGENTS.md`, `CLAUDE.md`, `docs/current-authority.md`,
-`docs/test-evidence.md`, `CODEX_HANDOFF.md`, `CLAUDE_HANDOFF.md`, `plan.md`,
-`ROADMAP.md`, `README.md`, `docs/thesis-teammate-handoff.md`,
-`docs/deployment.md`, `docs/security-checklist.md`,
-`docs/session-readiness-incident-2026-09-14.md`,
-`docs/offline-map-refresh.md`, `database/supabase/README.md`, and
-`database/supabase/REPOSITORY_BOUNDARIES.md`. Older continuity sections are
-historical and must not override the first September 22 current section.
+Inventory the tools, MCP/connectors, and skills actually available in this
+session. Availability is not authorization. Read an applicable skill's complete
+instructions before using it in a later owner-authorized task. For this initial
+grounding, use only local read-only filesystem and Git inspection: do not invoke
+browser/computer-use, database/vendor MCP, testing, servers, or deployment.
+
+Read in this order:
+1. `AGENTS.md`, `CLAUDE.md`, and `docs/current-authority.md`.
+2. `CODEX_HANDOFF.md`, `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`,
+   `README.md`, and `docs/thesis-teammate-handoff.md`.
+3. `docs/test-evidence.md`, `docs/deployment.md`,
+   `docs/security-checklist.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, and
+   `docs/offline-map-refresh.md`.
+4. `database/supabase/README.md` and
+   `database/supabase/REPOSITORY_BOUNDARIES.md`.
+5. `load-tests/production/README.md`, `.vercelignore`, and `.gitattributes`.
+Older continuity sections are historical and must not override the first
+September 22 current section.
 
 Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
 using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
@@ -1700,13 +1828,20 @@ and a short recent graph. Do not fetch, pull, reset, clean, switch, restore,
 commit, or push.
 
 Recorded checkpoint to verify rather than repeat blindly:
-- the checkpoint baseline was exact product commit
-  0e7fe8bb50708bbcfaa4297f6ca133a547da4d76 on local HEAD, origin/main, and
-  remote main; later documentation commits are self-referential and must be
-  recomputed from live Git;
+- immediately before the current authority synchronization, clean main had
+  local HEAD, origin/main, and remote main equal at
+  3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5, ahead/behind 0/0, and zero
+  stashes; the owner subsequently authorized review, bounded validation, one
+  dedicated authority commit, and a normal push to main, so recompute every
+  live Git fact rather than treating 3d43650 as the resulting commit;
+- current lineage is ab4ae61 for sanitized timeout diagnostics, 0e7fe8b for the
+  current product release, 26f8cc6 for authority documentation, and 3d43650 for
+  the retained Production load suite and closeouts;
 - owner-observed Vercel Production deployment
   dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS corresponds to product commit 0e7fe8b;
-  this is not complete immutable deployed-byte proof or deployment authority;
+  26f8cc6 and 3d43650 were deliberately not promoted, `.vercelignore` excludes
+  their non-runtime surfaces by default, and none of this is complete immutable
+  deployed-byte proof or deployment authority;
 - current source has 25 Vehicle entry destinations / 486 steps / 101 unique
   scenes, 25 Vehicle exit destinations / 545 steps / 105 unique scenes, 25
   Walking destinations / 690 steps / 133 unique scenes, and service worker v48;
@@ -1721,14 +1856,22 @@ Recorded checkpoint to verify rather than repeat blindly:
   average/P75/P95 against 2.05 GB. Three session-store retry warnings appeared
   on /api/pathfind, /api/routes, and /api/search; the associated rows displayed
   200 but did not show the later retry outcome;
+- a fresh `npm test` attempt is rejected evidence and did not emit
+  `QUALITY-GATES OK`; it exposed a separate Staff House Vehicle-exit assertion,
+  additional mixed/local failures, and stale/incomplete MySQL VR parity for CCS
+  and Academic VI. MySQL synchronization is postponed rather than abandoned:
+  it remains required later, is not the next move, and is not authorized by
+  this grounding turn;
 - evidence does not prove 50 distinct accounts, 50 Chromium/WebGL sessions,
   write capacity, current MySQL parity, complete OAuth/admin coverage,
   exhaustive route/VR traversal, three physical offline devices, a zero-warning
   Production window, permanent provider availability, or complete deployed-byte
   equality;
 - no deployment, promotion, database, migration, or vendor action is authorized
-  by grounding. The next product task must be one owner-selected focused
-  feature or bug fix with its own scope, preferably on a fresh branch.
+  by grounding. First report and stop. After the authority delta is committed
+  or otherwise isolated under separate authorization, the next product task is
+  one owner-selected focused add/change/remove feature or bug fix with its own
+  scope on a fresh branch from then-current clean main.
 
 Report current Git truth and discrepancies, architecture, security/session
 boundaries, route/VR/map/offline behavior, migration/no-reapply boundary,

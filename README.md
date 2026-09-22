@@ -25,7 +25,8 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 ## Current source release (2026-09-22)
 
 The owner-observed current Production source is product commit `0e7fe8b`,
-deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`. It includes fixed sanitized
+deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; documentation/test commits
+`26f8cc6` and `3d43650` were deliberately not promoted. It includes fixed sanitized
 session diagnostics from `ab4ae61`, explicit Vehicle exit Guided-VR routes,
 aligned campus maps, and service worker `v48`. Current catalogs contain 25
 Vehicle entry destinations, 25 Vehicle exit destinations, and 25 Walking
@@ -34,6 +35,10 @@ explicit limitations; LT-08 is **PASS WITH WARNING** because its matching
 Vercel window contained three session-store retry warnings despite all 26 load
 thresholds passing. See [current authority](docs/current-authority.md) and
 [test evidence](docs/test-evidence.md) for exact evidence classes and limits.
+At the start of the current authority synchronization, clean
+local/upstream/remote `main` matched `3d43650`. The owner subsequently
+authorized one dedicated authority commit and a normal push to `main`. MySQL
+synchronization remains required later but is not the immediate next move.
 
 ## Tech Stack
 

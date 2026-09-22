@@ -11,8 +11,11 @@ profile at phone, tablet, and desktop viewport sizes; it did not use three
 physical devices or three accounts.
 
 Current product commit `0e7fe8b` adds explicit Vehicle exits and map alignment
-without changing the explicit user-controlled package boundary. Session-store
-diagnostics and retry warnings are unrelated to offline map delivery.
+without changing the explicit user-controlled package boundary. Later
+documentation/test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. Session-store diagnostics and retry warnings are unrelated to offline
+map delivery. MySQL synchronization remains required later but is not the next
+move.
 
 This feature keeps the offline map package explicit and user-controlled while
 allowing the package to be rebuilt daily from the newest available Protomaps

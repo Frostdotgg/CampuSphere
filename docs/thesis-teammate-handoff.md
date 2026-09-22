@@ -8,8 +8,12 @@ history and may describe superseded states.
 
 ## Current Release Checkpoint (2026-09-22)
 
-The owner-observed current Production product source is `0e7fe8b`, deployed as
-`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`. It includes sanitized session diagnostics,
+Immediately before the current authority-only synchronization, clean
+local/upstream/remote `main` matched `3d43650` with ahead/behind `0/0` and zero
+stashes. The owner-observed current Production product source remains
+`0e7fe8b`, deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; later
+documentation/test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. The product release includes sanitized session diagnostics,
 explicit Vehicle exit Guided-VR routes, aligned campus maps, and service worker
 `v48`. Current source has 25 Vehicle entry destinations / 486 steps / 101
 unique scenes, 25 Vehicle exit destinations / 545 steps / 105 unique scenes,
@@ -18,6 +22,8 @@ through LT-06 passed; LT-07 passed through the owner's authenticated Chrome
 profile with its earlier k6 run retained as rejected harness evidence; and
 LT-08 passed all 26 thresholds with a **PASS WITH WARNING** disposition. Use
 `docs/current-authority.md` and `docs/test-evidence.md` for exact limitations.
+MySQL synchronization remains required later but is not the immediate next
+move and is not authorized by a grounding turn.
 
 ## What CampuSphere Is
 
@@ -194,14 +200,18 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-The current authority is an authority-only successor to promoted product
-release `b8d2bf2`; its pre-synchronization Git checkpoint is `75d5bbe`, but any
-later authority commit must be read from live Git because this handoff is
-self-referential. A later source archive, if wanted, must be created from a clean
-committed SHA with `git archive`. The repository records bounded anonymous smoke
-`301/301` and the later authenticated completed-response observation separately;
-the 25/25 signed-in guest UAT still belongs to predecessor `4e9d579`. An archive
-recipient cannot independently refresh external evidence without owner access.
-The next focused product task is a separately authorized, read-only
-investigation of intermittent Supabase `app_sessions` touch timeouts. It must
-not change retry policy, configuration, data, sessions, or infrastructure.
+Live Git must be recomputed because this handoff is self-referential. The
+owner has authorized review, bounded validation, one dedicated authority
+commit, and a normal push to `main`. A later source archive, if wanted, must be
+created from a clean committed SHA with
+`git archive`. An archive recipient cannot independently refresh external
+evidence without owner access.
+
+After the authorized push, open a new owner Codex or Claude Code session and
+use its first turn only for read-only grounding. The owner may then select one
+focused add/change/remove feature or bug fix and create a fresh branch from
+then-current clean `main`. MySQL
+synchronization remains postponed rather than cancelled: it is still required
+later, is not the immediate next move, and needs separate focused authority.
+No grounding prompt authorizes testing, browser/vendor access, database work,
+commit/push, deployment, promotion, or remediation.

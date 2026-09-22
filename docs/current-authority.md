@@ -9,14 +9,13 @@ current.
 
 ## Git and release state
 
-At the start of this checkpoint, branch `main` had local `HEAD`, `origin/main`,
-and remote `main` equal at Git commit SHA-1
-`0e7fe8bb50708bbcfaa4297f6ca133a547da4d76` (`0e7fe8b`). The worktree carried
-the reviewed authority synchronization and retained LT-01 through LT-08
-candidate. Superseded and failed load-test runs were moved to a recoverable
-archive outside the repository. The owner authorized validation, two dedicated
-commits, and a normal push to `main` for this checkpoint. No deployment,
-promotion, database, migration, or vendor mutation is authorized.
+Immediately before this authority synchronization, branch `main` had a clean
+worktree, zero stashes, ahead/behind `0/0`, and local `HEAD`, `origin/main`, and
+remote `main` equal at Git commit SHA-1
+`3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5` (`3d43650`). This synchronization
+was subsequently authorized for review, bounded validation, one dedicated
+authority commit, and a normal push to `main`. No deployment, promotion,
+database, migration, session, browser, or vendor mutation is authorized.
 
 The resulting documentation commits are self-referential. Fresh sessions must
 recompute the exact local `HEAD`, `origin/main`, remote `main`, ahead/behind
@@ -28,12 +27,18 @@ Current product lineage includes:
 - `b8d2bf2`: completed-response guard for late session-store errors.
 - `ab4ae61`: fixed, sanitized session timeout diagnostics.
 - `0e7fe8b`: explicit Vehicle exit Guided-VR routes and aligned campus maps.
+- `26f8cc6`: synchronized current Production authority documentation.
+- `3d43650`: retained Production load suite and LT-01 through LT-08 closeouts.
 
 The owner-observed current Vercel Production deployment is
 `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact product commit `0e7fe8b`, on
 `main`, with canonical alias `https://campusphere-cspc.vercel.app`. This is a
 recorded dashboard observation, not complete immutable deployed-byte equality
-and not authority to redeploy.
+and not authority to redeploy. Documentation/test commits `26f8cc6` and
+`3d43650` were deliberately not promoted. The root `.vercelignore` allowlist
+excludes their documentation, load-test, artifact, database, script, and
+`.gitattributes` surfaces by default; that package observation is not complete
+deployed-byte proof.
 
 ## Architecture and security
 
@@ -141,9 +146,19 @@ Academic VI. A subsequent SELECT-only residue audit found zero unexpired
 canonical Supabase sessions but could not resolve the canonical MySQL
 administrator and student identities. The owner explicitly directed that
 MySQL synchronization be skipped for this checkpoint; no MySQL seed, data,
-route, VR, session, schema, or migration repair was performed. This checkpoint
-therefore makes no full-suite or current MySQL parity claim and relies only on
-its bounded checkpoint-specific validations.
+route, VR, session, schema, or migration repair was performed. MySQL
+synchronization is postponed, not abandoned: it remains required later, but it
+is not the immediate next move and a grounding turn does not authorize it. This
+checkpoint therefore makes no full-suite or current MySQL parity claim and
+relies only on its bounded checkpoint-specific validations.
+
+Checkpoint-specific source validation passed the focused current-documentation
+gate, `node --check scripts/quality-gates.js`, byte-identical comparison of the
+11 current continuity blocks after line-ending normalization, inspection of all
+14 current k6 scripts, five network-free k6 regression scripts, parsing of all
+eight PowerShell runners, the artifact privacy scan, verification of all 58
+manifest entries against committed Git bytes, and the scoped non-artifact
+whitespace check. This bounded evidence is not the full quality suite.
 
 ## Evidence limits and next move
 
@@ -158,11 +173,10 @@ exhaustive route/VR traversal, three physical offline devices, a zero-warning
 Production window, permanent provider availability, or complete immutable
 deployed-byte equality. Final client/panel acceptance remains external.
 
-After this checkpoint is validated and pushed, the next move is an
-owner-selected focused add/change/remove feature or bug fix on a fresh branch.
-That future task requires its own scope and authority. If any bounded
-checkpoint-specific validation or the pre-push remote recheck fails, stop and
-ask; the explicitly rejected full-suite/MySQL-parity result is deferred by
-owner decision and must not be rewritten as a pass. Do not weaken a test,
-rewrite evidence, force-push, deploy, promote, roll back, or patch around the
-failure.
+After the authorized authority commit and push, open a new owner Codex or
+Claude Code session, use its first turn for read-only grounding, and let the
+owner select one focused add/change/remove feature or bug fix. Create a fresh
+branch only from the then-current clean `main`. MySQL synchronization remains
+deferred work, not that immediate feature/bug task. Any later implementation,
+validation, commit, push, database action, browser/vendor action, or deployment
+requires its own scope and authority.

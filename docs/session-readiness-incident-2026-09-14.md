@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-22 (Asia/Manila)
 
+Current handoff note: the owner-observed Production deployment remains
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for product commit `0e7fe8b`; later
+authority/load-test commits `26f8cc6` and `3d43650` were deliberately not
+promoted. This incident record does not authorize Vercel, Supabase, session, or
+database action. MySQL synchronization remains required later but is not the
+immediate next move. See `docs/current-authority.md` for the canonical workflow.
+
 ## Outcome
 
 The source of the browser response is confirmed. Around 9:30 PM on September
