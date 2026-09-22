@@ -1,0 +1,1 @@
+PASS - retained text evidence contains no credential, session-cookie, or setup-data marker.

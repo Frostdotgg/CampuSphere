@@ -1,0 +1,23 @@
+﻿{
+    "test_case":  "LT-04",
+    "target":  "https://campusphere-cspc.vercel.app",
+    "delivery_host":  "res.cloudinary.com",
+    "asset_vus":  5,
+    "asset_requests_target":  10,
+    "route_probe_limit":  0,
+    "asset_pool_minimum":  5,
+    "asset_pool_maximum":  10,
+    "asset_pool_source":  "explicit-cloudinary-override",
+    "explicit_asset_count":  5,
+    "request_timeout_ms":  30000,
+    "authentication_model":  "one sequential setup login with one temporary guest session; the asset workload sends no application cookie",
+    "distinct_accounts":  1,
+    "distinct_sessions":  1,
+    "workload":  "ten direct approved Cloudinary panorama GETs with at most five simultaneous transfers; no cache busting or upload",
+    "started_at_utc":  "2026-09-19T12:15:27.7027540Z",
+    "finished_at_utc":  "2026-09-19T12:15:37.6624856Z",
+    "k6_exit_code":  0,
+    "credentials_logged":  false,
+    "source_script":  "load-tests/production/lt-04-vr-assets.js",
+    "note":  "The k6 summary omits setup data; evidence records aggregate counts and timings only, never panorama URLs, cookies, tokens, response bodies, or credentials."
+}

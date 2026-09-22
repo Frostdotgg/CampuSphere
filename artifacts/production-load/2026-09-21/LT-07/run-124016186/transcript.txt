@@ -1,0 +1,155 @@
+﻿
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: C:\Users\FROST.GG\Desktop\CampuSphere v1\load-tests\production\lt-07-offline-recovery.js
+ web dashboard:
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 3 max VUs, 9m0s max duration (incl. graceful stop):
+              * offline_recovery: 1 iterations for each of 3 VUs (maxDuration: 8m0s, gracefulStop: 1m0s)
+
+
+Run                [ 100% ] setup()
+offline_recovery   [   0% ]
+
+Run                [ 100% ] setup()
+offline_recovery   [   0% ]
+
+running (0m03.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m00.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m04.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m01.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m05.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m02.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m06.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m03.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m07.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m04.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m08.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m05.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m09.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m06.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m10.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m07.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m11.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m08.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m12.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m09.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m13.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m10.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m14.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m11.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m15.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m12.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m16.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m13.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m17.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m14.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m18.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m15.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m19.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m16.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m20.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m17.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m21.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m18.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m22.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m19.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m23.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m20.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m24.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m21.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m25.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m22.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m26.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m23.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m27.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m24.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m28.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m25.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m29.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m26.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m30.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m27.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m31.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m28.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m32.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m29.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m33.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m30.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m34.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m31.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m35.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m32.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m36.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m33.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m37.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m34.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m38.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m35.3s/8m0s  0/3 iters, 1 per VU
+
+running (0m39.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m36.3s/8m0s  0/3 iters, 1 per VU
+time="2026-09-21T12:41:01+08:00" level=error msg="LT-07 desktop failed check: offline-shell" source=console
+
+running (0m40.0s), 3/3 VUs, 0 complete and 0 interrupted iterations
+offline_recovery   [   0% ] 3 VUs  0m37.3s/8m0s  0/3 iters, 1 per VU
+time="2026-09-21T12:41:02+08:00" level=error msg="process with PID 19120 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-21T12:41:02+08:00" level=error msg="LT-07 phone failed check: offline-shell" source=console
+time="2026-09-21T12:41:02+08:00" level=error msg="LT-07 tablet failed check: offline-shell" source=console
+
+running (0m41.0s), 2/3 VUs, 1 complete and 0 interrupted iterations
+offline_recovery   [  33% ] 3 VUs  0m38.3s/8m0s  1/3 iters, 1 per VU
+time="2026-09-21T12:41:03+08:00" level=error msg="process with PID 5360 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-21T12:41:03+08:00" level=error msg="process with PID 19852 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+
+running (0m42.0s), 2/3 VUs, 1 complete and 0 interrupted iterations
+offline_recovery   [  33% ] 3 VUs  0m39.3s/8m0s  1/3 iters, 1 per VU
+
+running (0m43.0s), 0/3 VUs, 3 complete and 0 interrupted iterations
+offline_recovery Γ£ô [ 100% ] 3 VUs  0m39.4s/8m0s  3/3 iters, 1 per VU
+
+running (0m43.3s), 0/3 VUs, 3 complete and 0 interrupted iterations
+offline_recovery Γ£ô [ 100% ] 3 VUs  0m39.4s/8m0s  3/3 iters, 1 per VU
+time="2026-09-21T12:41:05+08:00" level=error msg="thresholds on metrics 'checks, lt07_device_success, lt07_diag_browser_render, lt07_diag_offline_page_unreadable, lt07_entry_route_success, lt07_exit_route_success, lt07_offline_recovery_success, lt07_reconnect_success' have been crossed"

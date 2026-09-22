@@ -1,0 +1,66 @@
+﻿
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: C:\Users\FROST.GG\Desktop\CampuSphere v1\load-tests\production\lt-04-vr-assets.js
+ web dashboard:
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 50s max duration (incl. graceful stop):
+              * asset_stress: 10 iterations shared among 5 VUs (maxDuration: 45s, gracefulStop: 5s)
+
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+time="2026-09-19T18:53:05+08:00" level=error msg="LT-04 setup stage vr-assets failed (only-0-approved-cloudinary-assets)." source=console
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+time="2026-09-19T18:53:06+08:00" level=error msg="Error: LT-04 setup failed; no asset workload was started.\n\tat setup (file:///C:/Users/FROST.GG/Desktop/CampuSphere%20v1/load-tests/production/lt-04-vr-assets.js:247:11(82))\n" hint="script exception" source=stacktrace

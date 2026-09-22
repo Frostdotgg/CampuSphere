@@ -1,0 +1,16 @@
+﻿{
+    "test_case":  "LT-02",
+    "target":  "https://campusphere-cspc.vercel.app",
+    "vus":  50,
+    "iterations_per_vu":  1,
+    "authentication_model":  "one setup login; one shared guest session cookie copied to 50 isolated browser contexts",
+    "distinct_accounts":  1,
+    "distinct_sessions":  1,
+    "presence_heartbeat":  "fulfilled locally by the k6 browser route for this map-only test; not sent to Production",
+    "started_at_utc":  "2026-09-17T11:42:58.7900598Z",
+    "finished_at_utc":  "2026-09-17T11:43:38.8653417Z",
+    "k6_exit_code":  0,
+    "credentials_logged":  false,
+    "source_script":  "load-tests/production/lt-02-browser.js",
+    "note":  "The k6 summary is sanitized to omit setup data; the transcript, dashboard export, and representative screenshots are retained together."
+}

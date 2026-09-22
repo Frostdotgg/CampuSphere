@@ -1,0 +1,20 @@
+﻿{
+    "test_case":  "LT-03",
+    "target":  "https://campusphere-cspc.vercel.app",
+    "total_concurrent_users":  200,
+    "http_users_peak":  199,
+    "browser_canary_users":  1,
+    "session_pool_size":  4,
+    "authentication_model":  "four sequential setup logins in four independent local k6 cookie jars; 199 HTTP users and one browser canary share the four temporary guest sessions",
+    "distinct_accounts":  1,
+    "distinct_sessions":  4,
+    "ramp_profile":  "10/50/100/150/199/199/0 over 14 minutes; three-minute peak hold",
+    "browser_settle_ms":  3000,
+    "presence_heartbeat":  "fulfilled locally by the browser canary; not sent to Production",
+    "started_at_utc":  "2026-09-19T10:02:31.3151924Z",
+    "finished_at_utc":  "2026-09-19T10:16:48.1951246Z",
+    "k6_exit_code":  0,
+    "credentials_logged":  false,
+    "source_script":  "load-tests/production/lt-03-peak-enrollment.js",
+    "note":  "The k6 summary is sanitized to omit setup data; dashboard, peak browser screenshot, transcript, metadata, and hashes are retained together."
+}

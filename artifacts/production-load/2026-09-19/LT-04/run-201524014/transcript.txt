@@ -1,0 +1,47 @@
+﻿
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: C:\Users\FROST.GG\Desktop\CampuSphere v1\load-tests\production\lt-04-vr-assets.js
+ web dashboard:
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 50s max duration (incl. graceful stop):
+              * asset_stress: 10 iterations shared among 5 VUs (maxDuration: 45s, gracefulStop: 5s)
+
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+
+Run            [ 100% ] setup()
+asset_stress   [   0% ]
+time="2026-09-19T20:15:31+08:00" level=info msg="LT-04 setup complete; 5 explicitly supplied approved panorama assets selected." source=console
+
+running (04.0s), 5/5 VUs, 0 complete and 0 interrupted iterations
+asset_stress   [   0% ] 5 VUs  00.5s/45s  00/10 shared iters
+
+running (05.0s), 5/5 VUs, 0 complete and 0 interrupted iterations
+asset_stress   [   0% ] 5 VUs  01.5s/45s  00/10 shared iters
+
+running (06.0s), 5/5 VUs, 0 complete and 0 interrupted iterations
+asset_stress   [   0% ] 5 VUs  02.5s/45s  00/10 shared iters
+
+running (07.0s), 5/5 VUs, 5 complete and 0 interrupted iterations
+asset_stress   [  50% ] 5 VUs  03.5s/45s  05/10 shared iters
+
+running (08.0s), 4/5 VUs, 6 complete and 0 interrupted iterations
+asset_stress   [  60% ] 5 VUs  04.5s/45s  06/10 shared iters
+
+running (09.0s), 1/5 VUs, 9 complete and 0 interrupted iterations
+asset_stress   [  90% ] 5 VUs  05.5s/45s  09/10 shared iters
+
+running (09.6s), 0/5 VUs, 10 complete and 0 interrupted iterations
+asset_stress Γ£ô [ 100% ] 5 VUs  05.5s/45s  10/10 shared iters

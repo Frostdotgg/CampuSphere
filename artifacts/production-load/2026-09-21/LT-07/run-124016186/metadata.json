@@ -1,0 +1,22 @@
+﻿{
+    "test_case":  "LT-07",
+    "target":  "https://campusphere-cspc.vercel.app",
+    "browser_profiles":  "desktop 1440x900; tablet 820x1180; phone 390x844",
+    "browser_contexts":  3,
+    "authentication_model":  "one dedicated guest login in setup; the session cookie is copied into three isolated Chromium contexts; the current Chrome window is not reused",
+    "offline_state":  "each context owns separate IndexedDB and service-worker state; download/update uses the explicit authenticated /api/offline-guide request",
+    "expected_downloads":  3,
+    "expected_offline_recoveries":  3,
+    "expected_entry_routes":  3,
+    "expected_exit_routes":  3,
+    "expected_reconnect_updates":  3,
+    "service_worker_version_observed":  48,
+    "offline_scope":  "2D map, building information, and saved Main Gate entry/exit routes only; VR panoramas, scenes, photos, schedules, sessions, and admin data are excluded",
+    "timing_guards":  "download p95 \u003c60s; offline-ready p95 \u003c30s; reconnect/update p95 \u003c30s",
+    "started_at_utc":  "2026-09-21T04:40:21.7303209Z",
+    "finished_at_utc":  "2026-09-21T04:41:05.3548501Z",
+    "k6_exit_code":  99,
+    "credentials_logged":  false,
+    "source_script":  "load-tests/production/lt-07-offline-recovery.js",
+    "note":  "Retained text evidence and diagnostics contain no credentials, cookies, response bodies, panorama URLs, building names, route keys, or setup data. Screenshots are UI evidence and may show public campus labels. The controlled offline navigation is expected to have no network response; only online setup/update statuses are treated as HTTP pass/fail."
+}

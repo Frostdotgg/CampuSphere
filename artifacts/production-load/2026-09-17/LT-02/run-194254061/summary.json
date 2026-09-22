@@ -1,0 +1,386 @@
+{
+  "metrics": {
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 0,
+        "max": 50
+      }
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 1.49974,
+        "p(95)": 1.5971199999999997,
+        "avg": 0.8425499999999999,
+        "min": 0,
+        "med": 0.83785,
+        "max": 1.6945
+      }
+    },
+    "lt02_map_ready_ms": {
+      "thresholds": {
+        "p(95)<20000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "max": 11078,
+        "p(90)": 9793.1,
+        "p(95)": 10484.55,
+        "avg": 6716.84,
+        "min": 1499,
+        "med": 7119.5
+      }
+    },
+    "browser_web_vital_ttfb": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 1348.1299999998416,
+        "p(95)": 1373.204999999923,
+        "avg": 630.3320000000018,
+        "min": 132.69999999995343,
+        "med": 580.25,
+        "max": 2105.5
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 255.67648999999994,
+        "avg": 95.64115,
+        "min": 0,
+        "med": 49.6453,
+        "max": 283.274,
+        "p(90)": 228.07898000000006
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 710.1006000000001,
+        "p(95)": 862.0243499999996,
+        "avg": 253.7678,
+        "min": 0,
+        "med": 0.56155,
+        "max": 1013.9481
+      }
+    },
+    "browser_data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 104250438,
+        "rate": 2630717.932247132
+      }
+    },
+    "http_req_tls_handshaking": {
+      "contains": "time",
+      "values": {
+        "p(90)": 175.68899000000002,
+        "p(95)": 195.39309499999996,
+        "avg": 74.708425,
+        "min": 0,
+        "med": 41.86825,
+        "max": 215.0972
+      },
+      "type": "trend"
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 29839,
+        "rate": 752.9751805965763
+      }
+    },
+    "browser_web_vital_cls": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "avg": 0.003930590211550395,
+        "min": 0.0029685200585259333,
+        "med": 0.0032258314821455216,
+        "max": 0.010546778718630473,
+        "p(90)": 0.00668020430935754,
+        "p(95)": 0.008536778582466972
+      }
+    },
+    "browser_http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1200
+      },
+      "thresholds": {
+        "rate==0.0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 4
+      },
+      "thresholds": {
+        "rate==0.0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 198.0112,
+        "med": 655.4105,
+        "max": 1217.6103,
+        "p(90)": 1177.7032800000002,
+        "p(95)": 1197.65679,
+        "avg": 681.610625
+      }
+    },
+    "data_sent": {
+      "contains": "data",
+      "values": {
+        "count": 4261,
+        "rate": 107.52462363088613
+      },
+      "type": "counter"
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 11839.51,
+        "med": 27270.0239,
+        "max": 31536.568,
+        "p(90)": 28727.027000000002,
+        "p(95)": 29540.638455,
+        "avg": 24572.603140000003
+      }
+    },
+    "checks": {
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 300,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate==1.0": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 655.4105,
+        "max": 1217.6103,
+        "p(90)": 1177.7032800000002,
+        "p(95)": 1197.65679,
+        "avg": 681.610625,
+        "min": 198.0112
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 50,
+        "rate": 1.2617299182220856
+      }
+    },
+    "lt02_vu_success": {
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 50,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate==1.0": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "browser_http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 1553.6685625000011,
+        "min": 55.059,
+        "med": 1098.8564999999999,
+        "max": 8352.493,
+        "p(90)": 3655.536800000002,
+        "p(95)": 4607.438499999999
+      },
+      "thresholds": {
+        "p(95)<10000": {
+          "ok": true
+        },
+        "p(99)<15000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 13.222225,
+        "min": 0,
+        "med": 6.2231,
+        "max": 40.4427,
+        "p(90)": 32.04375000000001,
+        "p(95)": 36.243224999999995
+      }
+    },
+    "browser_data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 822700,
+        "rate": 20760.504074426197
+      }
+    },
+    "browser_web_vital_lcp": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 7369.199999999998,
+        "avg": 4493.04,
+        "min": 1256,
+        "med": 4414,
+        "max": 10052,
+        "p(90)": 6428.8
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 825.9892600000002,
+        "p(95)": 954.9728799999997,
+        "avg": 427.000275,
+        "min": 198.0112,
+        "med": 213.01670000000001,
+        "max": 1083.9565
+      }
+    },
+    "browser_web_vital_fcp": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 4430.48,
+        "min": 1256,
+        "med": 4392,
+        "max": 10052,
+        "p(90)": 6090,
+        "p(95)": 7369.199999999998
+      }
+    },
+    "http_reqs": {
+      "contains": "default",
+      "values": {
+        "rate": 0.10093839345776684,
+        "count": 4
+      },
+      "type": "counter"
+    }
+  },
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+        {
+          "name": "map stayed on the authenticated /map page",
+          "path": "::map stayed on the authenticated /map page",
+          "id": "3891566407b0a9f29f562f537396a9fe",
+          "passes": 50,
+          "fails": 0
+        },
+        {
+          "id": "40aaca28e569fc8e9d83f27d43a9c821",
+          "passes": 50,
+          "fails": 0,
+          "name": "map response was successful",
+          "path": "::map response was successful"
+        },
+        {
+          "id": "4eb9fc2bec15069cf07d7c6ee9fcd52f",
+          "passes": 50,
+          "fails": 0,
+          "name": "map surface is rendered",
+          "path": "::map surface is rendered"
+        },
+        {
+          "id": "3f212d81b7ff582333b8e9a3073d6062",
+          "passes": 50,
+          "fails": 0,
+          "name": "map has the fixed Guard House start label",
+          "path": "::map has the fixed Guard House start label"
+        },
+        {
+          "name": "map has building labels",
+          "path": "::map has building labels",
+          "id": "55f7f83ccd318d627823f4b144cc0a48",
+          "passes": 50,
+          "fails": 0
+        },
+        {
+          "name": "map exposes route controls",
+          "path": "::map exposes route controls",
+          "id": "d62583174f1359f3f2325666504f3f46",
+          "passes": 50,
+          "fails": 0
+        }
+      ]
+  },
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 39628.1322
+  }
+}

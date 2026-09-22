@@ -1,0 +1,254 @@
+﻿
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: C:\Users\FROST.GG\Desktop\CampuSphere v1\load-tests\production\lt-02-browser.js
+ web dashboard:
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 50 max VUs, 5m30s max duration (incl. graceful stop):
+              * concurrent_browser: 1 iterations for each of 50 VUs (maxDuration: 5m0s, gracefulStop: 30s)
+
+
+Run                  [ 100% ] setup()
+concurrent_browser   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_browser   [   0% ]
+
+running (0m03.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m00.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m04.1s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m01.5s/5m0s  00/50 iters, 1 per VU
+
+running (0m05.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m02.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m06.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m03.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m07.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m04.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m08.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m05.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m09.1s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m06.5s/5m0s  00/50 iters, 1 per VU
+
+running (0m10.2s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m07.6s/5m0s  00/50 iters, 1 per VU
+
+running (0m11.4s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m08.8s/5m0s  00/50 iters, 1 per VU
+
+running (0m12.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m09.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m13.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m10.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m14.2s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m11.6s/5m0s  00/50 iters, 1 per VU
+
+running (0m15.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m12.5s/5m0s  00/50 iters, 1 per VU
+
+running (0m16.2s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m13.6s/5m0s  00/50 iters, 1 per VU
+
+running (0m17.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m14.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m18.4s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m16.0s/5m0s  00/50 iters, 1 per VU
+
+running (0m19.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m16.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m21.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m18.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m22.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m19.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m24.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m21.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m24.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m21.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m25.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m22.4s/5m0s  00/50 iters, 1 per VU
+time="2026-09-17T19:43:24+08:00" level=info msg="LT-02: map checks collected (surface=1, start=1, buildings=25)" source=console
+time="2026-09-17T19:43:24+08:00" level=info msg="LT-02: map screenshot saved" source=console
+
+running (0m26.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m23.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m27.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m24.4s/5m0s  00/50 iters, 1 per VU
+
+running (0m28.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+concurrent_browser   [   0% ] 50 VUs  0m25.4s/5m0s  00/50 iters, 1 per VU
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2931089654\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+
+running (0m29.0s), 49/50 VUs, 1 complete and 0 interrupted iterations
+concurrent_browser   [   2% ] 50 VUs  0m26.4s/5m0s  01/50 iters, 1 per VU
+time="2026-09-17T19:43:27+08:00" level=error msg="process with PID 42060 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1517229182\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="1 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-350556469\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1488425867\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1123032496\\55b66aab-40a3-4054-8138-ad302ec56bf9.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-308695008\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:27+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3074475959\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:28+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1517229182\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="205 ms" source=browser
+
+running (0m30.0s), 43/50 VUs, 7 complete and 0 interrupted iterations
+concurrent_browser   [  14% ] 50 VUs  0m27.4s/5m0s  07/50 iters, 1 per VU
+
+running (0m31.0s), 43/50 VUs, 7 complete and 0 interrupted iterations
+concurrent_browser   [  14% ] 50 VUs  0m28.4s/5m0s  07/50 iters, 1 per VU
+
+running (0m32.0s), 43/50 VUs, 7 complete and 0 interrupted iterations
+concurrent_browser   [  14% ] 50 VUs  0m29.4s/5m0s  07/50 iters, 1 per VU
+
+running (0m33.0s), 43/50 VUs, 7 complete and 0 interrupted iterations
+concurrent_browser   [  14% ] 50 VUs  0m30.4s/5m0s  07/50 iters, 1 per VU
+time="2026-09-17T19:43:31+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1048624884\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:31+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-879355205\\b1aa21c7-65d6-4472-a100-fecd1481e873.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:31+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3394128562\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:31+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3634359051\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:31+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-57277881\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:32+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2854868072\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:32+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2165254727\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+
+running (0m34.0s), 36/50 VUs, 14 complete and 0 interrupted iterations
+concurrent_browser   [  28% ] 50 VUs  0m31.4s/5m0s  14/50 iters, 1 per VU
+time="2026-09-17T19:43:33+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3457781878\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:33+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-26550340\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:33+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1120129745\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+
+running (0m35.0s), 33/50 VUs, 17 complete and 0 interrupted iterations
+concurrent_browser   [  34% ] 50 VUs  0m32.4s/5m0s  17/50 iters, 1 per VU
+
+running (0m36.0s), 33/50 VUs, 17 complete and 0 interrupted iterations
+concurrent_browser   [  34% ] 50 VUs  0m33.4s/5m0s  17/50 iters, 1 per VU
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 30216 unexpectedly ended: exit status 1" category=browser elapsed="7342 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 2044 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 49660 unexpectedly ended: exit status 1" category=browser elapsed="2118 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 39540 unexpectedly ended: exit status 1" category=browser elapsed="3367 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 22656 unexpectedly ended: exit status 1" category=browser elapsed="3350 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2745958893\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 22184 unexpectedly ended: exit status 1" category=browser elapsed="3421 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1547683836\\89f918c1-3621-4771-8384-e017a970eed5.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1987145309\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 30264 unexpectedly ended: exit status 1" category=browser elapsed="7508 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 44640 unexpectedly ended: exit status 1" category=browser elapsed="3502 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 59172 unexpectedly ended: exit status 1" category=browser elapsed="2764 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 9164 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 39352 unexpectedly ended: exit status 1" category=browser elapsed="2003 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 54644 unexpectedly ended: exit status 1" category=browser elapsed="7538 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 36768 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 11144 unexpectedly ended: exit status 1" category=browser elapsed="7542 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 3100 unexpectedly ended: exit status 1" category=browser elapsed="1831 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-4233577957\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1210161099\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1504554515\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-788974679\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1809234989\\b1c16f39-3818-4c3a-8678-95dd35da30bf.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2202046351\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-308695008\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="276 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1651844613\\cb66dfc2-0fb3-4e5a-95a9-2fba33bd5d28.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3741268582\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1929311314\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-185550239\\c0c8b4ec-3432-4766-b603-3be84f29c011.tmp: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3080939522\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="117 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-695811812\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="284 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2850611297\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="129 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3634359051\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="226 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3457781878\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="238 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 43572 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2797582089\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-57277881\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="213 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1302445152\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3394128562\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="212 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3074475959\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="205 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3532312246\\CrashpadMetrics-active.pma: The process cannot access the file because it is being used by another process." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-80997771\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1048624884\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="211 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-26550340\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="214 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2165254727\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="224 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1488425867\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="222 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-350556469\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="219 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1120129745\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="215 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 27292 unexpectedly ended: exit status 1" category=browser elapsed="7816 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 20884 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="process with PID 26292 unexpectedly ended: exit status 1" category=browser elapsed="37 ms" source=browser
+
+running (0m37.0s), 13/50 VUs, 37 complete and 0 interrupted iterations
+concurrent_browser   [  74% ] 50 VUs  0m34.4s/5m0s  37/50 iters, 1 per VU
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3080939522\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="421 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2850611297\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="409 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-695811812\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="416 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2951655465\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:35+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-153366327\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="402 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 37840 unexpectedly ended: exit status 1" category=browser elapsed="559 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 48448 unexpectedly ended: exit status 1" category=browser elapsed="3951 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 22596 unexpectedly ended: exit status 1" category=browser elapsed="4211 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 22936 unexpectedly ended: exit status 1" category=browser elapsed="647 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 28276 unexpectedly ended: exit status 1" category=browser elapsed="773 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 40328 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3532312246\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="542 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 19624 unexpectedly ended: exit status 1" category=browser elapsed="8358 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2879131847\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="592 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 63404 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 26472 unexpectedly ended: exit status 1" category=browser elapsed="761 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-153366327\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="285 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 32276 unexpectedly ended: exit status 1" category=browser elapsed="758 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 63456 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 39556 unexpectedly ended: exit status 1" category=browser elapsed="326 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-4085558831\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="0 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 25420 unexpectedly ended: exit status 1" category=browser elapsed="704 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 43296 unexpectedly ended: exit status 1" category=browser elapsed="823 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-99126982\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="50 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 10692 unexpectedly ended: exit status 1" category=browser elapsed="24 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 54084 unexpectedly ended: exit status 1" category=browser elapsed="914 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1607700868\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="94 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3554228598\\CrashpadMetrics-active.pma: Access is denied." category="Browser:Close" elapsed="178 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2797582089\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="210 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 4548 unexpectedly ended: exit status 1" category=browser elapsed="934 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 13004 unexpectedly ended: exit status 1" category=browser elapsed="931 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2879131847\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="201 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 46340 unexpectedly ended: exit status 1" category=browser elapsed="964 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2951655465\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="207 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-99126982\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="201 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-2202046351\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="210 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-4085558831\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="204 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1607700868\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="200 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-3554228598\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="201 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1504554515\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="214 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 25700 unexpectedly ended: exit status 1" category=browser elapsed="1168 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 23076 unexpectedly ended: exit status 1" category=browser elapsed="1335 ms" source=browser
+
+running (0m38.0s), 06/50 VUs, 44 complete and 0 interrupted iterations
+concurrent_browser   [  88% ] 50 VUs  0m35.4s/5m0s  44/50 iters, 1 per VU
+time="2026-09-17T19:43:36+08:00" level=error msg="process with PID 21464 unexpectedly ended: exit status 1" category=browser elapsed="1540 ms" source=browser
+time="2026-09-17T19:43:36+08:00" level=error msg="cleaning up the user data directory: unlinkat C:\\Users\\FROST.GG\\AppData\\Local\\Temp\\k6browser-data-1302445152\\CrashpadMetrics-active.pma: Access is denied." category=browser elapsed="212 ms" source=browser
+time="2026-09-17T19:43:37+08:00" level=error msg="process with PID 54200 unexpectedly ended: exit status 1" category=browser elapsed="1642 ms" source=browser
+time="2026-09-17T19:43:37+08:00" level=error msg="process with PID 11652 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:37+08:00" level=error msg="process with PID 23824 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:37+08:00" level=error msg="process with PID 36860 unexpectedly ended: exit status 1" category=browser elapsed="0 ms" source=browser
+time="2026-09-17T19:43:37+08:00" level=error msg="process with PID 42836 unexpectedly ended: exit status 1" category=browser elapsed="2146 ms" source=browser
+
+running (0m39.0s), 01/50 VUs, 49 complete and 0 interrupted iterations
+concurrent_browser   [  98% ] 50 VUs  0m36.4s/5m0s  49/50 iters, 1 per VU
+
+running (0m39.6s), 00/50 VUs, 50 complete and 0 interrupted iterations
+concurrent_browser Γ£ô [ 100% ] 50 VUs  0m36.5s/5m0s  50/50 iters, 1 per VU
