@@ -33,6 +33,7 @@
         admin-buildings.js, which mounts it into the Building modal. %>
     <script src="/js/admin/building-details-editor.js" defer></script>
     <script src="/js/media-url.js" defer></script>
+    <script src="/js/admin/admin-campus-map.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
     <script src="/js/admin/admin-schedules.js" defer></script>
@@ -295,14 +296,22 @@
                         <label for="building-desc">Description</label>
                         <textarea name="description" id="building-desc" placeholder="Short description of the building..."></textarea>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                    <section class="admin-coordinate-picker" aria-labelledby="building-location-title">
+                        <div>
+                            <h4 id="building-location-title" class="admin-coordinate-picker__title">Building location</h4>
+                            <p id="building-location-help" class="admin-coordinate-picker__help">Click the map to place the pin. Drag it to adjust the location. You can also enter the coordinates below.</p>
+                        </div>
+                        <div id="building-location-map" class="admin-coordinate-map" role="region" aria-label="Map for choosing the building location" aria-describedby="building-location-help"></div>
+                        <p id="building-location-map-status" class="admin-coordinate-map-status" role="status" aria-live="polite"></p>
+                    </section>
+                    <div class="admin-coordinate-fields">
                         <div class="form-group">
                             <label for="building-lat">Latitude</label>
-                            <input type="number" step="any" name="lat" id="building-lat" class="ui-input" placeholder="e.g. 13.6310" required>
+                            <input type="number" step="any" min="-90" max="90" name="lat" id="building-lat" class="ui-input" placeholder="e.g. 13.6310" aria-describedby="building-location-help building-location-map-status" required>
                         </div>
                         <div class="form-group">
                             <label for="building-lng">Longitude</label>
-                            <input type="number" step="any" name="lng" id="building-lng" class="ui-input" placeholder="e.g. 123.1830" required>
+                            <input type="number" step="any" min="-180" max="180" name="lng" id="building-lng" class="ui-input" placeholder="e.g. 123.1830" aria-describedby="building-location-help building-location-map-status" required>
                         </div>
                     </div>
                     <%# M12.P1-D5: structured additional-details editor replaces the
@@ -397,7 +406,7 @@
 
     <!-- ======== NODE MODAL (Create/Edit) ======== -->
     <div id="node-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="node-modal-title">
-        <div class="modal-box">
+        <div class="modal-box modal-box--coordinate">
             <div class="modal-header"><h3 id="node-modal-title">Add Node</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
             <form id="node-form">
                 <div class="modal-body">
@@ -406,11 +415,19 @@
                     <div class="form-group"><label for="node-label">Label</label><input type="text" name="label" id="node-label" class="ui-input" maxlength="150" required placeholder="e.g. Main Gate"></div>
                     <div class="form-group"><label for="node-type">Type</label><select name="node_type" id="node-type" required><option value="gate">gate</option><option value="walkway">walkway</option><option value="building">building</option><option value="service">service</option></select></div>
                     <div class="form-group"><label for="node-building">Building id <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="number" name="building_id" id="node-building" class="ui-input" min="1" step="1" placeholder="—"></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
-                        <div class="form-group"><label for="node-lat">Latitude</label><input type="number" name="lat" id="node-lat" class="ui-input" step="any" min="-90" max="90" required placeholder="13.405"></div>
-                        <div class="form-group"><label for="node-lng">Longitude</label><input type="number" name="lng" id="node-lng" class="ui-input" step="any" min="-180" max="180" required placeholder="123.373"></div>
-                        <div class="form-group"><label for="node-order">Order</label><input type="number" name="display_order" id="node-order" class="ui-input" min="0" max="2147483647" step="1" placeholder="0"></div>
+                    <section class="admin-coordinate-picker" aria-labelledby="node-location-title">
+                        <div>
+                            <h4 id="node-location-title" class="admin-coordinate-picker__title">Node location</h4>
+                            <p id="node-location-help" class="admin-coordinate-picker__help">Click the map to place the route point. Drag the pin to adjust it, or enter coordinates below. If a route line is saved to this node, you may need to clear or redraw that line before moving the pin.</p>
+                        </div>
+                        <div id="node-location-map" class="admin-coordinate-map" role="region" aria-label="Map for choosing the route node location" aria-describedby="node-location-help"></div>
+                        <p id="node-location-map-status" class="admin-coordinate-map-status" role="status" aria-live="polite"></p>
+                    </section>
+                    <div class="admin-coordinate-fields">
+                        <div class="form-group"><label for="node-lat">Latitude</label><input type="number" name="lat" id="node-lat" class="ui-input" step="any" min="-90" max="90" aria-describedby="node-location-help node-location-map-status" required placeholder="13.405"></div>
+                        <div class="form-group"><label for="node-lng">Longitude</label><input type="number" name="lng" id="node-lng" class="ui-input" step="any" min="-180" max="180" aria-describedby="node-location-help node-location-map-status" required placeholder="123.373"></div>
                     </div>
+                    <div class="form-group"><label for="node-order">Order</label><input type="number" name="display_order" id="node-order" class="ui-input" min="0" max="2147483647" step="1" placeholder="0"></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="node-submit" class="ui-button ui-button-default ui-button-size-default"><span id="node-submit-label">Create Node</span></button></div>
             </form>

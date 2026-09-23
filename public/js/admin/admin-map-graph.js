@@ -13,6 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const $ = (id) => document.getElementById(id);
   const toast = $('admin-toast');
   if (!$('graph-card')) return; // not on a page with the graph section
+  const adminCampusMap = window.CampuSphereAdminCampusMap;
+  const nodeLocationPicker = adminCampusMap && typeof adminCampusMap.createCoordinatePicker === 'function'
+    ? adminCampusMap.createCoordinatePicker({
+      containerId: 'node-location-map',
+      latitudeInputId: 'node-lat',
+      longitudeInputId: 'node-lng',
+      statusId: 'node-location-map-status'
+    })
+    : null;
 
   const state = {
     tab: 'routes',
@@ -74,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function closeModal(m) {
     if (!m) return;
+    if (m === $('node-modal') && nodeLocationPicker) nodeLocationPicker.close();
     m.classList.remove('modal--open');
     document.body.style.overflow = '';
     // RF.4 repair (Finding 3): closing/cancelling the edge modal discards the
@@ -430,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('node-modal-title').textContent = mode === 'edit' ? 'Edit Node' : 'Add Node';
     $('node-submit-label').textContent = mode === 'edit' ? 'Save Changes' : 'Create Node';
     openModal(m, form.node_key);
+    if (nodeLocationPicker) nodeLocationPicker.open(mode === 'edit' && node ? { lat: node.lat, lng: node.lng } : null);
   }
   $('add-node-btn') && $('add-node-btn').addEventListener('click', () => openNodeModal('create', null));
   $('node-form') && $('node-form').addEventListener('submit', async (e) => {
@@ -678,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ============================================================ */
   const GEO_HISTORY_MAX = 50;
   const geo = {
-    map: null, protocol: null, editId: null,
+    map: null, editId: null,
     from: null, to: null,               // { lat, lng, label }
     waypoints: [], cleared: false,
     metricsMode: 'calculated',
@@ -686,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
     history: [],
     layers: { from: null, to: null, mid: [] },
     busy: false, ready: false, basemapReady: false, basemapSourceLoaded: false,
-    basemapFailed: false, tileErrors: 0,
+    basemapFailed: false,
     // RF.4 repair (Finding 3): monotonic load generation. Every teardown
     // bumps it, so a slow async load/save from an older editor session is
     // discarded and can never overwrite a newer session's state.
@@ -741,50 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isInteger(distance_meters) && distance_meters > 0 && Number.isInteger(walk_time_seconds) && walk_time_seconds > 0
       ? { distance_meters, walk_time_seconds } : null;
   }
-  const ADMIN_MAP_CONFIG = (() => {
-    try {
-      const el = $('admin-map-config');
-      const parsed = el ? JSON.parse(el.textContent || '{}') : {};
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) { return {}; }
-  })();
-  const ADMIN_BASEMAP = ADMIN_MAP_CONFIG.basemap && typeof ADMIN_MAP_CONFIG.basemap === 'object'
-    ? ADMIN_MAP_CONFIG.basemap : null;
-  const ADMIN_MAP_OPENING_CENTER = [123.374590, 13.405872];
   const GEO_LINE_SOURCE = 'edge-geometry';
   const GEO_LINE_LAYER = 'edge-geometry-line';
-  function adminBasemapAsset() {
-    const asset = ADMIN_BASEMAP && typeof ADMIN_BASEMAP.asset === 'string' ? ADMIN_BASEMAP.asset : '';
-    return /^\/maps\/cspc-campus-[a-f0-9]{64}\.pmtiles$/i.test(asset) ? asset : null;
-  }
-  function adminBasemapBounds() {
-    const bounds = ADMIN_BASEMAP && Array.isArray(ADMIN_BASEMAP.bounds) ? ADMIN_BASEMAP.bounds : null;
-    return bounds && bounds.length === 4 && bounds.every((value) => Number.isFinite(Number(value)))
-      ? bounds.map((value) => Number(value)) : null;
-  }
-  function buildAdminBasemapStyle(asset) {
-    const attribution = ADMIN_BASEMAP && typeof ADMIN_BASEMAP.attribution === 'string' && ADMIN_BASEMAP.attribution.trim()
-      ? ADMIN_BASEMAP.attribution : 'Protomaps © OpenStreetMap contributors';
-    return {
-      version: 8,
-      sources: {
-        campus: {
-          type: 'vector',
-          url: 'pmtiles://' + asset,
-          attribution
-        }
-      },
-      layers: [
-        { id: 'background', type: 'background', paint: { 'background-color': '#edf1e8' } },
-        { id: 'earth', type: 'fill', source: 'campus', 'source-layer': 'earth', paint: { 'fill-color': '#f5f2e8' } },
-        { id: 'landuse', type: 'fill', source: 'campus', 'source-layer': 'landuse', paint: { 'fill-color': '#dfead9', 'fill-opacity': 0.7 } },
-        { id: 'water', type: 'fill', source: 'campus', 'source-layer': 'water', paint: { 'fill-color': '#b8dbe8' } },
-        { id: 'roads-casing', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#c4c1b8', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 2, 18, 8] } },
-        { id: 'roads', type: 'line', source: 'campus', 'source-layer': 'roads', paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 5] } },
-        { id: 'buildings', type: 'fill', source: 'campus', 'source-layer': 'buildings', paint: { 'fill-color': '#c9c5b8', 'fill-outline-color': '#9d998f', 'fill-opacity': 0.88 } }
-      ]
-    };
-  }
   function edgeModalOpen() { const m = $('edge-modal'); return !!m && m.classList.contains('modal--open'); }
   // A pending async result is still valid only if its captured token, the
   // current editId, and the still-open edge modal all match.
@@ -858,58 +827,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function geoEnsureMap() {
     if (geo.map) return geo.map;
-    const maplibre = (typeof maplibregl !== 'undefined') ? maplibregl : null;
-    const pmtilesApi = (typeof pmtiles !== 'undefined') ? pmtiles : null;
     const el = $('edge-geo-map');
-    const asset = adminBasemapAsset();
-    if (!maplibre || !pmtilesApi || !el || !asset) {
+    if (!adminCampusMap || typeof adminCampusMap.createBaseMap !== 'function' || !el) {
       geoMapUnavailable('Campus basemap is unavailable. The ordered coordinate list remains usable.');
       return null;
     }
     try {
-      if (!geo.protocol) {
-        const archive = new pmtilesApi.PMTiles(new pmtilesApi.FetchSource(asset));
-        geo.protocol = new pmtilesApi.Protocol();
-        geo.protocol.add(archive);
-        maplibre.addProtocol('pmtiles', geo.protocol.tile);
-      }
-      const bounds = adminBasemapBounds();
-      const nextMap = new maplibre.Map({
-        container: el,
-        style: buildAdminBasemapStyle(asset),
-        center: ADMIN_MAP_OPENING_CENTER,
-        zoom: 16.5,
-        bearing: 0,
-        pitch: 0,
-        minZoom: 12,
-        maxZoom: 19,
-        maxBounds: bounds ? [[bounds[0], bounds[1]], [bounds[2], bounds[3]]] : undefined,
-        attributionControl: false
-      });
-      geo.map = nextMap;
-      nextMap.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-left');
-      nextMap.addControl(new maplibre.AttributionControl({ compact: true }), 'bottom-right');
-      nextMap.on('sourcedata', (event) => {
-        if (geo.map === nextMap && event && event.sourceId === 'campus' && event.isSourceLoaded) {
+      let nextMap = null;
+      nextMap = adminCampusMap.createBaseMap(el, {
+        onSourceLoaded: () => {
+          if (geo.map !== nextMap) return;
           geo.basemapSourceLoaded = true;
           geo.basemapFailed = false;
           geoMapStatus('', false);
+        },
+        onUnavailable: () => {
+          if (!nextMap || geo.map === nextMap) geoMapUnavailable();
         }
       });
+      if (!nextMap) return null;
+      geo.map = nextMap;
       nextMap.on('load', () => {
         if (geo.map !== nextMap) return;
         geo.basemapReady = true;
         geoEnsureOverlay();
         geoRender();
       });
-      nextMap.on('error', () => {
-        if (geo.map !== nextMap || geo.basemapSourceLoaded) return;
-        geo.tileErrors += 1;
-        if (geo.tileErrors >= 2) geoMapUnavailable();
-      });
-      setTimeout(() => {
-        if (geo.map === nextMap && !geo.basemapSourceLoaded && !geo.basemapFailed) geoMapUnavailable();
-      }, 5000);
       nextMap.on('click', (event) => {
         if (geo.busy || !geo.from) return;
         geoAddWaypoint(Number(event.lngLat.lat), Number(event.lngLat.lng));

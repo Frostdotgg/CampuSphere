@@ -14624,6 +14624,7 @@ const ADMIN_SEARCH_FILTER_PROBES = [
 // truthful list-preserving failure behavior. Database-free and network-free.
 const ADMIN_MAP_BASEMAP_PROBES = [
   ['admin road-geometry basemap contracts', 'adminMapBasemap-probe.js'],
+  ['admin Building and Node coordinate picker contracts', 'adminCoordinatePicker-probe.js'],
 ];
 
 // M12.P1-D5: friendly building additional-details editor — structured
@@ -14806,7 +14807,7 @@ const SPAWNED_PROBE_STAGES = [
   { key: 'admin-search-filter', prefix: 'admin-search-filter', probes: ADMIN_SEARCH_FILTER_PROBES,
     heading: '[Admin campus-map search/filter QA] (M12.P1-D4 bounded q + appliedFilters + graph/selector searches)' },
   { key: 'admin-map-basemap', prefix: 'admin-map-basemap', probes: ADMIN_MAP_BASEMAP_PROBES,
-    heading: '[Admin road-geometry basemap QA] (MapLibre/PMTiles style + coordinate adapters + marker/fallback contracts)' },
+    heading: '[Admin campus-map picker QA] (shared MapLibre/PMTiles basemap + Building/Node point selection + Edge geometry contracts)' },
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,
     heading: '[Building details editor QA] (M12.P1-D5 structured details editor + preservation contracts)' },
   { key: 'admin-analytics', prefix: 'admin-analytics', probes: ADMIN_ANALYTICS_PROBES,

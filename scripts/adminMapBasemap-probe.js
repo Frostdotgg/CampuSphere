@@ -1,6 +1,6 @@
 'use strict';
 
-/* Database-free contract checks for the admin road-geometry basemap. */
+/* Database-free contract checks for the shared admin campus basemap. */
 const fs = require('fs');
 const path = require('path');
 
@@ -9,6 +9,7 @@ const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'u
 const view = read('views/admin/campus-map.ejs');
 const controller = read('controllers/adminController.js');
 const graph = read('public/js/admin/admin-map-graph.js');
+const campusMap = read('public/js/admin/admin-campus-map.js');
 const online = read('views/map.ejs');
 const offline = read('public/js/offline-guide-manager.js');
 const manifest = JSON.parse(read('public/maps/manifest.json'));
@@ -32,6 +33,7 @@ check('admin page loads the self-hosted MapLibre/PMTiles renderer',
   view.includes('/vendor/maplibre/maplibre-gl.css') &&
   view.includes('/vendor/maplibre/maplibre-gl.js') &&
   view.includes('/vendor/pmtiles/pmtiles.js') &&
+  view.includes('/js/admin/admin-campus-map.js') &&
   !view.includes('/vendor/leaflet/leaflet.css') &&
   !view.includes('/vendor/leaflet/leaflet.js'));
 
@@ -41,20 +43,20 @@ check('admin controller and view expose only canonical public basemap metadata',
   view.includes('safeJson({ basemap: mapBasemap || null })'));
 
 check('admin renderer rejects external or non-content-addressed tile assets',
-  /cspc-campus-\[a-f0-9\]\{64\}\\\.pmtiles/.test(graph) &&
-  graph.includes("url: 'pmtiles://' + asset") &&
-  !graph.includes('tile.openstreetmap.org') &&
-  !graph.includes('L.tileLayer') &&
-  !graph.includes('L.map'));
+  /cspc-campus-\[a-f0-9\]\{64\}\\\.pmtiles/.test(campusMap) &&
+  campusMap.includes("url: 'pmtiles://' + asset") &&
+  !campusMap.includes('tile.openstreetmap.org') &&
+  !campusMap.includes('L.tileLayer') &&
+  !campusMap.includes('L.map'));
 
 check('admin basemap style matches the current online/offline campus layers',
-  styleTokens.every((token) => graph.includes(token)) &&
+  styleTokens.every((token) => campusMap.includes(token)) &&
   styleTokens.every((token) => online.includes(token) || offline.includes(token)));
 
 check('admin basemap uses the current content-addressed release metadata',
   typeof manifest.asset === 'string' &&
   new RegExp('^/maps/cspc-campus-' + manifest.sha256 + '\\.pmtiles$').test(manifest.asset) &&
-  graph.includes('adminBasemapBounds') && graph.includes('maxBounds'));
+  campusMap.includes('function basemapBounds()') && campusMap.includes('maxBounds'));
 
 check('geometry payload stays latitude/longitude while MapLibre receives longitude/latitude',
   graph.includes('path_geometry: wasCleared ? null : geoFullPoints()') &&
@@ -72,7 +74,8 @@ check('editor line and controls survive MapLibre modal lifecycle',
   graph.includes("map.addLayer({") &&
   graph.includes('map.resize()') &&
   graph.includes('map.fitBounds(bounds') &&
-  graph.includes("new maplibre.NavigationControl({ showCompass: false })"));
+  campusMap.includes("new maplibre.NavigationControl({ showCompass: false })") &&
+  graph.includes('adminCampusMap.createBaseMap(el'));
 
 check('basemap failure preserves the ordered coordinate editor',
   view.includes('id="edge-geo-map-status"') &&

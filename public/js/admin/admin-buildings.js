@@ -67,6 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modals
   const buildingModal = document.getElementById('building-modal');
   const deleteModal = document.getElementById('delete-building-modal');
+  const adminCampusMap = window.CampuSphereAdminCampusMap;
+  const buildingLocationPicker = adminCampusMap && typeof adminCampusMap.createCoordinatePicker === 'function'
+    ? adminCampusMap.createCoordinatePicker({
+      containerId: 'building-location-map',
+      latitudeInputId: 'building-lat',
+      longitudeInputId: 'building-lng',
+      statusId: 'building-location-map-status'
+    })
+    : null;
 
   /* ---- Structured details editor (M12.P1-D5) ----
      One editor instance mounted in the Building modal. It owns the entire
@@ -308,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function closeModal(m){
     if(m){
+      if(m === buildingModal && buildingLocationPicker) buildingLocationPicker.close();
       m.classList.remove('modal--open');
       document.body.style.overflow='';
       if(lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
@@ -403,7 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('building-modal-title').textContent='Add New Building';
     document.getElementById('building-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Add Building';
     clearFormErrors(buildingModal); syncDetailsBlockedState();
-    openModal(buildingModal, form ? form.building_name : null); refreshLucideIcons();
+    openModal(buildingModal, form ? form.building_name : null);
+    if(buildingLocationPicker) buildingLocationPicker.open(null);
+    refreshLucideIcons();
   }
 
   function openEditBuilding(id){
@@ -413,8 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
     form.building_name.value=b.name||'';
     form.category.value=b.category||'';
     form.description.value=b.description||'';
-    form.lat.value=b.lat||'';
-    form.lng.value=b.lng||'';
+    form.lat.value=b.lat==null?'':String(b.lat);
+    form.lng.value=b.lng==null?'':String(b.lng);
     // M12.P1-D5: the structured editor loads the RAW stored details (JSON
     // string, parsed jsonb object, or null) BEFORE the modal opens. A parse
     // failure shows the editor's fixed actionable message and keeps Save
@@ -432,7 +444,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('building-modal-title').textContent='Edit Building';
     document.getElementById('building-submit-btn').innerHTML='<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
     clearFormErrors(buildingModal); syncDetailsBlockedState();
-    openModal(buildingModal, form ? form.building_name : null); refreshLucideIcons();
+    openModal(buildingModal, form ? form.building_name : null);
+    if(buildingLocationPicker) buildingLocationPicker.open({ lat: b.lat, lng: b.lng });
+    refreshLucideIcons();
   }
 
   const buildingForm=document.getElementById('building-form');
