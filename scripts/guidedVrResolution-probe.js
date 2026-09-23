@@ -826,6 +826,35 @@ check('explicit exit may start at an unmapped road scene only when opted in', (f
   });
   return result.complete && result.verifiedKeys.length === 2;
 })());
+check('unmapped exit start fails closed without explicit opt-in', (function () {
+  const result = verifyGuidedChain({
+    keys: ['scene-road-start', 'scene-b'],
+    arrivalKey: 'scene-b',
+    scenes: [
+      { scene_key: 'scene-road-start', image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', cloudinary_public_id: 'campusphere/vr/a', node_key: null },
+      { scene_key: 'scene-b', image_url: 'https://res.cloudinary.com/demo/image/upload/b.jpg', cloudinary_public_id: 'campusphere/vr/b', node_key: 'main-gate' }
+    ],
+    links: linksFor(['scene-road-start', 'scene-b']),
+    startNodeKey: 'sample-destination',
+    destinationNodeKey: 'main-gate'
+  });
+  return !result.complete && result.verifiedKeys.length === 0 && result.stoppedBefore === 'scene-road-start';
+})());
+check('unmapped-start opt-in still rejects a wrong non-null node', (function () {
+  const result = verifyGuidedChain({
+    keys: ['scene-road-start', 'scene-b'],
+    arrivalKey: 'scene-b',
+    scenes: [
+      { scene_key: 'scene-road-start', image_url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', cloudinary_public_id: 'campusphere/vr/a', node_key: 'wrong-destination' },
+      { scene_key: 'scene-b', image_url: 'https://res.cloudinary.com/demo/image/upload/b.jpg', cloudinary_public_id: 'campusphere/vr/b', node_key: 'main-gate' }
+    ],
+    links: linksFor(['scene-road-start', 'scene-b']),
+    startNodeKey: 'sample-destination',
+    destinationNodeKey: 'main-gate',
+    allowMissingStartNode: true
+  });
+  return !result.complete && result.verifiedKeys.length === 0 && result.stoppedBefore === 'scene-road-start';
+})());
 
 console.log('=== Target-specific navigation ===');
 const keys = first.scene_keys;

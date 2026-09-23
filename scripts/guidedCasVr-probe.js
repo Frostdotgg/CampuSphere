@@ -321,17 +321,23 @@ async function runMode(scope, base, authSource) {
       const vehicleExitScenes = Array.isArray(vehicleExitPayload.scenes) ? vehicleExitPayload.scenes : [];
       const vehicleExitKeys = vehicleExitScenes.map((scene) => scene.scene_key);
       const vehicleExitPath = Array.isArray(vehicleExitPayload.path) ? vehicleExitPayload.path : [];
+      const vehicleExitStartScene = vehicleExitScenes[0];
+      const vehicleExitStartNodeMatches = !!vehicleExitStartScene &&
+        (vehicleExitStartScene.node_key === vehicleExitRoute.destination_node_key ||
+          (vehicleExitRoute.allow_unmapped_start === true && vehicleExitStartScene.node_key == null));
       check(scope, `${key}: Vehicle exit API succeeds and advertises both exit modes`,
         response.status === 200 && vehicleExitPayload.success === true &&
         vehicleExitPayload.travel_mode === 'vehicle' && vehicleExitPayload.direction === 'exit' &&
         JSON.stringify(vehicleExitPayload.available_travel_modes) === JSON.stringify(['walking', 'vehicle']));
       check(scope, `${key}: Vehicle exit API returns the exact destination-to-main-gate scene order`,
         vehicleExitKeys.length === vehicleExitRoute.scene_keys.length &&
-        vehicleExitKeys.every((sceneKey, index) => sceneKey === vehicleExitRoute.scene_keys[index]) &&
-        vehicleExitPayload.destination_reached === true &&
-        vehicleExitScenes[0] && vehicleExitScenes[0].node_key === vehicleExitRoute.destination_node_key &&
+        vehicleExitKeys.every((sceneKey, index) => sceneKey === vehicleExitRoute.scene_keys[index]));
+      check(scope, `${key}: Vehicle exit API enforces the configured endpoint mapping policy`,
+        vehicleExitStartNodeMatches &&
         vehicleExitScenes[vehicleExitScenes.length - 1] &&
-        vehicleExitScenes[vehicleExitScenes.length - 1].node_key === 'main-gate' &&
+        vehicleExitScenes[vehicleExitScenes.length - 1].node_key === 'main-gate');
+      check(scope, `${key}: Vehicle exit API reports completion and a destination-to-main-gate graph path`,
+        vehicleExitPayload.destination_reached === true &&
         vehicleExitPath.length >= 2 && vehicleExitPath[0] === vehicleExitRoute.destination_node_key &&
         vehicleExitPath[vehicleExitPath.length - 1] === 'main-gate');
 
