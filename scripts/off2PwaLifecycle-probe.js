@@ -949,7 +949,7 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advances to v49 for the new offline logo and PWA icons', SW.cacheVersion(swSource) === 49);
+  ok('cache version advances to v50 for the online/offline map label update', SW.cacheVersion(swSource) === 50);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
@@ -985,6 +985,11 @@ function checkServiceWorkerStructure(swSource) {
 /* ================ 3. SERVICE-WORKER REJECTING FIXTURES ================= */
 
 function checkServiceWorkerFixtures(swSource) {
+  // These fixtures replace source snippets, so normalize checkout line endings
+  // first. The analyzer is about worker behavior, not whether Git materialized
+  // the file with LF or CRLF on this machine.
+  swSource = swSource.replace(/\r\n?/g, '\n');
+
   section('OFF.2 — service-worker analyzers driven against rejecting fixtures');
 
   const withSkipWaiting = swSource.replace(
@@ -1032,10 +1037,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The immediately preceding v48 shell must not mask the logo/icon update.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v49'", "CACHE_VERSION = 'v48'");
-  ok('REJECTS an un-advanced (stale v48) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 49);
+  // The immediately preceding v49 shell must not mask the map-label update.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v50'", "CACHE_VERSION = 'v49'");
+  ok('REJECTS an un-advanced (stale v49) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 50);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1178,7 +1183,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v49');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v50');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1310,11 +1315,14 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-       // current v49 caches - shell and static ONLY. Any v49 API/external cache
+       // current v50 caches - shell and static ONLY. Any v50 API/external cache
        // name is adversarial and must still be pruned.
+       'campusphere-pwa-shell-v50', 'campusphere-pwa-static-v50',
+       'campusphere-pwa-api-v50', 'campusphere-pwa-external-v50',
+       // the immediately preceding v49 set is stale and must be pruned too.
        'campusphere-pwa-shell-v49', 'campusphere-pwa-static-v49',
        'campusphere-pwa-api-v49', 'campusphere-pwa-external-v49',
-       // the immediately preceding v48 set is stale and must be pruned too.
+       // the preceding v48 set is also stale and must be pruned.
        'campusphere-pwa-shell-v48', 'campusphere-pwa-static-v48',
        'campusphere-pwa-api-v48', 'campusphere-pwa-external-v48',
        // the preceding v43 set is stale and must be pruned too.
@@ -1348,15 +1356,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v49 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v50 caches (shell + static only)',
      settled.length === 1 && settled[0].status === 'fulfilled' &&
-     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v49`)));
+     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v50`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v49-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v49, v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v50-suffixed API or external cache',
      !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v49`)) &&
+       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v50`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
@@ -1409,6 +1417,8 @@ async function checkVersionedCleanup(swSource) {
     !remaining.includes('campusphere-pwa-external-v40') &&
     !remaining.includes('campusphere-pwa-api-v41') &&
     !remaining.includes('campusphere-pwa-external-v41') &&
+       !remaining.includes('campusphere-pwa-api-v49') &&
+       !remaining.includes('campusphere-pwa-external-v49') &&
        !remaining.includes('campusphere-pwa-api-v48') &&
        !remaining.includes('campusphere-pwa-external-v48') &&
     !remaining.includes('campusphere-pwa-shell-v39') &&

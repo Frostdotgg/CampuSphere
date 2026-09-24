@@ -64,12 +64,9 @@
         .map-free-roam__label { font-weight: 700; font-size: .95rem; }
         .map-free-roam__hint { font-size: .78rem; opacity: .7; }
 
-        /* MAP_MOBILE_LABEL_SIZE_START: keep phone maps compact without
-           shrinking the 44px marker hit targets or the route-start label. */
+        /* MAP_MOBILE_LABEL_SIZE_START: keep the route-start cue readable
+           without shrinking the 44px marker hit target. */
         @media (max-width: 768px) {
-            .map-page .map-building-label--leaflet,
-            .map-page .map-building-label--maplibre,
-            .map-page .map-building-label--fallback,
             .map-page .map-start-label {
                 font-size: 8px;
             }
@@ -460,7 +457,9 @@
         let maplibreProtocol = null;
         const maplibreMarkers = {};
         let mapStartMarker = null;
-        const mapBuildingLabelEntries = new Map();
+        const mapBuildingMarkerElements = new Map();
+        let mapStartMarkerElement = null;
+        let activeRouteStartBuildingId = null;
         let mapStartLabelEntry = null;
         const mapLabelEntries = [];
         let mapLabelFrame = 0;
@@ -574,40 +573,31 @@
             return entry;
         }
 
-        function setMapLabelText(entry, text, priority) {
-            if (!entry || !entry.label) return;
-            entry.label.textContent = text || '';
-            if (Number.isFinite(priority)) entry.priority = priority;
+        function syncMapStartCue() {
+            if (!mapStartLabelEntry || !mapStartLabelEntry.label) return;
+            const target = activeRouteStartBuildingId
+                ? (mapBuildingMarkerElements.get(activeRouteStartBuildingId) || mapStartMarkerElement)
+                : mapStartMarkerElement;
+            if (target && mapStartLabelEntry.label.parentElement !== target) {
+                target.appendChild(mapStartLabelEntry.label);
+            }
             scheduleMapLabelLayout();
         }
 
         function resetMapRouteLabels() {
-            if (mapStartLabelEntry) {
-                setMapLabelText(mapStartLabelEntry, 'Start · Guard House', 100);
-            }
-            mapBuildingLabelEntries.forEach((entry) => {
-                setMapLabelText(entry, entry.baseText, entry.priority === 100 ? 10 : entry.priority);
-                if (entry.priority === 100) entry.priority = 10;
-            });
-            scheduleMapLabelLayout();
+            activeRouteStartBuildingId = null;
+            syncMapStartCue();
         }
 
         function setMapRouteLabels(isExit, building) {
-            resetMapRouteLabels();
-            if (isExit && building) {
-                if (mapStartLabelEntry) setMapLabelText(mapStartLabelEntry, 'Guard House', 30);
-                const entry = mapBuildingLabelEntries.get(String(building.id));
-                if (entry) setMapLabelText(entry, 'Start · ' + building.name, 100);
-            } else if (building) {
-                const entry = mapBuildingLabelEntries.get(String(building.id));
-                if (entry) entry.priority = Math.max(entry.priority, 70);
-            }
-            scheduleMapLabelLayout();
+            activeRouteStartBuildingId = isExit && building ? String(building.id) : null;
+            syncMapStartCue();
         }
 
         function clearMapLabelEntries() {
             mapLabelEntries.length = 0;
-            mapBuildingLabelEntries.clear();
+            mapBuildingMarkerElements.clear();
+            mapStartMarkerElement = null;
             mapStartLabelEntry = null;
             if (mapLabelFrame) {
                 window.cancelAnimationFrame && window.cancelAnimationFrame(mapLabelFrame);
@@ -688,10 +678,11 @@
                 origin.style.left = `${originX}%`;
                 origin.style.top = `${originY}%`;
                 origin.setAttribute('aria-label', 'Start: Guard House / Main Gate');
-                const label = createMapLabel('Start · Guard House', 'map-start-label');
+                const label = createMapLabel('Start', 'map-start-label');
                 origin.appendChild(label);
                 points.appendChild(origin);
-                mapStartLabelEntry = registerMapLabel(label, { baseText: 'Start · Guard House', priority: 100 });
+                mapStartMarkerElement = origin;
+                mapStartLabelEntry = registerMapLabel(label, { baseText: 'Start', priority: 100 });
             }
 
             buildingsWithCoords.forEach((b) => {
@@ -704,24 +695,20 @@
                 marker.type = 'button';
                 marker.className = 'map-fallback__marker';
                 marker.dataset.id = String(b.id);
-                marker.dataset.label = b.name || 'Building';
                 marker.style.left = `${x}%`;
                 marker.style.top = `${y}%`;
                 const markerVisual = document.createElement('span');
                 markerVisual.className = 'map-fallback__marker-icon';
                 markerVisual.textContent = mapInitials(b.name);
                 marker.appendChild(markerVisual);
-                const label = createMapLabel(b.name || 'Building', 'map-building-label--fallback');
-                marker.appendChild(label);
-                mapBuildingLabelEntries.set(String(b.id), registerMapLabel(label, {
-                    baseText: b.name || 'Building', priority: 10
-                }));
                 marker.setAttribute('aria-label', b.name || 'Building');
+                mapBuildingMarkerElements.set(String(b.id), marker);
                 marker.addEventListener('click', () => selectBuilding(b.id));
                 points.appendChild(marker);
             });
 
             mapView.appendChild(shell);
+            syncMapStartCue();
             scheduleMapLabelLayout();
         }
 
@@ -1213,13 +1200,6 @@
             const bldg = buildingIndex.get(id);
             if (!bldg) return;
             currentBuildingId = id;
-
-            mapBuildingLabelEntries.forEach((entry) => {
-                if (entry.priority < 100) entry.priority = 10;
-            });
-            const selectedLabel = mapBuildingLabelEntries.get(String(id));
-            if (selectedLabel && selectedLabel.priority < 100) selectedLabel.priority = 70;
-            scheduleMapLabelLayout();
 
             document.querySelectorAll('.map-bldg-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.map-fallback__marker').forEach(el => el.classList.remove('active'));
@@ -2202,11 +2182,10 @@
                     const startElement = mapStartMarker.getElement();
                     if (startElement) {
                         startElement.setAttribute('aria-label', 'Start: Guard House / Main Gate');
-                        const startLabel = createMapLabel('Start · Guard House', 'map-start-label');
+                        const startLabel = createMapLabel('Start', 'map-start-label');
                         startElement.appendChild(startLabel);
-                        mapStartLabelEntry = registerMapLabel(startLabel, {
-                            baseText: 'Start · Guard House', priority: 100
-                        });
+                        mapStartMarkerElement = startElement;
+                        mapStartLabelEntry = registerMapLabel(startLabel, { baseText: 'Start', priority: 100 });
                     }
                 }
                 mapBuildings.forEach(b => {
@@ -2216,16 +2195,13 @@
                         const markerElement = marker.getElement();
                         if (markerElement) {
                             markerElement.setAttribute('aria-label', b.name);
-                            const label = createMapLabel(b.name, 'map-building-label--leaflet');
-                            markerElement.appendChild(label);
-                            mapBuildingLabelEntries.set(String(b.id), registerMapLabel(label, {
-                                baseText: b.name, priority: 10
-                            }));
+                            mapBuildingMarkerElements.set(String(b.id), markerElement);
                         }
                         marker.on('click', () => selectBuilding(b.id));
                         leafletMarkers[b.id] = marker;
                     }
                 });
+                syncMapStartCue();
                 leafletMap.on('moveend zoomend resize', scheduleMapLabelLayout);
                 scheduleMapLabelLayout();
                 scheduleLeafletRecovery();
@@ -2314,7 +2290,7 @@
                 if (validStartNode(MAP_START_NODE)) {
                     const originElement = document.createElement('div');
                     originElement.className = 'map-start-marker';
-                    const originLabel = createMapLabel('Start · Guard House', 'map-start-label');
+                    const originLabel = createMapLabel('Start', 'map-start-label');
                     originElement.appendChild(originLabel);
                     mapStartMarker = new maplibregl.Marker({
                         element: originElement,
@@ -2323,9 +2299,8 @@
                         .setLngLat([Number(MAP_START_NODE.lng), Number(MAP_START_NODE.lat)])
                         .addTo(maplibreMap);
                     originElement.setAttribute('aria-label', 'Start: Guard House / Main Gate');
-                    mapStartLabelEntry = registerMapLabel(originLabel, {
-                        baseText: 'Start · Guard House', priority: 100
-                    });
+                    mapStartMarkerElement = originElement;
+                    mapStartLabelEntry = registerMapLabel(originLabel, { baseText: 'Start', priority: 100 });
                 }
 
                 mapBuildings.forEach(b => {
@@ -2339,13 +2314,8 @@
                         const el = marker.getElement();
                         el.classList.add('map-building-marker', 'map-building-marker--maplibre');
                         el.style.cursor = 'pointer';
-                        el.setAttribute('title', b.name);
                         el.setAttribute('aria-label', b.name);
-                        const label = createMapLabel(b.name, 'map-building-label--maplibre');
-                        el.appendChild(label);
-                        mapBuildingLabelEntries.set(String(b.id), registerMapLabel(label, {
-                            baseText: b.name, priority: 10
-                        }));
+                        mapBuildingMarkerElements.set(String(b.id), el);
                         el.addEventListener('click', (ev) => {
                             ev.stopPropagation();
                             selectBuilding(b.id);
@@ -2353,6 +2323,7 @@
                         maplibreMarkers[b.id] = marker;
                     }
                 });
+                syncMapStartCue();
                 // MapLibre registers one event type per on() call. Keep each
                 // camera event separate so labels are reconsidered after a
                 // phone pans, zooms, or changes viewport size.

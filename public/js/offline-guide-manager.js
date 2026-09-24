@@ -33,7 +33,9 @@
   var routeSummaryInvoker = null;
   var routeSummaryKey = null;
   var mapLabelEntries = [];
-  var buildingLabelEntries = Object.create(null);
+  var buildingMarkerElements = Object.create(null);
+  var startMarkerElement = null;
+  var routeStartBuildingKey = null;
   var startLabelEntry = null;
   var mapLabelFrame = 0;
   var logoutVersion = 0;
@@ -96,41 +98,33 @@
     return entry;
   }
 
-  function setOfflineMapLabelText(entry, text, priority) {
-    if (!entry || !entry.label) return;
-    entry.label.textContent = text || '';
-    if (Number.isFinite(priority)) entry.priority = priority;
-    scheduleOfflineMapLabelLayout();
-  }
-
-  function resetOfflineRouteLabels() {
-    if (startLabelEntry) setOfflineMapLabelText(startLabelEntry, 'Start · Guard House', 100);
-    Object.keys(buildingLabelEntries).forEach(function (key) {
-      var entry = buildingLabelEntries[key];
-      var priority = entry.priority === 100 ? 10 : entry.priority;
-      setOfflineMapLabelText(entry, entry.baseText, priority);
-    });
-    scheduleOfflineMapLabelLayout();
-  }
-
-  function setOfflineRouteLabels(isExit, key) {
-    resetOfflineRouteLabels();
-    var building = buildingFor(key);
-    if (isExit && building) {
-      if (startLabelEntry) setOfflineMapLabelText(startLabelEntry, 'Guard House', 30);
-      if (buildingLabelEntries[String(key)]) {
-        setOfflineMapLabelText(buildingLabelEntries[String(key)], 'Start · ' + building.name, 100);
-      }
-    } else if (building && buildingLabelEntries[String(key)]) {
-      buildingLabelEntries[String(key)].priority = 70;
+  function syncOfflineRouteStartCue() {
+    if (!startLabelEntry || !startLabelEntry.label) return;
+    var target = routeStartBuildingKey != null
+      ? (buildingMarkerElements[String(routeStartBuildingKey)] || startMarkerElement)
+      : startMarkerElement;
+    if (target && startLabelEntry.label.parentElement !== target) {
+      target.appendChild(startLabelEntry.label);
     }
     scheduleOfflineMapLabelLayout();
   }
 
-  function clearOfflineMapLabelState() {
+  function resetOfflineRouteLabels() {
+    routeStartBuildingKey = null;
+    syncOfflineRouteStartCue();
+  }
+
+  function setOfflineRouteLabels(isExit, key) {
+    routeStartBuildingKey = isExit && buildingFor(key) ? String(key) : null;
+    syncOfflineRouteStartCue();
+  }
+
+  function clearOfflineMapLabelState(resetRouteStart) {
     mapLabelEntries = [];
-    buildingLabelEntries = Object.create(null);
+    buildingMarkerElements = Object.create(null);
+    startMarkerElement = null;
     startLabelEntry = null;
+    if (resetRouteStart) routeStartBuildingKey = null;
     if (mapLabelFrame) {
       if (window.cancelAnimationFrame) window.cancelAnimationFrame(mapLabelFrame);
       window.clearTimeout(mapLabelFrame);
@@ -585,13 +579,6 @@
   }
 
   function highlightSelection(key) {
-    Object.keys(buildingLabelEntries).forEach(function (labelKey) {
-      if (buildingLabelEntries[labelKey].priority < 100) buildingLabelEntries[labelKey].priority = 10;
-    });
-    if (buildingLabelEntries[String(key)] && buildingLabelEntries[String(key)].priority < 100) {
-      buildingLabelEntries[String(key)].priority = 70;
-    }
-    scheduleOfflineMapLabelLayout();
     document.querySelectorAll('[data-building-key]').forEach(function (node) {
       var selected = node.getAttribute('data-building-key') === key;
       node.classList.toggle('is-selected', selected);
@@ -742,7 +729,7 @@
     lastInvoker = null;
     routeSummaryInvoker = null;
     routeSummaryKey = null;
-    clearOfflineMapLabelState();
+    clearOfflineMapLabelState(true);
 
     var container = byId('offlineMap');
     if (container) container.hidden = false;
@@ -838,9 +825,10 @@
     originEl.type = 'button';
     originEl.className = 'offline-map-marker offline-map-marker--origin';
     originEl.disabled = true;
-    var originLabel = createOfflineMapLabel('Start · ' + OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label');
+    var originLabel = createOfflineMapLabel('Start', 'map-start-label');
     originEl.appendChild(originLabel);
-    startLabelEntry = registerOfflineMapLabel(originLabel, 'Start · ' + OFFLINE_ORIGIN_MARKER_LABEL, 100);
+    startMarkerElement = originEl;
+    startLabelEntry = registerOfflineMapLabel(originLabel, 'Start', 100);
     // Keep the geographic point at the center of the 44px wrapper, matching
     // the online MapLibre start marker and the simplified fallback marker.
     var originMarker = new maplibregl.Marker({ element: originEl, anchor: 'center' })
@@ -863,14 +851,11 @@
       markerElement.classList.add('offline-building-marker');
       markerElement.setAttribute('role', 'button');
       markerElement.setAttribute('tabindex', '0');
-      markerElement.setAttribute('title', building.name);
       markerElement.setAttribute('aria-label', 'Open details for ' + building.name);
       markerElement.setAttribute('aria-pressed', 'false');
       markerElement.setAttribute('data-building-key', building.key);
       markerElement.style.cursor = 'pointer';
-      var label = createOfflineMapLabel(building.name, 'map-building-label--offline');
-      markerElement.appendChild(label);
-      buildingLabelEntries[String(building.key)] = registerOfflineMapLabel(label, building.name, 10);
+      buildingMarkerElements[String(building.key)] = markerElement;
       markerElement.addEventListener('click', function (event) {
         event.stopPropagation();
         openDetails(building.key, markerElement);
@@ -882,6 +867,7 @@
       });
       markers.push(marker);
     });
+    syncOfflineRouteStartCue();
     scheduleOfflineMapLabelLayout();
   }
 
@@ -964,7 +950,7 @@
     if (!fallback) return;
     fallback.hidden = false;
     clearNode(fallback);
-    clearOfflineMapLabelState();
+    clearOfflineMapLabelState(false);
     var note = appendText(fallback, 'p', 'Map graphics are simplified on this device. The building list and all route directions remain available.');
     note.className = 'offline-map-fallback__note';
     var svgNamespace = 'http://www.w3.org/2000/svg';
@@ -1000,9 +986,10 @@
     originLabelMarker.style.left = (originPoint[0] / 10) + '%';
     originLabelMarker.style.top = (originPoint[1] / 7) + '%';
     originLabelMarker.setAttribute('aria-label', 'Start: ' + OFFLINE_ORIGIN_MARKER_LABEL + ' / Main Gate');
-    var originLabel = createOfflineMapLabel('Start · ' + OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label');
+    var originLabel = createOfflineMapLabel('Start', 'map-start-label');
     originLabelMarker.appendChild(originLabel);
-    startLabelEntry = registerOfflineMapLabel(originLabel, 'Start · ' + OFFLINE_ORIGIN_MARKER_LABEL, 100);
+    startMarkerElement = originLabelMarker;
+    startLabelEntry = registerOfflineMapLabel(originLabel, 'Start', 100);
     markerLayer.appendChild(originLabelMarker);
     record.guide.buildings.forEach(function (building) {
       if (building.lng == null || building.lat == null) return;
@@ -1015,15 +1002,14 @@
       button.setAttribute('data-building-key', building.key);
       button.style.left = (point[0] / 10) + '%';
       button.style.top = (point[1] / 7) + '%';
-      var label = createOfflineMapLabel(building.name, 'map-building-label--fallback');
-      button.appendChild(label);
-      buildingLabelEntries[String(building.key)] = registerOfflineMapLabel(label, building.name, 10);
+      buildingMarkerElements[String(building.key)] = button;
       button.addEventListener('click', function (event) {
         event.stopPropagation();
         openDetails(building.key, button);
       });
       markerLayer.appendChild(button);
     });
+    syncOfflineRouteStartCue();
     scheduleOfflineMapLabelLayout();
   }
 

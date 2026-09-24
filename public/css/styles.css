@@ -6819,28 +6819,6 @@ a.btn-google {
 
 .campus-map-label[hidden] { display: none; }
 
-.map-building-label--leaflet {
-    left: 29px;
-    top: -7px;
-}
-
-.map-building-label--maplibre {
-    left: 26px;
-    top: -5px;
-}
-
-.map-building-label--offline {
-    left: 35px;
-    top: 0;
-    max-width: 150px;
-}
-
-.map-building-label--fallback {
-    left: 24px;
-    top: -7px;
-    max-width: 142px;
-}
-
 .map-start-marker,
 .map-fallback__origin {
     position: absolute;
@@ -7040,31 +7018,6 @@ a.btn-google {
     text-shadow: 0 1px 2px rgba(15, 42, 68, 0.28);
     transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
-
-.map-fallback__marker::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 50%;
-    top: calc(100% - 1px);
-    max-width: 160px;
-    transform: translateX(-50%);
-    padding: 0.22rem 0.45rem;
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.92);
-    color: var(--navy-900);
-    font-size: 0.72rem;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: var(--shadow-sm);
-    pointer-events: none;
-}
-
-/* The label is a real child element so collision handling can measure and
-   hide it. Keep the historical marker data-label attribute for compatibility,
-   but do not render a second pseudo-label. */
-.map-fallback__marker::before { content: none; }
 
 .map-fallback__marker.active,
 .map-fallback__marker:hover {
@@ -7557,10 +7510,6 @@ a.btn-google {
         inset: 3rem 1rem 4.25rem 1rem;
     }
 
-    .map-fallback__marker::before {
-        display: none;
-    }
-
     .map-fallback__status {
         left: 0.75rem;
         right: 0.75rem;
@@ -7594,7 +7543,6 @@ a.btn-google {
 }
 
 [data-theme="dark"] .map-fallback__status,
-[data-theme="dark"] .map-fallback__marker::before,
 [data-theme="dark"] .map-fallback__empty {
     border-color: rgba(255, 255, 255, 0.1);
     background: rgba(17, 24, 39, 0.92);

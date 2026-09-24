@@ -1769,11 +1769,14 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v49 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 49 &&
+    ok('sw.js is v50 and the offline origin marker, generic route-start cue, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 50 &&
        /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
        /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\);/.test(offlineManager) &&
-       /createOfflineMapLabel\('Start · ' \+ OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label'\)/.test(offlineManager) &&
+       /createOfflineMapLabel\('Start', 'map-start-label'\)/.test(offlineManager) &&
+       /routeStartBuildingKey = isExit && buildingFor\(key\) \? String\(key\) : null/.test(offlineManager) &&
+       /target\.appendChild\(startLabelEntry\.label\)/.test(offlineManager) &&
+       !/map-building-label/.test(offlineManager) &&
        !/originEl\.textContent = 'Main Gate'/.test(offlineManager) &&
       /var OFFLINE_BUILDING_PIN_SCALE = 0\.7;/.test(offlineManager) &&
       /var OFFLINE_BUILDING_PIN_OFFSET = \[0, -14 \* OFFLINE_BUILDING_PIN_SCALE\];/.test(offlineManager) &&
@@ -1982,9 +1985,11 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
 ]);
 
 /* Reviewed package-manifest bytes after the July 26 dependency-security
-   remediation.  The package manifest pins EJS 6.0.1 and the lockfile removes
-   the vulnerable jake/filelist/minimatch/brace-expansion production chain. */
-const REVIEWED_PACKAGE_JSON_SHA256 = '71d81fa0d5074f6bd1f82de2dbe0618913cd99ea1e1cbba75c71453fc858cbcc';
+   remediation and the subsequent repair-script entry. Normalize checkout
+   line endings before hashing so this pin is stable across Git platforms.
+   The manifest pins EJS 6.0.1 and the lockfile removes the vulnerable
+   jake/filelist/minimatch/brace-expansion production chain. */
+const REVIEWED_PACKAGE_JSON_SHA256 = '4fc68eb307c3a636a7fc166613cd2baa97755c864644113b2306fb58f1d1256b';
 const REVIEWED_PACKAGE_LOCK_SHA256 = 'ad1a378b8b46a049af7f8543d9ea0561ef91082c2d49d73be2d4178f397f68ca';
 
 /** PURE: do the manifest's recorded versions equal the expected pinned set? */
@@ -2330,7 +2335,12 @@ async function runSelfHostedVendorGate() {
   {
     const hashOf = (rel) => {
       const p = path.join(root, rel);
-      return fs.existsSync(p) ? crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex') : '';
+      if (!fs.existsSync(p)) return '';
+      const bytes = fs.readFileSync(p);
+      const canonical = rel === 'package.json'
+        ? Buffer.from(bytes.toString('utf8').replace(/\r\n?/g, '\n'), 'utf8')
+        : bytes;
+      return crypto.createHash('sha256').update(canonical).digest('hex');
     };
     ok('package.json matches the reviewed dependency-remediation bytes',
       hashOf('package.json') === REVIEWED_PACKAGE_JSON_SHA256);
@@ -9410,8 +9420,8 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
   files: 209,
-  bytes: '8,722,630',
-  sha256: '0352f9b418f8ac7923d13e225c91fa2e48fb379758017bd78c2697c62a16d479',
+  bytes: '8,727,579',
+  sha256: 'a7fe9b0a385a9465d32836a4a5f6d0a03a781d5c63d459c27db797992e567e9a',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */

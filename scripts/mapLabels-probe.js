@@ -1,6 +1,6 @@
 'use strict';
 
-/* Focused, read-only contract checks for the online/offline map label release. */
+/* Focused, read-only contracts for generic online/offline map start cues. */
 const fs = require('fs');
 const path = require('path');
 
@@ -24,6 +24,11 @@ const leafletInitEnd = map.indexOf('function buildOnlineBasemapStyle', leafletIn
 const leafletInit = leafletInitStart >= 0 && leafletInitEnd > leafletInitStart
   ? map.slice(leafletInitStart, leafletInitEnd)
   : '';
+const fallbackStart = map.indexOf('function renderStaticMapFallback(');
+const fallbackEnd = map.indexOf('function setHint(', fallbackStart);
+const staticFallback = fallbackStart >= 0 && fallbackEnd > fallbackStart
+  ? map.slice(fallbackStart, fallbackEnd)
+  : '';
 const mobileLabelCssStart = map.indexOf('/* MAP_MOBILE_LABEL_SIZE_START');
 const mobileLabelCssEnd = map.indexOf('/* MAP_MOBILE_LABEL_SIZE_END */', mobileLabelCssStart);
 const mobileLabelCss = mobileLabelCssStart >= 0 && mobileLabelCssEnd > mobileLabelCssStart
@@ -46,13 +51,21 @@ check('online map sends canonical start-node metadata to the view',
   /startNode:\s*\(typeof mapStartNode/.test(map) &&
   /async function onlineStartNode\(\)/.test(controller) &&
   /node_key\s*===\s*'main-gate'/.test(controller));
-check('online Leaflet and MapLibre markers create safe text labels',
-  /createMapLabel\(b\.name, 'map-building-label--leaflet'\)/.test(map) &&
-  /createMapLabel\(b\.name, 'map-building-label--maplibre'\)/.test(map) &&
-  /label\.textContent\s*=\s*text/.test(map));
-check('online map creates a readable start marker and fallback label',
-  /Start · Guard House/.test(map) &&
-  /map-fallback__origin/.test(map) &&
+check('online building names are absent beside pins but remain accessible',
+  !/map-building-label/.test(map) &&
+  !/createMapLabel\([^)]*b\.name/.test(map) &&
+  /markerElement\.setAttribute\('aria-label', b\.name\)/.test(leafletInit) &&
+  /el\.setAttribute\('aria-label', b\.name\)/.test(mapLibreInit) &&
+  !/setAttribute\('title', b\.name\)/.test(mapLibreInit) &&
+  /marker\.setAttribute\('aria-label', b\.name \|\| 'Building'\)/.test(staticFallback) &&
+  !/dataset\.label\s*=/.test(staticFallback));
+check('online routes move only a generic Start cue between the Gate and exit pin',
+  (map.match(/createMapLabel\('Start', 'map-start-label'\)/g) || []).length === 3 &&
+  !/Start · Guard House/.test(map) &&
+  /activeRouteStartBuildingId = isExit && building \? String\(building\.id\) : null/.test(map) &&
+  /mapBuildingMarkerElements\.get\(activeRouteStartBuildingId\) \|\| mapStartMarkerElement/.test(map) &&
+  /target\.appendChild\(mapStartLabelEntry\.label\)/.test(map) &&
+  /function resetMapRouteLabels\(\) \{\s*activeRouteStartBuildingId = null;\s*syncMapStartCue\(\);/.test(map) &&
   /setMapRouteLabels\(isExit, b\)/.test(map) &&
   /originElement\.setAttribute\('aria-label', 'Start: Guard House \/ Main Gate'\)/.test(map));
 check('online MapLibre start marker uses a centered geographic anchor',
@@ -65,7 +78,7 @@ check('online map opens at the offline Freedom Park camera',
   /pitch:\s*0/.test(mapLibreInit) &&
   /setView\(\s*\[MAP_OPENING_CENTER\[1\], MAP_OPENING_CENTER\[0\]\],\s*17\s*\)/.test(leafletInit) &&
   !/center:\s*Array\.isArray\(MAP_BASEMAP\.center\)/.test(mapLibreInit));
-check('online MapLibre refreshes labels on each camera event',
+check('online MapLibre refreshes the generic route cue on each camera event',
   /maplibreMap\.on\('move',\s*scheduleMapLabelLayout\)/.test(mapLibreInit) &&
   /maplibreMap\.on\('zoom',\s*scheduleMapLabelLayout\)/.test(mapLibreInit) &&
   /maplibreMap\.on\('resize',\s*scheduleMapLabelLayout\)/.test(mapLibreInit) &&
@@ -74,43 +87,51 @@ check('online label layout hides off-screen and overlapping labels',
   /getBoundingClientRect\(\)/.test(map) &&
   /overlaps\s*=\s*placed\.some/.test(map) &&
   /entry\.label\.hidden\s*=\s*true/.test(map));
-check('offline MapLibre and simplified fallback reuse the same label contract',
-  /createOfflineMapLabel\(building\.name, 'map-building-label--offline'\)/.test(offline) &&
-  /createOfflineMapLabel\(building\.name, 'map-building-label--fallback'\)/.test(offline) &&
+check('offline building names are absent beside pins but remain accessible',
+  !/map-building-label/.test(offline) &&
+  !/createOfflineMapLabel\([^)]*building\.name/.test(offline) &&
+  /markerElement\.setAttribute\('aria-label', 'Open details for ' \+ building\.name\)/.test(offline) &&
+  /button\.setAttribute\('aria-label', 'Open details for ' \+ building\.name\)/.test(offline) &&
+  !/setAttribute\('title', building\.name\)/.test(offline));
+check('offline routes move only a generic Start cue between the Gate and exit pin',
+  (offline.match(/createOfflineMapLabel\('Start', 'map-start-label'\)/g) || []).length === 2 &&
+  !/Start · Guard House/.test(offline) &&
+  /routeStartBuildingKey = isExit && buildingFor\(key\) \? String\(key\) : null/.test(offline) &&
+  /buildingMarkerElements\[String\(routeStartBuildingKey\)\] \|\| startMarkerElement/.test(offline) &&
+  /target\.appendChild\(startLabelEntry\.label\)/.test(offline) &&
+  /function resetOfflineRouteLabels\(\) \{\s*routeStartBuildingKey = null;\s*syncOfflineRouteStartCue\(\);/.test(offline) &&
   /setOfflineRouteLabels\(isExit, key\)/.test(offline) &&
   /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\)/.test(offline));
-check('offline MapLibre refreshes labels on each camera event',
+check('offline MapLibre refreshes the generic route cue on each camera event',
   /nextMap\.on\('move',\s*scheduleOfflineMapLabelLayout\)/.test(offline) &&
   /nextMap\.on\('zoom',\s*scheduleOfflineMapLabelLayout\)/.test(offline) &&
   /nextMap\.on\('resize',\s*scheduleOfflineMapLabelLayout\)/.test(offline) &&
   !/nextMap\.on\('move zoom resize'/.test(offline));
-check('offline label layout keeps start and selected labels prioritized',
+check('offline label layout contains only the priority Start cue',
   /resetOfflineRouteLabels\(\)/.test(offline) &&
-  /registerOfflineMapLabel\(originLabel,[\s\S]{0,120}, 100\)/.test(offline) &&
+  /registerOfflineMapLabel\(originLabel, 'Start', 100\)/.test(offline) &&
+  !/buildingLabelEntries/.test(offline) &&
   /overlaps\s*=\s*placed\.some/.test(offline));
 check('offline origin marker is centered and fallback has one origin marker',
   /new maplibregl\.Marker\(\{ element: originEl, anchor: 'center' \}\)/.test(offline) &&
   !/var origin = document\.createElementNS\(svgNamespace, 'circle'\)/.test(offline));
-check('labels remain passive while existing 44px controls stay intact',
+check('the generic cue remains passive while existing 44px controls stay intact',
   /\.campus-map-label\s*\{[\s\S]*?pointer-events:\s*none/.test(styles) &&
   /\.map-building-marker--leaflet\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/.test(styles) &&
   /\.offline-fallback-marker\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/.test(offlineCss));
-check('label text is readable in both themes',
+check('shared map preview and generic cue text remain readable in both themes',
   /font-size:\s*12px/.test(styles) &&
   /\[data-theme="dark"\] \.campus-map-label/.test(styles));
-check('phone map labels use the requested compact scale without shrinking controls',
+check('phone map keeps a compact generic cue without shrinking controls',
   /@media\s*\(max-width:\s*768px\)/.test(mobileLabelCss) &&
-  /\.map-page \.map-building-label--leaflet/.test(mobileLabelCss) &&
-  /\.map-page \.map-building-label--maplibre/.test(mobileLabelCss) &&
-  /\.map-page \.map-building-label--fallback/.test(mobileLabelCss) &&
   /\.map-page \.map-start-label/.test(mobileLabelCss) &&
+  !/map-building-label/.test(mobileLabelCss) &&
   /font-size:\s*8px/.test(mobileLabelCss) &&
   /\.map-building-marker--leaflet\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/.test(styles));
-check('phone offline map labels use the requested compact scale without shrinking controls',
+check('phone offline map keeps a compact generic cue without shrinking controls',
   /@media\s*\(max-width:\s*768px\)/.test(offlineMobileLabelCss) &&
-  /\.offline-page \.map-building-label--offline/.test(offlineMobileLabelCss) &&
-  /\.offline-page \.map-building-label--fallback/.test(offlineMobileLabelCss) &&
   /\.offline-page \.map-start-label/.test(offlineMobileLabelCss) &&
+  !/map-building-label/.test(offlineMobileLabelCss) &&
   /font-size:\s*8px/.test(offlineMobileLabelCss) &&
   /\.offline-map-marker--origin\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/.test(offlineCss));
 check('offline fallback centers one origin marker on the route coordinate',
@@ -131,7 +152,7 @@ check('home preview receives the same public basemap and start-node contract as 
   /mapBasemap:\s*mapController\.getPublicBasemapConfig\(\)/.test(pageController) &&
   /mapStartNode:\s*startNodeResult/.test(pageController));
 check('service worker advances the offline shell for the new manager/CSS',
-/CACHE_VERSION\s*=\s*'v48'/.test(sw) &&
+/CACHE_VERSION\s*=\s*'v50'/.test(sw) &&
   /'\/js\/offline-guide-manager\.js'/.test(sw) &&
   /'\/css\/offline\.css'/.test(sw));
 
