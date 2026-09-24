@@ -77,9 +77,9 @@ const VERCEL_JSON_FILE = 'vercel.json';
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 202,
-  bytes: 7516665,
-  sha256: '5c61366ba4148320cff4a2caae1b88bc033ee2606a58f3d26f965f5d193cbd2c',
+  files: 209,
+  bytes: 8722630,
+  sha256: '0352f9b418f8ac7923d13e225c91fa2e48fb379758017bd78c2697c62a16d479',
 });
 
 /* M12.P1-R8 label correction.
@@ -231,11 +231,11 @@ const EXPECTED_OFFLINE_MAP_RUNTIME_FILES = Object.freeze([
 const REPRESENTATIVE_STATIC_ASSETS = Object.freeze([
   ['stylesheet', 'public/css/styles.css'],
   ['client script', 'public/js/pwa.js'],
-  ['PWA icon', 'public/img/icons/icon-192.png'],
+  ['PWA icon', 'public/img/icons/campussphere-192.png'],
   ['web app manifest', 'public/manifest.webmanifest'],
   ['offline shell', 'public/offline.html'],
   ['service worker', 'public/sw.js'],
-  ['normal campus image', 'public/img/cspc-logo.png'],
+  ['CampuSphere logo', 'public/img/CampuSphere-logo.png'],
 ]);
 
 const NOSNIFF = Object.freeze({ key: 'X-Content-Type-Options', value: 'nosniff' });

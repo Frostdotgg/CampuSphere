@@ -209,7 +209,7 @@ app.use((req, res, next) => {
    session or duplicating an image in the package. */
 app.get('/favicon.ico', (_req, res) => {
   res.type('png');
-  return res.sendFile(path.join(__dirname, 'public', 'img', 'cspc-logo.png'));
+  return res.sendFile(path.join(__dirname, 'public', 'img', 'icons', 'campussphere-favicon-48.png'));
 });
 
 /* ---- Static Files ---- */

@@ -7,6 +7,8 @@
  * stores natural identities, counts, and hashes only; backend-local numeric ids
  * and secrets are deliberately absent. MySQL and Supabase complete rosters are
  * pinned separately while the 25-route Guided VR catalog is shared.
+ * Refreshed 2026-09-24 after strict natural-key parity between Supabase and
+ * MySQL campus/VR data. Numeric IDs remain backend-local.
  */
 
 function deepFreeze(value) {
@@ -18,7 +20,7 @@ function deepFreeze(value) {
 
 const SELECTED_DEMO_FREEZE = deepFreeze({
   schema_version: 2,
-  frozen_on: '2026-09-10',
+  frozen_on: '2026-09-24',
   migrations: [
     ['0001_initial_schema.sql', '4a3b751758caaf47795d35ff479ffbba5127b248e950d78db0afcdd811840e3e'],
     ['0002_seed_data.sql', '90b7635cd22cf011b018c6ae63e5c11877d5565cdea37886808cf369761bd9a0'],
@@ -62,9 +64,9 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
       ['Academic Building II', 'acad-2', 'scene-acad-2-1st-floor-17', 31, 'e5183944278e246081febf87b8bed25f8f8dcb2e54241183916b11ae623b0e74'],
       ['Academic Building III', 'acad-3', 'scene-cas-1st-floor', 26, '22c3a2c55acf17f47d64fa24da196e4401d3f5550a88a1eac21296bcb39e3958'],
       ['Academic Building V', 'acad-5', 'scene-acad-5-1st-floor-7', 35, 'c0d21e65140840398c107730a4880562609e85685dda7663d834df4497ac784b'],
-      ['Academic Building VI', 'acad-6', 'scene-chs-1st-floor-001', 28, '5720fbd5e3cd559afcc731335e732df3649cf316bc6830c23aaac4f0c6671827'],
+      ['Academic Building VI', 'acad-6', 'scene-chs-1st-floor-001', 29, 'c492f55e054c5deeb2dd1f7e1e0000af6065983c71b6f9a524bed0ebe8ce6fe5'],
       ['Administration Building', 'admin-bldg', 'scene-admin-1st-floor-3', 31, '3eac16d4c51c1d9fe0bc190bbd1898618dca6d0a915b6b404235d75e6941c974'],
-      ['Academic Building IV', 'ccs', 'scene-ccs-1st-floor', 25, '4e4dd5a8f8838c00298736b0596abff38b33d33a3aee7aac24b7fbb0e6a1192d'],
+      ['Academic Building IV', 'ccs', 'scene-ccs-1st-floor', 26, 'd84f1943cbd780cf80d2459a14cc3a0e83c5b0bd5a95f0b6d0e0e7d8404bcd26'],
       ['CITD Building', 'citd', 'scene-citd-1st-floor-5', 18, '588ed89469937850bcecdbcb3e24cfcd2cf4611874f246ce3f816bcd6c8928cc'],
       ['Central Student Council', 'csc', 'scene-csc', 22, '1763aac0994e284d0298a54708e351bb5a2196f7a2ce8570918c2a89fb15f7fe'],
       ['College Dormitory', 'dorm', 'scene-dorm-build-001', 23, '150c855255f3e23b8c23d5fa13ce949c0dcd001ffcf19c63af9d511487873a11'],
@@ -92,45 +94,6 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
   backends: {
     mysql: {
       counts: {
-        buildings: 34,
-        route_nodes: 44,
-        building_nodes: 36,
-        route_edges: 100,
-        reverse_pairs: 50,
-        valid_geometries: 100,
-        exact_reverse_geometries: 25,
-        routable_destinations: 33,
-        total_vr_scenes: 671,
-        total_vr_hotspots: 1410,
-        selected_vr_scenes: 102,
-        selected_source_hotspots: 294,
-        selected_schedule_hotspots: 1,
-        active_guided_destinations: 25,
-        configured_guided_steps: 484,
-        unique_guided_scenes: 100,
-        interior_scenes: 2
-      },
-      roster: [
-        'Academic Building I', 'Academic Building II', 'Academic Building III',
-        'Academic Building IV', 'Academic Building V', 'Academic Building VI',
-        'Administration Building', 'Auditorium', 'CITD Building', 'Canteen / Cafeteria',
-        'Central Student Council', 'College Dormitory', 'College of Arts and Sciences',
-        'College of Computer Studies (CCS)', 'College of Health Sciences (CHS)', 'Duran Hall',
-        'Engineering Building', 'FOOD LABORATORY BUILDING', 'Freedom Park',
-        'Graduate School Building', 'Green Building', 'Gymnasium',
-        'Information and Communications Technology Unit (ICTU)', 'Laboratory & Shop Building',
-        'Library Building', 'MULTI-PURPOSE BUILDING I', 'Main Academic Building',
-        'Medical & Dental Clinic', 'Multi-Purpose Building II', 'Pearl Park', 'Staff House',
-        'Supply & Property Building', 'Technohub Building', 'Villafuerte Hall'
-      ],
-      fingerprints: {
-        building_route: 'e6a6f83f33736023dc8436e02001324334a61693ef2a23d74b7431e3757c0207',
-        selected_vr: '621571193464739fe3952c25a8d81b6d488af0fd8a6120451ff4f2d102d55bce',
-        guided_catalog: 'b807738a4e30745bd1bdab2087615199db3dd72de47403b5bb3d909ba2a4544a'
-      }
-    },
-    supabase: {
-      counts: {
         buildings: 25,
         route_nodes: 26,
         building_nodes: 25,
@@ -139,14 +102,14 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         valid_geometries: 50,
         exact_reverse_geometries: 0,
         routable_destinations: 25,
-        total_vr_scenes: 664,
-        total_vr_hotspots: 1378,
-        selected_vr_scenes: 102,
-        selected_source_hotspots: 285,
+        total_vr_scenes: 670,
+        total_vr_hotspots: 1465,
+        selected_vr_scenes: 103,
+        selected_source_hotspots: 289,
         selected_schedule_hotspots: 0,
         active_guided_destinations: 25,
-        configured_guided_steps: 484,
-        unique_guided_scenes: 100,
+        configured_guided_steps: 486,
+        unique_guided_scenes: 101,
         interior_scenes: 2
       },
       roster: [
@@ -160,16 +123,52 @@ const SELECTED_DEMO_FREEZE = deepFreeze({
         'Technohub Building', 'Villafuerte Hall'
       ],
       fingerprints: {
-        building_route: 'a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1',
-        selected_vr: 'c4c46bb9586f98f527e4ec41f7962ccc1935e0f1475f151bf475de3b9fe336bf',
-        guided_catalog: 'b807738a4e30745bd1bdab2087615199db3dd72de47403b5bb3d909ba2a4544a'
+        building_route: 'dafc9967af514fdc41f9df25882652375d4ce214987ad21bd14540fcfe9d57bc',
+        selected_vr: '5b8b39e7443de7589715a707413a0dafded716783e3dbb9ad4d4cb9b787ddfba',
+        guided_catalog: '72650b626a3f34d418e047982f74432e3f8243001b40e630690334aa1e56f8bf'
+      }
+    },
+    supabase: {
+      counts: {
+        buildings: 25,
+        route_nodes: 26,
+        building_nodes: 25,
+        route_edges: 50,
+        reverse_pairs: 25,
+        valid_geometries: 50,
+        exact_reverse_geometries: 0,
+        routable_destinations: 25,
+        total_vr_scenes: 670,
+        total_vr_hotspots: 1465,
+        selected_vr_scenes: 103,
+        selected_source_hotspots: 289,
+        selected_schedule_hotspots: 0,
+        active_guided_destinations: 25,
+        configured_guided_steps: 486,
+        unique_guided_scenes: 101,
+        interior_scenes: 2
+      },
+      roster: [
+        'Academic Building I', 'Academic Building II', 'Academic Building III',
+        'Academic Building IV', 'Academic Building V', 'Academic Building VI',
+        'Administration Building', 'CITD Building', 'Central Student Council',
+        'College Dormitory', 'Duran Hall', 'FOOD LABORATORY BUILDING', 'Freedom Park',
+        'Graduate School Building', 'Green Building', 'Gymnasium',
+        'Laboratory & Shop Building', 'Library Building', 'MULTI-PURPOSE BUILDING I',
+        'Multi-Purpose Building II', 'Pearl Park', 'Staff House', 'Supply & Property Building',
+        'Technohub Building', 'Villafuerte Hall'
+      ],
+      fingerprints: {
+        building_route: 'dafc9967af514fdc41f9df25882652375d4ce214987ad21bd14540fcfe9d57bc',
+        selected_vr: '5b8b39e7443de7589715a707413a0dafded716783e3dbb9ad4d4cb9b787ddfba',
+        guided_catalog: '72650b626a3f34d418e047982f74432e3f8243001b40e630690334aa1e56f8bf'
       }
     }
   },
   fingerprints: {
     migrations: '904978d7acf081c6e2757ff78bbc8c27e71decfedc948326e34fb76ede614de7',
-    guided_policy: '17c96a5fdca2d314c2fcbaf999962919ea64c36b2878131894ac23f9025187f8',
-    manifest: '32563b6f725c2bd41f3b409c1779d51d9db36ea293d80c32aacb7a204cd34e38'
+    guided_policy: '600dac5f7768acd0a081271ee9c8cdcd9540c10bc68711b2fff7546324bbafce',
+    manifest: '62b84610992bd3fe5ade999fb373ffe79fb2f1c311b53af3b276dde1269fb719'
   }
 });
 

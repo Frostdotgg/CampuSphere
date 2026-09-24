@@ -346,11 +346,11 @@ function expectedCore(candidate) {
   };
 }
 
-function buildCandidate(mysql, supabase, migrations, policy) {
+function buildCandidate(mysql, supabase, migrations, policy, frozenOn = SELECTED_DEMO_FREEZE.frozen_on) {
   const seedRoster = sourceData.buildings.map((building) => building.name).sort();
   const candidate = {
     schema_version: 2,
-    frozen_on: SELECTED_DEMO_FREEZE.frozen_on,
+    frozen_on: frozenOn,
     migrations,
     seed_roster: seedRoster,
     policy: policy.snapshot,
@@ -502,6 +502,18 @@ function runBackendChecks(scope, live, frozen) {
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const candidateMode = args.includes('--candidate');
+  const dateArg = args.find((argument) => argument.startsWith('--freeze-date='));
+  const frozenOn = dateArg ? dateArg.slice('--freeze-date='.length) : SELECTED_DEMO_FREEZE.frozen_on;
+  if (args.some((argument) => argument !== '--candidate' && argument !== dateArg)) {
+    throw new Error('Unknown candidate-report argument.');
+  }
+  const parsedDate = dateArg ? new Date(`${frozenOn}T00:00:00.000Z`) : null;
+  if (dateArg && (!/^\d{4}-\d{2}-\d{2}$/.test(frozenOn) ||
+      Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== frozenOn)) {
+    throw new Error('Freeze date must use YYYY-MM-DD.');
+  }
   console.log('=== CampuSphere BE.6 expanded Guided-VR catalog freeze (SELECT ONLY) ===');
   if (!hasSupabaseConfig()) throw new Error('Supabase configuration is required.');
   const migrations = migrationRecords();
@@ -512,7 +524,7 @@ async function main() {
   const [mysqlInput, supabaseInput] = await Promise.all([readMysql(), readSupabase()]);
   const mysqlLive = buildBackendCandidate('MySQL', mysqlInput, policy);
   const supabaseLive = buildBackendCandidate('Supabase', supabaseInput, policy);
-  const candidate = buildCandidate(mysqlInput, supabaseInput, migrations, policy);
+  const candidate = buildCandidate(mysqlInput, supabaseInput, migrations, policy, frozenOn);
 
   console.log('\nLive MySQL freeze checks:');
   runBackendChecks('mysql', mysqlLive, SELECTED_DEMO_FREEZE.backends.mysql);
@@ -539,7 +551,7 @@ async function main() {
     mysqlLive.route_results.every((result) => result.chain_complete && result.path_reachable) &&
     supabaseLive.route_results.every((result) => result.chain_complete && result.path_reachable));
 
-  if (hasPlaceholder(SELECTED_DEMO_FREEZE)) {
+  if (candidateMode || hasPlaceholder(SELECTED_DEMO_FREEZE)) {
     console.log('\nBE.6 CANDIDATE (safe natural-key/count/hash values):');
     console.log(JSON.stringify(candidate, null, 2));
     failures.push('freeze manifest still contains candidate placeholders');

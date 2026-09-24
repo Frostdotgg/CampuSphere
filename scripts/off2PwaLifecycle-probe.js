@@ -878,6 +878,18 @@ async function checkManifest(base) {
     icons.some((i) => purposes(i).includes('any') && sizeOf(i) >= 512));
   ok('a dedicated maskable icon of at least 192px exists (adaptive launcher icons)',
     icons.some((i) => purposes(i).includes('maskable') && sizeOf(i) >= 192));
+  const expectedLogoIcons = [
+    ['/img/icons/campussphere-192.png', '192x192', 'any'],
+    ['/img/icons/campussphere-512.png', '512x512', 'any'],
+    ['/img/icons/campussphere-maskable-192.png', '192x192', 'maskable'],
+    ['/img/icons/campussphere-maskable-512.png', '512x512', 'maskable'],
+    ['/img/icons/campussphere-apple-180.png', '180x180', 'any']
+  ];
+  ok('manifest points to the dedicated CampuSphere icon files and purposes',
+    expectedLogoIcons.every(([src, sizes, purpose]) =>
+      icons.some((i) => i.src === src && i.sizes === sizes && purposes(i).includes(purpose))));
+  ok('manifest no longer selects the former CSPC seal icon files',
+    !icons.some((i) => /(?:cspc-logo|icons\/(?:icon-192|icon-512|apple-touch-icon))\.png$/i.test(i.src)));
 
   // Every declared size must match the real file, and the file must be served.
   let sizesTruthful = icons.length > 0;
@@ -903,6 +915,9 @@ async function checkManifest(base) {
   ok('head.ejs declares mobile-web-app-capable and an apple-touch-icon',
     /name="mobile-web-app-capable" content="yes"/.test(head) &&
     /rel="apple-touch-icon"/.test(head));
+  ok('head.ejs selects the new CampuSphere browser and Apple icons',
+    /rel="icon" type="image\/png" sizes="48x48" href="\/img\/icons\/campussphere-favicon-48\.png"/.test(head) &&
+    /rel="apple-touch-icon" href="\/img\/icons\/campussphere-apple-180\.png"/.test(head));
 }
 
 /* ================== 2. SERVICE-WORKER DELIVERY AND STRUCTURE ============ */
@@ -934,7 +949,7 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advanced for offline marker and home preview (v45)', SW.cacheVersion(swSource) === 45);
+  ok('cache version advances to v49 for the new offline logo and PWA icons', SW.cacheVersion(swSource) === 49);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
@@ -944,8 +959,10 @@ function checkServiceWorkerStructure(swSource) {
     '/offline.html', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=12',
     '/js/pwa.js', '/js/offline-guide-manager.js', '/js/nav-role.js', '/js/profile-script.js',
     '/vendor/maplibre/maplibre-gl.css', '/vendor/maplibre/maplibre-gl.js',
-    '/vendor/pmtiles/pmtiles.js', '/img/cspc-logo.png', '/img/Camarines-sur-polytechnic-colleges.png',
-    '/img/icons/icon-192.png', '/img/icons/icon-512.png', '/img/icons/apple-touch-icon.png'
+    '/vendor/pmtiles/pmtiles.js', '/img/CampuSphere-logo.png', '/img/Camarines-sur-polytechnic-colleges.png',
+    '/img/icons/campussphere-favicon-48.png', '/img/icons/campussphere-192.png',
+    '/img/icons/campussphere-512.png', '/img/icons/campussphere-maskable-192.png',
+    '/img/icons/campussphere-maskable-512.png', '/img/icons/campussphere-apple-180.png'
   ];
   ok('the precache is exactly the integrated session-neutral shell/runtime and contains no guide or map data',
     JSON.stringify(urls) === JSON.stringify(INTEGRATED_SHELL));
@@ -1015,10 +1032,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The immediately preceding v44 shell must not mask the marker/home update.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v45'", "CACHE_VERSION = 'v44'");
-  ok('REJECTS an un-advanced (stale v44) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 45);
+  // The immediately preceding v48 shell must not mask the logo/icon update.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v49'", "CACHE_VERSION = 'v48'");
+  ok('REJECTS an un-advanced (stale v48) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 49);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1050,8 +1067,8 @@ function checkServiceWorkerFixtures(swSource) {
     'function isCacheableStatic(pathname) {\n  return /\\.(css|js|png|jpe?g|webp)$/i.test(pathname);\n}\n\nfunction isExactShellAsset(pathWithQuery) {\n  return SHELL_ASSET_SET[pathWithQuery] === true;\n}'
   );
   const arbitraryPathAdmitted = swSource.replace(
-    "  '/img/cspc-logo.png',",
-    "  '/img/cspc-logo.png',\n  '/img/campus-hero.jpg',"
+    "  '/img/CampuSphere-logo.png',",
+    "  '/img/CampuSphere-logo.png',\n  '/img/campus-hero.jpg',"
   );
   ok('REJECTS an extension-wide static rule, and admits no arbitrary non-shell path into the shell allowlist',
     extensionRuleRestored !== swSource && arbitraryPathAdmitted !== swSource &&
@@ -1161,7 +1178,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v45');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v49');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1293,13 +1310,13 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-       // current v45 caches - shell and static ONLY. Any v45 API/external cache
+       // current v49 caches - shell and static ONLY. Any v49 API/external cache
        // name is adversarial and must still be pruned.
-       'campusphere-pwa-shell-v45', 'campusphere-pwa-static-v45',
-       'campusphere-pwa-api-v45', 'campusphere-pwa-external-v45',
-       // the immediately preceding v44 set is stale and must be pruned too.
-       'campusphere-pwa-shell-v44', 'campusphere-pwa-static-v44',
-       'campusphere-pwa-api-v44', 'campusphere-pwa-external-v44',
+       'campusphere-pwa-shell-v49', 'campusphere-pwa-static-v49',
+       'campusphere-pwa-api-v49', 'campusphere-pwa-external-v49',
+       // the immediately preceding v48 set is stale and must be pruned too.
+       'campusphere-pwa-shell-v48', 'campusphere-pwa-static-v48',
+       'campusphere-pwa-api-v48', 'campusphere-pwa-external-v48',
        // the preceding v43 set is stale and must be pruned too.
        'campusphere-pwa-shell-v43', 'campusphere-pwa-static-v43',
        'campusphere-pwa-api-v43', 'campusphere-pwa-external-v43',
@@ -1331,15 +1348,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v45 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v49 caches (shell + static only)',
      settled.length === 1 && settled[0].status === 'fulfilled' &&
-     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v45`)));
+     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v49`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v44, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v45-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v49-suffixed API or external cache',
      !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v45`)) &&
+       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v49`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
@@ -1392,8 +1409,8 @@ async function checkVersionedCleanup(swSource) {
     !remaining.includes('campusphere-pwa-external-v40') &&
     !remaining.includes('campusphere-pwa-api-v41') &&
     !remaining.includes('campusphere-pwa-external-v41') &&
-       !remaining.includes('campusphere-pwa-api-v44') &&
-       !remaining.includes('campusphere-pwa-external-v44') &&
+       !remaining.includes('campusphere-pwa-api-v48') &&
+       !remaining.includes('campusphere-pwa-external-v48') &&
     !remaining.includes('campusphere-pwa-shell-v39') &&
     !remaining.includes('campusphere-pwa-static-v39') &&
     !remaining.includes('campusphere-pwa-api-v39') &&
@@ -1607,7 +1624,7 @@ async function checkFetchBoundaries(swSource) {
     await Promise.allSettled(e.waited);
   }
   ok('every exact reviewed shell asset IS still cache-eligible (positive allowlist fixture)',
-    shellHandled === SW.precacheUrls(swSource).length && shellHandled === 16);
+    shellHandled === SW.precacheUrls(swSource).length && shellHandled === 19);
 
   section('OFF.2 case 14 — no route, schedule, VR, panorama, or media data in any cache');
   const keys = allCachedKeys(offline.caches);
@@ -1778,7 +1795,7 @@ async function checkOfflineShell(base) {
     /id="offlineGuideWorkspace" hidden/.test(html));
   ok('the offline status is announced politely via role="status"', /role="status"/.test(html));
   ok('the brand logo is named while decorative offline imagery is hidden from assistive technology',
-    /<img src="\/img\/cspc-logo\.png" alt="CSPC Logo"/.test(html) &&
+    /<img src="\/img\/CampuSphere-logo\.png" alt="CampuSphere logo"/.test(html) &&
     /<img src="\/img\/Camarines-sur-polytechnic-colleges\.png" alt=""/.test(html));
   ok('the downloaded-building navigation carries an accessible name',
     /<nav class="[^"]*offline-building-list[^"]*"[^>]*aria-label="Downloaded buildings"/.test(html));

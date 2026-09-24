@@ -99,7 +99,8 @@ owner prompts are in `docs/new-session-grounding-prompts.md`. Older continuity
 sections below are historical evidence and do not override this section.
 
 Immediately before this authority synchronization, Git branch `main` was clean,
-had zero stashes, and had local `HEAD`, `origin/main`, and remote `main` equal at
+had zero stashes, and had local `HEAD`, `origin/main`, and remote `main` equal
+at Git commit SHA-1
 `3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5` (`3d43650`), with ahead/behind
 `0/0`. The owner subsequently authorized review, bounded validation, one
 dedicated authority commit, and a normal push to `main`. Because authority text

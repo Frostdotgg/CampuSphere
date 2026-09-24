@@ -15,31 +15,31 @@
   "categories": ["education", "navigation", "utilities"],
   "icons": [
     {
-      "src": "/img/icons/icon-192.png",
+      "src": "/img/icons/campussphere-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/img/icons/icon-512.png",
+      "src": "/img/icons/campussphere-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/img/icons/icon-192.png",
+      "src": "/img/icons/campussphere-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/img/icons/icon-512.png",
+      "src": "/img/icons/campussphere-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/img/icons/apple-touch-icon.png",
+      "src": "/img/icons/campussphere-apple-180.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"

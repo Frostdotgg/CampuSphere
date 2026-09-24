@@ -17,6 +17,7 @@
     "qa:map-labels": "node scripts/mapLabels-probe.js",
     "qa:admin-map-basemap": "node scripts/adminMapBasemap-probe.js",
     "qa:admin-coordinate-picker": "node scripts/adminCoordinatePicker-probe.js",
+    "repair:missing-guided-vr-mysql": "node scripts/repairMissingGuidedVrMysql.js",
     "qa:session-resilience": "node scripts/vercelRuntimeSessionBootstrap-probe.js && node scripts/supabaseSessionResilience-probe.js",
     "repair:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings.js",
     "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js"

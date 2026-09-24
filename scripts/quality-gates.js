@@ -430,11 +430,11 @@ async function runSuite(base, mode) {
     }
 
     // A normal public image must still be served (200) if present in this checkout.
-    const logoPath = path.join(__dirname, '..', 'public', 'img', 'cspc-logo.png');
+    const logoPath = path.join(__dirname, '..', 'public', 'img', 'CampuSphere-logo.png');
     if (fs.existsSync(logoPath)) {
-      const logo = await fetch(base + '/img/cspc-logo.png', { headers: { Accept: 'image/*' } });
+      const logo = await fetch(base + '/img/CampuSphere-logo.png', { headers: { Accept: 'image/*' } });
       await logo.text();
-      ok('L5 normal public image /img/cspc-logo.png still served (200)', logo.status === 200);
+      ok('L5 CampuSphere logo image still served (200)', logo.status === 200);
     } else {
       ok('L5 normal public image absent -> skip', true);
     }
@@ -1769,8 +1769,8 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v48 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 48 &&
+    ok('sw.js is v49 and the offline origin marker, route labels, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 49 &&
        /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
        /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\);/.test(offlineManager) &&
        /createOfflineMapLabel\('Start · ' \+ OFFLINE_ORIGIN_MARKER_LABEL, 'map-start-label'\)/.test(offlineManager) &&
@@ -1971,7 +1971,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
   ['views/admin/settings.ejs', ['/vendor/lucide/lucide.min.js']],
   ['views/admin/users.ejs', ['/vendor/lucide/lucide.min.js']],
   ['views/admin/vr.ejs', ['/vendor/lucide/lucide.min.js']],
-  ['views/admin/campus-map.ejs', ['/vendor/lucide/lucide.min.js', '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css']],
+  ['views/admin/campus-map.ejs', ['/vendor/lucide/lucide.min.js', '/vendor/maplibre/maplibre-gl.js', '/vendor/maplibre/maplibre-gl.css', '/vendor/pmtiles/pmtiles.js']],
   ['views/about.ejs', ['/vendor/iconify-icon/iconify-icon.min.js']],
   ['views/dashboard.ejs', ['/vendor/iconify-icon/iconify-icon.min.js', '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css']],
   ['views/events.ejs', ['/vendor/iconify-icon/iconify-icon.min.js']],
@@ -1984,7 +1984,7 @@ const R6_VIEW_EXPECTATIONS = Object.freeze([
 /* Reviewed package-manifest bytes after the July 26 dependency-security
    remediation.  The package manifest pins EJS 6.0.1 and the lockfile removes
    the vulnerable jake/filelist/minimatch/brace-expansion production chain. */
-const REVIEWED_PACKAGE_JSON_SHA256 = '7e1f716ee21de5ac6f9b7a25f53d972948fd55a59d7331f1a5dfd0ab986989be';
+const REVIEWED_PACKAGE_JSON_SHA256 = '71d81fa0d5074f6bd1f82de2dbe0618913cd99ea1e1cbba75c71453fc858cbcc';
 const REVIEWED_PACKAGE_LOCK_SHA256 = 'ad1a378b8b46a049af7f8543d9ea0561ef91082c2d49d73be2d4178f397f68ca';
 
 /** PURE: do the manifest's recorded versions equal the expected pinned set? */
@@ -4868,7 +4868,7 @@ function serverProvidesPreSessionFavicon(serverSource) {
   const route = serverSource.slice(routeAt, staticAt);
   return routeAt < staticAt && routeAt < sessionAt &&
     /res\.type\('png'\)/.test(route) &&
-    /res\.sendFile\(path\.join\(__dirname,\s*'public',\s*'img',\s*'cspc-logo\.png'\)\)/.test(route);
+    /res\.sendFile\(path\.join\(__dirname,\s*'public',\s*'img',\s*'icons',\s*'campussphere-favicon-48\.png'\)\)/.test(route);
 }
 
 /** PURE: the self-terminating harness must poll a pre-session route. */
@@ -5896,7 +5896,7 @@ function runVercelPackageBoundaryGate() {
     ok('fixture: the denied panorama subtree and its contents resolve as excluded',
       R7.pathIsIncluded(rules, 'public/img/sample 360') === false &&
       R7.pathIsIncluded(rules, 'public/img/sample 360/anything.jpg') === false &&
-      R7.pathIsIncluded(rules, 'public/img/cspc-logo.png') === true);
+      R7.pathIsIncluded(rules, 'public/img/CampuSphere-logo.png') === true);
   }
 
   /* ---- package-contract fixtures ---- */
@@ -5906,8 +5906,8 @@ function runVercelPackageBoundaryGate() {
       R7.EXPECTED_VENDOR_RUNTIME_FILES,
       R7.EXPECTED_OFFLINE_MAP_RUNTIME_FILES,
       [R7.EXPECTED_VENDOR_MANIFEST_FILE,
-        'public/css/styles.css', 'public/js/pwa.js', 'public/img/cspc-logo.png',
-        'public/img/icons/icon-192.png', 'public/manifest.webmanifest',
+        'public/css/styles.css', 'public/js/pwa.js', 'public/img/CampuSphere-logo.png',
+        'public/img/icons/campussphere-192.png', 'public/manifest.webmanifest',
         'public/offline.html', 'public/sw.js']);
     ok('fixture: a compliant package file list is accepted',
       R7.evaluatePackageContract(base).length === 0);
@@ -9409,9 +9409,9 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 200,
-  bytes: '7,461,052',
-  sha256: '3b6076dcdbdaf10bc6b4e11698e717ca31c2c1024d6494e6bb08bc8316369c9f',
+  files: 209,
+  bytes: '8,722,630',
+  sha256: '0352f9b418f8ac7923d13e225c91fa2e48fb379758017bd78c2697c62a16d479',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -14688,6 +14688,12 @@ const BE5_SELECTED_DEMO_PARITY_PROBES = [
   ['BE.5 selected-demo parity correction safety contracts', 'be5SelectedDemoParity-probe.js'],
 ];
 
+// Narrow, insert-only repair for the exact approved Guided-VR records missing
+// from local MySQL. The probe uses in-memory fixtures and never opens a DB.
+const GUIDED_VR_MYSQL_REPAIR_PROBES = [
+  ['missing Guided-VR MySQL repair safety contracts', 'repairMissingGuidedVrMysql-probe.js'],
+];
+
 // BE.6 expanded freeze: immutable migration hashes, reproducible seed source,
 // backend-specific current catalogs/graphs, and all 25 Guided-VR chains. The
 // probe is SELECT-only and fails closed on any live or source drift.
@@ -14818,6 +14824,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[BE.4 repair-utility safety QA] (pure fingerprints/simulation/validation/rollback + VR parity/transaction)' },
   { key: 'be5-selected-demo-parity', prefix: 'be5-selected-demo-parity', probes: BE5_SELECTED_DEMO_PARITY_PROBES,
     heading: '[BE.5 selected-demo parity safety QA] (pure MySQL transaction guards + migration 0019 static review)' },
+  { key: 'guided-vr-mysql-repair', prefix: 'guided-vr-mysql-repair', probes: GUIDED_VR_MYSQL_REPAIR_PROBES,
+    heading: '[Guided-VR local MySQL repair safety QA] (exact natural-key scope + insert-only transaction guards)' },
   { key: 'be6-dataset-freeze', prefix: 'be6-dataset-freeze', probes: BE6_DATASET_FREEZE_PROBES,
     heading: '[BE.6 expanded freeze QA] (seed baseline + backend catalogs + all Guided-VR natural-key fingerprints)' },
   { key: 'guided-cas', prefix: 'guided-cas', probes: GUIDED_VR_PROBES,
