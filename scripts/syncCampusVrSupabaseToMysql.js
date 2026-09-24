@@ -1,33 +1,37 @@
 'use strict';
 
 /*
- * Supabase -> local MySQL campus/VR merge.
+ * Supabase -> local MySQL campus/VR sync.
  *
- * This is deliberately different from syncSupabaseContentToMysql.js: the
- * local rehearsal database can contain campus records that are not in the
- * selected Supabase project.  This utility upserts only the Supabase campus
- * and VR catalog by stable natural keys and never deletes a local row.
+ * Default mode merges by stable natural keys and preserves local-only rows.
+ * An opt-in prune mode can make the eight scoped campus/VR tables match the
+ * selected Supabase project after an exact preview, verified backup, and a
+ * separate destructive confirmation.
  * Users, profiles, sessions, schedules, announcements, events, FAQs,
  * settings, team members, and audit logs are protected by before/after
  * fingerprints.  room_schedule_documents are included only as references
  * required by VR schedule hotspots; room_schedules themselves are untouched.
  *
- * Default is a read-only preview. Apply requires the exact confirmation token:
+ * Default is a read-only merge preview. Merge apply requires:
  *   node scripts/syncCampusVrSupabaseToMysql.js --apply --confirm=SYNC_CAMPUS_VR_TO_MYSQL
+ * Prune preview:
+ *   node scripts/syncCampusVrSupabaseToMysql.js --prune --dry-run
+ * Prune apply additionally requires the preview token and backup folder:
+ *   node scripts/syncCampusVrSupabaseToMysql.js --prune --apply --confirm=PRUNE_MYSQL_ONLY_CAMPUS_VR --preview-token=<token> --backup-dir=<absolute-folder>
  */
-
-process.env.DOTENV_CONFIG_QUIET = 'true';
-require('dotenv').config({ quiet: true });
 
 const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const db = require('../config/db');
-const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
 const { validatePathGeometry } = require('../utils/routeGeometry');
 
 const APPLY_CONFIRMATION = 'SYNC_CAMPUS_VR_TO_MYSQL';
+const PRUNE_CONFIRMATION = 'PRUNE_MYSQL_ONLY_CAMPUS_VR';
+const BACKUP_SCHEMA_VERSION = 1;
+const PRUNE_REQUIRES_SOURCE = Object.freeze([
+  'buildings', 'campus_routes', 'route_nodes', 'route_edges', 'vr_scenes', 'vr_hotspots'
+]);
 const TABLES = Object.freeze([
   'buildings',
   'campus_routes',
@@ -37,6 +41,10 @@ const TABLES = Object.freeze([
   'room_schedule_documents',
   'vr_scenes',
   'vr_hotspots'
+]);
+const DELETE_ORDER = Object.freeze([
+  'vr_hotspots', 'campus_route_steps', 'route_edges', 'vr_scenes',
+  'campus_routes', 'room_schedule_documents', 'route_nodes', 'buildings'
 ]);
 const PROTECTED_TABLES = Object.freeze([
   'users', 'student_profiles', 'instructor_profiles', 'guest_profiles',
@@ -77,6 +85,15 @@ class SyncError extends Error {
   }
 }
 
+function loadRuntimeAdapters() {
+  process.env.DOTENV_CONFIG_QUIET = 'true';
+  require('dotenv').config({ quiet: true });
+  return {
+    db: require('../config/db'),
+    supabase: require('../config/supabase')
+  };
+}
+
 function quoteIdentifier(value) {
   if (!IDENTIFIER.test(value)) throw new SyncError('Unsafe SQL identifier.');
   return '`' + value + '`';
@@ -94,6 +111,8 @@ function canonicalKey(value) {
 
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
+  if (value instanceof Date) return value.toISOString();
+  if (Buffer.isBuffer(value)) return { type: 'Buffer', data: Array.from(value) };
   if (value && typeof value === 'object') {
     return Object.keys(value).sort().reduce((out, key) => {
       out[key] = stableValue(value[key]);
@@ -439,7 +458,7 @@ async function readMysql(conn, tables = TABLES, lock = false) {
   const target = {};
   for (const table of tables) {
     const suffix = lock ? ' FOR UPDATE' : '';
-    const [rows] = await conn.query(`SELECT * FROM ${quoteIdentifier(table)}${suffix}`);
+    const [rows] = await conn.query(`SELECT * FROM ${quoteIdentifier(table)} ORDER BY ${quoteIdentifier(ID_FIELD[table])}${suffix}`);
     target[table] = rows;
   }
   return target;
@@ -449,7 +468,7 @@ async function protectedFingerprint(conn) {
   const snapshot = {};
   for (const table of PROTECTED_TABLES) {
     const [rows] = await conn.query(`SELECT * FROM ${quoteIdentifier(table)}`);
-    snapshot[table] = fingerprint(rows);
+    snapshot[table] = fingerprint(rows.map((row) => stableJson(row)).sort());
   }
   return snapshot;
 }
@@ -472,29 +491,111 @@ function buildPlan(source, target) {
     vr_scenes: keyed.targetVrScenes,
     vr_hotspots: keyed.targetVrHotspots
   };
+  const sourceKeyMaps = {
+    buildings: keyed.buildings,
+    campus_routes: keyed.campus_routes,
+    campus_route_steps: keyed.campus_route_steps,
+    route_nodes: keyed.route_nodes,
+    route_edges: keyed.route_edges,
+    room_schedule_documents: keyed.room_schedule_documents,
+    vr_scenes: keyed.vr_scenes,
+    vr_hotspots: keyed.vr_hotspots
+  };
   const entries = {};
+  const removals = {};
   for (const table of TABLES) {
     const sourceRows = source[table] || [];
     const targetRows = target[table] || [];
     const sourceKeyMap = keyed[table];
     const targetKeyMap = targetKeyMaps[table] || new Map();
     entries[table] = planTable(table, sourceRows, targetRows, sourceMaps, targetMaps, sourceKeyMap, targetKeyMap);
+    removals[table] = Array.from(targetKeyMap.entries())
+      .filter(([key]) => !sourceKeyMaps[table].has(key))
+      .map(([key, targetRow]) => ({ key, targetRow }));
   }
-  return { sourceMaps, targetMaps, entries, keyed };
+  return { sourceMaps, targetMaps, entries, removals, keyed };
 }
 
-function printPlan(plan, target, applyMode) {
-  console.log('=== Supabase -> MySQL campus/VR merge ===');
+function pruneManifest(plan) {
+  return DELETE_ORDER.flatMap((table) => (plan.removals[table] || [])
+    .map(({ key, targetRow }) => ({ table, key, id: Number(targetRow.id) })));
+}
+
+function previewToken(sourceFp, targetFp, plan, mysqlTargetFp = null) {
+  return fingerprint({
+    version: 1,
+    source_fingerprint: sourceFp,
+    target_fingerprint: targetFp,
+    mysql_target_fingerprint: mysqlTargetFp,
+    removals: pruneManifest(plan)
+  });
+}
+
+function validatePruneSource(source) {
+  for (const table of PRUNE_REQUIRES_SOURCE) {
+    if (!Array.isArray(source[table]) || source[table].length === 0) {
+      throw new SyncError(`Prune source is unexpectedly empty for ${table}.`, `Supabase ${table} is empty; pruning is blocked to prevent accidental deletion.`);
+    }
+  }
+  const maps = sourceNaturalMaps(source);
+  const validReference = (map, id) => id === null || id === undefined || map.has(Number(id));
+  for (const row of source.campus_routes) {
+    if (!maps.buildingById.has(Number(row.destination_building_id))) {
+      throw new SyncError('Prune source has an unresolved campus-route building.', 'Supabase contains an unresolved campus-route building reference; pruning is blocked.');
+    }
+  }
+  for (const row of source.campus_route_steps) {
+    if (!maps.routeById.has(Number(row.route_id))) {
+      throw new SyncError('Prune source has an unresolved route-step route.', 'Supabase contains an unresolved route-step reference; pruning is blocked.');
+    }
+  }
+  for (const row of source.route_nodes) {
+    if (!validReference(maps.buildingById, row.building_id)) {
+      throw new SyncError('Prune source has an unresolved route-node building.', 'Supabase contains an unresolved route-node building reference; pruning is blocked.');
+    }
+  }
+  for (const row of source.route_edges) {
+    if (!maps.nodeById.has(Number(row.from_node_id)) || !maps.nodeById.has(Number(row.to_node_id))) {
+      throw new SyncError('Prune source has an unresolved route edge.', 'Supabase contains an unresolved route-edge endpoint; pruning is blocked.');
+    }
+  }
+  for (const row of source.vr_scenes) {
+    if (!validReference(maps.nodeById, row.node_id) || !validReference(maps.buildingById, row.building_id)) {
+      throw new SyncError('Prune source has an unresolved VR-scene reference.', 'Supabase contains an unresolved VR-scene reference; pruning is blocked.');
+    }
+  }
+}
+
+function printPlan(plan, target, options = {}) {
+  const { applyMode = false, pruneMode = false, sourceFp = null, targetFp = null, mysqlTargetFp = null } = options;
+  console.log(`=== Supabase -> MySQL campus/VR ${pruneMode ? 'strict sync' : 'merge'} ===`);
   console.log(applyMode
-    ? 'APPLY PREFLIGHT: the exact confirmation token was accepted; writes occur only after the checks below.'
+    ? 'APPLY PREFLIGHT: confirmation was accepted; writes occur only after the checks below.'
     : 'READ ONLY: no MySQL or Supabase data was changed by this preview.');
-  console.log('Natural-key upsert only; local-only rows are preserved and no row is deleted.');
+  console.log(pruneMode
+    ? 'Prune mode: matched rows are upserted and MySQL-only rows are proposed for removal.'
+    : 'Merge mode: natural-key upserts preserve MySQL-only rows.');
   console.log('');
   console.log('Table                         Supabase  MySQL   add  change  present  local-only');
   console.log('-------------------------------------------------------------------------------');
   for (const table of TABLES) {
     const summary = summarize(plan.entries[table], target[table] || []);
     console.log(`${table.padEnd(29)} ${String(summary.source).padStart(8)} ${String(summary.target).padStart(6)} ${String(summary.insert).padStart(5)} ${String(summary.update).padStart(7)} ${String(summary.present).padStart(8)} ${String(summary.localOnly).padStart(10)}`);
+  }
+  if (pruneMode) {
+    console.log('');
+    console.log('MySQL-only rows proposed for removal (natural keys):');
+    let removalCount = 0;
+    for (const table of DELETE_ORDER) {
+      for (const item of plan.removals[table] || []) {
+        console.log(`  ${table}: ${JSON.stringify(item.key)}`);
+        removalCount += 1;
+      }
+    }
+    if (removalCount === 0) console.log('  (none)');
+    if (!applyMode && sourceFp && targetFp) {
+      console.log(`Prune preview token: ${previewToken(sourceFp, targetFp, plan, mysqlTargetFp)}`);
+    }
   }
   console.log('');
   console.log('Protected and untouched: users, profiles, app_sessions, room_schedules, announcements, team_members, events, FAQs, settings, and logs.');
@@ -512,16 +613,194 @@ function affectedRows(plan, target, extraRouteEdgeIds = []) {
   return backup;
 }
 
-async function writeBackup(snapshot, sourceFp, targetFp) {
-  const filename = `campusphere-campus-vr-backup-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.json`;
-  const file = path.join(os.tmpdir(), filename);
-  const body = { created_at: new Date().toISOString(), source_fingerprint: sourceFp, target_fingerprint: targetFp, affected_rows: snapshot };
-  try {
-    await fs.promises.writeFile(file, `${JSON.stringify(body, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-  } catch (_) {
-    throw new SyncError('Unable to create the campus/VR pre-write backup.', 'Unable to create the pre-write campus/VR backup; no data was written.');
+function isWithinDirectory(parent, candidate) {
+  const relative = path.relative(parent, candidate);
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+async function validateBackupDirectory(directory) {
+  if (typeof directory !== 'string' || !directory.trim() || !path.isAbsolute(directory)) {
+    throw new SyncError('Prune backup directory must be absolute.', 'Choose an existing absolute backup folder outside the repository.');
   }
-  return file;
+  let realDirectory;
+  let repositoryRoot;
+  try {
+    [realDirectory, repositoryRoot] = await Promise.all([
+      fs.promises.realpath(directory),
+      fs.promises.realpath(path.resolve(__dirname, '..'))
+    ]);
+    const stats = await fs.promises.stat(realDirectory);
+    if (!stats.isDirectory()) throw new Error('not a directory');
+  } catch (_) {
+    throw new SyncError('Prune backup directory is unavailable.', 'The chosen backup folder must already exist and be accessible.');
+  }
+  if (isWithinDirectory(repositoryRoot, realDirectory)) {
+    throw new SyncError('Prune backup directory is inside the repository.', 'Choose a backup folder outside the repository.');
+  }
+  return realDirectory;
+}
+
+async function writeBackup(snapshot, sourceFp, targetFp, backupDirectory = os.tmpdir(), mysqlTargetFp = null) {
+  const filename = `campusphere-campus-vr-backup-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.json`;
+  const file = path.join(backupDirectory, filename);
+  const tableCounts = Object.fromEntries(TABLES.map((table) => [table, (snapshot[table] || []).length]));
+  const snapshotFp = fingerprint(snapshot);
+  const body = {
+    schema_version: BACKUP_SCHEMA_VERSION,
+    created_at: new Date().toISOString(),
+    source_fingerprint: sourceFp,
+    target_fingerprint: targetFp,
+    mysql_target_fingerprint: mysqlTargetFp,
+    snapshot_fingerprint: snapshotFp,
+    table_counts: tableCounts,
+    tables: snapshot
+  };
+  let handle = null;
+  let fileCreated = false;
+  try {
+    const bytes = Buffer.from(`${JSON.stringify(body, null, 2)}\n`, 'utf8');
+    const writtenDigest = crypto.createHash('sha256').update(bytes).digest('hex');
+    handle = await fs.promises.open(file, 'wx', 0o600);
+    fileCreated = true;
+    await handle.writeFile(bytes);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+
+    const savedBytes = await fs.promises.readFile(file);
+    const saved = JSON.parse(savedBytes.toString('utf8'));
+    const savedDigest = crypto.createHash('sha256').update(savedBytes).digest('hex');
+    if (savedDigest !== writtenDigest ||
+        saved.schema_version !== BACKUP_SCHEMA_VERSION ||
+        saved.source_fingerprint !== sourceFp ||
+        saved.target_fingerprint !== targetFp ||
+        saved.mysql_target_fingerprint !== mysqlTargetFp ||
+        saved.snapshot_fingerprint !== snapshotFp ||
+        fingerprint(saved.tables) !== snapshotFp ||
+        stableJson(saved.table_counts) !== stableJson(tableCounts)) {
+      throw new Error('backup verification failed');
+    }
+    return { path: file, sha256: savedDigest, snapshotFingerprint: snapshotFp, tableCounts };
+  } catch (_) {
+    let cleanupFailed = false;
+    if (handle) {
+      try { await handle.close(); } catch (_) { /* Preserve the original backup failure. */ }
+      handle = null;
+    }
+    if (fileCreated) {
+      try { await fs.promises.unlink(file); } catch (_) { cleanupFailed = true; }
+    }
+    const detail = cleanupFailed ? ` An incomplete backup may remain at ${file}.` : '';
+    throw new SyncError('Unable to create the campus/VR pre-write backup.', `Unable to create and verify the pre-write campus/VR backup; no database changes were committed.${detail}`);
+  } finally {
+    if (handle) await handle.close().catch(() => {});
+  }
+}
+
+function mysqlTargetIsLocal(host = process.env.DB_HOST || '127.0.0.1') {
+  return new Set(['localhost', '127.0.0.1', '::1', '[::1]']).has(String(host).trim().toLowerCase());
+}
+
+async function mysqlTargetFingerprint(conn) {
+  const [rows] = await conn.query('SELECT DATABASE() AS database_name, @@hostname AS server_name, @@port AS server_port');
+  if (!rows[0] || !rows[0].database_name) {
+    throw new SyncError('MySQL target identity is unavailable.', 'Unable to identify the selected MySQL database; sync stopped without writing.');
+  }
+  return fingerprint(rows[0]);
+}
+
+async function readDeleteMetadata(conn) {
+  const placeholders = TABLES.map(() => '?').join(', ');
+  const [foreignKeys] = await conn.query(`
+    SELECT kcu.TABLE_NAME AS child_table,
+           kcu.COLUMN_NAME AS child_column,
+           kcu.REFERENCED_TABLE_NAME AS parent_table,
+           kcu.REFERENCED_COLUMN_NAME AS parent_column,
+           rc.DELETE_RULE AS delete_rule
+      FROM information_schema.KEY_COLUMN_USAGE kcu
+      JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+        ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+       AND rc.TABLE_NAME = kcu.TABLE_NAME
+       AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+     WHERE kcu.CONSTRAINT_SCHEMA = DATABASE()
+       AND kcu.REFERENCED_TABLE_NAME IN (${placeholders})
+     ORDER BY kcu.REFERENCED_TABLE_NAME, kcu.TABLE_NAME, kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION`, TABLES);
+  const [triggers] = await conn.query(`
+    SELECT EVENT_OBJECT_TABLE AS table_name, TRIGGER_NAME AS trigger_name
+      FROM information_schema.TRIGGERS
+     WHERE TRIGGER_SCHEMA = DATABASE()
+       AND EVENT_OBJECT_TABLE IN (${placeholders})
+     ORDER BY EVENT_OBJECT_TABLE, TRIGGER_NAME`, TABLES);
+  return { foreignKeys, triggers };
+}
+
+function assertNoScopedTriggers(metadata) {
+  if (metadata.triggers.length) {
+    throw new SyncError('Scoped MySQL trigger found.', 'Pruning is blocked because a MySQL trigger exists on a campus/VR table.');
+  }
+}
+
+function deletionIds(plan, table) {
+  return (plan.removals[table] || []).map(({ targetRow }) => Number(targetRow.id));
+}
+
+async function assertNoExternalReferences(conn, plan, metadata) {
+  for (const foreignKey of metadata.foreignKeys) {
+    const parentTable = String(foreignKey.parent_table || '').toLowerCase();
+    const childTable = String(foreignKey.child_table || '').toLowerCase();
+    const ids = deletionIds(plan, parentTable);
+    if (!ids.length || TABLES.includes(childTable)) continue;
+    if (String(foreignKey.parent_column || '').toLowerCase() !== 'id') {
+      throw new SyncError('Unsupported campus/VR foreign key.', 'Pruning is blocked by an unsupported foreign-key reference.');
+    }
+    const childColumn = quoteIdentifier(String(foreignKey.child_column || ''));
+    const childName = quoteIdentifier(String(foreignKey.child_table || ''));
+    for (let offset = 0; offset < ids.length; offset += 400) {
+      const batch = ids.slice(offset, offset + 400);
+      const placeholders = batch.map(() => '?').join(', ');
+      const [rows] = await conn.query(`SELECT 1 AS referenced FROM ${childName} WHERE ${childColumn} IN (${placeholders}) LIMIT 1`, batch);
+      if (rows.length) {
+        throw new SyncError('Scoped row has a protected reference.', `Pruning is blocked because ${foreignKey.child_table} refers to a MySQL-only ${foreignKey.parent_table} row.`);
+      }
+    }
+  }
+}
+
+function assertNoRemainingScopedReferences(plan, target, metadata) {
+  const removals = Object.fromEntries(TABLES.map((table) => [table, new Set(deletionIds(plan, table))]));
+  for (const foreignKey of metadata.foreignKeys) {
+    const parentTable = String(foreignKey.parent_table || '').toLowerCase();
+    const childTable = String(foreignKey.child_table || '').toLowerCase();
+    const parentIds = removals[parentTable];
+    if (!parentIds || !parentIds.size || !TABLES.includes(childTable)) continue;
+    if (String(foreignKey.parent_column || '').toLowerCase() !== 'id') {
+      throw new SyncError('Unsupported campus/VR foreign key.', 'Pruning is blocked by an unsupported foreign-key reference.');
+    }
+    const childDeletes = removals[childTable];
+    const hasRetainedReference = (target[childTable] || []).some((row) =>
+      parentIds.has(Number(row[foreignKey.child_column])) && !childDeletes.has(Number(row.id)));
+    if (hasRetainedReference) {
+      throw new SyncError('Retained scoped row references a prune candidate.', `Pruning is blocked because a retained ${foreignKey.child_table} row refers to a MySQL-only ${foreignKey.parent_table} row.`);
+    }
+  }
+}
+
+async function deleteLocalOnlyRows(conn, plan) {
+  let deleted = 0;
+  for (const table of DELETE_ORDER) {
+    const entries = plan.removals[table] || [];
+    for (let offset = 0; offset < entries.length; offset += 400) {
+      const batch = entries.slice(offset, offset + 400);
+      const ids = batch.map(({ targetRow }) => Number(targetRow.id));
+      const placeholders = ids.map(() => '?').join(', ');
+      const [result] = await conn.query(`DELETE FROM ${quoteIdentifier(table)} WHERE ${quoteIdentifier(ID_FIELD[table])} IN (${placeholders})`, ids);
+      if (!result || Number(result.affectedRows) !== ids.length) {
+        throw new SyncError(`Delete count mismatch for ${table}.`, 'A campus/VR row changed during pruning; the transaction was rolled back.');
+      }
+      deleted += ids.length;
+    }
+  }
+  return deleted;
 }
 
 async function upsertTable(conn, table, entries) {
@@ -544,7 +823,7 @@ function remapPlanAfterUpserts(source, target) {
   return buildPlan(source, target);
 }
 
-async function verifySourcePresent(conn, source, sourceFp) {
+async function verifySourcePresent(conn, source, sourceFp, requireExact = false) {
   const after = await readMysql(conn);
   const plan = buildPlan(source, after);
   for (const table of TABLES) {
@@ -554,58 +833,176 @@ async function verifySourcePresent(conn, source, sourceFp) {
       }
     }
   }
+  if (requireExact && TABLES.some((table) => plan.removals[table].length > 0)) {
+    throw new SyncError('Strict parity still has local-only rows.', 'MySQL campus/VR parity failed; the transaction was rolled back.');
+  }
   if (sourceFingerprint(source) !== sourceFp) throw new SyncError('Source changed during parity verification.', 'Supabase changed during campus/VR verification; the transaction was rolled back.');
-  return after;
+  return { after, plan };
+}
+
+async function rollbackAndVerify(conn, expectedTargetFingerprint, expectedProtectedFingerprint = null) {
+  try {
+    await conn.rollback();
+    const rolledBack = await readMysql(conn);
+    if (targetFingerprint(rolledBack) !== expectedTargetFingerprint) return false;
+    if (expectedProtectedFingerprint && !protectedEqual(expectedProtectedFingerprint, await protectedFingerprint(conn))) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function parseArgs(argv) {
   const args = argv.slice(2);
   const apply = args.includes('--apply');
   const dryRun = args.includes('--dry-run');
-  const confirmation = args.find((arg) => arg.startsWith('--confirm='));
   if (args.includes('--help') || args.includes('-h')) return { help: true, apply: false };
+  const prune = args.includes('--prune');
+  if (['--apply', '--dry-run', '--prune'].some((flag) => args.filter((arg) => arg === flag).length > 1)) {
+    throw new SyncError('Repeated sync mode flag.', 'Use each sync mode flag once; no data was written.');
+  }
+  const values = (name) => args.filter((arg) => arg.startsWith(`${name}=`)).map((arg) => arg.slice(name.length + 1));
+  const oneValue = (name) => {
+    const found = values(name);
+    if (found.length > 1 || found.some((value) => value.length === 0)) {
+      throw new SyncError(`Invalid repeated or blank ${name} option.`, `Use ${name}= once with a non-empty value; no data was written.`);
+    }
+    return found[0] || null;
+  };
+  const confirmation = oneValue('--confirm');
+  const suppliedPreviewToken = oneValue('--preview-token');
+  const backupDirectory = oneValue('--backup-dir');
   if (apply && dryRun) throw new SyncError('Conflicting sync mode flags.', 'Use either --dry-run or --apply, not both.');
-  if (args.some((arg) => !['--apply', '--dry-run'].includes(arg) && !arg.startsWith('--confirm='))) throw new SyncError('Unknown sync argument.', 'Unknown sync argument; no data was written.');
-  if (apply && (!confirmation || confirmation.slice('--confirm='.length) !== APPLY_CONFIRMATION)) throw new SyncError('Missing apply confirmation.', `Apply is blocked. Use the exact confirmation token: ${APPLY_CONFIRMATION}`);
+  const allowed = new Set(['--apply', '--dry-run', '--prune']);
+  if (args.some((arg) => !allowed.has(arg) &&
+      !arg.startsWith('--confirm=') && !arg.startsWith('--preview-token=') && !arg.startsWith('--backup-dir='))) {
+    throw new SyncError('Unknown sync argument.', 'Unknown sync argument; no data was written.');
+  }
+  if (prune && !apply && !dryRun) throw new SyncError('Prune mode needs an explicit preview or apply mode.', 'Use --prune --dry-run to preview removals; no data was written.');
+  if (apply && prune && (!confirmation || confirmation !== PRUNE_CONFIRMATION)) {
+    throw new SyncError('Missing prune confirmation.', `Prune apply is blocked. Use the exact confirmation token: ${PRUNE_CONFIRMATION}`);
+  }
+  if (apply && !prune && confirmation === PRUNE_CONFIRMATION) {
+    throw new SyncError('Prune confirmation used without prune mode.', 'The prune confirmation requires --prune; no data was written.');
+  }
+  if (apply && !prune && (!confirmation || confirmation !== APPLY_CONFIRMATION)) {
+    throw new SyncError('Missing apply confirmation.', `Merge apply is blocked. Use the exact confirmation token: ${APPLY_CONFIRMATION}`);
+  }
+  if (apply && prune && (!suppliedPreviewToken || !/^[a-f0-9]{64}$/i.test(suppliedPreviewToken))) {
+    throw new SyncError('Missing prune preview token.', 'Prune apply requires the 64-character token from a current --prune --dry-run preview.');
+  }
+  if (apply && prune && !backupDirectory) throw new SyncError('Missing prune backup directory.', 'Prune apply requires --backup-dir with an existing absolute folder outside the repository.');
+  if (apply && !prune && (suppliedPreviewToken || backupDirectory)) {
+    throw new SyncError('Prune options require prune mode.', 'Use --prune with the preview token and backup folder; no data was written.');
+  }
   if (!apply && confirmation) throw new SyncError('Confirmation requires apply.', 'The confirmation token is valid only with --apply; no data was written.');
-  return { help: false, apply };
+  if (!prune && (suppliedPreviewToken || backupDirectory)) throw new SyncError('Prune options require prune mode.', 'Use --prune with the preview token and backup folder; no data was written.');
+  if (prune && !apply && (suppliedPreviewToken || backupDirectory)) throw new SyncError('Preview does not accept apply-only options.', 'Use only --prune --dry-run for a preview; no data was written.');
+  return {
+    help: false,
+    apply,
+    dryRun: dryRun || !apply,
+    prune,
+    previewToken: suppliedPreviewToken,
+    backupDirectory
+  };
 }
 
 function usage() {
   console.log('Usage: node scripts/syncCampusVrSupabaseToMysql.js --dry-run');
   console.log(`Apply: node scripts/syncCampusVrSupabaseToMysql.js --apply --confirm=${APPLY_CONFIRMATION}`);
+  console.log('Prune preview: node scripts/syncCampusVrSupabaseToMysql.js --prune --dry-run');
+  console.log(`Prune apply: node scripts/syncCampusVrSupabaseToMysql.js --prune --apply --confirm=${PRUNE_CONFIRMATION} --preview-token=<token> --backup-dir=<absolute-folder-outside-repository>`);
 }
 
-async function main() {
-  const args = parseArgs(process.argv);
+function samePruneManifest(leftPlan, rightPlan) {
+  return stableJson(pruneManifest(leftPlan)) === stableJson(pruneManifest(rightPlan));
+}
+
+function appendBackupPath(message, backupPath) {
+  if (!backupPath || /Pre-write backup:/.test(message)) return message;
+  return `${message} Pre-write backup: ${backupPath}`;
+}
+
+async function main(argv = process.argv) {
+  const args = parseArgs(argv);
   if (args.help) { usage(); return; }
-  if (!hasSupabaseConfig()) throw new SyncError('Supabase is not configured.', 'Supabase configuration is missing; no data was written.');
-  const sb = getSupabaseClient();
-  const conn = await db.getConnection();
+  const runtime = loadRuntimeAdapters();
+  if (!runtime.supabase.hasSupabaseConfig()) throw new SyncError('Supabase is not configured.', 'Supabase configuration is missing; no data was written.');
+  if (args.prune && args.apply && !mysqlTargetIsLocal()) {
+    throw new SyncError('Prune target is not local MySQL.', 'Pruning is allowed only when DB_HOST points to this computer.');
+  }
+  const backupDirectory = args.prune && args.apply ? await validateBackupDirectory(args.backupDirectory) : null;
+  const sb = runtime.supabase.getSupabaseClient();
+  const conn = await runtime.db.getConnection();
   let committed = false;
+  let transactionStarted = false;
   let backupPath = null;
+  let sourceFp = null;
+  let targetFp = null;
   try {
     const source = await readSource(sb);
     const target = await readMysql(conn);
-    const sourceFp = sourceFingerprint(source);
-    const targetFp = targetFingerprint(target);
+    sourceFp = sourceFingerprint(source);
+    targetFp = targetFingerprint(target);
     const protectedBefore = await protectedFingerprint(conn);
     const previewPlan = buildPlan(source, target);
-    printPlan(previewPlan, target, args.apply);
+    const mysqlTargetFp = args.prune ? await mysqlTargetFingerprint(conn) : null;
+    let metadata = null;
+    if (args.prune) {
+      validatePruneSource(source);
+    }
+    printPlan(previewPlan, target, {
+      applyMode: args.apply,
+      pruneMode: args.prune,
+      sourceFp,
+      targetFp,
+      mysqlTargetFp
+    });
+    if (args.prune) {
+      metadata = await readDeleteMetadata(conn);
+      assertNoScopedTriggers(metadata);
+      await assertNoExternalReferences(conn, previewPlan, metadata);
+    }
     console.log(`Source fingerprint: ${sourceFp}`);
     console.log(`MySQL fingerprint:  ${targetFp}`);
-    if (!args.apply) { console.log('Preview complete. No data was written.'); return; }
+    if (mysqlTargetFp) console.log(`MySQL instance fingerprint: ${mysqlTargetFp}`);
+    if (!args.apply) {
+      console.log(args.prune ? 'Prune preview complete. No data was written.' : 'Preview complete. No data was written.');
+      return;
+    }
+
+    const approvedPreviewToken = args.prune ? previewToken(sourceFp, targetFp, previewPlan, mysqlTargetFp) : null;
+    if (args.prune && approvedPreviewToken !== args.previewToken) {
+      throw new SyncError('Prune preview token is stale.', 'The Supabase or MySQL data changed after preview. Run a new --prune --dry-run and review its token.');
+    }
 
     const freshSource = await readSource(sb);
     if (sourceFingerprint(freshSource) !== sourceFp) throw new SyncError('Supabase changed during preflight.', 'Supabase changed between preview and apply; sync stopped without writing.');
     await conn.beginTransaction();
+    transactionStarted = true;
     try {
       const lockedTarget = await readMysql(conn, TABLES, true);
       if (targetFingerprint(lockedTarget) !== targetFp) throw new SyncError('MySQL changed during preflight.', 'MySQL changed between preview and apply; sync stopped without writing.');
+      if (args.prune && await mysqlTargetFingerprint(conn) !== mysqlTargetFp) {
+        throw new SyncError('MySQL target changed during preflight.', 'The selected MySQL database changed after preview; pruning stopped without writing.');
+      }
       const protectedLocked = await protectedFingerprint(conn);
       if (!protectedEqual(protectedBefore, protectedLocked)) throw new SyncError('Protected data changed during preflight.', 'Protected local data changed between preview and apply; sync stopped without writing.');
+      if (args.prune) {
+        validatePruneSource(freshSource);
+        const lockedMetadata = await readDeleteMetadata(conn);
+        assertNoScopedTriggers(lockedMetadata);
+        if (fingerprint(lockedMetadata) !== fingerprint(metadata)) {
+          throw new SyncError('MySQL delete metadata changed during preflight.', 'MySQL foreign-key or trigger metadata changed after preview; pruning stopped without writing.');
+        }
+      }
       const endpointRepairs = endpointRepairRows(lockedTarget);
-      backupPath = await writeBackup(affectedRows(previewPlan, lockedTarget, endpointRepairs.map((row) => row.id)), sourceFp, targetFp);
+      const backupSnapshot = args.prune
+        ? lockedTarget
+        : affectedRows(previewPlan, lockedTarget, endpointRepairs.map((row) => row.id));
+      const backup = await writeBackup(backupSnapshot, sourceFp, targetFp, backupDirectory || os.tmpdir(), mysqlTargetFp);
+      backupPath = backup.path;
 
       // Dependency order. Re-read target maps after each phase so all foreign
       // keys are translated by natural key, never by a Supabase numeric id.
@@ -616,31 +1013,75 @@ async function main() {
         await upsertTable(conn, table, phasePlan.entries[table]);
         phaseTarget = await readMysql(conn, TABLES, true);
       }
+      let finalPlan = buildPlan(freshSource, phaseTarget);
+      if (args.prune) {
+        if (!samePruneManifest(previewPlan, finalPlan)) {
+          throw new SyncError('Prune candidates changed during apply.', 'The MySQL-only row list changed after preview; all sync changes were rolled back.');
+        }
+        assertNoRemainingScopedReferences(finalPlan, phaseTarget, metadata);
+        await assertNoExternalReferences(conn, finalPlan, metadata);
+        const latestSource = await readSource(sb);
+        if (sourceFingerprint(latestSource) !== sourceFp) {
+          throw new SyncError('Supabase changed before prune.', 'Supabase changed during sync; all MySQL changes were rolled back.');
+        }
+        await deleteLocalOnlyRows(conn, finalPlan);
+        phaseTarget = await readMysql(conn, TABLES, true);
+        finalPlan = buildPlan(freshSource, phaseTarget);
+      }
       const repairedEndpoints = await repairEndpointGeometry(conn);
-      const verified = await verifySourcePresent(conn, freshSource, sourceFp);
+      await verifySourcePresent(conn, freshSource, sourceFp, args.prune);
       const protectedAfter = await protectedFingerprint(conn);
       if (!protectedEqual(protectedBefore, protectedAfter)) throw new SyncError('Protected data changed during sync.', 'Protected local data changed unexpectedly; all campus/VR changes were rolled back.');
+      const sourceBeforeCommit = await readSource(sb);
+      if (sourceFingerprint(sourceBeforeCommit) !== sourceFp) {
+        throw new SyncError('Supabase changed before commit.', 'Supabase changed during sync; all MySQL changes were rolled back.');
+      }
       await conn.commit();
       committed = true;
       const postCommit = await readMysql(conn);
       const postPlan = buildPlan(freshSource, postCommit);
+      if (args.prune && TABLES.some((table) => postPlan.removals[table].length > 0)) {
+        throw new SyncError('Post-commit strict parity failed.', `MySQL campus/VR parity failed after commit. Review the verified backup before using local MySQL. Pre-write backup: ${backupPath}`);
+      }
       for (const table of TABLES) {
         for (const entry of postPlan.entries[table]) {
-          if (!entry.targetRow || !sameFields(entry.desired, entry.current)) throw new SyncError(`Post-commit parity failed for ${table}.`, `MySQL campus/VR parity failed after commit. Restore the tested backup before using local MySQL.`);
+          if (!entry.targetRow || !sameFields(entry.desired, entry.current)) {
+            throw new SyncError(`Post-commit parity failed for ${table}.`, `MySQL campus/VR parity failed after commit. Review the verified backup before using local MySQL. Pre-write backup: ${backupPath}`);
+          }
         }
       }
-      console.log(`APPLY OK: campus/VR source rows merged into MySQL without deleting local-only rows.`);
+      console.log(args.prune
+        ? 'PRUNE APPLY OK: the eight scoped MySQL campus/VR tables now match Supabase by natural key.'
+        : 'APPLY OK: campus/VR source rows merged into MySQL without deleting local-only rows.');
       console.log(`Pre-write backup: ${backupPath}`);
+      console.log(`Backup SHA-256: ${backup.sha256}`);
       console.log(`Applied source fingerprint: ${sourceFp}`);
       console.log(`Route-edge endpoints normalized: ${repairedEndpoints}`);
       console.log('Protected local tables remained unchanged.');
     } catch (error) {
-      if (!committed) await conn.rollback().catch(() => {});
+      if (!committed && transactionStarted) {
+        const rollbackVerified = await rollbackAndVerify(conn, targetFp, protectedBefore);
+        if (!rollbackVerified) {
+          throw new SyncError('Rollback verification failed.', appendBackupPath(
+            'Sync failed and MySQL rollback could not be verified. Stop before using or retrying the local database.',
+            backupPath
+          ));
+        }
+        if (backupPath && error instanceof SyncError && !/Pre-write backup:/.test(error.publicMessage)) {
+          error.publicMessage = appendBackupPath(error.publicMessage, backupPath);
+        }
+      }
+      if (committed) {
+        const postCommitMessage = error instanceof SyncError
+          ? error.publicMessage
+          : 'MySQL committed, but post-commit verification could not be completed.';
+        throw new SyncError('Post-commit verification failed.', appendBackupPath(postCommitMessage, backupPath));
+      }
       throw error;
     }
   } finally {
     conn.release();
-    await db.end();
+    await runtime.db.end();
   }
 }
 
@@ -654,12 +1095,28 @@ if (require.main === module) {
 
 module.exports = {
   APPLY_CONFIRMATION,
+  PRUNE_CONFIRMATION,
   TABLES,
+  DELETE_ORDER,
   PROTECTED_TABLES,
+  assertNoExternalReferences,
+  assertNoRemainingScopedReferences,
+  assertNoScopedTriggers,
   buildPlan,
+  deleteLocalOnlyRows,
+  mysqlTargetFingerprint,
+  mysqlTargetIsLocal,
+  parseArgs,
+  previewToken,
+  pruneManifest,
+  readDeleteMetadata,
+  rollbackAndVerify,
   sourceFingerprint,
   targetFingerprint,
   sameFields,
   snapEdgeGeometry,
-  endpointRepairRows
+  endpointRepairRows,
+  validateBackupDirectory,
+  validatePruneSource,
+  writeBackup
 };
