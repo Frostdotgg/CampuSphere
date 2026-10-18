@@ -1769,10 +1769,10 @@ function runPwaPrivacyGate() {
     ok('sw.js leaves EVERY cross-origin host to the network (no jsdelivr, CDN, or tile interception)',
       crossOriginBranch !== '' && !/respondWith/.test(crossOriginBranch) && /return;/.test(crossOriginBranch));
     const ver = (sw.match(/CACHE_VERSION\s*=\s*'v(\d+)'/) || [])[1];
-    ok('sw.js is v50 and the offline origin marker, generic route-start cue, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
-      Number(ver) === 50 &&
+    ok('sw.js is v52 and the offline origin marker, generic route-start cue, direction-specific route colors, entry/exit routes, marker scale, dialogs, sheet, and fallback markers preserve state, isolate hidden focus, persist theme, and enforce exact touch targets',
+      Number(ver) === 52 &&
        /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(offlineManager) &&
-       /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\);/.test(offlineManager) &&
+       /originEl\.setAttribute\('aria-label', 'Start: ' \+ \(routeMode === 'walking' \? 'Walking Guard House' : OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\)\);/.test(offlineManager) &&
        /createOfflineMapLabel\('Start', 'map-start-label'\)/.test(offlineManager) &&
        /routeStartBuildingKey = isExit && buildingFor\(key\) \? String\(key\) : null/.test(offlineManager) &&
        /target\.appendChild\(startLabelEntry\.label\)/.test(offlineManager) &&
@@ -4888,7 +4888,7 @@ function withServerReadinessUsesPreSessionProbe(withServerSource) {
   const end = withServerSource.indexOf('\nasync function withServer', start);
   if (start < 0 || end <= start) return false;
   const body = withServerSource.slice(start, end);
-  return /fetch\(base \+ '\/favicon\.ico'\)/.test(body) &&
+  return /fetch\(base \+ '\/healthz', \{ signal: AbortSignal\.timeout\(2000\) \}\)/.test(body) &&
     !/fetch\(base \+ '\/auth'\)/.test(body) &&
     /r\.status === 200/.test(body);
 }
@@ -5345,7 +5345,7 @@ function runPilotReadinessGate() {
   ok('fixture: a with-server readiness probe that polls /auth is rejected',
     sourceMutationIsRejected(
       withServerSource,
-      /base \+ '\/favicon\.ico'/,
+      /base \+ '\/healthz'/,
       "base + '/auth'",
       withServerReadinessUsesPreSessionProbe));
 
@@ -9419,9 +9419,9 @@ const EXPECTED_CURRENT_PACKAGE_INVENTORY = Object.freeze({
 /* Keep the live working-tree pin separate so future source drift is detected
    even when the current evidence row has not yet been synchronized. */
 const EXPECTED_LIVE_PACKAGE_INVENTORY = Object.freeze({
-  files: 209,
-  bytes: '8,727,579',
-  sha256: 'a7fe9b0a385a9465d32836a4a5f6d0a03a781d5c63d459c27db797992e567e9a',
+  files: 213,
+  bytes: '8,755,240',
+  sha256: '55bd59fb311569ef55a137f1d6bcbe9e56844dc4cf607555af12f54740a49990',
 });
 
 /** PURE: compare a manifest with this gate's independent exact-byte pin. */
@@ -14160,8 +14160,9 @@ async function runBoundedAnonymousDenialGate() {
     const eventAudienceMigration = readIf(path.join('database', 'supabase', '0025_event_audience.sql'));
     const adminInstructorMigration = readIf(path.join('database', 'supabase', '0026_admin_instructor_profile_integrity.sql'));
     const routeMetricsMigration = readIf(path.join('database', 'supabase', '0027_route_edge_geometry_metrics.sql'));
-    ok('Supabase migration sources are contiguous through 0027 (route metric RPC source is present)',
-      numbers.length === 27 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
+    ok('Supabase migration sources are contiguous through 0028 (walking path source is present)',
+      migrations.includes('0028_walking_2d_routes.sql') &&
+      numbers.length === 28 && numbers.every((n, index) => n === String(index + 1).padStart(4, '0')) &&
       migrations.includes('0020_room_schedule_documents.sql') &&
       migrations.includes('0021_minimal_instructor_oauth_registration.sql') &&
       /PREPARED FOR OWNER REVIEW; NOT APPLIED BY CODEX/i.test(minimalInstructorMigration) &&
@@ -14466,8 +14467,8 @@ function runSwPrecacheGate() {
   ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=12',
-    canonicalStylesheet === '/css/styles.css?v=12');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=13',
+    canonicalStylesheet === '/css/styles.css?v=13');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.
@@ -14635,6 +14636,7 @@ const ADMIN_SEARCH_FILTER_PROBES = [
 const ADMIN_MAP_BASEMAP_PROBES = [
   ['admin road-geometry basemap contracts', 'adminMapBasemap-probe.js'],
   ['admin Building and Node coordinate picker contracts', 'adminCoordinatePicker-probe.js'],
+  ['walking 2D route contracts and isolated API fixtures', 'walking2dRoutes-probe.js'],
 ];
 
 // M12.P1-D5: friendly building additional-details editor — structured

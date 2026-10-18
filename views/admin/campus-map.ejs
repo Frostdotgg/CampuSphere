@@ -36,6 +36,7 @@
     <script src="/js/admin/admin-campus-map.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
+    <script src="/js/admin/admin-walking-routes.js" defer></script>
     <script src="/js/admin/admin-schedules.js" defer></script>
     <style nonce="<%= cspNonce %>">
         .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
@@ -221,6 +222,16 @@
                         </div>
                     </div>
 
+                    <!-- Dedicated walking 2D paths, separate from the vehicle route graph. -->
+                    <div class="ui-card border-border" id="walking-routes-card">
+                        <div class="p-6">
+                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Walking 2D Routes</h3>
+                            <p class="text-sm text-muted-foreground">Draw pedestrian paths from the Walking Guard House to each building pin. The return uses the same path in reverse.</p>
+                            <p id="walking-route-count" class="admin-result-status" role="status" aria-live="polite">Loading walking routes…</p>
+                            <div id="walking-route-list" style="display:grid;gap:0.5rem;margin-top:1rem;"></div>
+                        </div>
+                    </div>
+
                     <!-- ======== Room Schedules (Milestone 11, Section 11.5) ======== -->
                     <div class="ui-card border-border" id="schedule-card">
                         <div class="p-6 pb-0">
@@ -368,6 +379,31 @@
                 <button id="confirm-building-delete-btn" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;">
                     <i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Walking path editor. Endpoint positions are locked to the route-source building and fixed walking origin. -->
+    <div id="walking-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="walking-modal-title" aria-hidden="true">
+        <div class="modal-box" style="max-width:740px;">
+            <div class="modal-header"><h3 id="walking-modal-title">Draw walking route</h3><button type="button" id="walking-close-top" class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" aria-label="Close walking route editor">×</button></div>
+            <div class="modal-body">
+                <p class="text-sm text-muted-foreground">Click the map to add intermediate pedestrian waypoints. Drag a waypoint or edit its coordinates below. The start and building pin cannot move.</p>
+                <p id="walking-endpoints" class="text-sm" style="margin:0.5rem 0;"></p>
+                <div id="walking-editor-map" style="height:300px;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;" role="region" aria-label="Walking path editor map"></div>
+                <p id="walking-map-status" class="text-sm text-muted-foreground" role="status" aria-live="polite"></p>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.7rem;">
+                    <button type="button" id="walking-add-point" class="ui-button ui-button-outline ui-button-size-sm">Add waypoint</button>
+                    <button type="button" id="walking-undo" class="ui-button ui-button-outline ui-button-size-sm">Undo</button>
+                    <button type="button" id="walking-fit" class="ui-button ui-button-outline ui-button-size-sm">Fit path</button>
+                </div>
+                <ol id="walking-waypoints" style="list-style:none;padding:0;display:grid;gap:0.4rem;margin:0.8rem 0;" aria-label="Walking path waypoints"></ol>
+                <p id="walking-metrics" class="text-sm text-muted-foreground"></p>
+                <p id="walking-error" role="alert" style="color:#b91c1c;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="walking-close" class="ui-button ui-button-outline ui-button-size-default">Cancel</button>
+                <button type="button" id="walking-save" class="ui-button ui-button-default ui-button-size-default">Save walking route</button>
             </div>
         </div>
     </div>

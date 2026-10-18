@@ -212,8 +212,10 @@ a:focus-visible,
 
 .offline-building-list { scrollbar-gutter: stable; }
 
-.offline-building {
+.offline-page .offline-building {
+  flex: 0 0 auto;
   min-height: 104px;
+  align-items: center;
   appearance: none;
   -webkit-appearance: none;
 }

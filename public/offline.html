@@ -9,7 +9,7 @@
   <title>CampuSphere | Offline Campus Map</title>
   <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/campussphere-favicon-48.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/css/styles.css?v=12">
+  <link rel="stylesheet" href="/css/styles.css?v=13">
   <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="/css/offline.css">
   <script src="/vendor/maplibre/maplibre-gl.js" defer></script>
@@ -149,6 +149,10 @@
             </svg>
           </button>
           <p class="map-route-planner__heading">Plan a Route</p>
+          <div class="map-route-mode" role="group" aria-label="Offline route mode">
+            <button type="button" class="map-route-mode__button is-active" data-offline-route-mode="vehicle" aria-pressed="true">Vehicle</button>
+            <button type="button" class="map-route-mode__button" data-offline-route-mode="walking" aria-pressed="false">Walking</button>
+          </div>
           <div class="map-route-planner__row">
             <label class="map-route-planner__label" for="offlineRouteStart">Start</label>
             <input type="text" id="offlineRouteStart" class="map-route-planner__input map-route-planner__input--readonly" value="Guard House / Main Gate" readonly aria-readonly="true">

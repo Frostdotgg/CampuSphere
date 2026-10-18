@@ -111,7 +111,8 @@ function hasExactMigrationSequence(files) {
     '0024_vr_hotspot_guest_visibility.sql',
     '0025_event_audience.sql',
     '0026_admin_instructor_profile_integrity.sql',
-    '0027_route_edge_geometry_metrics.sql'
+    '0027_route_edge_geometry_metrics.sql',
+    '0028_walking_2d_routes.sql'
   ].includes(file)).slice().sort();
 
   return (

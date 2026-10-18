@@ -67,7 +67,7 @@ check('online routes move only a generic Start cue between the Gate and exit pin
   /target\.appendChild\(mapStartLabelEntry\.label\)/.test(map) &&
   /function resetMapRouteLabels\(\) \{\s*activeRouteStartBuildingId = null;\s*syncMapStartCue\(\);/.test(map) &&
   /setMapRouteLabels\(isExit, b\)/.test(map) &&
-  /originElement\.setAttribute\('aria-label', 'Start: Guard House \/ Main Gate'\)/.test(map));
+  /originElement\.setAttribute\('aria-label', 'Start: ' \+ \(routeMode === 'walking' \? WALKING_ORIGIN\.label : COMPUTED_START_LABEL\)\)/.test(map));
 check('online MapLibre start marker uses a centered geographic anchor',
   /mapStartMarker = new maplibregl\.Marker\(\{[\s\S]{0,160}anchor:\s*'center'/.test(map));
 check('online map opens at the offline Freedom Park camera',
@@ -101,7 +101,7 @@ check('offline routes move only a generic Start cue between the Gate and exit pi
   /target\.appendChild\(startLabelEntry\.label\)/.test(offline) &&
   /function resetOfflineRouteLabels\(\) \{\s*routeStartBuildingKey = null;\s*syncOfflineRouteStartCue\(\);/.test(offline) &&
   /setOfflineRouteLabels\(isExit, key\)/.test(offline) &&
-  /originEl\.setAttribute\('aria-label', 'Start: ' \+ OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\)/.test(offline));
+  /originEl\.setAttribute\('aria-label', 'Start: ' \+ \(routeMode === 'walking' \? 'Walking Guard House' : OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\)\)/.test(offline));
 check('offline MapLibre refreshes the generic route cue on each camera event',
   /nextMap\.on\('move',\s*scheduleOfflineMapLabelLayout\)/.test(offline) &&
   /nextMap\.on\('zoom',\s*scheduleOfflineMapLabelLayout\)/.test(offline) &&
@@ -152,7 +152,7 @@ check('home preview receives the same public basemap and start-node contract as 
   /mapBasemap:\s*mapController\.getPublicBasemapConfig\(\)/.test(pageController) &&
   /mapStartNode:\s*startNodeResult/.test(pageController));
 check('service worker advances the offline shell for the new manager/CSS',
-/CACHE_VERSION\s*=\s*'v50'/.test(sw) &&
+/CACHE_VERSION\s*=\s*'v52'/.test(sw) &&
   /'\/js\/offline-guide-manager\.js'/.test(sw) &&
   /'\/css\/offline\.css'/.test(sw));
 

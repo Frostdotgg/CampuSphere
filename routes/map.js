@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const mapController = require('../controllers/mapController');
 const offlineGuideController = require('../controllers/offlineGuideController');
+const walkingRouteController = require('../controllers/walkingRouteController');
 const { requireLogin } = require('../middleware/roleAuth');
 
 // GET /map - Campus Map
@@ -23,6 +24,7 @@ router.get('/api/routes/:id', requireLogin, mapController.apiGetRoute);
 
 // GET /api/pathfind - Dijkstra shortest path over the campus route graph
 router.get('/api/pathfind', requireLogin, mapController.apiPathfind);
+router.get('/api/walking-routes/:destinationBuildingId', walkingRouteController.noStore, requireLogin, walkingRouteController.publicRoute);
 
 // GET /api/offline-guide - explicit, authenticated, read-only OFF.3 package.
 // Network-only/no-store: the browser validates and atomically stores the safe

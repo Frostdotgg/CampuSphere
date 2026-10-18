@@ -16,6 +16,7 @@ const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const routeAvailability = require('./routeAvailability');
+const walkingRoutes = require('./walkingRouteService');
 const { normalizeBuildingRows } = require('../utils/buildingData');
 const basemapManifest = require('../public/maps/manifest.json');
 const {
@@ -286,7 +287,7 @@ function makeRoutePair(building, graph) {
 }
 
 /* Pure package builder used by the focused OFF.3-OFF.5 probe. */
-function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
+function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], walkingBuildings = [] } = {}) {
   const graph = normalizeGraph(nodeRows, edgeRows);
   const origin = graph.nodes.find((node) => node.key === routeAvailability.START_NODE_KEY);
   if (!origin || origin.lat == null || origin.lng == null) {
@@ -297,6 +298,9 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
   const safeBuildings = [];
   const routes = [];
   const exitRoutes = [];
+  const walkingPaths = [];
+  const walkingById = new Map(walkingRows.map(row => [Number(row.destination_building_id), row]));
+  const walkingDestinations = new Map(walkingBuildings.map(row => [Number(row.id), row]));
   for (const building of (buildings || [])) {
     const key = destinationKey(building && building.name);
     if (!key || seenKeys.has(key)) throw new Error('Offline guide destination keys are not unique.');
@@ -305,6 +309,19 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
     const pair = makeRoutePair(building, graph);
     const route = pair.entry;
     const exitRoute = pair.exit;
+    const walkingId = Number(building.route_destination_id);
+    const walkingDestination = walkingDestinations.get(walkingId);
+    const samePin = walkingDestination && Math.abs(Number(building.lat) - Number(walkingDestination.lat)) <= 1e-6 && Math.abs(Number(building.lng) - Number(walkingDestination.lng)) <= 1e-6;
+    const walkingPath = route && samePin ? walkingRoutes.shape(walkingById.get(walkingId), walkingDestination) : null;
+    if (walkingPath) walkingPaths.push({
+      destinationKey: key,
+      destinationName: safeText(building.name, 300),
+      distanceMeters: walkingPath.distance_meters,
+      walkTimeSeconds: walkingPath.walk_time_seconds,
+      estimatedWalkTime: formatWalkTime(walkingPath.walk_time_seconds),
+      geometry: walkingPath.geometry.map(point => [point.lng, point.lat]),
+      steps: [{ order: 1, instruction: 'Follow the pedestrian path to ' + safeText(building.name, 300) + '.', distanceMeters: walkingPath.distance_meters }]
+    });
     safeBuildings.push({
       key,
       name: safeText(building.name, 300) || 'Unnamed building',
@@ -314,6 +331,7 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
       lng: finiteCoord(building.lng, -180, 180),
       routeAvailable: !!route,
       routeUnavailableReason: route ? null : pair.entryReason,
+      walkingRouteAvailable: !!walkingPath,
       exitRouteAvailable: !!exitRoute,
       exitRouteUnavailableReason: exitRoute ? null : pair.exitReason,
       details: safeDetails(building)
@@ -325,6 +343,7 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
   safeBuildings.sort((a, b) => a.name.localeCompare(b.name, 'en'));
   routes.sort((a, b) => a.destinationName.localeCompare(b.destinationName, 'en'));
   exitRoutes.sort((a, b) => a.buildingName.localeCompare(b.buildingName, 'en'));
+  walkingPaths.sort((a, b) => a.destinationName.localeCompare(b.destinationName, 'en'));
 
   const selectedBasemap = basemap || {
     asset: basemapManifest.asset,
@@ -354,7 +373,9 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap } = {}) {
     basemap: selectedBasemap,
     buildings: safeBuildings,
     routes,
-    exitRoutes
+    exitRoutes,
+    walkingOrigin: walkingRoutes.ORIGIN,
+    walkingRoutes: walkingPaths
   };
 }
 
@@ -401,7 +422,9 @@ async function loadGuideSnapshot() {
 
 async function createOfflineGuidePackage() {
   const snapshot = await loadGuideSnapshot();
-  const release = await getCurrentRelease();
+  const [release, walkingRows, walkingBuildings] = await Promise.all([
+    getCurrentRelease(), walkingRoutes.listRows(), walkingRoutes.listBuildings()
+  ]);
 
   const index = await routeAvailability.buildAvailabilityIndex({
     routeSource: snapshot.routeSource,
@@ -421,6 +444,7 @@ async function createOfflineGuidePackage() {
     buildings: decorated.buildings,
     nodeRows: snapshot.routeSource.nodes,
     edgeRows: snapshot.routeSource.edges,
+    walkingRows, walkingBuildings,
     basemap: guideBasemapFromRelease(release)
   });
   const fingerprint = sha256Json(guide);

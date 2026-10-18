@@ -12,6 +12,7 @@ const routeRepository = require('../repositories/routeRepository');
 const { logServerError } = require('../utils/serverLog');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const routeAvailability = require('../services/routeAvailability');
+const walkingRoutes = require('../services/walkingRouteService');
 const basemapManifest = require('../public/maps/manifest.json');
 
 const MAX_QUERY_LEN = 100;
@@ -197,6 +198,8 @@ exports.index = async (req, res) => {
     // marks their pin/panel and disables Set as Destination / Set VR Route.
     const decorated = await routeAvailability.decorateBuildings(buildings);
     if (!decorated.ok) logServerError('map.index.routeAvailability', req);
+    const walking = await walkingRoutes.decorate(decorated.buildings);
+    if (!walking.ok) logServerError('map.index.walkingAvailability', req);
     const startNode = await onlineStartNode();
 
     res.render('map', {
@@ -385,6 +388,8 @@ exports.apiSearch = async (req, res) => {
       top.map((r) => r.building).filter(Boolean)
     );
     if (!decorated.ok) logServerError('map.search.routeAvailability', req);
+    const walking = await walkingRoutes.decorate(decorated.buildings);
+    if (!walking.ok) logServerError('map.search.walkingAvailability', req);
 
     res.json({ success: true, query: raw, results: top });
   } catch (err) {

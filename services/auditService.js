@@ -110,7 +110,9 @@ const ACTIONS = Object.freeze([
   // Road-geometry editor (Pre-Milestone-12, RF.4). Fixed events only; the
   // audit row never carries coordinates (message is a fixed string).
   'admin.route_edge.geometry.update',
-  'admin.route_edge.geometry.clear'
+  'admin.route_edge.geometry.clear',
+  'admin.walking_route.update',
+  'admin.walking_route.delete'
 ]);
 
 // Column character caps, matching database/schema.sql and migration 0006.

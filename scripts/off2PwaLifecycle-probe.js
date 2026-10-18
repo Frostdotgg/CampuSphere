@@ -949,14 +949,14 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advances to v50 for the online/offline map label update', SW.cacheVersion(swSource) === 50);
+  ok('cache version advances to v52 for the walking route shell', SW.cacheVersion(swSource) === 52);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
 
   const urls = SW.precacheUrls(swSource);
   const INTEGRATED_SHELL = [
-    '/offline.html', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=12',
+    '/offline.html', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=13',
     '/js/pwa.js', '/js/offline-guide-manager.js', '/js/nav-role.js', '/js/profile-script.js',
     '/vendor/maplibre/maplibre-gl.css', '/vendor/maplibre/maplibre-gl.js',
     '/vendor/pmtiles/pmtiles.js', '/img/CampuSphere-logo.png', '/img/Camarines-sur-polytechnic-colleges.png',
@@ -1037,10 +1037,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The immediately preceding v49 shell must not mask the map-label update.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v50'", "CACHE_VERSION = 'v49'");
-  ok('REJECTS an un-advanced (stale v49) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 50);
+  // The immediately preceding v51 shell must not mask the walking route update.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v52'", "CACHE_VERSION = 'v51'");
+  ok('REJECTS an un-advanced (stale v51) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 52);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1183,7 +1183,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v50');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v52');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1315,8 +1315,14 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-       // current v50 caches - shell and static ONLY. Any v50 API/external cache
+       // current v52 caches - shell and static ONLY. Any v52 API/external cache
        // name is adversarial and must still be pruned.
+       'campusphere-pwa-shell-v52', 'campusphere-pwa-static-v52',
+       'campusphere-pwa-api-v52', 'campusphere-pwa-external-v52',
+       // the immediately preceding v51 set is stale and must be pruned too.
+       'campusphere-pwa-shell-v51', 'campusphere-pwa-static-v51',
+       'campusphere-pwa-api-v51', 'campusphere-pwa-external-v51',
+       // the immediately preceding v50 set is stale and must be pruned too.
        'campusphere-pwa-shell-v50', 'campusphere-pwa-static-v50',
        'campusphere-pwa-api-v50', 'campusphere-pwa-external-v50',
        // the immediately preceding v49 set is stale and must be pruned too.
@@ -1356,15 +1362,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v50 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v52 caches (shell + static only)',
      settled.length === 1 && settled[0].status === 'fulfilled' &&
-     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v50`)));
+     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v52`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v49, v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v50-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v51, v50, v49, v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v52-suffixed API or external cache',
      !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v50`)) &&
+       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v52`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
@@ -1587,7 +1593,7 @@ async function checkFetchBoundaries(swSource) {
     ['/img/vr/main%20gate%20panorama.jpg', { mode: 'no-cors' }],         // percent-encoded local panorama
     ['/js/admin-users.js', { mode: 'cors' }],                            // non-shell same-origin script
     ['/css/admin.css', { mode: 'cors' }],                                // non-shell same-origin stylesheet
-    ['/css/styles.css?v=13', { mode: 'cors' }]                           // shell path, UNREVIEWED query
+    ['/css/styles.css?v=12', { mode: 'cors' }]                           // shell path, STALE query
   ];
   let nonShellIntercepted = 0;
   for (const [p, init] of sameOriginNonShell) {
@@ -1649,6 +1655,7 @@ async function checkFetchBoundaries(swSource) {
 /* ================== 5. PWA CLIENT UPDATE-LIFECYCLE CONTRACT ============= */
 
 function checkPwaClient(pwaSource) {
+  pwaSource = pwaSource.replace(/\r\n?/g, '\n');
   section('OFF.2 cases 3/5/6/11 — PWA client update lifecycle (static contract)');
 
   ok('the client captures the registration returned by register("/sw.js")',
@@ -1747,6 +1754,9 @@ async function checkOfflineShell(base) {
   const html = fs.readFileSync(SHELL_HTML_PATH, 'utf8');
   const css = fs.readFileSync(SHELL_CSS_PATH, 'utf8');
   const manager = fs.readFileSync(OFFLINE_MANAGER_PATH, 'utf8');
+  const normalizedHtml = html.replace(/\r\n/g, '\n');
+  const normalizedCss = css.replace(/\r\n/g, '\n');
+  const normalizedManager = manager.replace(/\r\n/g, '\n');
   const sharedCss = fs.readFileSync(path.join(ROOT, 'public', 'css', 'styles.css'), 'utf8');
   const sharedPanelImageRule = (sharedCss.match(/\.map-panel__img\s*\{([^}]*)\}/) || [])[1] || '';
 
@@ -1815,11 +1825,11 @@ async function checkOfflineShell(base) {
   // Mobile basics.
   ok('the shell declares a responsive viewport', /width=device-width/.test(html) && /viewport-fit=cover/.test(html));
   ok('every named offline action, including native fallback markers, has an exact 44px target and valid semantics',
-    offlineTouchTargetProblems(css).length === 0 && offlineTouchTargetMutationsAreRejected(css) &&
-    offlineMobileDetailsOverlapProblems(css, html).length === 0 &&
-    offlineMobileDetailsOverlapMutationsAreRejected(css, html) &&
-    offlineFallbackMarkerProblems(manager, html).length === 0 &&
-    offlineFallbackMarkerMutationsAreRejected(manager, html));
+    offlineTouchTargetProblems(normalizedCss).length === 0 && offlineTouchTargetMutationsAreRejected(normalizedCss) &&
+    offlineMobileDetailsOverlapProblems(normalizedCss, normalizedHtml).length === 0 &&
+    offlineMobileDetailsOverlapMutationsAreRejected(normalizedCss, normalizedHtml) &&
+    offlineFallbackMarkerProblems(normalizedManager, normalizedHtml).length === 0 &&
+    offlineFallbackMarkerMutationsAreRejected(normalizedManager, normalizedHtml));
   ok('the shell inherits the online full-bleed panel image and has the online map small-screen canvas and bottom-sheet layout',
     /@media\s*\(max-width:\s*768px\)/.test(css) &&
     /\.offline-workspace\s*\{\s*display:\s*block;\s*position:\s*relative;/.test(css) &&

@@ -225,10 +225,11 @@ function runStaticSourceGate(src) {
   check(scope, 'MapLibre applies the direction-specific line color on create and redraw',
     src.includes("'line-color': routeColor") &&
     src.includes("maplibreMap.setPaintProperty('computed-route-line', 'line-color', routeColor)"));
-  check(scope, 'MapLibre keeps line-width 4 + line-opacity 0.85',
-    src.includes("'line-width': 4") && src.includes("'line-opacity': 0.85"));
-  check(scope, 'Leaflet applies the direction-specific color with weight 4 opacity 0.85',
-    src.includes('color: routeColor, weight: 4, opacity: 0.85'));
+  check(scope, 'MapLibre keeps vehicle width 4, walking width 3, and opacity 0.85',
+    src.includes("'line-width': walking ? 3 : 4") && src.includes("'line-opacity': 0.85") &&
+    src.includes("'line-dasharray': [2, 2]"));
+  check(scope, 'Leaflet keeps vehicle width 4 and dashed walking width 3',
+    src.includes("color: routeColor, weight: walking ? 3 : 4, opacity: 0.85, dashArray: walking ? '6 6' : undefined"));
   check(scope, 'computed-route source + computed-route-line layer names preserved',
     src.includes("'computed-route'") && src.includes("id: 'computed-route-line'"));
   check(scope, 'fitBounds is used on both renderers',
@@ -486,7 +487,7 @@ function runKeyboardAccessGate(src, css) {
   check(scope, 'main-gate stays the stable pathfinding key behind the canonical public label',
     src.includes("const COMPUTED_START_KEY = 'main-gate';")
     && src.includes("const COMPUTED_START_LABEL = 'Guard House / Main Gate';")
-    && src.includes('/api/pathfind?start=${encodeURIComponent(COMPUTED_START_KEY)}'));
+    && src.includes("'/api/pathfind?start=' + encodeURIComponent(COMPUTED_START_KEY)"));
 }
 
 /* ------------------------------------------------------------------ *
@@ -1071,6 +1072,14 @@ function leakScan(mode, bodies) {
 
   console.log('\nBE.5 delegated result activation (extracted helpers + mocked 390x844 mobile DOM):');
   runResultActivationGate(src);
+
+  // Explicit bounded source leg for release checks without canonical accounts.
+  // The default command still runs both authenticated database-backed legs.
+  if (process.argv.includes('--source-only')) {
+    console.log(`PUBLIC-ROAD-ROUTE-RENDERING SOURCE ${failures.length ? 'FAILED' : 'OK'}: ${failures.length} failed checks; live database legs not run.`);
+    process.exitCode = failures.length ? 1 : 0;
+    return;
+  }
 
   if (!api) {
     console.error('\nPUBLIC-ROAD-ROUTE-RENDERING-PROBE FAILED: could not load the RF5-PURE client helpers; skipping live regression.');

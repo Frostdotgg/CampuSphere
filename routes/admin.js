@@ -14,11 +14,13 @@ const adminRouteController = require('../controllers/adminRouteController');
 const adminScheduleController = require('../controllers/adminScheduleController');
 const adminRoomScheduleDocumentController = require('../controllers/adminRoomScheduleDocumentController');
 const presenceController = require('../controllers/presenceController');
+const walkingRouteController = require('../controllers/walkingRouteController');
 const { requireRole } = require('../middleware/roleAuth');
 const { verifyCsrf } = require('../middleware/csrfProtection');
 const { adminMutationLimiter } = require('../middleware/rateLimit');
 
 // All admin routes require the 'admin' role via session
+router.use('/api/walking-routes', walkingRouteController.noStore);
 router.use(requireRole('admin'));
 
 // CSRF guard for admin mutations (Milestone 8, Section 8.2). Placed AFTER
@@ -104,6 +106,12 @@ router.get('/api/vr/scenes/:sceneId/hotspots', adminVrController.listHotspots);
 router.post('/api/vr/scenes/:sceneId/hotspots', adminVrController.createHotspot);
 router.put('/api/vr/hotspots/:id', adminVrController.updateHotspot);
 router.delete('/api/vr/hotspots/:id', adminVrController.deleteHotspot);
+
+// Dedicated walking paths, independent of vehicle graph edges.
+router.get('/api/walking-routes', walkingRouteController.adminList);
+router.get('/api/walking-routes/:destinationBuildingId', walkingRouteController.adminGet);
+router.put('/api/walking-routes/:destinationBuildingId', walkingRouteController.adminSave);
+router.delete('/api/walking-routes/:destinationBuildingId', walkingRouteController.adminDelete);
 
 // Route / Step / Node / Edge Administration (Milestone 7, Section 7.9)
 router.get('/api/routes', adminRouteController.listRoutes);

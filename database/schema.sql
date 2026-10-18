@@ -286,6 +286,16 @@ CREATE TABLE IF NOT EXISTS route_edges (
     FOREIGN KEY (to_node_id) REFERENCES route_nodes(id) ON DELETE CASCADE
 );
 
+-- Dedicated administrator-drawn pedestrian routes. The return reuses this geometry in reverse.
+CREATE TABLE IF NOT EXISTS walking_routes (
+    destination_building_id INT NOT NULL PRIMARY KEY,
+    path_geometry JSON NOT NULL,
+    distance_meters INT NOT NULL,
+    walk_time_seconds INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (destination_building_id) REFERENCES buildings(id) ON DELETE CASCADE
+);
+
 -- ===== VR / 360 scene data (Milestone 5) =====
 -- Additive tables for guided 360 walkthroughs. A scene is one
 -- panorama; hotspots are clickable points that either jump to

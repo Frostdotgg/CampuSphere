@@ -77,9 +77,9 @@ const VERCEL_JSON_FILE = 'vercel.json';
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 209,
-  bytes: 8727579,
-  sha256: 'a7fe9b0a385a9465d32836a4a5f6d0a03a781d5c63d459c27db797992e567e9a',
+  files: 213,
+  bytes: 8755240,
+  sha256: '55bd59fb311569ef55a137f1d6bcbe9e56844dc4cf607555af12f54740a49990',
 });
 
 /* M12.P1-R8 label correction.
@@ -1081,6 +1081,10 @@ async function main() {
   console.log('');
   console.log('package enumeration:');
   const manifest = buildPackageManifest(ROOT, parsed.rules);
+  check('package', 'walking API, service, repository and editor are included',
+    ['controllers/walkingRouteController.js', 'services/walkingRouteService.js',
+      'repositories/walkingRouteRepository.js', 'public/js/admin/admin-walking-routes.js']
+      .every((rel) => manifest.files.some((file) => file.path === rel)));
   const packageProblems = evaluatePackageContract(manifest.files.map((f) => f.path));
   check('package', 'the enumerated package satisfies the independently pinned contract',
     packageProblems.length === 0);

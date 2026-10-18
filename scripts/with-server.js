@@ -101,10 +101,10 @@ function buildEnv(mode, port, sessionStore, sourceOverrides) {
 
 async function waitForReady(base, attempts = 60, delayMs = 400) {
   for (let i = 0; i < attempts; i++) {
-    // `/auth` intentionally mints an anonymous CSRF-backed session. Readiness
-    // must use the existing favicon route, which is mounted before
-    // express-session, so a harness poll cannot persist identity-free rows.
-    try { const r = await fetch(base + '/favicon.ico'); if (r.status === 200) return true; } catch (e) {}
+    // /healthz is after store readiness and before express-session. It creates
+    // no session and works in hidden worktrees, where sendFile's dotfile guard
+    // can reject the absolute favicon path. Never poll /auth (it mints a session).
+    try { const r = await fetch(base + '/healthz', { signal: AbortSignal.timeout(2000) }); if (r.status === 200) return true; } catch (e) {}
     await new Promise((r) => setTimeout(r, delayMs));
   }
   return false;

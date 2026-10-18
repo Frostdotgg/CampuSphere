@@ -15,6 +15,7 @@
     "qa:audit": "npm audit --omit=dev",
     "qa:offline-map": "node scripts/offlineMapRelease-probe.js",
     "qa:map-labels": "node scripts/mapLabels-probe.js",
+    "qa:walking-2d": "node scripts/walking2dRoutes-probe.js",
     "qa:admin-map-basemap": "node scripts/adminMapBasemap-probe.js",
     "qa:admin-coordinate-picker": "node scripts/adminCoordinatePicker-probe.js",
     "repair:missing-guided-vr-mysql": "node scripts/repairMissingGuidedVrMysql.js",

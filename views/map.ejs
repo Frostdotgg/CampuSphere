@@ -14,7 +14,7 @@
          views/partials/head.ejs; map.ejs owns its own <head>, so it must carry it. -->
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <link rel="stylesheet" href="/css/styles.css?v=12">
+    <link rel="stylesheet" href="/css/styles.css?v=13">
     <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/campussphere-favicon-48.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -138,6 +138,10 @@
                 </button>
 
                 <p class="map-route-planner__heading">Plan a Route</p>
+                <div class="map-route-mode" role="group" aria-label="Route mode">
+                    <button type="button" class="map-route-mode__button is-active" data-route-mode="vehicle" aria-pressed="true">Vehicle</button>
+                    <button type="button" class="map-route-mode__button" data-route-mode="walking" aria-pressed="false">Walking</button>
+                </div>
                 <div class="map-route-planner__row">
                     <label class="map-route-planner__label" for="routeStartInput">Start</label>
                     <input type="text" id="routeStartInput"
@@ -384,6 +388,8 @@
         // MapLibre uses [longitude, latitude]; the manifest center remains
         // release metadata rather than the user-facing opening position.
         const MAP_OPENING_CENTER = Object.freeze([123.374590, 13.405872]);
+        const WALKING_ORIGIN = Object.freeze({ lat: 13.405710, lng: 123.374181, label: 'Walking Guard House' });
+        let routeMode = 'vehicle';
 
         // Sidebar / search DOM
         const bldgList = document.getElementById('bldgList');
@@ -511,6 +517,8 @@
             const lng = Number(b && b.lng);
             return Number.isFinite(lat) && Number.isFinite(lng);
         }
+
+        function currentOrigin() { return routeMode === 'walking' ? WALKING_ORIGIN : MAP_START_NODE; }
 
         function validStartNode(node) {
             return node && Number.isFinite(Number(node.lat)) && Number.isFinite(Number(node.lng));
@@ -670,14 +678,14 @@
             const lngRange = Math.max(maxLng - minLng, 0.0001);
             const inset = 8;
 
-            if (validStartNode(MAP_START_NODE)) {
-                const originX = inset + ((Number(MAP_START_NODE.lng) - minLng) / lngRange) * (100 - inset * 2);
-                const originY = inset + ((maxLat - Number(MAP_START_NODE.lat)) / latRange) * (100 - inset * 2);
+            if (validStartNode(currentOrigin())) {
+                const originX = inset + ((Number(currentOrigin().lng) - minLng) / lngRange) * (100 - inset * 2);
+                const originY = inset + ((maxLat - Number(currentOrigin().lat)) / latRange) * (100 - inset * 2);
                 const origin = document.createElement('div');
                 origin.className = 'map-fallback__origin';
                 origin.style.left = `${originX}%`;
                 origin.style.top = `${originY}%`;
-                origin.setAttribute('aria-label', 'Start: Guard House / Main Gate');
+                origin.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL));
                 const label = createMapLabel('Start', 'map-start-label');
                 origin.appendChild(label);
                 points.appendChild(origin);
@@ -858,6 +866,20 @@
         function isRouteAvailable(b) {
             return !!(b && b.route_available === true);
         }
+        function isSelectedRouteAvailable(b) {
+            return routeMode === 'walking' ? !!(b && b.walking_available === true) : isRouteAvailable(b);
+        }
+        function selectedUnavailableLabel(b) {
+            return routeMode === 'walking'
+                ? (b && b.walking_unavailable_reason === 'route_data_unavailable' ? 'Walking route status unavailable' : 'Walking route not drawn yet')
+                : routeUnavailableLabel(b);
+        }
+        function isSelectedExitAvailable(b) {
+            return routeMode === 'walking' ? isSelectedRouteAvailable(b) : isExitRouteAvailable(b);
+        }
+        function selectedExitUnavailableLabel(b) {
+            return routeMode === 'walking' ? selectedUnavailableLabel(b) : exitRouteUnavailableLabel(b);
+        }
         function routeUnavailableLabel(b) {
             switch (b && b.route_unavailable_reason) {
                 case 'not_mapped': return 'Route not set up yet';
@@ -895,10 +917,10 @@
 
         function buildingItemHtml(b, opts) {
             const badges = opts && opts.showBadges ? badgesHtml('building', opts.matchedOn) : '';
-            const avail = isRouteAvailable(b);
+            const avail = isSelectedRouteAvailable(b);
             const unavailChip = avail
                 ? ''
-                : `<span class="map-bldg-item__badge map-bldg-item__badge--unavailable">${escapeHtml(routeUnavailableLabel(b))}</span>`;
+                : `<span class="map-bldg-item__badge map-bldg-item__badge--unavailable">${escapeHtml(selectedUnavailableLabel(b))}</span>`;
             // BE.5 keyboard accessibility: results are NATIVE buttons so they are
             // focusable and Enter/Space-activatable without custom key emulation.
             // Unroutable buildings stay enabled — they remain selectable for campus
@@ -975,7 +997,7 @@
                 return;
             }
             bldgList.innerHTML = filtered.map(r =>
-                r.type === 'route' && r.route
+                r.type === 'route' && r.route && routeMode !== 'walking'
                     ? routeItemHtml(r, { showBadges: true })
                     : buildingItemHtml(r.building, { showBadges: true, matchedOn: r.matchedOn })
             ).join('');
@@ -1219,8 +1241,8 @@
             // BE.3: route-dependent actions follow the server's availability
             // verdict. An unavailable building keeps its info panel (name, photo,
             // category, details) but cannot be used as a navigation destination.
-            const avail = isRouteAvailable(bldg);
-            const exitAvail = isExitRouteAvailable(bldg);
+            const avail = isSelectedRouteAvailable(bldg);
+            const exitAvail = isSelectedExitAvailable(bldg);
 
             // VR launch (11.8B): a predefined campus_routes row keeps its curated
             // guided route; otherwise the destination-based /vr/to/:buildingId flow
@@ -1229,7 +1251,7 @@
             if (panelVrBtn) {
                 // BE.3 repair: route-source id only — NEVER a building.id fallback.
                 const panelDestId = routeDestinationId(bldg);
-                if (avail && (bldg.vr_route_id || panelDestId !== null)) {
+                if (isRouteAvailable(bldg) && (bldg.vr_route_id || panelDestId !== null)) {
                     panelVrBtn.href = bldg.vr_route_id
                         ? '/vr/routes/' + bldg.vr_route_id
                         : '/vr/to/' + panelDestId;
@@ -1250,19 +1272,21 @@
             if (panelSetDestBtn) {
                 panelSetDestBtn.disabled = !avail;
                 panelSetDestBtn.setAttribute('aria-disabled', avail ? 'false' : 'true');
-                panelSetDestBtn.title = avail ? '' : routeUnavailableLabel(bldg);
+                panelSetDestBtn.title = avail ? '' : selectedUnavailableLabel(bldg);
             }
             if (panelExitBtn) {
                 panelExitBtn.disabled = !exitAvail;
                 panelExitBtn.setAttribute('aria-disabled', exitAvail ? 'false' : 'true');
-                panelExitBtn.title = exitAvail ? '' : exitRouteUnavailableLabel(bldg);
+                panelExitBtn.title = exitAvail ? '' : selectedExitUnavailableLabel(bldg);
+                panelExitBtn.textContent = routeMode === 'walking' ? 'Walking Return' : 'Exit to Main Gate';
+                panelExitBtn.setAttribute('aria-label', routeMode === 'walking' ? 'Return to Walking Guard House' : 'Exit to Main Gate');
             }
             if (panelRouteNotice) {
-                panelRouteNotice.textContent = avail ? '' : routeUnavailableLabel(bldg);
+                panelRouteNotice.textContent = avail ? '' : selectedUnavailableLabel(bldg);
                 panelRouteNotice.hidden = avail;
             }
             if (panelExitNotice) {
-                panelExitNotice.textContent = exitAvail ? '' : exitRouteUnavailableLabel(bldg);
+                panelExitNotice.textContent = exitAvail ? '' : selectedExitUnavailableLabel(bldg);
                 panelExitNotice.hidden = exitAvail;
             }
 
@@ -1294,14 +1318,14 @@
             // the sanitized reason, and never issue /api/pathfind. Without this, a
             // late response from a previous destination could repaint a route line
             // while the user has an unroutable building selected.
-            if (b && !isRouteAvailable(b)) {
+            if (b && !isSelectedRouteAvailable(b)) {
                 destinationBuilding = null;
                 routeDestText.textContent = 'Pick a building';
                 routeDestText.classList.add('map-route-planner__dest-text--empty');
                 routeDestClear.hidden = true;
                 routeFindBtn.disabled = true;
                 cancelRouteLookup();
-                setHint(routeUnavailableLabel(b) + ' for ' + b.name + '.', 5000);
+                setHint(selectedUnavailableLabel(b) + ' for ' + b.name + '.', 5000);
                 updatePlannerToggleStatus();
                 return;
             }
@@ -1312,7 +1336,7 @@
             // BE.3 repair: store the validated ROUTE-SOURCE id (or null). Never
             // substitute the BUILDING-source id — see findComputedRoute.
             destinationBuilding = b
-                ? { id: b.id, name: b.name, route_destination_id: routeDestinationId(b) }
+                ? { id: b.id, name: b.name, route_destination_id: routeDestinationId(b), route_available: b.route_available, walking_available: b.walking_available, exit_route_available: b.exit_route_available }
                 : null;
             if (destinationBuilding) {
                 routeDestText.textContent = destinationBuilding.name;
@@ -1338,6 +1362,7 @@
 
         async function findRoute() {
             if (!destinationBuilding) return;
+            if (routeMode === 'walking') return findComputedRoute(destinationBuilding);
             // BE.5: the canonical public start label is the single authoritative
             // fallback — never the stale short "Main Gate" literal.
             const start = (routeStartInput.value || COMPUTED_START_LABEL).trim() || COMPUTED_START_LABEL;
@@ -1728,6 +1753,7 @@
         function drawComputedPath(route, options) {
             const isExit = !!(options && options.isExit);
             const routeColor = isExit ? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;
+            const walking = routeMode === 'walking';
             // RF.5: prefer road-following route.geometry, fall back to
             // route.nodes only when geometry is unavailable/invalid, and reject
             // any partial shape so a dropped point can never create a diagonal.
@@ -1747,7 +1773,7 @@
                             type: 'line',
                             source: 'computed-route',
                             layout: { 'line-join': 'round', 'line-cap': 'round' },
-                            paint: { 'line-color': routeColor, 'line-width': 4, 'line-opacity': 0.85 }
+                            paint: { 'line-color': routeColor, 'line-width': walking ? 3 : 4, 'line-opacity': 0.85, ...(walking ? { 'line-dasharray': [2, 2] } : {}) }
                         });
                     }
                     if (maplibreMap.getLayer('computed-route-line')) {
@@ -1764,7 +1790,7 @@
                 if (MAP_RENDERER === 'leaflet' && leafletMap && typeof L !== 'undefined') {
                     if (leafletRouteLayer) leafletMap.removeLayer(leafletRouteLayer);
                     leafletRouteLayer = L.polyline(pts.map(p => [p.lat, p.lng]), {
-                        color: routeColor, weight: 4, opacity: 0.85
+                        color: routeColor, weight: walking ? 3 : 4, opacity: 0.85, dashArray: walking ? '6 6' : undefined
                     }).addTo(leafletMap);
                     leafletMap.fitBounds(leafletRouteLayer.getBounds(), { padding: [60, 60] });
                     return true;
@@ -1780,8 +1806,9 @@
             const isExit = !!(options && options.isExit);
             const buildingName = (b && b.name) ||
                 (route && route.destination && route.destination.label) || 'Building';
-            const startName = isExit ? buildingName : COMPUTED_START_LABEL;
-            const destName = isExit ? COMPUTED_START_LABEL : buildingName;
+            const gateName = routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL;
+            const startName = isExit ? buildingName : gateName;
+            const destName = isExit ? gateName : buildingName;
             routePanelTitle.textContent = `${startName} to ${destName}`;
             routePanelSubtitle.textContent = `${startName} to ${destName}`;
             if (route && route.estimated_walk_time) {
@@ -1870,10 +1897,10 @@
             // BE.3 backstop: never issue /api/pathfind for a building the server has
             // already declared unavailable. The public action blocks this path,
             // but a direct caller must not be able to slip past it.
-            if ((!isExit && b.route_available === false) ||
-                (isExit && b.exit_route_available !== true)) {
+            if ((!isExit && !isSelectedRouteAvailable(b)) ||
+                (isExit && !isSelectedExitAvailable(b))) {
                 cancelRouteLookup();
-                setHint(isExit ? exitRouteUnavailableLabel(b) : routeUnavailableLabel(b), 5000);
+                setHint(isExit ? selectedExitUnavailableLabel(b) : selectedUnavailableLabel(b), 5000);
                 return;
             }
             // BE.3 repair: /api/pathfind keys off the ROUTE-SOURCE building id. There
@@ -1884,7 +1911,7 @@
             const destId = routeDestinationId(b);
             if (destId === null) {
                 cancelRouteLookup();
-                setHint(routeUnavailableLabel(b), 5000);
+                setHint(selectedUnavailableLabel(b), 5000);
                 return;
             }
             // When findRoute falls back to us it passes its own live token so we
@@ -1893,9 +1920,11 @@
             const token = (typeof inheritedToken === 'number') ? inheritedToken : beginRouteLookup();
             setHint(isExit ? 'Finding exit route...' : 'Finding route...');
             try {
-                const pathfindUrl = isExit
-                    ? `/api/pathfind?direction=exit&startBuildingId=${encodeURIComponent(destId)}`
-                    : `/api/pathfind?start=${encodeURIComponent(COMPUTED_START_KEY)}&destinationBuildingId=${encodeURIComponent(destId)}`;
+                const pathfindUrl = routeMode === 'walking'
+                    ? '/api/walking-routes/' + encodeURIComponent(destId) + '?direction=' + (isExit ? 'exit' : 'entry')
+                    : isExit
+                        ? '/api/pathfind?direction=exit&startBuildingId=' + encodeURIComponent(destId)
+                        : '/api/pathfind?start=' + encodeURIComponent(COMPUTED_START_KEY) + '&destinationBuildingId=' + encodeURIComponent(destId);
                 const res = await fetch(
                     pathfindUrl,
                     { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }
@@ -1981,6 +2010,7 @@
                 id: b.id,
                 name: b.name,
                 route_available: b.route_available,
+                walking_available: b.walking_available,
                 route_destination_id: b.route_destination_id
             });
             if (isMobile()) {
@@ -1993,11 +2023,12 @@
         panelExitBtn && panelExitBtn.addEventListener('click', () => {
             if (currentBuildingId == null) return;
             const b = buildingIndex.get(currentBuildingId);
-            if (!b || !isExitRouteAvailable(b)) return;
+            if (!b || !isSelectedExitAvailable(b)) return;
             findComputedRoute({
                 id: b.id,
                 name: b.name,
                 exit_route_available: b.exit_route_available,
+                walking_available: b.walking_available,
                 route_destination_id: b.route_destination_id
             }, undefined, { isExit: true });
             if (isMobile()) {
@@ -2007,11 +2038,50 @@
             }
         });
 
+        function setRouteMode(next) {
+            if (next === routeMode) return;
+            if (!routePanelOverlay.hidden) closeRoutePanel();
+            routeMode = next;
+            document.querySelectorAll('[data-route-mode]').forEach(button => {
+                const active = button.dataset.routeMode === routeMode;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            cancelRouteLookup();
+            setDestination(null);
+            routeStartInput.value = routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL;
+            routeStartInput.title = routeMode === 'walking'
+                ? 'Walking routes start from the fixed Walking Guard House.'
+                : 'Routes start from the fixed Guard House / Main Gate.';
+            const origin = routeMode === 'walking' ? WALKING_ORIGIN : MAP_START_NODE;
+            if (origin && mapStartMarker) {
+                if (maplibreMap) mapStartMarker.setLngLat([Number(origin.lng), Number(origin.lat)]);
+                else if (leafletMap) mapStartMarker.setLatLng([Number(origin.lat), Number(origin.lng)]);
+            }
+            if (mapStartMarkerElement) {
+                mapStartMarkerElement.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL));
+                if (staticFallbackActive && origin) {
+                    const coords = mapBuildings.filter(validMapPoint);
+                    if (coords.length) {
+                        const lats = coords.map(b => Number(b.lat)), lngs = coords.map(b => Number(b.lng));
+                        const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+                        mapStartMarkerElement.style.left = (8 + (Number(origin.lng) - minLng) / Math.max(maxLng - minLng, .0001) * 84) + '%';
+                        mapStartMarkerElement.style.top = (8 + (maxLat - Number(origin.lat)) / Math.max(maxLat - minLat, .0001) * 84) + '%';
+                    }
+                }
+            }
+            if (searchQuery.trim() === '') renderLocalList(); else renderSearchResults(lastSearchResults);
+            if (currentBuildingId != null) selectBuilding(currentBuildingId);
+        }
+        document.querySelectorAll('[data-route-mode]').forEach(button => button.addEventListener('click', () => setRouteMode(button.dataset.routeMode)));
         routePlannerToggle.addEventListener('click', () => {
             setPlannerCollapsed(!routePlanner.classList.contains('is-collapsed'));
         });
 
-        routeDestClear.addEventListener('click', () => setDestination(null));
+        routeDestClear.addEventListener('click', () => {
+            if (!routePanelOverlay.hidden) closeRoutePanel();
+            setDestination(null);
+        });
         routeFindBtn.addEventListener('click', findRoute);
         routePanelClose.addEventListener('click', closeRoutePanel);
         routePanelOverlay.addEventListener('click', (e) => {
@@ -2167,21 +2237,21 @@
                     iconAnchor: [MAP_BUILDING_PIN_HIT_SIZE / 2, MAP_BUILDING_PIN_HIT_SIZE],
                     tooltipAnchor: [11, -20]
                 });
-                if (validStartNode(MAP_START_NODE)) {
+                if (validStartNode(currentOrigin())) {
                     const startIcon = L.divIcon({
                         className: 'map-start-marker',
                         html: '',
                         iconSize: [MAP_BUILDING_PIN_HIT_SIZE, MAP_BUILDING_PIN_HIT_SIZE],
                         iconAnchor: [MAP_BUILDING_PIN_HIT_SIZE / 2, MAP_BUILDING_PIN_HIT_SIZE / 2]
                     });
-                    mapStartMarker = L.marker([Number(MAP_START_NODE.lat), Number(MAP_START_NODE.lng)], {
+                    mapStartMarker = L.marker([Number(currentOrigin().lat), Number(currentOrigin().lng)], {
                         icon: startIcon,
                         interactive: false,
                         keyboard: false
                     }).addTo(leafletMap);
                     const startElement = mapStartMarker.getElement();
                     if (startElement) {
-                        startElement.setAttribute('aria-label', 'Start: Guard House / Main Gate');
+                        startElement.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL));
                         const startLabel = createMapLabel('Start', 'map-start-label');
                         startElement.appendChild(startLabel);
                         mapStartMarkerElement = startElement;
@@ -2266,6 +2336,10 @@
                         ? [[MAP_BASEMAP.bounds[0], MAP_BASEMAP.bounds[1]], [MAP_BASEMAP.bounds[2], MAP_BASEMAP.bounds[3]]]
                         : undefined
                 });
+                // A completed first map render is enough to keep the basemap.
+                // Some PMTiles sessions never emit sourcedata with isSourceLoaded
+                // even after their visible tiles have rendered.
+                maplibreMap.once('load', () => { maplibreSourceLoaded = true; });
                 maplibreMap.on('sourcedata', (event) => {
                     if (event && event.sourceId === 'campus' && event.isSourceLoaded) {
                         maplibreSourceLoaded = true;
@@ -2287,7 +2361,7 @@
                 // right edge stays clear for the info panel.
                 maplibreMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
 
-                if (validStartNode(MAP_START_NODE)) {
+                if (validStartNode(currentOrigin())) {
                     const originElement = document.createElement('div');
                     originElement.className = 'map-start-marker';
                     const originLabel = createMapLabel('Start', 'map-start-label');
@@ -2296,9 +2370,9 @@
                         element: originElement,
                         anchor: 'center'
                     })
-                        .setLngLat([Number(MAP_START_NODE.lng), Number(MAP_START_NODE.lat)])
+                        .setLngLat([Number(currentOrigin().lng), Number(currentOrigin().lat)])
                         .addTo(maplibreMap);
-                    originElement.setAttribute('aria-label', 'Start: Guard House / Main Gate');
+                    originElement.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? WALKING_ORIGIN.label : COMPUTED_START_LABEL));
                     mapStartMarkerElement = originElement;
                     mapStartLabelEntry = registerMapLabel(originLabel, { baseText: 'Start', priority: 100 });
                 }

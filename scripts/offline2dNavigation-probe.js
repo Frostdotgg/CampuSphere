@@ -30,7 +30,7 @@ function ok(label, value) {
 }
 
 function read(rel) {
-  return fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  return fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
 }
 
 function sha256(bytes) {
@@ -141,7 +141,12 @@ function offlineInteractionLifecycleProblems(source, shell) {
   if (!/if \(shouldOpen\)[\s\S]*removeAttribute\('inert'\)[\s\S]*setAttribute\('aria-hidden', 'false'\)[\s\S]*focusMobileSidebarSearch\(\)/.test(mobileSidebarBody)) {
     problems.push('opening the mobile sheet does not expose and focus it');
   }
-  if (!/selectFocusReturnTarget\(toggle, \[[\s\S]*offlineRecenterMap[\s\S]*offlineThemeToggle[\s\S]*offlineNavToggle[\s\S]*focusTarget\.focus\(\)[\s\S]*setAttribute\('inert', ''\)[\s\S]*setAttribute\('aria-hidden', 'true'\)/.test(mobileSidebarBody)) {
+  if (!/function focusMobileSidebarSearch\(\)[\s\S]*?target\.focus\(\{ preventScroll: true \}\)/.test(source) ||
+      !/target\.focus\(\{ preventScroll: true \}\)/.test(detailsCloseBody) ||
+      !/target\.focus\(\{ preventScroll: true \}\)/.test(closeBody)) {
+    problems.push('opening the moving sheet may scroll the page');
+  }
+  if (!/selectFocusReturnTarget\(toggle, \[[\s\S]*offlineRecenterMap[\s\S]*offlineThemeToggle[\s\S]*offlineNavToggle[\s\S]*focusTarget\.focus\(\{ preventScroll: true \}\)[\s\S]*setAttribute\('inert', ''\)[\s\S]*setAttribute\('aria-hidden', 'true'\)/.test(mobileSidebarBody)) {
     problems.push('closing the mobile sheet does not restore focus before isolation');
   }
   if (!/matchMedia\(MOBILE_MAP_MEDIA\)[\s\S]*syncMobileSidebarViewport\(mobileSidebarMedia\)[\s\S]*(?:addEventListener\('change'|addListener\()/.test(source) ||
@@ -165,6 +170,7 @@ function offlineInteractionLifecycleProblems(source, shell) {
 
 function offlineInteractionMutationsAreRejected(source, shell) {
   const cases = [
+    { source: source.replace('target.focus({ preventScroll: true })', 'target.focus()'), shell },
     { source: source.replace('    rememberRouteSummaryInvoker();\n    destinationKey = key;', '    destinationKey = key;'), shell },
     { source: source.replace("    if (element.closest('[hidden], [aria-hidden=\"true\"], [inert]')) return false;", ''), shell },
     { source: source.replace('    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;', ''), shell },
@@ -176,7 +182,7 @@ function offlineInteractionMutationsAreRejected(source, shell) {
     { source: source.replace('window.localStorage.getItem(THEME_STORAGE_KEY)', "window.localStorage.getItem('wrong-key')"), shell },
     { source: source.replace('window.localStorage.setItem(THEME_STORAGE_KEY, value)', "window.localStorage.setItem('wrong-key', value)"), shell },
     { source: source.replace("    sidebar.setAttribute('inert', '');", ''), shell },
-    { source: source.replace('      focusTarget.focus();', ''), shell },
+    { source: source.replace('      focusTarget.focus({ preventScroll: true });', ''), shell },
     { source: source.replace("      byId('offlineRecenterMap'),", ''), shell },
     { source: source.replace('      if (options.focus !== false) focusMobileSidebarSearch();', ''), shell },
     {
@@ -186,7 +192,7 @@ function offlineInteractionMutationsAreRejected(source, shell) {
       shell
     },
     { source, shell: shell.replace(' aria-hidden="true" inert', '') },
-    { source, shell: shell.replace(' aria-pressed="false"', '') }
+    { source, shell: shell.replace(/(<button class="theme-toggle" id="offlineThemeToggle"[^>]*?) aria-pressed="false"/, '$1') }
   ];
   return cases.every((fixture) =>
     (fixture.source !== source || fixture.shell !== shell) &&
@@ -427,10 +433,10 @@ function runStaticBoundaryChecks() {
     /function drawFallbackRoute\(route, routeColor\)[\s\S]*?line\.setAttribute\('stroke', routeColor \|\| ENTRY_ROUTE_COLOR\)/.test(manager));
   ok('database text is rendered through textContent and no innerHTML sink exists',
     /node\.textContent\s*=\s*text/.test(manager) && !/\.innerHTML\s*=/.test(manager));
-  ok('offline origin marker says Guard House while retaining the canonical main-gate key',
+  ok('offline origin marker follows Vehicle or Walking while retaining the vehicle main-gate key',
     /var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';/.test(manager) &&
-    /originEl\.textContent = OFFLINE_ORIGIN_MARKER_LABEL;/.test(manager) &&
-    /originEl\.setAttribute\('aria-label', OFFLINE_ORIGIN_MARKER_LABEL\);/.test(manager) &&
+    /var originLabel = createOfflineMapLabel\('Start', 'map-start-label'\)/.test(manager) &&
+    /originEl\.setAttribute\('aria-label', 'Start: ' \+ \(routeMode === 'walking' \? 'Walking Guard House' : OFFLINE_ORIGIN_MARKER_LABEL \+ ' \/ Main Gate'\)\);/.test(manager) &&
     !/originEl\.textContent = 'Main Gate'/.test(manager) &&
     /guide\.origin\.key !== 'main-gate'/.test(manager));
   ok('map nodes use the scaled online MapLibre marker anchor, fallback markers use reviewed native overlays, and Set as Destination draws immediately',
@@ -462,8 +468,8 @@ function runStaticBoundaryChecks() {
       offlineInteractionMutationsAreRejected(manager, shell) &&
       offlineMobileDetailsOverlapProblems(css, shell).length === 0 &&
       offlineMobileDetailsOverlapMutationsAreRejected(css, shell) &&
-    /close\.focus\(\)/.test(manager) && /event\.key\s*===\s*'Escape'/.test(manager) &&
-    /function closeDetails\(\)[\s\S]{0,520}if \(target\) target\.focus\(\)/.test(manager) &&
+    /close\.focus\(\{ preventScroll: true \}\)/.test(manager) && /event\.key\s*===\s*'Escape'/.test(manager) &&
+    /function closeDetails\(\)[\s\S]*?if \(target\) target\.focus\(\{ preventScroll: true \}\)/.test(manager) &&
     /function closeRouteSummary\(\)[\s\S]{0,260}summary\.hidden = true/.test(manager) &&
     /routeClose\.addEventListener\('click', closeRouteSummary\)/.test(manager) &&
     /routeClear\.addEventListener\('click', clearRoute\)/.test(manager) &&

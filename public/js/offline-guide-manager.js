@@ -28,6 +28,7 @@
   var markers = [];
   var selectedKey = null;
   var destinationKey = null;
+  var routeMode = 'vehicle';
   var activeFilter = 'all';
   var lastInvoker = null;
   var routeSummaryInvoker = null;
@@ -249,6 +250,29 @@
     // Exit routes were added additively. A pre-exit package remains usable for
     // entry navigation, while a refreshed package must carry an array (which
     // may be empty when no building has a publishable reverse route).
+    if (guide.walkingRoutes !== undefined && (!Array.isArray(guide.walkingRoutes) ||
+        !guide.walkingOrigin || guide.walkingOrigin.key !== 'walking-guard-house' ||
+        Number(guide.walkingOrigin.lat) !== 13.405710 || Number(guide.walkingOrigin.lng) !== 123.374181)) {
+      throw new Error('The offline walking routes are invalid.');
+    }
+    if (Array.isArray(guide.walkingRoutes)) {
+      var walkingKeys = new Set();
+      guide.walkingRoutes.forEach(function (route) {
+        var building = guide.buildings.find(function (item) { return item.key === route.destinationKey; });
+        var points = route && route.geometry;
+        if (!building || walkingKeys.has(route.destinationKey) || !Array.isArray(points) ||
+            points.length < 3 || points.length > 200 ||
+            !points.every(function (point) { return Array.isArray(point) && point.length === 2 &&
+              Number.isFinite(point[0]) && Number.isFinite(point[1]) && Math.abs(point[0]) <= 180 && Math.abs(point[1]) <= 90; }) ||
+            Math.abs(points[0][0] - guide.walkingOrigin.lng) > 1e-6 ||
+            Math.abs(points[0][1] - guide.walkingOrigin.lat) > 1e-6 ||
+            Math.abs(points[points.length - 1][0] - building.lng) > 1e-6 ||
+            Math.abs(points[points.length - 1][1] - building.lat) > 1e-6) {
+          throw new Error('The offline walking route geometry is invalid.');
+        }
+        walkingKeys.add(route.destinationKey);
+      });
+    }
     if (guide.exitRoutes !== undefined && !Array.isArray(guide.exitRoutes)) {
       throw new Error('The offline exit routes are invalid.');
     }
@@ -299,7 +323,8 @@
     var buildings = record.guide && Array.isArray(record.guide.buildings) ? record.guide.buildings.length : 0;
     var routes = record.guide && Array.isArray(record.guide.routes) ? record.guide.routes.length : 0;
     var exits = record.guide && Array.isArray(record.guide.exitRoutes) ? record.guide.exitRoutes.length : 0;
-    summary.textContent = buildings + ' buildings · ' + routes + ' entry routes · ' + exits + ' exit routes · downloaded ' +
+    var walks = record.guide && Array.isArray(record.guide.walkingRoutes) ? record.guide.walkingRoutes.length : 0;
+    summary.textContent = buildings + ' buildings · ' + routes + ' entry routes · ' + exits + ' exit routes · ' + walks + ' walking routes · downloaded ' +
       new Date(record.downloadedAt).toLocaleString() + mapSnapshotLabel(record);
   }
 
@@ -463,6 +488,17 @@
     return activeRecord.guide.routes.find(function (route) { return route.destinationKey === key; }) || null;
   }
 
+  function walkingRouteFor(key, isExit) {
+    if (!activeRecord || !activeRecord.guide || !Array.isArray(activeRecord.guide.walkingRoutes)) return null;
+    var route = activeRecord.guide.walkingRoutes.find(function (item) { return item.destinationKey === key; });
+    if (!route || !isExit) return route || null;
+    return Object.assign({}, route, {
+      geometry: route.geometry.slice().reverse(),
+      destinationName: 'Walking Guard House',
+      steps: [{ instruction: 'Follow the pedestrian path back to the Walking Guard House.' }]
+    });
+  }
+
   function exitRouteFor(key) {
     if (!activeRecord || !activeRecord.guide || !Array.isArray(activeRecord.guide.exitRoutes)) return null;
     return activeRecord.guide.exitRoutes.find(function (route) {
@@ -473,6 +509,12 @@
   function buildingFor(key) {
     if (!activeRecord || !activeRecord.guide) return null;
     return activeRecord.guide.buildings.find(function (building) { return building.key === key; }) || null;
+  }
+
+  function walkingUnavailableMessage() {
+    return activeRecord && activeRecord.guide && Array.isArray(activeRecord.guide.walkingRoutes)
+      ? 'Walking route not drawn yet.'
+      : 'Update Offline Map while connected to download walking routes.';
   }
 
   function unavailableMessage(reason) {
@@ -525,10 +567,10 @@
     renderStaticList('offlineEntrancesSection', 'offlineEntrancesList', details.entrances, renderTextItem);
     renderStaticList('offlineLandmarksSection', 'offlineLandmarksList', details.landmarks, renderTextItem);
 
-    var entryRoute = routeFor(key);
-    var exitRoute = exitRouteFor(key);
-    var entryAvailable = building.routeAvailable === true && !!entryRoute;
-    var exitAvailable = building.exitRouteAvailable === true && !!exitRoute;
+    var entryRoute = routeMode === 'walking' ? walkingRouteFor(key, false) : routeFor(key);
+    var exitRoute = routeMode === 'walking' ? walkingRouteFor(key, true) : exitRouteFor(key);
+    var entryAvailable = routeMode === 'walking' ? building.walkingRouteAvailable === true && !!entryRoute : building.routeAvailable === true && !!entryRoute;
+    var exitAvailable = routeMode === 'walking' ? entryAvailable : building.exitRouteAvailable === true && !!exitRoute;
     var action = byId('offlineSetDestination');
     var notice = byId('offlineRouteNotice');
     if (action) {
@@ -537,25 +579,27 @@
     }
     if (notice) {
       notice.hidden = entryAvailable;
-      notice.textContent = entryAvailable ? '' : unavailableMessage(building.routeUnavailableReason);
+      notice.textContent = entryAvailable ? '' : (routeMode === 'walking' ? walkingUnavailableMessage() : unavailableMessage(building.routeUnavailableReason));
     }
     var exitAction = byId('offlineExitRoute');
     var exitNotice = byId('offlineExitNotice');
     if (exitAction) {
       exitAction.disabled = !exitAvailable;
       exitAction.setAttribute('aria-disabled', exitAvailable ? 'false' : 'true');
-      exitAction.title = exitAvailable ? '' : exitUnavailableMessage(building);
+      exitAction.title = exitAvailable ? '' : (routeMode === 'walking' ? walkingUnavailableMessage() : exitUnavailableMessage(building));
+      exitAction.textContent = routeMode === 'walking' ? 'Walking Return' : 'Exit to Main Gate';
+      exitAction.setAttribute('aria-label', routeMode === 'walking' ? 'Return to Walking Guard House' : 'Exit to Main Gate');
     }
     if (exitNotice) {
       exitNotice.hidden = exitAvailable;
-      exitNotice.textContent = exitAvailable ? '' : exitUnavailableMessage(building);
+      exitNotice.textContent = exitAvailable ? '' : (routeMode === 'walking' ? walkingUnavailableMessage() : exitUnavailableMessage(building));
     }
 
     panel.hidden = false;
     panel.setAttribute('aria-hidden', 'false');
     panel.classList.add('visible');
     var close = byId('offlineDetailsClose');
-    if (close) close.focus();
+    if (close) close.focus({ preventScroll: true });
     highlightSelection(key);
     focusMapOnBuilding(building);
     if (isMobileMapLayout()) setMobileSidebar(false, { restoreFocus: false });
@@ -575,7 +619,7 @@
       byId('offlineMobileListToggle'),
       byId('offlineRecenterMap')
     ]);
-    if (target) target.focus();
+    if (target) target.focus({ preventScroll: true });
   }
 
   function highlightSelection(key) {
@@ -663,7 +707,7 @@
       byId('offlineBuildingSearch'),
       byId('offlineMobileListToggle')
     ]);
-    if (target) target.focus();
+    if (target) target.focus({ preventScroll: true });
   }
 
   function clearRoute() {
@@ -687,14 +731,14 @@
       text.classList.toggle('map-route-planner__dest-text--empty', !building);
     }
     if (clear) clear.hidden = !building;
-    if (find) find.disabled = !building;
+    if (find) find.disabled = !building || (routeMode === 'walking' ? !building.walkingRouteAvailable || !walkingRouteFor(destinationKey, false) : !building.routeAvailable || !routeFor(destinationKey));
     if (compact) compact.textContent = building ? building.name : 'Pick a destination';
-    if (hint) hint.textContent = building ? 'Ready to draw the saved Main Gate route.' : 'Select a building, then choose Set as Destination.';
+    if (hint) hint.textContent = routeMode === 'walking' && !(activeRecord && activeRecord.guide && activeRecord.guide.walkingRoutes) ? walkingUnavailableMessage() : building ? 'Ready to draw the saved ' + (routeMode === 'walking' ? 'walking' : 'Main Gate') + ' route.' : 'Select a building, then choose Set as Destination.';
   }
 
   function setDestination(key) {
     var building = buildingFor(key);
-    if (!building || !building.routeAvailable || !routeFor(key)) return;
+    if (!building || (routeMode === 'walking' ? !building.walkingRouteAvailable || !walkingRouteFor(key, false) : !building.routeAvailable || !routeFor(key))) return;
     rememberRouteSummaryInvoker();
     destinationKey = key;
     updateRoutePlanner();
@@ -750,7 +794,7 @@
   function showRoute(key, options) {
     var isExit = !!(options && options.isExit);
     var routeColor = isExit ? EXIT_ROUTE_COLOR : ENTRY_ROUTE_COLOR;
-    var route = isExit ? exitRouteFor(key) : routeFor(key);
+    var route = routeMode === 'walking' ? walkingRouteFor(key, isExit) : isExit ? exitRouteFor(key) : routeFor(key);
     var building = buildingFor(key);
     var summary = byId('offlineRouteSummary');
     if (!route || !building || !summary || !Array.isArray(route.geometry) || route.geometry.length < 2) {
@@ -762,10 +806,10 @@
     routeSummaryKey = key;
     if (isExit) {
       byId('offlineRouteTitle').textContent = building.name + ' to ' + (route.destinationName || 'Guard House / Main Gate');
-      byId('offlineRouteSubtitle').textContent = 'Exit route to Guard House / Main Gate';
+      byId('offlineRouteSubtitle').textContent = routeMode === 'walking' ? 'Walking return to Walking Guard House' : 'Exit route to Guard House / Main Gate';
     } else {
-      byId('offlineRouteTitle').textContent = 'Route to ' + building.name;
-      byId('offlineRouteSubtitle').textContent = 'From Guard House / Main Gate';
+      byId('offlineRouteTitle').textContent = (routeMode === 'walking' ? 'Walking route to ' : 'Route to ') + building.name;
+      byId('offlineRouteSubtitle').textContent = routeMode === 'walking' ? 'Walking from Walking Guard House' : 'From Guard House / Main Gate';
     }
     byId('offlineRouteTime').textContent = route.estimatedWalkTime + ' \u00b7 ' + Math.round(route.distanceMeters) + ' m';
     var steps = byId('offlineRouteSteps');
@@ -786,6 +830,9 @@
       map.getSource('offline-route').setData(feature);
       if (map.getLayer('offline-route-line') && typeof map.setPaintProperty === 'function') {
         map.setPaintProperty('offline-route-line', 'line-color', routeColor);
+        map.setPaintProperty('offline-route-line', 'line-width', routeMode === 'walking' ? 3 : 4);
+        map.setPaintProperty('offline-route-line', 'line-dasharray', routeMode === 'walking' ? [2, 2] : null);
+        map.setPaintProperty('offline-route-casing', 'line-opacity', routeMode === 'walking' ? 0 : 0.95);
       }
       var bounds = route.geometry.reduce(function (box, point) { return box.extend(point); }, new maplibregl.LngLatBounds());
       map.fitBounds(bounds, { padding: { top: 80, right: 80, bottom: 180, left: 80 }, duration: 500, maxZoom: 18 });
@@ -793,7 +840,7 @@
     drawFallbackRoute(route, routeColor);
     closeDetails();
     var close = byId('offlineRouteClose');
-    if (close) close.focus();
+    if (close) close.focus({ preventScroll: true });
   }
 
   function buildBasemapStyle(url) {
@@ -832,8 +879,8 @@
     // Keep the geographic point at the center of the 44px wrapper, matching
     // the online MapLibre start marker and the simplified fallback marker.
     var originMarker = new maplibregl.Marker({ element: originEl, anchor: 'center' })
-      .setLngLat([record.guide.origin.lng, record.guide.origin.lat]).addTo(map);
-    originEl.setAttribute('aria-label', 'Start: ' + OFFLINE_ORIGIN_MARKER_LABEL + ' / Main Gate');
+      .setLngLat([selectedOrigin().lng, selectedOrigin().lat]).addTo(map);
+    originEl.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? 'Walking Guard House' : OFFLINE_ORIGIN_MARKER_LABEL + ' / Main Gate'));
     markers.push(originMarker);
 
     record.guide.buildings.forEach(function (building) {
@@ -980,12 +1027,12 @@
     markerLayer.setAttribute('role', 'group');
     fallback.appendChild(markerLayer);
     var bounds = record.guide.basemap.bounds;
-    var originPoint = normalizedPoint([record.guide.origin.lng, record.guide.origin.lat], bounds);
+    var originPoint = normalizedPoint([selectedOrigin().lng, selectedOrigin().lat], bounds);
     var originLabelMarker = document.createElement('div');
     originLabelMarker.className = 'map-fallback__origin';
     originLabelMarker.style.left = (originPoint[0] / 10) + '%';
     originLabelMarker.style.top = (originPoint[1] / 7) + '%';
-    originLabelMarker.setAttribute('aria-label', 'Start: ' + OFFLINE_ORIGIN_MARKER_LABEL + ' / Main Gate');
+    originLabelMarker.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? 'Walking Guard House' : OFFLINE_ORIGIN_MARKER_LABEL + ' / Main Gate'));
     var originLabel = createOfflineMapLabel('Start', 'map-start-label');
     originLabelMarker.appendChild(originLabel);
     startMarkerElement = originLabelMarker;
@@ -1024,7 +1071,8 @@
     line.setAttribute('points', points);
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', routeColor || ENTRY_ROUTE_COLOR);
-    line.setAttribute('stroke-width', '6');
+    line.setAttribute('stroke-width', routeMode === 'walking' ? '4' : '6');
+    if (routeMode === 'walking') line.setAttribute('stroke-dasharray', '8 8');
     line.setAttribute('stroke-linecap', 'round');
     line.setAttribute('stroke-linejoin', 'round');
     group.appendChild(line);
@@ -1052,7 +1100,7 @@
       info.className = 'map-bldg-item__info';
       appendText(info, 'span', building.name, 'map-bldg-item__name');
       appendText(info, 'span', building.category, 'map-bldg-item__cat');
-      if (!building.routeAvailable) appendText(info, 'span', 'Route unavailable', 'offline-building__availability');
+      if (!(routeMode === 'walking' ? building.walkingRouteAvailable : building.routeAvailable)) appendText(info, 'span', routeMode === 'walking' ? 'Walking route unavailable' : 'Route unavailable', 'offline-building__availability');
       button.appendChild(info);
       button.addEventListener('click', function () { openDetails(building.key, button); });
       list.appendChild(button);
@@ -1092,7 +1140,8 @@
     var search = byId('offlineBuildingSearch');
     var close = byId('offlineSidebarClose');
     var target = search && !search.disabled ? search : close;
-    if (target && typeof target.focus === 'function') target.focus();
+    // The sheet is still sliding into view; focusing it must not scroll the page.
+    if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
   }
 
   function setMobileSidebar(open, options) {
@@ -1128,7 +1177,7 @@
       byId('offlineNavToggle')
     ]);
     if (options.restoreFocus !== false && (wasOpen || focusedInside) && focusTarget) {
-      focusTarget.focus();
+      focusTarget.focus({ preventScroll: true });
     } else if (focusedInside && document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
@@ -1175,10 +1224,43 @@
     theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   }
 
+  function selectedOrigin() {
+    return routeMode === 'walking'
+      ? (activeRecord.guide.walkingOrigin || { lat: 13.405710, lng: 123.374181 })
+      : activeRecord.guide.origin;
+  }
+  function setRouteMode(next) {
+    if (next === routeMode) return;
+    routeMode = next;
+    document.querySelectorAll('[data-offline-route-mode]').forEach(function (button) {
+      var active = button.getAttribute('data-offline-route-mode') === routeMode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    clearDestination();
+    var start = byId('offlineRouteStart');
+    if (start) start.value = routeMode === 'walking' ? 'Walking Guard House' : 'Guard House / Main Gate';
+    if (activeRecord && activeRecord.guide) {
+      var origin = selectedOrigin();
+      if (map && markers[0]) markers[0].setLngLat([origin.lng, origin.lat]);
+      if (startMarkerElement) {
+        startMarkerElement.setAttribute('aria-label', 'Start: ' + (routeMode === 'walking' ? 'Walking Guard House' : 'Guard House / Main Gate'));
+        if (!map && activeRecord.guide.basemap) {
+          var point = normalizedPoint([origin.lng, origin.lat], activeRecord.guide.basemap.bounds);
+          startMarkerElement.style.left = (point[0] / 10) + '%';
+          startMarkerElement.style.top = (point[1] / 7) + '%';
+        }
+      }
+      renderBuildingList(activeRecord);
+      if (selectedKey) openDetails(selectedKey, byId('offlineBuildingSearch'));
+      updateRoutePlanner();
+    }
+  }
+
   function recenterMap() {
     if (!activeRecord || !activeRecord.guide || !map) return;
     map.easeTo({
-      center: [activeRecord.guide.origin.lng, activeRecord.guide.origin.lat],
+      center: [selectedOrigin().lng, selectedOrigin().lat],
       zoom: 16.5,
       duration: 450
     });
@@ -1247,11 +1329,14 @@
     document.querySelectorAll('[data-offline-filter]').forEach(function (filter) {
       filter.addEventListener('click', function () { setFilter(filter.getAttribute('data-offline-filter')); });
     });
+    document.querySelectorAll('[data-offline-route-mode]').forEach(function (button) {
+      button.addEventListener('click', function () { setRouteMode(button.getAttribute('data-offline-route-mode')); });
+    });
     var setDest = byId('offlineSetDestination');
     if (setDest) setDest.addEventListener('click', function () { if (selectedKey) setDestination(selectedKey); });
     var exitRoute = byId('offlineExitRoute');
     if (exitRoute) exitRoute.addEventListener('click', function () {
-      if (!selectedKey || !exitRouteFor(selectedKey)) return;
+      if (!selectedKey || !(routeMode === 'walking' ? walkingRouteFor(selectedKey, true) : exitRouteFor(selectedKey))) return;
       rememberRouteSummaryInvoker();
       showRoute(selectedKey, { isExit: true });
     });
