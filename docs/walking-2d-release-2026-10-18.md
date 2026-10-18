@@ -55,10 +55,11 @@ The non-secret Production `SUPABASE_URL` setting was compared with the local
 application target using hostname SHA-256, without displaying credential values.
 They match. SELECT-only reads confirm the walking table and the two paths above.
 Live PostgREST metadata for the service role advertises GET, POST, PATCH and
-DELETE on that table. Source 0028 revokes PUBLIC/anon/authenticated access and
-grants service-role CRUD. A fresh database-catalog check of all role grants is
-still pending the owner's Supabase dashboard sign-in. Do not describe the
-source revocations alone as a fresh live catalog audit.
+DELETE on that table. After the owner signed in, a SELECT-only database-catalog
+check confirmed that `anon` and `authenticated` each have SELECT/INSERT/UPDATE/
+DELETE set to false, while `service_role` has all four set to true. That same
+query confirmed 2 saved paths and 26 buildings. No SQL migration or grant was
+applied by Codex.
 
 ## Focused verification
 
@@ -145,14 +146,25 @@ Observed October 18 in project `calagrimas-projects/campusphere-cspc`:
   and no linked shared variables.** The owner must configure its own approved
   test backend/session/rate-limit settings. Production secrets must not be copied.
 
-Do not publish to `main` or promote while Preview configuration or the required
-database verification remains unresolved. After Preview passes, recheck remote
-`main`, integrate newer source if any, validate, publish by normal fast-forward
-or the required PR process, and build the exact candidate with Production settings.
-Verify health, sign-in, Administrator editor, pilot entry/return, vehicle routes,
-refreshed offline guide and deployment logs before assigning the alias. Roll back
-to the target above if a blocking regression appears; preserve walking-path data.
-Record exact final source and deployment identity after those steps actually run.
+Feature commit `9a4a628a84f3333071d4d45ad548d98c4d8223d5` was pushed. Preview
+deployment `dpl_5Hjynvrd4a2VV4tyP5ufktMYwE44` built Ready in 15 seconds but its
+temporary URL returned `500 FUNCTION_INVOCATION_FAILED`. Preview configuration
+was empty; no Production secrets were copied into it. The 16 pending handoff
+files in the original checkout were rehashed and remain byte-identical.
+
+The owner then explicitly approved replacing the Preview requirement with a
+**staged Production build**: publish the tested candidate to `main`, build with
+the existing Production settings, test its temporary address, then promote only
+after checks pass. Production auto-assignment remains disabled. This is the
+current authorized release sequence; the earlier separate-Preview requirement
+is superseded by that owner decision.
+
+Recheck remote `main`, integrate newer source if any, validate, and publish by
+normal fast-forward or the required PR process. Verify health, sign-in,
+Administrator editor, pilot entry/return, vehicle routes, refreshed offline guide
+and deployment logs on the staged Production build before assigning the alias.
+Roll back to the target above if a blocking regression appears; preserve walking
+data. Record exact final source and deployment identity after those steps run.
 
 Drawing instructions and the current remaining list are in
 `docs/walking-2d-team-guide.md`. Every device needs a connected, signed-in guide
