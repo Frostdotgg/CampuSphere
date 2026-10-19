@@ -2,30 +2,37 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration and release status (2026-09-22)
+## Current migration and release note (2026-10-19)
 
-Migration sources are contiguous from `0001` through `0027` and are
-owner-reported applied on the selected Supabase project. Do not reapply them
-without fresh explicit database authority. Production application data and
-sessions target Supabase. The owner-observed current Production product commit
-is `0e7fe8b`, deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; later
-documentation/test commits `26f8cc6` and `3d43650` were deliberately not
-promoted. Its lineage includes fixed sanitized session diagnostics from
-`ab4ae61`.
-The retained September 14 incident log confirms a `401` on the exact session-
-readiness query, without recording the provider's reason for that temporary
-response. See `docs/session-readiness-incident-2026-09-14.md`. The current
-release lineage guards already-completed responses against late session-store
-errors and records sanitized timeout categories. The LT-08 Vercel observation
-recorded three timeout-retry warnings on successful read-request rows; it does
-not prove the later retry outcomes or permanent Supabase availability. No
-checkpoint action added or altered a migration or database row. A
-SELECT-only check confirmed 670 VR scenes and the intentional road 85-94 loop
-plus `85 <-> 94` shortcut. Current MySQL parity remains deferred; older freeze
-and sync counts are historical. MySQL synchronization remains required later,
-but it is not the immediate next move and is not authorized by grounding. See
-`docs/current-authority.md` before any
-database, mapping, route, hotspot, migration, or session action.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
+before historical design/migration notes. Production data and Express sessions
+target Supabase/PostgreSQL; MySQL is local/fallback/rehearsal. Supabase Auth is
+not used. Service-role keys stay server-only; Express role/login/CSRF checks
+enforce per-user permissions even though the service role bypasses RLS.
+
+Migration sources are contiguous from 0001 through 0028. They are owner-applied
+on the selected Supabase project, including `0028_walking_2d_routes.sql`;
+Codex did not apply/reapply them. October 18 SELECT-only permissions showed
+anon/authenticated denied SELECT/INSERT/UPDATE/DELETE on walking_routes and
+service_role granted all four. Walking paths use the route backend's building
+identity and are separate from vehicle edges and Walking VR scene sequences.
+The October 19 Administrator counter showed **26/26 saved paths, zero missing**;
+saved coverage does not establish visual approval of every walkway.
+
+The October 18 verified Production deployment is
+`dpl_94jYqWkHoC19cLKnfooTVEG8SCyU`, published source `c533719` containing
+feature `9a4a628`. This is dated evidence, not a fresh vendor/database check.
+The final release logs had 12 Warning rows, 0 Error, 0 Fatal; 200/204 responses
+do not prove each timeout retry's later outcome. Historical session-readiness
+401 evidence and September LT-08's three warnings remain separate records.
+
+MySQL's additive 0028 upgrade and fresh schema exist in source; current MySQL
+migration state and parity remain unverified/deferred. ICTU Docker source is on
+GitHub; saved routes reside in Supabase, not Git. Actual ICTU deployment is not
+established. Do not reapply migrations, repair data, run parity tools or access
+live systems without a focused owner task. This documentation commit/push task
+authorizes no database or deployment operation. Future-tense design below and
+older applied-count checkpoints are historical, not current setup instructions.
 
 Current migration purposes remain:
 
@@ -44,11 +51,13 @@ Current migration purposes remain:
   profile integrity for administrator create/promotion flows.
 - `0027_route_edge_geometry_metrics.sql`: service-role-only atomic directional
   geometry and geometry-derived distance/walk-time persistence.
+- `0028_walking_2d_routes.sql`: one independent Administrator-authored walking
+  path per route-source building, geometry-derived metrics and server-only grants.
 
 These descriptions do not authorize application or reapplication. The owner
 applied the migrations; Codex did not apply or reapply them.
 
-## 1. Purpose
+## 1. Purpose and historical baseline
 
 This folder holds the SQL that defines the Supabase / PostgreSQL / PostGIS
 database target for the project. Migrations `0001` through `0006` have been
@@ -60,8 +69,9 @@ switches (`AUTH_DATA_SOURCE`, `BUILDING_DATA_SOURCE`, `ROUTE_DATA_SOURCE`,
 `CONTENT_DATA_SOURCE`, `VR_DATA_SOURCE`, and `MAP_RENDERER`). When a switch is
 set to `supabase`, the matching server-only repository in `repositories/`
 reads and writes through `config/supabase.js`, so controllers, routes, and
-views do depend on this schema in Supabase mode. MySQL remains the default and
-the rollback baseline.
+views do depend on this schema in Supabase mode. The default switches describe
+local development. The tracked ICTU Docker
+profile uses Supabase; current Production also uses Supabase for data/sessions.
 
 ## 2. Historical baseline migration design (superseded by the current status above)
 
@@ -187,6 +197,9 @@ Apply order (each file once, in sequence, against the target project):
     project; apply once after `0026` on a new empty project; adds the
     service-role-only atomic directional geometry + distance/walk-time RPC used
     by the admin edge editor).
+
+16. `0028_walking_2d_routes.sql` (owner-applied on the selected project; for a
+    new project, apply once after 0027 only under database-owner authorization).
 
 ## 5. Auth decision
 

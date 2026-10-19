@@ -1,182 +1,308 @@
 # CampuSphere Current Authority
 
-Last updated: 2026-09-22 (Asia/Manila)
+Last updated: 2026-10-19 (Asia/Manila)
 
-This is the canonical current-state summary. Historical detail remains in the
-handoffs, plan, roadmap, deployment, incident, and test-evidence records.
-Recompute live Git and external state before treating this checkpoint as
-current.
+## Current Release Continuity (2026-10-19 Walking 2D release handoff)
 
-## Git and release state
+Read `docs/current-authority.md`, then `docs/session-handoff-2026-10-19.md`
+and the current owner prompts in `docs/new-session-grounding-prompts.md`.
+Older continuity sections, test totals and task permissions are historical.
 
-Immediately before this authority synchronization, branch `main` had a clean
-worktree, zero stashes, ahead/behind `0/0`, and local `HEAD`, `origin/main`, and
-remote `main` equal at Git commit SHA-1
-`3d4365027f831e02c1fa70ae5d9c4ab99f7dbce5` (`3d43650`). This synchronization
-was subsequently authorized for review, bounded validation, one dedicated
-authority commit, and a normal push to `main`. No deployment, promotion,
-database, migration, session, browser, or vendor mutation is authorized.
+The application release baseline on GitHub main is published source
+`c5337195a02d358c71c5a421aaf64268755b5d6f` (`c533719`), containing Walking 2D
+feature commit `9a4a628a84f3333071d4d45ad548d98c4d8223d5` (`9a4a628`).
+At the October 19 documentation review start, local HEAD, origin/main and
+remote main matched that baseline, with ahead/behind 0/0, an empty index and
+zero stashes. There were 15 modified tracked files and one untracked October 17
+handoff draft. They were review inputs, not an accepted checkpoint. The owner
+authorized reviewing/updating the 21 documentation/static-check paths, one
+commit and a normal push to main. The resulting documentation commit is
+self-referential: recompute live Git truth; do not treat c533719 as the future
+documentation HEAD. Preserve any pending delta and protected local documents.
 
-The resulting documentation commits are self-referential. Fresh sessions must
-recompute the exact local `HEAD`, `origin/main`, remote `main`, ahead/behind
-count, worktree, index, and stash status instead of copying an old SHA.
+The October 18 verified Production release is
+`dpl_94jYqWkHoC19cLKnfooTVEG8SCyU`, source `c533719`, on main, observed Ready,
+Production and Current at `https://campusphere-cspc.vercel.app`. This is dated
+release evidence, not a fresh October 19 vendor check. The empty Preview
+configuration built Ready but returned FUNCTION_INVOCATION_FAILED. The owner
+approved a staged Production build using existing Production settings, then
+approved checking offline immediately after promotion because temporary-host
+protection blocked the basemap download. Both approved checks completed; no
+Production secrets were copied to Preview and protection was not disabled.
+The recorded rollback target is deployment `2mEQ7Z67TcvfSkNoEjh3Lg9KwmZF`
+for `87980c5fe03c68b8f59f0b8fbdc263299c2acbce`. Current Vercel settings are
+not reverified. A push may trigger an automatic build; manual promotion,
+ICTU deployment and database changes are excluded from this documentation task.
 
-Current product lineage includes:
+The October 19 Administrator counter showed **26/26 saved walking paths, zero
+missing** across route-ready buildings. The owner reports the group finished
+drawing. The approved plan's 1/26 and October 18 release's 2/26 (test building
+and Academic Building I) are historical snapshots. Saved coverage does not
+establish visual approval of every walkway or exhaustive route traversal.
+Keep drawing/review instructions in `docs/walking-2d-team-guide.md`; each
+device must refresh its downloaded guide after additional paths are saved.
 
-- `13adb9d`: recoverable, fail-closed Production session readiness.
-- `b8d2bf2`: completed-response guard for late session-store errors.
-- `ab4ae61`: fixed, sanitized session timeout diagnostics.
-- `0e7fe8b`: explicit Vehicle exit Guided-VR routes and aligned campus maps.
-- `26f8cc6`: synchronized current Production authority documentation.
-- `3d43650`: retained Production load suite and LT-01 through LT-08 closeouts.
+Vehicle is the default online/offline mode. Walking 2D starts at latitude
+13.405710, longitude 123.374181 and ends at the existing building pin. One
+Administrator-authored path per route-source building has locked, validated
+endpoints and intermediate waypoints; the return reverses that same walking
+path with equal distance/time. Blue entrance and red return use thin dashed
+lines; only the selected route is drawn. Vehicle return geometry remains
+independently authored. Mode/destination changes clear stale lines and ignore
+late responses. Missing or inconsistent paths remain unavailable, with no
+straight-line substitute. Mixed-source IDs require route-source identity,
+unique canonical-name and matching-pin checks. Walking VR is a separate catalog.
+Signed-in reads and Administrator-only edits retain CSRF, mutation-rate limits,
+private/no-store responses and fixed audit messages without path/request data.
 
-The owner-observed current Vercel Production deployment is
-`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact product commit `0e7fe8b`, on
-`main`, with canonical alias `https://campusphere-cspc.vercel.app`. This is a
-recorded dashboard observation, not complete immutable deployed-byte equality
-and not authority to redeploy. Documentation/test commits `26f8cc6` and
-`3d43650` were deliberately not promoted. The root `.vercelignore` allowlist
-excludes their documentation, load-test, artifact, database, script, and
-`.gitattributes` surfaces by default; that package observation is not complete
-deployed-byte proof.
+Current service worker is `v52`; shared stylesheet is `v13`. Supabase migration
+sources are contiguous from `0001` through `0028`. The owner applied 0028;
+Codex did not apply/reapply it. October 18 SELECT-only permission evidence
+showed anon/authenticated denied SELECT/INSERT/UPDATE/DELETE and service_role
+granted all four. The additive MySQL migration and fresh-install table exist
+in source; current MySQL migration state and live parity are not verified.
+Production application data and Express sessions target Supabase/PostgreSQL;
+MySQL remains local development/fallback/rehearsal. Supabase Auth is not used.
+Guests may browse buildings/routes/360 scenes, not room schedules; Guest
+information hotspots still require explicit Administrator approval.
 
-## Architecture and security
+Walking 2D's 26 saved paths are separate from the Guided-VR source catalog:
+25 Vehicle entry destinations / 486 steps / 101 unique scenes, 25 Vehicle exit
+destinations / 545 steps / 105 unique scenes, and 25 Walking destinations /
+690 steps / 133 unique scenes. The September 24 recorded freeze (670 scenes,
+1,465 hotspots) is not fresh live MySQL parity or permission to prune/repair.
+Map pins retain no persistent building-name labels. Routing uses stored campus
+geometry, not live GPS or automatic rerouting.
 
-CampuSphere is a Node.js `>=22`, Express 5, EJS application. Production
-application data and Express sessions target Supabase/PostgreSQL. MySQL remains
-local development, fallback, and rehearsal. Supabase Auth is not used; bcrypt
-local login, Google OAuth, `express-session`, CSRF, role middleware, and
-server-side validation enforce application access. Server repositories use the
-Supabase service role, so RLS and revoked browser grants are defense in depth,
-not per-user authorization. Upstash Redis is the Vercel shared rate-limit
-store.
+The downloaded guide and installed PWA shell are separate. A connected,
+signed-in user explicitly downloads/updates guide data and the PMTiles Blob in
+IndexedDB; service-worker Cache Storage is shell/static-only. Older saved
+guides retain Vehicle navigation and request an update for Walking. GitHub
+Actions publishes the basemap, not device guides. Disconnected users retain
+their saved copy until a successful explicit refresh. Offline excludes accounts,
+sessions, private/Admin data, schedules/images, current announcements/events,
+building photos/external media and all 360/Guided-VR/Free-Roam panoramas.
+Notifications are the authenticated in-app bell feed, not SMS/email or closed-app
+phone push.
 
-Signed-in guests may browse all buildings, 2D routes, and 360 scenes. Room
-schedules remain limited to CSPC students, instructors, and administrators.
-Scene and exit hotspots are guest-visible; information hotspots require
-explicit administrator approval; schedule hotspots are hidden from guests.
-Google Drive support is a validated reference plus authenticated same-origin
-proxy. CampuSphere does not manage vendor uploads or accounts.
+October 18 focused results are retained evidence, not fresh tests: Walking
+118/118, offline navigation 49/49, PWA lifecycle 148/148, vehicle source-only
+131 passed/0 failed, coordinate picker 16, admin basemap 9, map labels 20,
+shared buttons 19/19, offline release 21/21, package boundary 75/75, and
+dependency audit 0 vulnerabilities after the proxy-addr 2.0.8 patch. The
+Production smoke passed 16/16, including five sampled committed asset matches.
+Administrator editor/pilot Walking entrance and return, Vehicle routes, a
+refreshed guide, disconnected reload, 390 px phone layout and an isolated
+older-guide fixture passed their recorded checks. The release guide contained
+2 walking paths at that time; this does not test all 26 subsequently saved paths.
 
-## Session-resilience boundary
+The final recorded Production log window had **12 Warning rows, 0 Error,
+0 Fatal**, including session-store touch timeout retries. Displayed 200/204
+responses do not prove each retry's later outcome; this was not a zero-warning
+window. Leaflet's live external tiles were unavailable and its helper was
+fixture-tested. Some automated online visual captures showed a blank canvas
+after diagnostic/browser changes; fresh loads and the owner confirmed visible
+buildings/roads. Complete online pixel verification is not claimed. See
+`docs/walking-2d-release-2026-10-18.md` for the detailed release record.
+Earlier rejected full-suite/MySQL results and September LT-08's three retry
+warnings remain historical. No full npm test/qa pass, live MySQL parity,
+physical-device offline acceptance, exhaustive route/VR traversal, complete
+OAuth/Admin coverage, write capacity, permanent provider availability, complete
+immutable deployed-byte equality or institutional adoption is established.
 
-The September 14 `Service temporarily unavailable` incident was triggered when
-the fail-closed readiness query received Supabase HTTP `401`; the retained row
-does not prove why the provider issued that temporary response. `13adb9d`
-replaced the warm-function sticky initialization failure with bounded
-single-flight recovery waves and bounded transient session-store retries.
+The unchanged Vercel source package is 213 files, 8,755,240 bytes, aggregate
+SHA-256 `55bd59fb311569ef55a137f1d6bcbe9e56844dc4cf607555af12f54740a49990`.
+Compare staged Git bytes with c533719 to avoid Windows line-ending false alarms.
+This is source-package evidence, not complete immutable deployed-byte proof.
+ICTU Docker code is on GitHub, including Walking 2D; saved routes reside in
+Supabase, not Git. The tracked Docker profile uses external Supabase for data
+and sessions. A rebuild configured for that same project can read its saved
+paths; a different database needs separately authorized schema/data transfer.
+Source readiness is not proof of an actual ICTU deployment.
 
-The later `ERR_HTTP_HEADERS_SENT` observation was a separate response-lifecycle
-defect. `b8d2bf2` prevents a late `express-session` store error from writing a
-second response after an already-completed request. `ab4ae61` adds fixed,
-sanitized session timeout diagnostics. These diagnostics omit credentials,
-keys, cookies, session identifiers/data, URLs, raw provider errors, bodies, and
-stacks. The full evidence boundary is in
-`docs/session-readiness-incident-2026-09-14.md`.
+The local-only output documents/backups and .git/info/exclude are preserved;
+ignored files are not disposable and are not part of a clone. No application,
+API, schema, saved route, environment or deployment changes belong in this task.
+After the reviewed commit/push, a new owner session's initial turn is read-only
+and context-only: inventory actual capabilities, read current authority/source,
+recompute Git truth, report and stop after grounding, then wait. Availability
+does not expand authority. Prior permissions do not carry forward. The next
+panelist change is not yet specified; obtain one focused feature or bug fix,
+its roles/data/offline effects and acceptance checks before implementation on
+a fresh branch from then-current clean main. One writer owns a scope at a time.
+Do not automatically resume MySQL remediation, deploy or reapply migrations.
 
-The September 21 LT-08 monitoring window contained three session-store
-timeout-retry warnings on `GET /api/pathfind`, `GET /api/routes`, and
-`GET /api/search`. Each associated request row displayed `200`, but the
-captured rows show only the first retry starting and do not prove the later
-retry outcome. This is an operational follow-up, not proof of a defect or
-permanent provider availability.
+## Historical Release Continuity (2026-10-17 panel-feature handoff; superseded)
 
-## Current map, route, and Guided-VR behavior
+The canonical current snapshot is `docs/current-authority.md`; the detailed
+transition record is `docs/session-handoff-2026-10-17.md`. Copy the current
+owner prompts from `docs/new-session-grounding-prompts.md`. Older continuity
+sections and old permissions are historical, not instructions to resume work.
 
-Online `/map` and the home preview use the bundled MapLibre/PMTiles campus
-basemap. GitHub Actions publishes signed OSM-derived PMTiles to the configured
-public Drive delivery location. A signed-in user explicitly downloads or
-updates `/api/offline-guide`; validated guide JSON and the PMTiles Blob are
-stored atomically in IndexedDB. The service worker caches only the reviewed
-shell/static allowlist. The current cache key is `v48`.
+At the earlier pre-draft source checkpoint, Git branch `main` had an empty
+index, a clean worktree, zero stashes, and ahead/behind `0/0`. Local `HEAD`,
+`origin/main`, and remote `main` (checked with `git ls-remote`) all matched
+`87980c5fe03c68b8f59f0b8fbdc263299c2acbce` (`87980c5`). This is the
+pre-synchronization baseline, not a claim about a future documentation commit.
+The owner authorized updating authority documents, grounding prompts, and their
+network-free static checks. Commit/push is not authorized by this handoff task.
+Because authority is self-referential, every new session must recompute Git
+truth, preserve any pending documentation delta, and never clean it away.
 
-Current source counts are:
+At the start of the approved finalization, the worktree already contained
+15 modified tracked files and one untracked handoff draft; nothing was staged,
+source HEAD was still `87980c5`, and there were zero stashes. Those earlier
+assistant drafts were review inputs, not an accepted checkpoint. The owner
+subsequently approved the review-and-finalize plan. Do not describe this
+draft-filled starting state as clean or relabel earlier checks as fresh results.
 
-| Mode | Destinations | Steps | Unique scenes |
-| --- | ---: | ---: | ---: |
-| Vehicle entry | 25 | 486 | 101 |
-| Vehicle exit | 25 | 545 | 105 |
-| Walking | 25 | 690 | 133 |
+Source commits after the September 22 handoff are `b502c80` (Staff House
+Vehicle-exit assertion alignment), `a3a0bfa` (Administrator map coordinate
+pickers), `e275abe` (CampuSphere branding/PWA icons and Guided-VR parity
+tooling/freeze refresh), `f695585` (guarded strict MySQL parity pruning), and
+`87980c5` (remove building-name labels from map pins). Source presence is not
+proof that a repair ran, that full QA passed, or that a feature is deployed.
+The current service-worker cache key is `v50`, not the older `v48` checkpoint.
 
-Vehicle exit routes are explicit approved sequences, not reversed entry routes.
-Walking entry and exit retain their established direction-aware behavior.
-Runtime still verifies unique scene keys, approved media, exact navigation
-links, and direction-specific arrival before reporting completion.
+The pure source catalog contains 25 Vehicle entry destinations / 486 steps /
+101 unique scenes, 25 Vehicle exit destinations / 545 steps / 105 unique
+scenes, and 25 Walking destinations / 690 steps / 133 unique scenes. Vehicle
+exits use explicit approved sequences; Walking exits retain direction-aware
+handling. `config/selectedDemoFreeze.js` is dated 2026-09-24 and records
+matching natural-key fingerprints and counts for the two backends (including
+670 scenes and 1,465 hotspots). This is a recorded source verification baseline,
+not fresh live MySQL parity. Neither parity tool may be run from grounding:
+even its preview reads live systems, and apply/prune modes require separate
+focused authority, exact preview/backup safeguards, and independent review.
 
-## Database and migration boundary
+Production application data and Express sessions target Supabase/PostgreSQL;
+MySQL remains local development/fallback/rehearsal. Supabase Auth is not used.
+Google OAuth and local Administrator credentials feed application-owned
+sessions and server-side permissions. Guests may view buildings, routes and
+360 scenes, but not room schedules; information hotspots need explicit
+Administrator approval for Guests. Migration sources remain contiguous
+through `0027`, owner-reported applied in the earlier record. Do not
+apply/reapply migrations or change
+approved route/VR data, sessions, or application rows without fresh authority.
 
-Migration sources remain contiguous through `0027` and are owner-reported
-applied. This checkpoint changes no schema, migration, application row, session
-row, approved route data, Guided-VR data, Production setting, or vendor state.
-Do not apply or reapply migrations, modify approved routes/VR data, or mutate
-sessions/application data without a fresh focused owner task. Current MySQL
-parity remains unestablished.
+Online and offline map pins intentionally have no persistent building-name
+labels after `87980c5`; inspect the current selection controls and route-start
+cue before proposing a label change. Navigation uses stored campus geometry,
+not live GPS or automatic rerouting. PWA installation, the app shell/interface,
+and the downloaded guide are separate. A connected, signed-in user explicitly
+downloads or refreshes the guide: IndexedDB stores validated guide data and the
+PMTiles Blob; service-worker Cache Storage is shell/static-only. The guide
+excludes accounts/sessions, private/Admin data, schedules/images, current
+announcements/events, building photos/external media, and all 360/Guided-VR/
+Free-Roam panoramas. GitHub Actions publishes the basemap; it does not update
+each device's saved guide. Disconnected users keep their saved copy until a
+successful user-initiated refresh. Notification means the authenticated in-app
+bell feed of audience-filtered announcements/upcoming events, not SMS/email
+or operating-system push while the application is closed.
 
-## Production load-test closeout
+The last recorded owner-observed Production deployment is
+`dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS` for exact product commit `0e7fe8b`, with
+alias `https://campusphere-cspc.vercel.app`. Its status was not refreshed in
+this handoff. Deployment/promotion of later source commits from September
+23-24 is unverified here; do not call them deployed or undeployed without evidence.
+Historical documentation/test commits `26f8cc6` and `3d43650` were recorded as
+not promoted at the September checkpoint. These observations are not complete
+immutable deployed-byte equality. The runtime upload allowlist remains
+`.vercelignore`; this handoff grants no deployment or vendor access.
+Production promotion remains an owner decision. Current Vercel settings have
+not been reverified; do not assume a push is harmless or that a completed build
+means promotion.
 
-The retained suite closes LT-01 through LT-08 with explicit limitations:
+Retained September evidence reports LT-01 through LT-06 passed; LT-07 passed
+through the owner's authenticated Chrome profile, while the preceding k6
+offline-browser result remains rejected harness evidence. LT-08 passed all 26
+configured thresholds with PASS WITH WARNING because three session-store
+timeout-retry warnings occurred. The matching window showed about 5.6K
+function invocations, 0% function errors, 0% function timeouts, no displayed
+5xx, and 341 MB average / 352 MB P75 / 356 MB P95 against 2.05 GB. Rows for
+GET /api/pathfind, GET /api/routes, and GET /api/search displayed 200 but do
+not prove the later retry outcomes; it was not a zero-warning window. The
+earlier rejected full-suite/MySQL result remains historical; later assertion
+and parity-tool source changes do not turn it into a pass. This handoff runs
+no full npm test/qa, browser, database, session, vendor or Production checks.
+Evidence classes remain separate: source/Git, bounded static checks, recorded
+local tests, owner observations, retained Production tests, sampled bytes, and
+external acceptance. Current full-suite acceptance, live MySQL parity, complete
+OAuth/Admin coverage, write capacity, exhaustive route/VR traversal, physical
+offline-device acceptance, permanent provider availability, complete immutable
+deployed-byte equality and CSPC institutional adoption are not established.
 
-- LT-01 baseline browser, LT-02 concurrent login, LT-03 peak enrollment,
-  LT-04 VR asset delivery, LT-05 building-name search, and LT-06 route playback
-  passed their bounded criteria.
-- LT-07 passed in the owner's already authenticated Chrome profile at phone,
-  tablet, and desktop viewport sizes. The preceding k6 offline-browser attempt
-  is rejected harness evidence: k6 lost the browser process after switching it
-  offline, and the same behavior was reproduced against a minimal local fixture.
-- LT-08 passed all 26 configured thresholds and is recorded **PASS WITH
-  WARNING** because the matching read-only Vercel window contained three
-  session-store timeout-retry warnings.
+The completed local Git-marker cleanup preserved all 17 `output/` files
+(documents/backups and five Word temporary files) and both affected source
+files byte-for-byte. `/output/` is excluded only in this checkout's
+`.git/info/exclude`; `.gitignore` and Git history were not changed. The two
+line-ending-only markers were cleared with scoped Git re-normalization. No
+files were deleted or moved, and no commit, push, test or deployment occurred.
+These local-only documents/exclusions are not part of a clone or source archive.
+Preserve them; a clean Git status does not mean ignored material is disposable.
 
-Exact workloads, counts, timings, screenshots, summaries, and scope limits are
-in `docs/test-evidence.md` and `artifacts/production-load/`.
+The owner reports that panelists requested additional features, but their
+exact requests and priority have not been supplied in this thread. No panel
+feature is implemented, approved for development, or assigned by this handoff.
+Open a new Codex or Claude Code session with the current prompt. Its first
+turn is read-only and context-only: inventory actual tools/MCP/skills, read the
+authority and source map, report discrepancies, then stop and wait. Tool
+availability does not expand authority; do not install missing tools or invoke
+browser/database/vendor tools merely to ground. Prior permissions do not carry
+forward, and no delegated task may exceed the same boundary.
 
-For LT-08, the matching September 21 Production window showed approximately
-5.6K function invocations, 0% function errors, 0% function timeouts, no
-displayed `5xx`, and memory at 341 MB average / 352 MB P75 / 356 MB P95 against
-the displayed 2.05 GB limit. The dashboard TTFB chart was labeled demo data and
-was excluded; memory P99 was not exposed.
+The next move after grounding is for the owner to provide the panelists' exact
+requests, select one focused feature or bug fix, and agree its behavior,
+affected roles/data/offline paths and acceptance checks. Implementation needs
+its own scoped authorization. Resolve the handoff delta through a separately
+authorized commit or other explicit isolation before a fresh feature branch
+from then-current clean `main`; do not discard it or mix it into feature work.
+Do not automatically resume MySQL remediation. One writer owns a scope at a
+time; Codex/Claude coordination, review, tests, database writes, commit/push and
+deployment/promotion each stay within their separately authorized boundaries.
+Report and stop after grounding; wait for the owner's explicit focused task.
 
-A fresh local `npm test` was attempted during checkpoint review but is rejected
-as acceptance evidence and did not emit `QUALITY-GATES OK`. Its documentation
-hash-label finding was corrected afterward and the focused documentation
-secret scanner is green, but the run also exposed a Staff House Vehicle-exit
-exact scene-order assertion in the Supabase/Supabase leg, additional Staff
-House mixed/local failures, and stale or incomplete MySQL VR parity for CCS and
-Academic VI. A subsequent SELECT-only residue audit found zero unexpired
-canonical Supabase sessions but could not resolve the canonical MySQL
-administrator and student identities. The owner explicitly directed that
-MySQL synchronization be skipped for this checkpoint; no MySQL seed, data,
-route, VR, session, schema, or migration repair was performed. MySQL
-synchronization is postponed, not abandoned: it remains required later, but it
-is not the immediate next move and a grounding turn does not authorize it. This
-checkpoint therefore makes no full-suite or current MySQL parity claim and
-relies only on its bounded checkpoint-specific validations.
+## Architecture and rules to preserve
 
-Checkpoint-specific source validation passed the focused current-documentation
-gate, `node --check scripts/quality-gates.js`, byte-identical comparison of the
-11 current continuity blocks after line-ending normalization, inspection of all
-14 current k6 scripts, five network-free k6 regression scripts, parsing of all
-eight PowerShell runners, the artifact privacy scan, verification of all 58
-manifest entries against committed Git bytes, and the scoped non-artifact
-whitespace check. This bounded evidence is not the full quality suite.
+- Node.js >=22, Express 5 and EJS serve the browser/PWA interface. The data
+  access boundary is `repositories/` and `services/`.
+- Supabase/PostgreSQL/PostGIS is the Production data and Express session-store
+  target. MySQL is local/fallback/rehearsal. Supabase Auth is not used.
+- `middleware/roleAuth.js` is the authorization source of truth;
+  `middleware/requireLogin.js` is a compatibility re-export. Keep server-side
+  login/role checks, CSRF, nonce-based CSP/Helmet, input validation, and shared
+  Upstash rate limiting intact. Server service-role access is not per-user RLS.
+- OAuth registration maps supported institutional domains to Student/Faculty
+  and supported personal Gmail to Guest; local public registration cannot
+  create privileged roles. Administrator local login is separate.
+- Room schedules and schedule hotspots exclude Guests; Guest information
+  hotspots require explicit Administrator approval. Authorized online content
+  management does not give a user unrestricted database or vendor access.
+- Directed route edges carry Administrator-authored geometry; Dijkstra selects
+  stored graph connections. Building coordinates, route nodes, directed edges,
+  and ordered VR scene sequences are distinct. Vehicle reverse travel uses
+  independently authored geometry; Walking 2D return reverses its saved path.
+- Cloudinary and approved Google Drive references deliver media. CampuSphere
+  does not manage vendor uploads/accounts. The Drive proxy is authenticated;
+  JPEG/PNG/WebP are supported, not HEIC/HEIF.
+- Never read/disclose `.env`, credentials, signing keys, session/cookie data,
+  live private records or secret values. Documentation is not external access.
+- Do not run servers in the foreground on Windows; later authorized runtime
+  probes use `scripts/with-server.js` and own/logout their sessions. A fresh
+  grounding turn runs no probes, QA, server, browser or database commands.
 
-## Evidence limits and next move
+## Evidence and reading route
 
-Evidence classes remain separate: Git/source truth, local validation, retained
-k6 summaries, owner-controlled Chrome observations, read-only Vercel dashboard
-observations, historical Supabase evidence, predecessor UAT, and external
-client/panel acceptance.
+The October 19 transition record identifies the Walking 2D source entrypoints
+and release. The historical October 17 transition record identifies academic
+artifacts, source entrypoints, manuscript/deck disagreements, cleanup, missing
+evidence and the first report expected from a new session. Historical test
+results remain in `docs/test-evidence.md`; session incident details remain in
+`docs/session-readiness-incident-2026-09-14.md`. The old readiness-query 401 and
+late session-touch double-response defect are separate. `13adb9d` addressed
+recoverable readiness; `b8d2bf2` guarded completed responses; `ab4ae61` added
+sanitized diagnostics. Do not replay old fixes or claim provider reliability.
 
-The suite does not prove 50 distinct accounts, 50 simultaneous Chromium/WebGL
-sessions, write capacity, current MySQL parity, complete OAuth/admin coverage,
-exhaustive route/VR traversal, three physical offline devices, a zero-warning
-Production window, permanent provider availability, or complete immutable
-deployed-byte equality. Final client/panel acceptance remains external.
-
-After the authorized authority commit and push, open a new owner Codex or
-Claude Code session, use its first turn for read-only grounding, and let the
-owner select one focused add/change/remove feature or bug fix. Create a fresh
-branch only from the then-current clean `main`. MySQL synchronization remains
-deferred work, not that immediate feature/bug task. Any later implementation,
-validation, commit, push, database action, browser/vendor action, or deployment
-requires its own scope and authority.
+Authoring and inspecting this handoff proves documentation consistency only.
+It is not fresh application QA, security certification, current database parity,
+Production verification, immutable-byte proof or institutional acceptance.

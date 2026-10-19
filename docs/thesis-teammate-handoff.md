@@ -6,24 +6,21 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
-## Current Release Checkpoint (2026-09-22)
+## Current Release Checkpoint (2026-10-19)
 
-Immediately before the current authority-only synchronization, clean
-local/upstream/remote `main` matched `3d43650` with ahead/behind `0/0` and zero
-stashes. The owner-observed current Production product source remains
-`0e7fe8b`, deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; later
-documentation/test commits `26f8cc6` and `3d43650` were deliberately not
-promoted. The product release includes sanitized session diagnostics,
-explicit Vehicle exit Guided-VR routes, aligned campus maps, and service worker
-`v48`. Current source has 25 Vehicle entry destinations / 486 steps / 101
-unique scenes, 25 Vehicle exit destinations / 545 steps / 105 unique scenes,
-and 25 Walking destinations / 690 steps / 133 unique scenes. Retained LT-01
-through LT-06 passed; LT-07 passed through the owner's authenticated Chrome
-profile with its earlier k6 run retained as rejected harness evidence; and
-LT-08 passed all 26 thresholds with a **PASS WITH WARNING** disposition. Use
-`docs/current-authority.md` and `docs/test-evidence.md` for exact limitations.
-MySQL synchronization remains required later but is not the immediate next
-move and is not authorized by a grounding turn.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
+before older milestones. Walking 2D was released October 18 from application
+baseline `c533719` (feature `9a4a628`). The October 19 saved counter is
+26/26, zero missing; this does not establish visual approval of every walkway.
+Current cache/stylesheet are v52/v13; migration sources extend through 0028.
+
+The owner approved review, documentation/static-check updates, one commit and
+a normal push. Recompute the resulting documentation HEAD rather than treating
+the application baseline as current HEAD. A push may trigger a Vercel build;
+manual promotion, ICTU deployment, database changes and new panelist features
+are excluded. A new session grounds read-only, reports and stops, then waits
+for its owner-selected task. Preserve pending/local documents and one writer
+per scope; prior permissions do not carry forward.
 
 ## What CampuSphere Is
 
@@ -132,7 +129,7 @@ npm start
 
 Do not run the seed against a database containing data that must be preserved.
 Do not apply any migration to the team's Supabase project. A new empty Supabase
-project uses migration files `0001` through `0027` once, in numeric order, as
+project uses migration files `0001` through `0028` once, in numeric order, as
 described in `database/supabase/README.md`.
 
 Approved repository checks are documented in `package.json` and
@@ -200,18 +197,21 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-Live Git must be recomputed because this handoff is self-referential. The
-owner has authorized review, bounded validation, one dedicated authority
-commit, and a normal push to `main`. A later source archive, if wanted, must be
-created from a clean committed SHA with
-`git archive`. An archive recipient cannot independently refresh external
-evidence without owner access.
+Read `docs/current-authority.md`, `docs/session-handoff-2026-10-19.md`, and
+`docs/walking-2d-release-2026-10-18.md` for the completed Walking 2D release.
+Application baseline c533719 is on GitHub; the documentation commit advances
+main separately. October 19 coverage is 26/26 saved paths, zero missing, without
+claiming visual approval of every walkway. Editing/review instructions are in
+`docs/walking-2d-team-guide.md`. Every device needs a connected guide refresh.
 
-After the authorized push, open a new owner Codex or Claude Code session and
-use its first turn only for read-only grounding. The owner may then select one
-focused add/change/remove feature or bug fix and create a fresh branch from
-then-current clean `main`. MySQL
-synchronization remains postponed rather than cancelled: it is still required
-later, is not the immediate next move, and needs separate focused authority.
-No grounding prompt authorizes testing, browser/vendor access, database work,
-commit/push, deployment, promotion, or remediation.
+ICTU's Docker source includes the feature; its saved paths live in Supabase.
+Using the same project reads those paths. A separate database needs an approved
+schema/data transfer. No actual ICTU deployment is established by this handoff.
+Keep source readiness, local tests, Production observations and client acceptance
+separate. A fresh AI session uses the current role prompt, grounds read-only,
+reports and waits for one owner-selected task. New panelist details are not yet
+specified. Preserve local documents and never package credentials or live data.
+
+Create a portable archive only from an approved committed SHA. `git archive`
+excludes local output documents and checkout-local ignore rules. It cannot
+verify live database, vendor, deployment or acceptance state.

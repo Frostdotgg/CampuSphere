@@ -1,26 +1,44 @@
 # Repository Boundary Design
 
-## Current implementation note (2026-09-22)
+## Current migration and release note (2026-10-19)
 
-The repository layer is implemented. Production application data and Express
-sessions target Supabase/PostgreSQL; MySQL is local development, fallback, and
-rehearsal. Supabase Auth is unused, privileged keys remain server-only, and
-Express login/role/CSRF checks enforce per-user access even though the service
-role bypasses RLS. The owner-observed current Production product source is
-`0e7fe8b`, after sanitized session diagnostics in `ab4ae61`; later
-documentation/test commits `26f8cc6` and `3d43650` were deliberately not
-promoted. It retains
-recoverable session readiness and the completed-response guard without changing
-repository interfaces, schemas, migrations, or data. The LT-08 observation
-recorded three session-store retry warnings on successful read-request rows but
-did not prove their later retry outcomes. The retained incident evidence
-confirms a temporary Supabase `401`
-on the readiness query but not the provider's underlying reason. Any later
-authority-only successor must be read from live Git. Current MySQL parity is
-deferred, and its required later synchronization is not the immediate next
-move. The design text below is
-historical architecture guidance where it uses future tense. See
-`docs/current-authority.md` for current evidence.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
+before historical design/migration notes. Production data and Express sessions
+target Supabase/PostgreSQL; MySQL is local/fallback/rehearsal. Supabase Auth is
+not used. Service-role keys stay server-only; Express role/login/CSRF checks
+enforce per-user permissions even though the service role bypasses RLS.
+
+Migration sources are contiguous from 0001 through 0028. They are owner-applied
+on the selected Supabase project, including `0028_walking_2d_routes.sql`;
+Codex did not apply/reapply them. October 18 SELECT-only permissions showed
+anon/authenticated denied SELECT/INSERT/UPDATE/DELETE on walking_routes and
+service_role granted all four. Walking paths use the route backend's building
+identity and are separate from vehicle edges and Walking VR scene sequences.
+The October 19 Administrator counter showed **26/26 saved paths, zero missing**;
+saved coverage does not establish visual approval of every walkway.
+
+The October 18 verified Production deployment is
+`dpl_94jYqWkHoC19cLKnfooTVEG8SCyU`, published source `c533719` containing
+feature `9a4a628`. This is dated evidence, not a fresh vendor/database check.
+The final release logs had 12 Warning rows, 0 Error, 0 Fatal; 200/204 responses
+do not prove each timeout retry's later outcome. Historical session-readiness
+401 evidence and September LT-08's three warnings remain separate records.
+
+MySQL's additive 0028 upgrade and fresh schema exist in source; current MySQL
+migration state and parity remain unverified/deferred. ICTU Docker source is on
+GitHub; saved routes reside in Supabase, not Git. Actual ICTU deployment is not
+established. Do not reapply migrations, repair data, run parity tools or access
+live systems without a focused owner task. This documentation commit/push task
+authorizes no database or deployment operation. Future-tense design below and
+older applied-count checkpoints are historical, not current setup instructions.
+
+Walking 2D currently uses `controllers/walkingRouteController.js`,
+`services/walkingRouteService.js` and `repositories/walkingRouteRepository.js`;
+`services/routeAvailability.js` supplies cross-source identity checks.
+The service handles MySQL queries; the repository handles Supabase operations
+on `walking_routes`. No raw browser Supabase access or Supabase Auth is introduced.
+
+## Historical boundary design (implemented; retained verbatim below)
 
 Design document for the data-access boundary that will be introduced
 between CampuSphere's controllers and the database.

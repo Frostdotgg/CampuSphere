@@ -7015,17 +7015,205 @@ const CURRENT_COURSE_WORKTREE_PACKAGE_SHA256 =
   '9849e3c18c70e54a3502217275724367945ff176be22ce4d20796b5c103dc9ec';
 const CURRENT_RELEASE_LAST_VERIFIED_BASELINE_SHA =
   'fea3b2e11c6331eddc1ee091b165427d8e0218d7';
+const CURRENT_PANEL_HANDOFF_BASELINE_SHA = '87980c5fe03c68b8f59f0b8fbdc263299c2acbce';
+const CURRENT_PANEL_HANDOFF_NOTE = 'docs/session-handoff-2026-10-17.md';
+const CURRENT_PANEL_HANDOFF_HEADING = '## Current Release Continuity (2026-10-17 panel-feature handoff)';
+const CURRENT_WALKING_HANDOFF_BASELINE_SHA = 'c5337195a02d358c71c5a421aaf64268755b5d6f';
+const CURRENT_WALKING_FEATURE_SHA = '9a4a628a84f3333071d4d45ad548d98c4d8223d5';
+const CURRENT_WALKING_DEPLOYMENT = 'dpl_94jYqWkHoC19cLKnfooTVEG8SCyU';
+const CURRENT_WALKING_HANDOFF_NOTE = 'docs/session-handoff-2026-10-19.md';
+const CURRENT_WALKING_HANDOFF_HEADING = '## Current Release Continuity (2026-10-19 Walking 2D release handoff)';
+
+/** PURE: dated Walking 2D release facts, limits and next-session scope.
+ * Checks are bounded documentation contracts, not general language analysis.
+ * Historical validators below continue to validate their archived fixtures.
+ */
+function walkingReleaseHandoffProblems(value, { prompt = false } = {}) {
+  const t = String(value == null ? '' : value).replace(/[`*]/g, '').replace(/\s+/g, ' ').trim();
+  const problems = [];
+  const need = (name, pass) => { if (!pass) problems.push(name); };
+  need('dated current reading route and application identities',
+    t.includes('docs/current-authority.md') && t.includes(CURRENT_WALKING_HANDOFF_NOTE) &&
+    t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) && t.includes(CURRENT_WALKING_FEATURE_SHA) &&
+    /application release baseline/i.test(t) && /resulting documentation commit/i.test(t) &&
+    /recompute live Git truth/i.test(t));
+  need('dated Production deployment and approved staged release sequence',
+    t.includes(CURRENT_WALKING_DEPLOYMENT) && /October 18 verified Production/i.test(t) &&
+    /not a fresh October 19 vendor check/i.test(t) && /staged Production build/i.test(t) &&
+    /approved checking offline immediately after promotion/i.test(t) &&
+    /no Production secrets were copied to Preview/i.test(t) && /protection was not disabled/i.test(t));
+  need('current saved coverage is distinct from visual approval and older snapshots',
+    /October 19 Administrator counter showed 26\/26 saved walking paths, zero missing/i.test(t) &&
+    /1\/26/.test(t) && /2\/26/.test(t) && /historical snapshots/i.test(t) &&
+    /Saved coverage does not establish visual approval of every walkway or exhaustive route traversal/i.test(t));
+  need('current caches, migration source and owner application boundary',
+    /Current service worker is v52; shared stylesheet is v13/i.test(t) &&
+    /migration sources are contiguous from 0001 through 0028/i.test(t) &&
+    /owner applied 0028; Codex did not apply\/reapply it/i.test(t) &&
+    /anon\/authenticated denied SELECT\/INSERT\/UPDATE\/DELETE/i.test(t) &&
+    /service_role granted all four/i.test(t) && /Supabase Auth is not used/i.test(t));
+  need('Walking 2D geometry and separate vehicle/Walking VR identities',
+    /13\.405710/.test(t) && /123\.374181/.test(t) && /existing building pin/i.test(t) &&
+    /return reverses that same walking path with equal distance\/time/i.test(t) &&
+    /Vehicle return geometry remains independently authored/i.test(t) &&
+    /Walking VR is a separate catalog/i.test(t) && /Mixed-source IDs require route-source identity/i.test(t) &&
+    /no straight-line substitute/i.test(t));
+  need('offline device refresh and older-guide compatibility',
+    /each device must refresh its downloaded guide/i.test(t) && /IndexedDB/.test(t) &&
+    /Cache Storage is shell\/static-only/.test(t) && /Older saved guides retain Vehicle navigation and request an update for Walking/i.test(t) &&
+    /schedules\/images/.test(t) && /panoramas/.test(t));
+  need('focused tests remain dated, without full-suite or live parity claims',
+    /October 18 focused results are retained evidence, not fresh tests/i.test(t) &&
+    /118\/118/.test(t) && /49\/49/.test(t) && /148\/148/.test(t) && /75\/75/.test(t) &&
+    /Production smoke passed 16\/16/i.test(t) && /five sampled committed asset matches/i.test(t) &&
+    /No full npm test\/qa pass, live MySQL parity, physical-device offline acceptance/i.test(t));
+  need('warning window and visual capture limits remain explicit',
+    /12 Warning rows, 0 Error, 0 Fatal/i.test(t) && /touch timeout retries/i.test(t) &&
+    /200\/204 responses do not prove each retry's later outcome/i.test(t) &&
+    /not a zero-warning window/i.test(t) && /Leaflet's live external tiles were unavailable/i.test(t) &&
+    /automated online visual captures showed a blank canvas/i.test(t) &&
+    /owner confirmed visible buildings\/roads/i.test(t) &&
+    /Complete online pixel verification is not claimed/i.test(t));
+  need('runtime package source identity is not immutable deployment proof',
+    /213 files, 8,755,240 bytes/i.test(t) &&
+    t.includes('55bd59fb311569ef55a137f1d6bcbe9e56844dc4cf607555af12f54740a49990') &&
+    /not complete immutable deployed-byte proof/i.test(t));
+  need('ICTU source readiness is separate from saved data and actual deployment',
+    /ICTU Docker code is on GitHub/i.test(t) && /saved routes reside in Supabase, not Git/i.test(t) &&
+    /Source readiness is not proof of an actual ICTU deployment/i.test(t));
+  need('bounded commit/push task does not grant future execution permissions',
+    /owner authorized reviewing\/updating the 21 documentation\/static-check paths, one commit and a normal push to main/i.test(t) &&
+    /manual promotion, ICTU deployment and database changes are excluded/i.test(t) &&
+    /A push may trigger an automatic build/i.test(t) && /one writer/i.test(t) &&
+    /read-only and context-only/i.test(t) && /report and stop after grounding/i.test(t) &&
+    /Prior permissions do not carry forward/i.test(t) && /Availability does not expand authority/i.test(t) &&
+    /next panelist change is not yet specified/i.test(t));
+  if (prompt) {
+    const surfaces = ['AGENTS.md','CLAUDE.md','CODEX_HANDOFF.md','CLAUDE_HANDOFF.md',
+      'plan.md','ROADMAP.md','README.md','docs/thesis-teammate-handoff.md',
+      'docs/test-evidence.md','docs/deployment.md','docs/security-checklist.md',
+      'docs/demo-script.md','docs/offline-map-refresh.md','docs/walking-2d-release-2026-10-18.md',
+      'docs/walking-2d-team-guide.md','database/supabase/README.md','database/supabase/REPOSITORY_BOUNDARIES.md',
+      'package.json','.vercelignore','.gitattributes','.gitignore'];
+    need('complete standalone first-turn prompt and safe local Git/tool scope',
+      surfaces.every(x => t.includes(x)) && /initial grounding turn/.test(t) &&
+      /Discover the repository root/.test(t) && /Do not edit files, review a pending diff, run tests\/QA\/probes/.test(t) &&
+      /Never read, print, summarize, compare, or package \.env/.test(t) &&
+      /Inventory the tools, MCP\/connectors, and skills actually available/.test(t) &&
+      /Read an applicable skill's complete instructions/.test(t) &&
+      /grounding-only restrictions apply to the first turn\. Later work requires a focused owner request/.test(t) &&
+      /including the read-only remote Git lookup/.test(t) && /Do not fetch, pull, reset, clean/.test(t) &&
+      /Stop and wait for the owner's explicit task/.test(t));
+  }
+  const unsupported = [
+    /(?:Current (?:live )?MySQL parity is verified|Current npm test passed|The full suite passed)/i,
+    /All 26 (?:walking )?(?:paths|routes|walkways) (?:are|were|have been) (?:visually approved|visually verified|fully verified|walked)/i,
+    /(?:complete immutable deployed-byte equality is verified|ICTU (?:is|has been) deployed)/i,
+    /(?:The previous database approval still applies|The earlier deployment permission carries forward)/i,
+    /(?:This grounding prompt authorizes deployment|Tool availability grants permission|MCP availability authorizes database access)/i,
+    /(?:Implement the panel features now|Run npm test now|Deploy now|Run parity pruning now)/i,
+    /(?:Production currently serves 87980c5|The current coverage is [012]\/26|The current service worker is v50)/i,
+    /(?:This release had zero warnings|There were no session retry warnings)/i,
+  ];
+  if (unsupported.some(rule => rule.test(t))) problems.push('unsupported verification or inherited permission claim');
+  return problems;
+}
+
 const CURRENT_RELEASE_CONTINUITY_START = '<!-- M12 RELEASE CONTINUITY START -->';
 const CURRENT_RELEASE_CONTINUITY_END = '<!-- M12 RELEASE CONTINUITY END -->';
 
+/** PURE: October transition facts must not promote source/history into live evidence.
+ * Shared by current summaries and each independently checked owner prompt.
+ * Historical checkpoint analyzers below remain intact for their own fixtures.
+ */
+function panelFeatureHandoffProblems(value, { prompt = false } = {}) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  const problems = [];
+  const need = (name, condition) => { if (!condition) problems.push(name); };
+  need('October pre-sync Git identity and canonical reading route',
+    t.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA) && t.includes(CURRENT_PANEL_HANDOFF_NOTE) &&
+    t.includes('docs/current-authority.md') && /pre-synchronization baseline/i.test(t) &&
+    /zero stashes/i.test(t) && /0\/0/.test(t) && /origin\/main/.test(t));
+  need('approved finalization starts from unaccepted drafts, not a clean checkpoint',
+    /15 modified tracked files and one untracked handoff draft/i.test(t) &&
+    /assistant drafts were review inputs, not an accepted checkpoint/i.test(t) &&
+    /(?:nothing was staged|an empty index)/i.test(t));
+  need('later source history and current service-worker generation',
+    ['b502c80','a3a0bfa','e275abe','f695585','87980c5'].every(x => t.includes(x)) &&
+    /(?:cache key is|service worker is|service-worker is) `?v50`?/i.test(t));
+  need('current three source catalogs',
+    /25 Vehicle entry destinations \/ 486 steps \/ 101 unique scenes/i.test(t) &&
+    /25 Vehicle exit destinations \/ 545 steps \/ 105 unique scenes/i.test(t) &&
+    /25 Walking destinations \/ 690 steps \/ 133 unique scenes/i.test(t));
+  need('recorded freeze is not current DB parity or repair authority',
+    /2026-09-24/.test(t) && /670 scenes/.test(t) && /1,465 hotspots/.test(t) &&
+    /not (?:a )?fresh live MySQL parity/i.test(t) && /(?:repair|prun)/i.test(t));
+  need('application-owned sessions, role boundary and migration non-reapply',
+    /Supabase\/PostgreSQL/.test(t) && /Supabase Auth is not used/.test(t) &&
+    /Guests[^.]{0,150}(?:not room schedules|not schedules)/i.test(t) &&
+    /0027/.test(t) && /Do not apply\/reapply migrations/i.test(t));
+  need('separate user guide, shell cache, offline exclusions and in-app notifications',
+    /IndexedDB/.test(t) && /Cache Storage/.test(t) && /shell\/static/.test(t) &&
+    /(?:signed-in user explicitly|user-downloaded)/i.test(t) &&
+    /(?:reconnect|Disconnected users)/i.test(t) && /schedules\/images/.test(t) &&
+    /(?:panoramas|all 360)/.test(t) && /(?:not SMS\/email|not SMS\/email\/closed-app phone push)/i.test(t));
+  need('last recorded Production identity is not fresh deployment evidence',
+    t.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) && /0e7fe8b/.test(t) &&
+    /last recorded owner-observed Production deployment/i.test(t) &&
+    /Production promotion remains an owner decision/i.test(t) &&
+    /(?:not refreshed|not checked|unverified here|not reverified)/i.test(t) &&
+    /(?:later source commits|later product commits|later source deployment)/i.test(t));
+  need('retained load evidence and fresh-verification limits',
+    /LT-01 through LT-06 passed/i.test(t) && /LT-07 passed[^.]{0,140}authenticated Chrome/i.test(t) &&
+    /rejected harness evidence/i.test(t) && /LT-08 passed all 26 (?:configured )?thresholds/i.test(t) &&
+    /PASS WITH WARNING/i.test(t) && /three session-store[^.]{0,50}(?:retry warnings|timeout-retry warnings)/i.test(t) &&
+    /(?:no fresh full QA|no full npm test\/qa)/i.test(t) && /(?:institutional acceptance|institutional adoption)/i.test(t));
+  need('local document preservation and checkout-only exclusion',
+    /(?:all )?17 (?:`?output\/`? files|output files)/i.test(t) && /byte-for-byte/i.test(t) &&
+    /\.git\/info\/exclude/.test(t) && /(?:local-only|not automatically present|not part of a clone)/i.test(t));
+  need('missing panel requests, one writer and explicit wait boundary',
+    /panel/i.test(t) && /(?:not been supplied|no exact feature list|not yet supplied)/i.test(t) &&
+    /(?:No panel feature is|No panel feature).*?(?:authorized|approved)/i.test(t) &&
+    /one writer/i.test(t) && /(?:Report and stop after grounding|stop and wait)/i.test(t) &&
+    /(?:availability does not expand authority|Availability is not authorization)/i.test(t) &&
+    /(?:Commit\/push is not authorized|did not authorize commit\/push)/i.test(t));
+  need('a separately scoped feature and preserved handoff delta precede implementation',
+    /(?:focused feature or bug fix|focused add\/change\/remove feature or bug fix)/i.test(t) &&
+    /(?:fresh feature branch|fresh branch)/i.test(t) &&
+    /then-current clean `?main`?/i.test(t) && /(?:Preserve any pending documentation delta|never clean it away)/i.test(t));
+  if (prompt) {
+    const surfaces = ['AGENTS.md','CLAUDE.md','CODEX_HANDOFF.md','CLAUDE_HANDOFF.md',
+      'plan.md','ROADMAP.md','README.md','docs/thesis-teammate-handoff.md',
+      'docs/test-evidence.md','docs/deployment.md','docs/security-checklist.md',
+      'docs/demo-script.md','docs/offline-map-refresh.md',
+      'docs/session-readiness-incident-2026-09-14.md','database/supabase/README.md',
+      'database/supabase/REPOSITORY_BOUNDARIES.md','load-tests/production/README.md',
+      'package.json','.vercelignore','.gitattributes','.gitignore'];
+    need('complete independent grounding prompt and tool/permission limits',
+      surfaces.every(x => t.includes(x)) && /initial grounding turn/.test(t) &&
+      /Discover the repository root/.test(t) && /read-only and context-only/.test(t) &&
+      /Do not edit files[^.]{0,180}run tests\/QA\/probes/i.test(t) &&
+      /Never read, print, summarize, compare, or package `?\.env`?/i.test(t) &&
+      /Inventory the tools, MCP\/connectors, and skills actually available/i.test(t) &&
+      /Read an applicable skill's complete instructions/i.test(t) &&
+      /Completed repair, revocation, commit, push, and promotion permissions[^.]{0,100}do not carry forward/i.test(t) &&
+      /grounding-only restrictions apply to the first turn\. Later work requires a focused owner request/i.test(t) &&
+      /including the read-only remote Git lookup/i.test(t) &&
+      /git ls-remote/.test(t) && /Stop and wait for the owner's explicit task/i.test(t) &&
+      !/[A-Z]:\\Users\\/i.test(t));
+  }
+  need('no unsupported current acceptance, deployment or inherited permission claim',
+    !/Current live MySQL parity is verified|Current npm test passed|Production currently serves 87980c5|Panel features are authorized now|Tool availability grants permission|Run parity pruning now/i.test(t) &&
+    !/(?:previous|earlier) (?:database approval|deployment permission) (?:still applies|carries forward)|MCP availability authorizes database access|This grounding prompt authorizes deployment/i.test(t) &&
+    !/(?:^|[.!?]\s+)(?:Implement the panel features now|Run `?npm test`? now|Deploy now)\./i.test(t));
+  return problems;
+}
+
 /**
- * PURE: validate the post-course release handoff without converting the
- * owner's Vercel/OAuth/local observations into independent production
- * evidence or promoting the current dirty worktree into accepted evidence.
- *
- * With requireMarkers=true, exactly one bounded continuity block is required.
- * Reusable prompt bodies carry the same facts without the HTML markers, so the
- * caller may explicitly validate the entire body instead.
+ * PURE: validate the current handoff without upgrading recorded observations.
+ * With requireMarkers=true, exactly one ordered continuity block is required.
+ * Prompt bodies can be checked explicitly without HTML markers. Historical
+ * branches retain their original checkpoint-specific regression coverage.
  * @returns {string[]} problems (empty = current and bounded)
  */
 function currentReleaseContinuityProblems(value, { requireMarkers = true } = {}) {
@@ -7052,7 +7240,16 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  /* Current September 22 post-load-test handoff checkpoint. */
+  if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes('2026-10-19 Walking 2D release handoff')) {
+    return walkingReleaseHandoffProblems(t);
+  }
+
+  if (t.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA) ||
+      t.includes('2026-10-17 panel-feature handoff')) {
+    return panelFeatureHandoffProblems(t);
+  }
+
+  /* Historical September 22 post-load-test handoff checkpoint. */
   if (t.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA)) {
     if (!/docs\/current-authority\.md/i.test(t) ||
         !/docs\/new-session-grounding-prompts\.md/i.test(t) ||
@@ -8448,6 +8645,12 @@ function currentOfflineCorrectionEvidenceProblems(value) {
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
+  if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
+    return walkingReleaseHandoffProblems(t, { prompt: true }).length === 0;
+  }
+  if (t.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_PANEL_HANDOFF_NOTE)) {
+    return panelFeatureHandoffProblems(t, { prompt: true }).length === 0;
+  }
 
   if (t.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA)) {
     const requiredSurfaces = [
@@ -9032,6 +9235,14 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
+  }
+  if (t.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_PANEL_HANDOFF_NOTE)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
+  }
   if (t.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
@@ -9108,6 +9319,14 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
+  }
+  if (t.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_PANEL_HANDOFF_NOTE)) {
+    return reusablePromptIsCurrent(t) &&
+      /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
+  }
   if (t.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn/i.test(t) &&
@@ -10121,6 +10340,15 @@ function recordsPostDeploymentAuthority(text) {
   const current = currentDeploymentAuthorityScope(text);
   const t = current.replace(/\s+/g, ' ');
 
+  if (current.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA)) {
+    return walkingReleaseHandoffProblems(current).length === 0;
+  }
+
+  // A transition records the last known deployment; it does not refresh it.
+  if (current.includes(CURRENT_PANEL_HANDOFF_BASELINE_SHA)) {
+    return panelFeatureHandoffProblems(current).length === 0;
+  }
+
   /* September 22 live authority binds the current product release to its
      owner-observed Production deployment and bounded LT-08 monitoring window. */
   if (current.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA)) {
@@ -10948,6 +11176,12 @@ function runDocsCurrentGate() {
     'docs/deployment.md': readIf(path.join('docs', 'deployment.md')),
     'docs/offline-map-refresh.md': readIf(path.join('docs', 'offline-map-refresh.md')),
     'docs/current-authority.md': readIf(path.join('docs', 'current-authority.md')),
+    [CURRENT_PANEL_HANDOFF_NOTE]: readIf(CURRENT_PANEL_HANDOFF_NOTE),
+    [CURRENT_WALKING_HANDOFF_NOTE]: readIf(CURRENT_WALKING_HANDOFF_NOTE),
+    'docs/walking-2d-release-2026-10-18.md': readIf('docs/walking-2d-release-2026-10-18.md'),
+    'docs/walking-2d-team-guide.md': readIf('docs/walking-2d-team-guide.md'),
+    'database/supabase/README.md': readIf('database/supabase/README.md'),
+    'database/supabase/REPOSITORY_BOUNDARIES.md': readIf('database/supabase/REPOSITORY_BOUNDARIES.md'),
     'docs/session-readiness-incident-2026-09-14.md': readIf(path.join('docs', 'session-readiness-incident-2026-09-14.md')),
     'docs/thesis-teammate-handoff.md': readIf(path.join('docs', 'thesis-teammate-handoff.md')),
     'docs/new-session-grounding-prompts.md': readIf(path.join('docs', 'new-session-grounding-prompts.md')),
@@ -10960,8 +11194,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-09-22';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-09-22';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-19';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-10-19';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -11000,17 +11234,17 @@ function runDocsCurrentGate() {
   liveDateProblems.forEach((problem) => console.error('    - current-date: ' + problem));
 
   const DATE_FIXTURE = {
-    'AGENTS.md': '## Current Release Continuity (2026-09-22)',
-    'CLAUDE.md': '## Current Release Continuity (2026-09-22)',
-    'CODEX_HANDOFF.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
-    'CLAUDE_HANDOFF.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
-    'plan.md': '## Current Release Continuity (2026-09-22)',
-    'ROADMAP.md': '## Current Release Continuity (2026-09-22)',
-    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-09-22 (Asia/Manila)\n## Current Release Continuity (2026-09-22)',
-    'docs/demo-script.md': '## Current Release Continuity (2026-09-22)',
-    'docs/deployment.md': '## Current Release Continuity (2026-09-22)',
-    'docs/security-checklist.md': '## Current Release Continuity (2026-09-22)',
-    'docs/test-evidence.md': '## Current Release Continuity (2026-09-22)',
+    'AGENTS.md': '## Current Release Continuity (2026-10-19)',
+    'CLAUDE.md': '## Current Release Continuity (2026-10-19)',
+    'CODEX_HANDOFF.md': 'Last updated: 2026-10-19 (Asia/Manila)\n## Current Release Continuity (2026-10-19)',
+    'CLAUDE_HANDOFF.md': 'Last updated: 2026-10-19 (Asia/Manila)\n## Current Release Continuity (2026-10-19)',
+    'plan.md': '## Current Release Continuity (2026-10-19)',
+    'ROADMAP.md': '## Current Release Continuity (2026-10-19)',
+    'docs/new-session-grounding-prompts.md': 'Last updated: 2026-10-19 (Asia/Manila)\n## Current Release Continuity (2026-10-19)',
+    'docs/demo-script.md': '## Current Release Continuity (2026-10-19)',
+    'docs/deployment.md': '## Current Release Continuity (2026-10-19)',
+    'docs/security-checklist.md': '## Current Release Continuity (2026-10-19)',
+    'docs/test-evidence.md': '## Current Release Continuity (2026-10-19)',
   };
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
@@ -11170,9 +11404,13 @@ function runDocsCurrentGate() {
 
   for (const name of migrationDocs) {
     const doc = docs[name].replace(/\s+/g, ' ');
-    ok(`${name} records migrations through 0027`, /0001[\s\S]{0,2000}0027/.test(doc));
-    ok(`${name} records 0001-0027 owner-applied`,
-      /0001[\s\S]{0,120}0027[\s\S]{0,180}owner-applied|owner-applied[\s\S]{0,240}0001[\s\S]{0,120}0027/i.test(doc));
+    // The unmodified environment template retains its dated 0027 checkpoint.
+    // Current documentation must describe the owner-applied 0028 inventory.
+    const migrationEnd = name === '.env.example' ? '0027' : '0028';
+    ok(`${name} records migrations through ${migrationEnd}`,
+      new RegExp('0001[\\s\\S]{0,2000}' + migrationEnd).test(doc));
+    ok(`${name} records 0001-${migrationEnd} owner application`,
+      new RegExp('0001.{0,120}' + migrationEnd + '.{0,180}(?:owner-applied|owner applied)|(?:owner-applied|owner applied).{0,240}0001.{0,120}' + migrationEnd, 'i').test(doc));
   }
 
   for (const name of architectureDocs) {
@@ -11497,21 +11735,23 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the September 22 post-load-test handoff boundary`,
+    ok(`${name} records the October 19 Walking 2D release handoff boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
 
   function normalizedCurrentReleaseSection(value) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf('## Current Release Continuity (2026-09-22 post-load-test handoff checkpoint)');
-    const historical = raw.indexOf('## Historical Release Continuity', start);
-    if (start < 0 || historical <= start) return '';
-    return raw.slice(start, historical).replace(/[ \t]+$/gm, '').trim();
+    const start = raw.indexOf(CURRENT_WALKING_HANDOFF_HEADING);
+    if (start < 0) return '';
+    const afterHeading = start + CURRENT_WALKING_HANDOFF_HEADING.length;
+    const nextHeading = raw.slice(afterHeading).search(/^## /m);
+    const end = nextHeading < 0 ? raw.length : afterHeading + nextHeading;
+    return raw.slice(start, end).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative September 22 post-load-test summaries are exactly synchronized',
+  ok('all eleven operative October 19 Walking 2D summaries are exactly synchronized',
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
 
@@ -11519,42 +11759,177 @@ function runDocsCurrentGate() {
   const currentAuthorityText = currentAuthority.replace(/\s+/g, ' ').trim();
   const incidentRecord = docs['docs/session-readiness-incident-2026-09-14.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
-  ok('canonical current authority records the September 22 post-load-test Git, Production, MySQL, and next-move boundaries',
-    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_HANDOFF_BASELINE_SHA) &&
-    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_PRODUCT_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_AUTHORITY_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID) &&
-    currentAuthority.includes(CURRENT_COMPLETED_RESPONSE_RELEASE_COMMIT_SHA.slice(0, 7)) &&
-    currentAuthority.includes(CURRENT_SESSION_RESILIENCE_RELEASE_COMMIT_SHA.slice(0, 7)) &&
-    /Last updated: 2026-09-22/i.test(currentAuthority) &&
-    /clean worktree[^.]{0,100}zero stashes[^.]{0,100}ahead\/behind `?0\/0`?/i.test(currentAuthorityText) &&
-    /authorized for review, bounded validation, one dedicated authority commit, and a normal push to `?main`?/i.test(currentAuthorityText) &&
-    /No deployment, promotion, database, migration,[^.]{0,100}browser,[^.]{0,100}vendor mutation is authorized/i.test(currentAuthorityText) &&
-    /Vehicle entry \| 25 \| 486 \| 101/i.test(currentAuthority) &&
-    /Vehicle exit \| 25 \| 545 \| 105/i.test(currentAuthority) &&
-    /Walking \| 25 \| 690 \| 133/i.test(currentAuthority) &&
-    /cache key is `?v48`?/i.test(currentAuthority) &&
-    /Migration sources remain contiguous through `?0027`?/i.test(currentAuthority) &&
-    /LT-01 through LT-08/i.test(currentAuthority) &&
-    /LT-07 passed[^.]{0,160}authenticated Chrome/i.test(currentAuthority) &&
-    /rejected harness evidence/i.test(currentAuthority) &&
-    /LT-08 passed all 26 configured thresholds/i.test(currentAuthority) &&
-    /PASS WITH\s+WARNING/i.test(currentAuthority) &&
-    /5\.6K function invocations/i.test(currentAuthority) &&
-    /0% function errors[^.]{0,80}0% function timeouts/i.test(currentAuthority) &&
-    /341 MB average \/ 352 MB P75 \/ 356 MB P95/i.test(currentAuthority) &&
-    /fresh local `?npm test`?[^.]{0,120}rejected[^.]{0,120}acceptance evidence/i.test(currentAuthorityText) &&
-    /did not emit `?QUALITY-GATES OK`?/i.test(currentAuthorityText) &&
-    /Staff House Vehicle-exit[^.]{0,160}Supabase\/Supabase leg/i.test(currentAuthorityText) &&
-    /MySQL synchronization is postponed, not abandoned/i.test(currentAuthorityText) &&
-    /required later[^.]{0,100}not the immediate next move/i.test(currentAuthorityText) &&
-    /no MySQL seed, data, route, VR, session, schema, or migration repair was performed/i.test(currentAuthorityText) &&
-    /makes no full-suite or current MySQL parity claim/i.test(currentAuthorityText) &&
-    /does not prove 50 distinct accounts/i.test(currentAuthority) &&
-    /complete immutable deployed-byte equality/i.test(currentAuthority) &&
-    /After the authorized authority commit and push[^.]{0,120}open a new owner Codex or Claude Code session/i.test(currentAuthorityText) &&
-    /owner select one focused add\/change\/remove feature or bug fix/i.test(currentAuthorityText) &&
-    /fresh branch[^.]{0,180}then-current clean `?main`?/i.test(currentAuthorityText));
+  const transitionNote = docs[CURRENT_PANEL_HANDOFF_NOTE];
+  ok('canonical current authority records the October source, evidence and next-task boundaries',
+    walkingReleaseHandoffProblems(normalizedCurrentReleaseSection(currentAuthority)).length === 0 &&
+    /Last updated: 2026-10-19/.test(currentAuthority) &&
+    /Architecture and rules to preserve/.test(currentAuthority));
+  ok('detailed transition note preserves source map, local research artifacts and missing panel requests',
+    /Last updated: 2026-10-17/.test(transitionNote) &&
+    /87980c5fe03c68b8f59f0b8fbdc263299c2acbce/.test(transitionNote) &&
+    /Source map for the next focused task/.test(transitionNote) &&
+    /CampuSphere_Defense_Script_v10_Selected_Slides/.test(transitionNote) &&
+    /chat-only/.test(transitionNote) && /not inserted into DOCX/.test(currentAuthority + transitionNote) &&
+    /not been supplied/.test(transitionNote) && /One writer/.test(transitionNote));
+  // Keep the October 17 fixture tied to the archived checkpoint, not the new release.
+  const historicalOctoberHeading = '## Historical Release Continuity (2026-10-17 panel-feature handoff; superseded)';
+  const historicalOctoberSource = docs['CODEX_HANDOFF.md'];
+  const historicalOctoberAt = historicalOctoberSource.indexOf(historicalOctoberHeading);
+  const historicalOctoberEnd = historicalOctoberSource.indexOf('## Historical Release Continuity', historicalOctoberAt + historicalOctoberHeading.length);
+  const historicalOctoberSection = historicalOctoberSource.slice(historicalOctoberAt, historicalOctoberEnd)
+    .replace(historicalOctoberHeading, CURRENT_PANEL_HANDOFF_HEADING);
+  const OCTOBER_FIXTURE = CURRENT_RELEASE_CONTINUITY_START + '\n' + historicalOctoberSection + '\n' + CURRENT_RELEASE_CONTINUITY_END;
+  ok('fixture: October handoff is accepted independently of retained history',
+    currentReleaseContinuityProblems(OCTOBER_FIXTURE).length === 0);
+  for (const [name, from, to] of [
+    ['Git baseline', CURRENT_PANEL_HANDOFF_BASELINE_SHA, 'cccccccccccccccccccccccccccccccccccccccc'],
+    ['finalization snapshot', '15 modified tracked files', 'a clean worktree'],
+    ['unaccepted draft provenance', 'review inputs, not an accepted checkpoint', 'accepted checkpoint'],
+    ['cache generation', '`v50`', '`v48`'],
+    ['catalog', '545 steps', '544 steps'],
+    ['deployment identity', CURRENT_PRODUCTION_LOAD_VERCEL_DEPLOYMENT_ID, 'dpl_wrong'],
+    ['warning disposition', 'PASS WITH WARNING', 'PASS WITHOUT WARNING'],
+    ['owner promotion boundary', 'Production promotion remains an owner decision', 'Production promotion is automatic'],
+    ['local ignore location', '.git/info/exclude', '.gitignore'],
+    ['missing panel scope', 'have not been supplied', 'have been approved'],
+    ['no commit authority', 'Commit/push is not authorized', 'Commit/push is authorized'],
+  ]) {
+    ok('fixture: October ' + name + ' drift fails closed',
+      OCTOBER_FIXTURE.includes(from) &&
+      currentReleaseContinuityProblems(OCTOBER_FIXTURE.split(from).join(to)).length > 0);
+  }
+  // Bounded contradictory-claim fixtures, not a general natural-language safety proof.
+  const unsupportedOctoberClaims = ['Current live MySQL parity is verified.', 'Current npm test passed.',
+    'Production currently serves 87980c5.', 'Panel features are authorized now.',
+    'Tool availability grants permission.', 'Run parity pruning now.',
+    'The previous database approval still applies.',
+    'The earlier deployment permission carries forward.',
+    'MCP availability authorizes database access.',
+    'This grounding prompt authorizes deployment.',
+    'Implement the panel features now.', 'Run npm test now.', 'Deploy now.'];
+  for (const claim of unsupportedOctoberClaims) {
+    ok('fixture: October unsupported claim rejected: ' + claim,
+      currentReleaseContinuityProblems(OCTOBER_FIXTURE.replace(CURRENT_RELEASE_CONTINUITY_END,
+        claim + '\n' + CURRENT_RELEASE_CONTINUITY_END)).length > 0);
+  }
+  const octoberOwnerPrompts = {};
+  for (const [role, title] of [['codex','Codex'], ['claude','Claude Code']]) {
+    const archive = docs['docs/new-session-grounding-prompts.md'];
+    const heading = '## Historical ' + title + ' Grounding Prompt (2026-10-17; superseded)';
+    const at = archive.indexOf(heading);
+    const start = archive.indexOf('```text\n', at);
+    const end = archive.indexOf('\n```', start);
+    octoberOwnerPrompts[role] = start >= 0 && end > start ? archive.slice(start + 8, end) : '';
+  }
+  for (const role of ['codex', 'claude']) {
+    const body = octoberOwnerPrompts && octoberOwnerPrompts[role];
+    ok('fixture: October ' + role + ' prompt is independently complete and bounded',
+      Boolean(body) && panelFeatureHandoffProblems(body, { prompt: true }).length === 0);
+    ok('fixture: October ' + role + ' wait-boundary check requires its own role',
+      Boolean(body) && (role === 'codex'
+        ? reusableCodexPromptHasWaitBoundary(body) && !reusableClaudePromptHasWaitBoundary(body)
+        : reusableClaudePromptHasWaitBoundary(body) && !reusableCodexPromptHasWaitBoundary(body)));
+    for (const claim of unsupportedOctoberClaims) {
+      ok('fixture: October ' + role + ' independently rejects: ' + claim,
+        Boolean(body) && !reusablePromptIsCurrent(body + '\n' + claim));
+    }
+    for (const [name, from, to] of [
+      ['draft provenance', 'review inputs, not an accepted', 'accepted'],
+      ['first-turn scope', 'grounding-only restrictions apply to the first turn', 'restrictions apply indefinitely'],
+      ['remote inspection scope', 'including the read-only remote Git lookup', 'including any external operation'],
+    ]) {
+      ok('fixture: October ' + role + ' rejects missing ' + name,
+        Boolean(body) && body.includes(from) && !reusablePromptIsCurrent(body.replace(from, to)));
+    }
+  }
+  // Independent literals pin rejection targets; removing a claim must fail even
+  // if historical sections still contain the old release facts.
+  const walkingFixture = currentSections[0];
+  ok('Walking 2D current summary independently validates without historical sections',
+    walkingReleaseHandoffProblems(walkingFixture).length === 0);
+  for (const [name, from, to] of [
+    ['published source', 'c5337195a02d358c71c5a421aaf64268755b5d6f', '87980c5fe03c68b8f59f0b8fbdc263299c2acbce'],
+    ['feature source', '9a4a628a84f3333071d4d45ad548d98c4d8223d5', '0000000000000000000000000000000000000000'],
+    ['Production identity', 'dpl_94jYqWkHoC19cLKnfooTVEG8SCyU', 'dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS'],
+    ['coverage date', 'October 19 Administrator counter', 'October 18 Administrator counter'],
+    ['saved coverage', '26/26 saved walking paths', '2/26 saved walking paths'],
+    ['missing count', 'zero\nmissing', '24\nmissing'],
+    ['cache generation', '`v52`', '`v50`'],
+    ['stylesheet generation', '`v13`', '`v12`'],
+    ['migration inventory', 'through `0028`', 'through `0027`'],
+    ['warning count', '12 Warning rows', '0 Warning rows'],
+    ['omitted warning window', '**12 Warning rows, 0 Error,\n0 Fatal**', 'no recorded warning window'],
+    ['omitted visual limit', 'Complete online pixel verification is not claimed.', ''],
+    ['retry uncertainty', "responses do not prove each retry's later outcome", "responses prove each retry's later outcome"],
+    ['visual approval limit', 'Saved coverage does not\nestablish visual approval', 'Saved coverage establishes visual approval'],
+    ['first-turn permissions', 'Prior permissions do not carry forward', 'Prior permissions carry forward'],
+    ['runtime package', '8,755,240 bytes', '8,755,241 bytes'],
+  ]) {
+    ok('fixture: Walking 2D rejects incorrect ' + name,
+      walkingFixture.includes(from) && walkingReleaseHandoffProblems(walkingFixture.split(from).join(to)).length > 0);
+  }
+  const walkingUnsupportedClaims = [
+    'All 26 walking paths are visually approved.', 'All 26 routes have been fully verified.',
+    'Current live MySQL parity is verified.', 'Current npm test passed.', 'The full suite passed.',
+    'Complete immutable deployed-byte equality is verified.', 'ICTU has been deployed.',
+    'The previous database approval still applies.', 'The earlier deployment permission carries forward.',
+    'This grounding prompt authorizes deployment.', 'Tool availability grants permission.',
+    'MCP availability authorizes database access.', 'Implement the panel features now.',
+    'Run npm test now.', 'Deploy now.', 'Run parity pruning now.', 'This release had zero warnings.',
+  ];
+  for (const claim of walkingUnsupportedClaims) {
+    ok('fixture: Walking 2D rejects unsupported claim: ' + claim,
+      walkingReleaseHandoffProblems(walkingFixture + '\n' + claim).length > 0);
+  }
+  ok('fixture: archived release facts cannot rescue an incorrect current Walking 2D section',
+    currentReleaseContinuityProblems(CURRENT_RELEASE_CONTINUITY_START + '\n' +
+      walkingFixture.replace('26/26 saved walking paths', '2/26 saved walking paths') +
+      '\n## Historical Release Continuity (fixture)\n' + walkingFixture +
+      '\n' + CURRENT_RELEASE_CONTINUITY_END).length > 0);
+  const walkingOwnerPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  for (const role of ['codex','claude']) {
+    const body = walkingOwnerPrompts && walkingOwnerPrompts[role];
+    ok('Walking 2D ' + role + ' standalone prompt is complete and bounded',
+      Boolean(body) && walkingReleaseHandoffProblems(body, { prompt: true }).length === 0);
+    ok('Walking 2D ' + role + ' prompt requires its own role', Boolean(body) && (role === 'codex'
+      ? reusableCodexPromptHasWaitBoundary(body) && !reusableClaudePromptHasWaitBoundary(body)
+      : reusableClaudePromptHasWaitBoundary(body) && !reusableCodexPromptHasWaitBoundary(body)));
+    for (const claim of walkingUnsupportedClaims) {
+      ok('fixture: Walking 2D ' + role + ' rejects: ' + claim,
+        Boolean(body) && !reusablePromptIsCurrent(body + '\n' + claim));
+    }
+    for (const from of ['grounding-only restrictions apply to the first turn',
+      'including the read-only remote Git lookup', 'docs/walking-2d-team-guide.md']) {
+      ok('fixture: Walking 2D ' + role + ' requires ' + from,
+        Boolean(body) && body.includes(from) && !reusablePromptIsCurrent(body.split(from).join('omitted')));
+    }
+  }
+  ok('October 19 detailed handoff records the current release, source map and bounded validation',
+    walkingReleaseHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE])).length === 0 &&
+    /Last updated: 2026-10-19/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
+    /Source map for the next focused task/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
+    /isolated network-free/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]));
+  const walkingReleaseGuide = docs['docs/walking-2d-release-2026-10-18.md'].replace(/\s+/g, ' ');
+  const walkingTeamGuide = docs['docs/walking-2d-team-guide.md'].replace(/\s+/g, ' ');
+  ok('completed release guide records source, deployment, smoke and warning limits',
+    walkingReleaseGuide.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) &&
+    walkingReleaseGuide.includes(CURRENT_WALKING_DEPLOYMENT) && /16\/16/.test(walkingReleaseGuide) &&
+    /12 Warning rows, 0 Error, 0 Fatal/.test(walkingReleaseGuide) &&
+    /26\/26 saved paths, zero missing/.test(walkingReleaseGuide) &&
+    !/Production publication remains gated|remaining release gate/.test(walkingReleaseGuide));
+  ok('team guide replaces the active remaining list with dated coverage and refresh instructions',
+    /26\/26 saved paths, zero missing/.test(walkingTeamGuide) &&
+    /does not establish visual approval/.test(walkingTeamGuide) &&
+    /every device/i.test(walkingTeamGuide) && /1\/26/.test(walkingTeamGuide) && /2\/26/.test(walkingTeamGuide) &&
+    !/release candidate until|## Remaining buildings/.test(walkingTeamGuide));
+  for (const name of ['database/supabase/README.md','database/supabase/REPOSITORY_BOUNDARIES.md']) {
+    const guide = docs[name].split(/## (?:1\.|Historical boundary)/)[0].replace(/\s+/g, ' ');
+    ok(name + ' current migration guide records 0028, server-only access and non-reapply boundary',
+      /2026-10-19/.test(guide) && /0001 through 0028/.test(guide) &&
+      /owner-applied/.test(guide) && /Codex did not apply\/reapply/.test(guide) &&
+      /Supabase Auth is not used/.test(guide) && /anon\/authenticated denied/.test(guide));
+  }
+
   ok('session-readiness incident record pins the correlated trigger without inventing the provider reason or exposing secrets',
     /2026-09-14 21:29:01[^.]{0,100}2026-09-14T13:29:01\.899Z/i.test(incidentRecord) &&
     /GET \/rest\/v1\/app_sessions[^.]{0,100}select=sid&limit=1/i.test(incidentRecord) &&
@@ -11582,10 +11957,13 @@ function runDocsCurrentGate() {
     /git archive/i.test(teammateHandoff) && !/[A-Z]:\\Users\\/i.test(teammateHandoff));
 
   const releaseFixtureSource = docs['CODEX_HANDOFF.md'];
-  const releaseStart = releaseFixtureSource.indexOf(CURRENT_RELEASE_CONTINUITY_START);
-  const releaseEnd = releaseFixtureSource.indexOf(CURRENT_RELEASE_CONTINUITY_END);
+  const septemberHeading = '## Historical Release Continuity (2026-09-22 post-load-test handoff checkpoint; superseded)';
+  const releaseStart = releaseFixtureSource.indexOf(septemberHeading);
+  const releaseEnd = releaseFixtureSource.indexOf('\n## Historical Release Continuity', releaseStart + septemberHeading.length);
   const CURRENT_RELEASE_CONTINUITY_FIXTURE = releaseStart >= 0 && releaseEnd > releaseStart
-    ? releaseFixtureSource.slice(releaseStart, releaseEnd + CURRENT_RELEASE_CONTINUITY_END.length)
+    ? CURRENT_RELEASE_CONTINUITY_START + '\n' + releaseFixtureSource.slice(releaseStart, releaseEnd)
+      .replace(septemberHeading, '## Current Release Continuity (2026-09-22 post-load-test handoff checkpoint)') +
+      '\n## Historical Release Continuity (fixture boundary)\n' + CURRENT_RELEASE_CONTINUITY_END
     : '';
   const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
   const replaceWrapped = (value, pattern, replacement) => String(value).replace(pattern, replacement);
@@ -13312,9 +13690,9 @@ function runDocsCurrentGate() {
       supersededBaselineAlwaysMarkedHistorical(te));
     ok('docs/security-checklist.md keeps every superseded-baseline mention framed as history',
       supersededBaselineAlwaysMarkedHistorical(sc));
-    ok('docs/test-evidence.md records the accepted Production baseline and manual-promotion boundary',
+    ok('docs/test-evidence.md records bounded Production evidence without assuming a later deployment',
       recordsPostDeploymentAuthority(te));
-    ok('docs/security-checklist.md records the accepted Production baseline and manual-promotion boundary',
+    ok('docs/security-checklist.md records bounded Production evidence without assuming a later deployment',
       recordsPostDeploymentAuthority(sc));
     ok('docs/test-evidence.md makes no stale undeployed pilot-surface claim',
       !declaresStalePilotSurfaceDeploymentClaim(te));
@@ -15862,6 +16240,8 @@ if (require.main === module) {
 // verify its static gate changes without starting the server or touching a DB.
 module.exports = {
   currentReleaseContinuityProblems,
+  panelFeatureHandoffProblems,
+  walkingReleaseHandoffProblems,
   dashboardOmitsNavigateBuildings,
   extractReusablePrompts,
   guestOverviewSummaryCardContract,

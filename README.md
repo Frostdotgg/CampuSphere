@@ -15,6 +15,9 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Administrator-drawn directional edge geometry automatically supplies rounded
   Haversine distance and 1.2 m/s walk-time metrics without deleting/recreating
   existing routes.
+- Vehicle/Walking 2D selection online and offline, with independently drawn
+  walking paths, dashed blue entrance/red return, and an Administrator editor.
+  Walking return reverses its saved path; Vehicle return stays independently drawn.
 - Building, room-schedule, and 360-scene media may reference approved
   Cloudinary or Google Drive files; Drive images use an authenticated
   same-origin proxy.
@@ -22,23 +25,21 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
   shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
-## Current source release (2026-09-22)
+## Current source and handoff (2026-10-19)
 
-The owner-observed current Production source is product commit `0e7fe8b`,
-deployed as `dpl_HbJRojVKtJUeUr2KMY6XhcRv6RCS`; documentation/test commits
-`26f8cc6` and `3d43650` were deliberately not promoted. It includes fixed sanitized
-session diagnostics from `ab4ae61`, explicit Vehicle exit Guided-VR routes,
-aligned campus maps, and service worker `v48`. Current catalogs contain 25
-Vehicle entry destinations, 25 Vehicle exit destinations, and 25 Walking
-destinations. The retained LT-01 through LT-08 Production suite is closed with
-explicit limitations; LT-08 is **PASS WITH WARNING** because its matching
-Vercel window contained three session-store retry warnings despite all 26 load
-thresholds passing. See [current authority](docs/current-authority.md) and
-[test evidence](docs/test-evidence.md) for exact evidence classes and limits.
-At the start of the current authority synchronization, clean
-local/upstream/remote `main` matched `3d43650`. The owner subsequently
-authorized one dedicated authority commit and a normal push to `main`. MySQL
-synchronization remains required later but is not the immediate next move.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
+before older milestones. Walking 2D was released October 18 from application
+baseline `c533719` (feature `9a4a628`). The October 19 saved counter is
+26/26, zero missing; this does not establish visual approval of every walkway.
+Current cache/stylesheet are v52/v13; migration sources extend through 0028.
+
+The owner approved review, documentation/static-check updates, one commit and
+a normal push. Recompute the resulting documentation HEAD rather than treating
+the application baseline as current HEAD. A push may trigger a Vercel build;
+manual promotion, ICTU deployment, database changes and new panelist features
+are excluded. A new session grounds read-only, reports and stops, then waits
+for its owner-selected task. Preserve pending/local documents and one writer
+per scope; prior permissions do not carry forward.
 
 ## Tech Stack
 
@@ -122,7 +123,7 @@ backfill and server-only RPCs. The owner has applied it; Codex did not apply or
 reapply it. This auth/profile change does not alter campus, route, VR, event, or
 selected-freeze data.
 
-The selected Supabase project has owner-applied migrations `0001`-`0027`.
+The selected Supabase project has owner-applied migrations `0001`-`0028`.
 Codex did not apply or reapply them. Do not reapply an owner-applied migration
 without fresh explicit database authorization.
 
@@ -130,12 +131,12 @@ The schedule history includes `0012_room_schedules` and
 `0013_vr_hotspot_schedule_metadata`; the current semester-image workflow is
 `0020_room_schedule_documents`, followed by the owner-applied presence,
 directional-route, visibility, audience, instructor-profile, and route-metric
-migrations through `0027`.
+migrations through `0028`.
 
 The migration summary in the next paragraph is retained as historical setup
 context; the owner-applied status above is the current authority.
 
-CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0027`, and all are owner-applied on the selected project. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the OAuth-profile RPC while removing the old instructor-field guard. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp. Directional migration `0023` provides independent reverse-geometry saves; `0024` adds explicit guest-visible hotspot policy; `0025` adds role-targeted event audiences; and `0026` preserves instructor-profile integrity. Migration `0027` adds the service-role-only atomic directed-edge geometry and geometry-derived metric save. See **[docs/deployment.md](docs/deployment.md)** for environment names and the fresh-project apply order. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. `config/selectedDemoFreeze.js` is a QA record rather than a runtime/admin write lock. A separately authorized SELECT-only double-read on 2026-09-10 verified the updated Guided-VR catalog while preserving the current Supabase route fingerprint SHA-256 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the refreshed expanded-freeze manifest SHA-256 is `c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`. No 2D route or migration changed.
+CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0028`, and all are owner-applied on the selected project. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the OAuth-profile RPC while removing the old instructor-field guard. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp. Directional migration `0023` provides independent reverse-geometry saves; `0024` adds explicit guest-visible hotspot policy; `0025` adds role-targeted event audiences; and `0026` preserves instructor-profile integrity. Migration `0027` adds the service-role-only atomic directed-edge geometry and geometry-derived metric save. Owner-applied `0028` adds independently authored Walking 2D paths, separate from vehicle edges and Walking VR. See **[docs/deployment.md](docs/deployment.md)** for environment names and the fresh-project apply order. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. `config/selectedDemoFreeze.js` is a QA record rather than a runtime/admin write lock. A separately authorized SELECT-only double-read on 2026-09-10 verified the updated Guided-VR catalog while preserving the current Supabase route fingerprint SHA-256 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the refreshed expanded-freeze manifest SHA-256 is `c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`. No 2D route or migration changed.
 
 Historical selected-freeze note: a reverse pair is a pair of directed edges,
 while an exact reverse geometry is a byte-equivalent mirrored drawing. The
