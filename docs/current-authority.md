@@ -2,14 +2,19 @@
 
 Last updated: 2026-10-20 (Asia/Manila)
 
-## Session refresh lifetime work (2026-10-20)
+## Session refresh lifetime release (2026-10-20)
 
 Read `docs/session-refresh-timeouts-2026-10-20.md` before the dated releases
 below. It records a reproduced invocation-lifetime gap, the reviewed correction
-and focused checks, based on `9401df5`. The original local/Production evidence
-classes remain distinct. The external receipt records subsequent publication
-identities, staged/live results and monitoring; recompute live truth rather
-than assuming this candidate note establishes deployment acceptance.
+and focused checks, based on `9401df5`. Product source
+`07120e4c3313429dc765d42bc5bec8d062c6e761` was verified Ready on the normal
+Production domain as `dpl_HBd5t8p1hqXXgdQoiyBRY3RDQHPn` after a 638-second
+staged observation and representative authenticated checks. Public live smoke
+passed 20/20; the live product observation lasted 637 seconds with no new
+timeout, lifetime or post-response error observed. The original local/Production
+evidence classes remain distinct.
+The external receipt records the final documentation successor, complete live
+monitoring and final deployed identity; recompute live truth.
 
 The complete expiry-refresh promise is retained with the official Vercel
 helper through retry and callback settlement. The 2,000 ms/two-attempt/200 ms
@@ -18,6 +23,12 @@ The local lifetime fixture is not actual cloud-freezing proof or an attribution
 of every timeout to the provider. Promotion requires normal staged verification;
 unexplained exhausted refreshes and lifetime-registration errors block it.
 Protected documents, application data and original investigations are preserved.
+The staged closing dashboard showed 0 Warning / 0 Error / 0 Fatal request rows
+in its dated 22:52–23:22 Asia/Manila view. That finite observation does not
+establish permanent provider availability or erase the prior release's corrected
+warning/error counts and recorded monitoring gap. Runtime package identity is
+201 files / 8,591,700 bytes, SHA-256
+`dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890`.
 
 ## Session retry logging release (2026-10-20)
 
