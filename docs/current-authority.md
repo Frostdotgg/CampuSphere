@@ -2,6 +2,23 @@
 
 Last updated: 2026-10-20 (Asia/Manila)
 
+## Session refresh lifetime work (2026-10-20)
+
+Read `docs/session-refresh-timeouts-2026-10-20.md` before the dated releases
+below. It records a reproduced invocation-lifetime gap, the reviewed correction
+and focused checks, based on `9401df5`. The original local/Production evidence
+classes remain distinct. The external receipt records subsequent publication
+identities, staged/live results and monitoring; recompute live truth rather
+than assuming this candidate note establishes deployment acceptance.
+
+The complete expiry-refresh promise is retained with the official Vercel
+helper through retry and callback settlement. The 2,000 ms/two-attempt/200 ms
+policy, authentication, cookies, schemas and browser caches are unchanged.
+The local lifetime fixture is not actual cloud-freezing proof or an attribution
+of every timeout to the provider. Promotion requires normal staged verification;
+unexplained exhausted refreshes and lifetime-registration errors block it.
+Protected documents, application data and original investigations are preserved.
+
 ## Session retry logging release (2026-10-20)
 
 Read `docs/session-retry-log-pairing-release-2026-10-20.md` and

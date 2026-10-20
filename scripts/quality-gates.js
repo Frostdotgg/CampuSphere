@@ -11280,6 +11280,7 @@ function runDocsCurrentGate() {
     'database/supabase/README.md': readIf('database/supabase/README.md'),
     'database/supabase/REPOSITORY_BOUNDARIES.md': readIf('database/supabase/REPOSITORY_BOUNDARIES.md'),
     'docs/session-readiness-incident-2026-09-14.md': readIf(path.join('docs', 'session-readiness-incident-2026-09-14.md')),
+    'docs/session-refresh-timeouts-2026-10-20.md': readIf('docs/session-refresh-timeouts-2026-10-20.md'),
     'docs/thesis-teammate-handoff.md': readIf(path.join('docs', 'thesis-teammate-handoff.md')),
     'docs/new-session-grounding-prompts.md': readIf(path.join('docs', 'new-session-grounding-prompts.md')),
     'docs/demo-script.md': readIf(path.join('docs', 'demo-script.md')),
@@ -11290,6 +11291,35 @@ function runDocsCurrentGate() {
   const claude = docs['CLAUDE.md'];
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
+
+  // Bounded evidence for the lifetime correction; prior continuity fixtures
+  // and runtime/security checks below remain independent and unchanged.
+  function sessionRefreshNoteProblems(value) {
+    const text = String(value || '').replace(/\s+/g, ' ');
+    const problems = [];
+    if (!text.includes('9401df5') || !text.includes('dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E')) problems.push('baseline');
+    if (!/2,000 ms per attempt, two attempts and 200 ms retry delay/.test(text)) problems.push('budgets');
+    if (!text.includes('@vercel/functions') || !text.includes('3.10.1') || !text.includes('waitUntil')) problems.push('helper');
+    if (!text.includes('real loopback') || !text.includes('real locked SDK') || !text.includes('client disconnect')) problems.push('reproduction');
+    if (!text.includes('models lifetime draining') || !text.includes('does not reproduce actual cloud freezing')) problems.push('model limitation');
+    if (!text.includes('no database maintenance') || !text.includes('Protected documents')) problems.push('authority');
+    if (/all timeouts are fixed|provider outages are impossible/i.test(text)) problems.push('unsupported availability claim');
+    return problems;
+  }
+  const refreshFixture = '9401df5 dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E; ' +
+    '2,000 ms per attempt, two attempts and 200 ms retry delay; @vercel/functions 3.10.1 waitUntil; ' +
+    'real loopback client disconnect, real locked SDK; models lifetime draining; ' +
+    'does not reproduce actual cloud freezing; no database maintenance; Protected documents preserved.';
+  ok('session refresh note records the baseline, unchanged budget and bounded lifetime evidence',
+    sessionRefreshNoteProblems(docs['docs/session-refresh-timeouts-2026-10-20.md']).length === 0);
+  ok('fixture: independently specified lifetime evidence is accepted', sessionRefreshNoteProblems(refreshFixture).length === 0);
+  for (const [label, fixture] of [
+    ['changed baseline', refreshFixture.replace('9401df5', '0000000')],
+    ['raised timeout', refreshFixture.replace('2,000 ms', '10,000 ms')],
+    ['omitted cloud-model limitation', refreshFixture.replace('does not reproduce actual cloud freezing', '')],
+    ['unsupported complete timeout fix', refreshFixture + ' all timeouts are fixed'],
+    ['inherited maintenance authority', refreshFixture.replace('no database maintenance', 'database maintenance is authorized')],
+  ]) ok('fixture: lifetime note rejects ' + label, sessionRefreshNoteProblems(fixture).length > 0);
 
   const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-20';
   const EXPECTED_LAST_UPDATED_DATE = '2026-10-20';

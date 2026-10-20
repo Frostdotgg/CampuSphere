@@ -32,6 +32,7 @@ const session = require('express-session');
 const Store = session.Store;
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
+const { waitUntil: retainVercelRequest } = require('@vercel/functions');
 const { getSupabaseClient } = require('../config/supabase');
 const {
   elapsedBucket,
@@ -127,6 +128,7 @@ class SupabaseSessionStore extends Store {
     monotonicNow = () => performance.now(),
     requestIdProvider = requestCorrelationId,
     operationIdProvider = () => randomBytes(16).toString('hex'),
+    retainRequest = retainVercelRequest,
   } = {}) {
     super();
     if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
@@ -149,6 +151,7 @@ class SupabaseSessionStore extends Store {
       ? requestIdProvider : requestCorrelationId;
     this._operationIdProvider = typeof operationIdProvider === 'function'
       ? operationIdProvider : () => randomBytes(16).toString('hex');
+    this._retainRequest = typeof retainRequest === 'function' ? retainRequest : retainVercelRequest;
     this._lastDiagnosticAt = new Map();
     this._reapTimer = null;
   }
@@ -252,6 +255,20 @@ class SupabaseSessionStore extends Store {
     this._writeDiagnostic(operation, state, failure, attempts, {
       requestId: pair.requestId, operationId: pair.operationId, elapsedMs,
     });
+  }
+
+  _retainRefresh(completion) {
+    const requestId = this._requestId();
+    const reportFailure = () => this._diagnostic('lifetime', 'failed',
+      { category: 'unknown', status: null }, 1, { requestId, elapsedMs: null });
+    // Include the original store callback, not just its provider request. A
+    // disconnected/finished HTTP response must not orphan its pending refresh,
+    // retry timer or final diagnostic. The official helper is a no-op outside
+    // a Vercel request context, so Docker keeps its normal callback lifecycle.
+    // Never pass a raw callback/registration error to the runtime's logger.
+    const settled = completion.then(() => {}, reportFailure);
+    try { this._retainRequest(settled); }
+    catch (error) { reportFailure(); }
   }
 
   async _requestOnce(makeQuery, { initialization = false, signal: externalSignal = null } = {}) {
@@ -418,11 +435,11 @@ class SupabaseSessionStore extends Store {
     let client;
     try { client = this._getClient(); } catch (e) { return cb(sanitizedStoreError()); }
     const now = Date.now();
-    this._runtimeRequest('touch', () => client.from(this.table)
+    const completion = this._runtimeRequest('touch', () => client.from(this.table)
       .update({ expires_at: this._expiryFor(sess), updated_at: utcTimestamp(now) })
       .eq('sid', sid))
-      .then(() => cb(null))
-      .catch(() => cb(sanitizedStoreError()));
+      .then(() => cb(null), () => cb(sanitizedStoreError()));
+    this._retainRefresh(completion);
   }
 
   destroy(sid, cb) {

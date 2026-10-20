@@ -19,7 +19,7 @@
     "qa:admin-map-basemap": "node scripts/adminMapBasemap-probe.js",
     "qa:admin-coordinate-picker": "node scripts/adminCoordinatePicker-probe.js",
     "repair:missing-guided-vr-mysql": "node scripts/repairMissingGuidedVrMysql.js",
-    "qa:session-resilience": "node scripts/vercelRuntimeSessionBootstrap-probe.js && node scripts/supabaseSessionResilience-probe.js",
+    "qa:session-resilience": "node scripts/vercelRuntimeSessionBootstrap-probe.js && node scripts/supabaseSessionResilience-probe.js && node scripts/sessionRefreshLifetime-probe.js",
     "repair:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings.js",
     "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js",
     "qa:scheduling-removal": "node scripts/roomSchedulingRemoval-probe.js",
@@ -41,6 +41,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "@upstash/redis": "1.38.0",
+    "@vercel/functions": "3.10.1",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "ejs": "6.0.1",
