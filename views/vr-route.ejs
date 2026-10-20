@@ -51,9 +51,6 @@
         })();
     </script>
     <link rel="stylesheet" href="/css/styles.css?v=13">
-    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-    <link rel="stylesheet" href="/css/room-schedule-viewer.css">
-    <% } %>
     <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/campussphere-favicon-48.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -520,21 +517,7 @@
             color: var(--vr-muted);
             line-height: 1.5;
         }
-        .vr-hotspot__schedule-btn {
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            margin-top: 0.45rem;
-            border: 1px solid var(--vr-border-strong);
-            border-radius: 8px;
-            background: transparent;
-            color: var(--vr-control-text);
-            padding: 0.35rem 0.75rem;
-            font: inherit;
-            font-size: 0.84rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
+
         /* BE.4: post-arrival interior exploration link (final step only). */
         .vr-hotspot__explore {
             display: inline-flex;
@@ -761,8 +744,6 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                             <% } else if (hType === 'finish' || hType === 'exit') { %>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                            <% } else if (hType === 'schedule') { %>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
                             <% } else { %>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                             <% } %>
@@ -784,18 +765,6 @@
                                 <% if (h.nav_kind === 'next') { %>Next: <%= h.target_title || h.target_scene_key %><% } else if (h.nav_kind === 'prev') { %>Previous: <%= h.target_title || h.target_scene_key %><% } else { %>Explore: <%= h.target_title || h.target_scene_key %><% } %>
                             </a>
                             <% } %>
-                            <% if (hType === 'schedule' && (h.schedule_document_id || (h.schedule_building_id && h.schedule_location_type && h.schedule_location_label))) { %>
-                            <button type="button" class="vr-hotspot__schedule-btn"
-                                data-vr-schedule-hotspot
-                                data-schedule-title="<%= h.label || 'Room schedule' %>"
-                                data-schedule-document-id="<%= h.schedule_document_id || '' %>"
-                                data-schedule-building-id="<%= h.schedule_building_id %>"
-                                data-schedule-location-type="<%= h.schedule_location_type %>"
-                                data-schedule-location-label="<%= h.schedule_location_label %>"
-                                data-schedule-floor-label="<%= h.schedule_floor_label || '' %>">
-                                View schedule
-                            </button>
-                            <% } %>
                         </div>
                     </li>
                     <% }); %>
@@ -816,18 +785,10 @@
         </div>
         <% } %>
 
-        <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-        <%- include('partials/room-schedule-viewer') %>
-        <% } %>
     </main>
 
     <%- include('partials/theme-toggle') %>
 
-    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-    <script src="/js/media-url.js"></script>
-    <script src="/js/room-schedule-viewer.js"></script>
-    <script src="/js/vr-schedule.js"></script>
-    <% } %>
     <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
         inline viewer initialization below. %>
     <script src="/js/vr-hotspot-navigation.js"></script>
@@ -845,10 +806,7 @@
             var stagePano = document.getElementById('vrPano');
             var fallback = document.getElementById('vrFallback');
             var scene = data.scene;
-            var scheduleUi = null;
-            <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-            scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
-            <% } %>
+
             var hotspotNav = window.CampuSphereVrHotspotNavigation || null;
 
             if (!scene || !scene.image_url || !stagePano || !fallback) {
@@ -878,9 +836,8 @@
             // through the shared vr-hotspot-navigation helper. The helper
             // keeps Pannellum's native URL anchor and assigns the compact
             // portal-ring CSS marker. A rejected or missing target stays a
-            // non-navigating info point. info/exit hotspots keep their label
-            // tooltip; schedule hotspots open the shared image viewer via
-            // vr-schedule.js.
+            // non-navigating info point. Information and exit hotspots retain
+            // their label tooltip.
             function buildHotspots() {
                 var list = Array.isArray(data.hotspots) ? data.hotspots : [];
                 var out = [];
@@ -893,8 +850,6 @@
                     };
                     if (h.hotspot_type === 'scene' && hotspotNav) {
                         hs = hotspotNav.decoratePannellumHotspot(hs, h, 'guided', window.location) || hs;
-                    } else if (h.hotspot_type === 'schedule' && scheduleUi) {
-                        hs = scheduleUi.makePannellumHotspot(h);
                     }
                     out.push(hs);
                 });

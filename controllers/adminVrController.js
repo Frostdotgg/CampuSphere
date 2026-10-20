@@ -23,7 +23,6 @@
 
 const db = require('../config/db');
 const vrDataSource = require('../config/vrDataSource');
-const scheduleDataSource = require('../config/scheduleDataSource');
 const vrRepository = require('../repositories/vrRepository');
 const auditService = require('../services/auditService');
 const {
@@ -43,7 +42,8 @@ const TEXT_MAX = 5000;
 const ORDER_MAX = 2147483647; // signed 32-bit INT ceiling in both schemas
 const YAW_MIN = -180, YAW_MAX = 180;   // panorama yaw range
 const PITCH_MIN = -90, PITCH_MAX = 90; // panorama pitch range
-const HOTSPOT_TYPES = ['scene', 'info', 'exit', 'schedule'];
+const HOTSPOT_TYPES = ['scene', 'info', 'exit'];
+const { isSupportedHotspot, withoutScheduleMetadata } = require('../utils/participantVisibility');
 
 // Section 10.6: admin scene shape adds cloudinary_public_id (admin-only — the
 // public/runtime scene shapes in vrController never carry it).
@@ -55,8 +55,6 @@ const SCENE_ADMIN_COLS_SQL =
 const HOTSPOT_SELECT_SQL =
   'SELECT h.id, h.scene_id, h.target_scene_id, h.hotspot_type, h.label, ' +
   'h.`text` AS text, h.guest_visible, h.yaw, h.pitch, h.display_order, ' +
-  'h.schedule_building_id, h.schedule_location_type, h.schedule_location_label, h.schedule_floor_label, ' +
-  'h.schedule_document_id, ' +
   't.scene_key AS target_scene_key, t.title AS target_title ' +
   'FROM vr_hotspots h LEFT JOIN vr_scenes t ON t.id = h.target_scene_id';
 
@@ -281,8 +279,10 @@ function validateScene(body) {
 function validateHotspot(body) {
   if (!isPlainObject(body)) return { ok: false, message: 'Request body must be a JSON object.' };
 
+  if (Object.keys(body).some(key => key.startsWith('schedule_'))) return { ok: false, message: 'Schedule hotspot fields are no longer supported.' };
+
   const type = typeof body.hotspot_type === 'string' ? body.hotspot_type.trim() : '';
-  if (!HOTSPOT_TYPES.includes(type)) return { ok: false, message: 'Hotspot type must be one of: scene, info, exit, schedule.' };
+  if (!HOTSPOT_TYPES.includes(type)) return { ok: false, message: 'Hotspot type must be one of: scene, info, exit.' };
 
   const label = reqStr(body.label, LABEL_MAX);
   if (!label.ok) return { ok: false, message: 'Label is required and must be ' + LABEL_MAX + ' characters or fewer.' };
@@ -302,7 +302,7 @@ function validateHotspot(body) {
   const guestVisibleInput = parseGuestVisible(body.guest_visible);
   if (!guestVisibleInput.ok) return { ok: false, message: 'Guest visibility must be a boolean.' };
   // Scene/exit hotspots are navigation and arrival affordances and are always
-  // visible to guests. Schedules are always private. Only info hotspots use
+  // visible to guests. Only info hotspots use
   // the administrator-controlled checkbox (default: hidden).
   const guest_visible = type === 'scene' || type === 'exit'
     ? true
@@ -318,19 +318,6 @@ function validateHotspot(body) {
     target_scene_id = t.value;
   }
 
-  let schedule_building_id = null;
-  let schedule_location_type = null;
-  let schedule_location_label = null;
-  let schedule_floor_label = null;
-  let schedule_document_id = null;
-  if (type === 'schedule') {
-    const documentId = optId(body.schedule_document_id);
-    if (!documentId.ok || documentId.value === null) {
-      return { ok: false, message: 'A schedule hotspot requires a room schedule selection.' };
-    }
-    schedule_document_id = documentId.value;
-  }
-
   return {
     ok: true,
     value: {
@@ -341,33 +328,9 @@ function validateHotspot(body) {
       yaw: yaw.value,
       pitch: pitch.value,
       display_order: order.value,
-      target_scene_id,
-      schedule_building_id,
-      schedule_location_type,
-      schedule_location_label,
-      schedule_floor_label,
-      schedule_document_id
+      target_scene_id
     }
   };
-}
-
-async function assertScheduleHotspotDocument(v, conn) {
-  if (!v || v.hotspot_type !== 'schedule') return;
-  if (scheduleDataSource.getScheduleDataSource() !== vrDataSource.getVrDataSource()) {
-    throw new ApiError(
-      409,
-      'Room schedule and VR data sources must match before a schedule hotspot can be saved.'
-    );
-  }
-  if (vrDataSource.isSupabase()) {
-    if (!(await vrRepository.scheduleDocumentExists(v.schedule_document_id))) {
-      throw new ApiError(404, 'Room schedule not found.');
-    }
-    return;
-  }
-  const q = conn || db;
-  const [rows] = await q.query('SELECT id FROM room_schedule_documents WHERE id = ? LIMIT 1', [v.schedule_document_id]);
-  if (!rows.length) throw new ApiError(404, 'Room schedule not found.');
 }
 
 /* ============================================================
@@ -561,6 +524,7 @@ exports.listHotspots = async (req, res) => {
       );
       hotspots = rows;
     }
+    hotspots = hotspots.filter(isSupportedHotspot).map(withoutScheduleMetadata);
     return res.status(200).json({ success: true, hotspots, total: hotspots.length });
   } catch (e) {
     return handleErr(res, e, 'listHotspots');
@@ -582,7 +546,6 @@ exports.createHotspot = async (req, res) => {
         if (Number(v.value.target_scene_id) === Number(sceneId)) throw new ApiError(400, 'A scene hotspot cannot target its own scene.');
         if (!(await vrRepository.sceneExists(v.value.target_scene_id))) throw new ApiError(404, 'Target scene not found.');
       }
-      await assertScheduleHotspotDocument(v.value);
       hotspot = await vrRepository.insertHotspot(Object.assign({ scene_id: sceneId }, v.value));
     } else {
       hotspot = await withTx(async (conn) => {
@@ -593,14 +556,12 @@ exports.createHotspot = async (req, res) => {
           const [t] = await conn.query('SELECT id FROM vr_scenes WHERE id = ? LIMIT 1', [v.value.target_scene_id]);
           if (!t.length) throw new ApiError(404, 'Target scene not found.');
         }
-        await assertScheduleHotspotDocument(v.value, conn);
         const [result] = await conn.query(
-          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, guest_visible, schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, schedule_document_id, yaw, pitch, display_order) ' +
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO vr_hotspots (scene_id, target_scene_id, hotspot_type, label, `text`, guest_visible, yaw, pitch, display_order) ' +
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [sceneId, v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
            v.value.guest_visible,
-           v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
-           v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order]
+           v.value.yaw, v.value.pitch, v.value.display_order]
         );
         const [rows] = await conn.query(HOTSPOT_SELECT_SQL + ' WHERE h.id = ?', [result.insertId]);
         return rows[0];
@@ -608,7 +569,7 @@ exports.createHotspot = async (req, res) => {
     }
 
     auditVr(req, 'admin.vr.hotspot.create', 'vr_hotspot', hotspot && hotspot.id, 'Admin created a VR hotspot.');
-    return res.status(201).json({ success: true, message: 'Hotspot created successfully.', hotspot });
+    return res.status(201).json({ success: true, message: 'Hotspot created successfully.', hotspot: withoutScheduleMetadata(hotspot) });
   } catch (e) {
     return handleErr(res, e, 'createHotspot');
   }
@@ -630,12 +591,11 @@ exports.updateHotspot = async (req, res) => {
         if (Number(v.value.target_scene_id) === Number(existing.scene_id)) throw new ApiError(400, 'A scene hotspot cannot target its own scene.');
         if (!(await vrRepository.sceneExists(v.value.target_scene_id))) throw new ApiError(404, 'Target scene not found.');
       }
-      await assertScheduleHotspotDocument(v.value);
       hotspot = await vrRepository.updateHotspotById(id, v.value);
       if (!hotspot) throw new ApiError(404, 'Hotspot not found.');
     } else {
       hotspot = await withTx(async (conn) => {
-        const [h] = await conn.query('SELECT id, scene_id FROM vr_hotspots WHERE id = ? LIMIT 1', [id]);
+        const [h] = await conn.query("SELECT id, scene_id FROM vr_hotspots WHERE id = ? AND hotspot_type IN ('scene', 'info', 'exit') LIMIT 1", [id]);
         if (!h.length) throw new ApiError(404, 'Hotspot not found.');
         const sceneId = h[0].scene_id;
         if (v.value.hotspot_type === 'scene') {
@@ -643,13 +603,11 @@ exports.updateHotspot = async (req, res) => {
           const [t] = await conn.query('SELECT id FROM vr_scenes WHERE id = ? LIMIT 1', [v.value.target_scene_id]);
           if (!t.length) throw new ApiError(404, 'Target scene not found.');
         }
-        await assertScheduleHotspotDocument(v.value, conn);
         await conn.query(
-          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, guest_visible = ?, schedule_building_id = ?, schedule_location_type = ?, schedule_location_label = ?, schedule_floor_label = ?, schedule_document_id = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
+          'UPDATE vr_hotspots SET target_scene_id = ?, hotspot_type = ?, label = ?, `text` = ?, guest_visible = ?, yaw = ?, pitch = ?, display_order = ?, updated_at = NOW() WHERE id = ?',
           [v.value.target_scene_id, v.value.hotspot_type, v.value.label, v.value.text,
            v.value.guest_visible,
-           v.value.schedule_building_id, v.value.schedule_location_type, v.value.schedule_location_label, v.value.schedule_floor_label,
-           v.value.schedule_document_id, v.value.yaw, v.value.pitch, v.value.display_order, id]
+           v.value.yaw, v.value.pitch, v.value.display_order, id]
         );
         const [rows] = await conn.query(HOTSPOT_SELECT_SQL + ' WHERE h.id = ?', [id]);
         return rows[0];
@@ -657,7 +615,7 @@ exports.updateHotspot = async (req, res) => {
     }
 
     auditVr(req, 'admin.vr.hotspot.update', 'vr_hotspot', id, 'Admin updated a VR hotspot.');
-    return res.status(200).json({ success: true, message: 'Hotspot updated successfully.', hotspot });
+    return res.status(200).json({ success: true, message: 'Hotspot updated successfully.', hotspot: withoutScheduleMetadata(hotspot) });
   } catch (e) {
     return handleErr(res, e, 'updateHotspot');
   }
@@ -673,7 +631,7 @@ exports.deleteHotspot = async (req, res) => {
       if (deleted === null) throw new ApiError(404, 'Hotspot not found.');
     } else {
       await withTx(async (conn) => {
-        const [h] = await conn.query('SELECT id FROM vr_hotspots WHERE id = ? LIMIT 1', [id]);
+        const [h] = await conn.query("SELECT id FROM vr_hotspots WHERE id = ? AND hotspot_type IN ('scene', 'info', 'exit') LIMIT 1", [id]);
         if (!h.length) throw new ApiError(404, 'Hotspot not found.');
         await conn.query('DELETE FROM vr_hotspots WHERE id = ?', [id]);
       });

@@ -19,7 +19,7 @@
        wrong-mode/non-object case fails closed without throwing;
      - both VR views include the helper exactly once BEFORE viewer init,
        carry no duplicated window.location.href scene callback, keep the
-       schedule integration separate, and keep the accessible
+       scheduling integration absent, and keep the accessible
        server-rendered fallback links;
      - controllers/vrController.js normalizes Free Roam target keys through
        the existing isSafeSceneKey helper before JSON/fallback rendering.
@@ -97,20 +97,17 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   ];
   const guestRows = visibility.filterHotspotsForRole(rows, 'guest');
   const studentRows = visibility.filterHotspotsForRole(rows, 'student-cspc');
-  check('guest-visibility', 'schedule access is limited to student, instructor, and admin roles',
-    visibility.canViewRoomSchedules('student-cspc') &&
-    visibility.canViewRoomSchedules('instructor') &&
-    visibility.canViewRoomSchedules('admin') &&
-    !visibility.canViewRoomSchedules('guest') &&
-    !visibility.canViewRoomSchedules('anonymous'));
+  check('guest-visibility', 'schedules are absent for every role',
+    ['student-cspc','instructor','admin','guest','anonymous'].every(role =>
+      !visibility.filterHotspotsForRole(rows,role).some(h=>h.hotspot_type==='schedule')));
   check('guest-visibility', 'guest keeps scene/exit and approved info hotspots only',
     guestRows.map((row) => row.hotspot_type).join(',') === 'scene,exit,info' &&
     guestRows[2].label === 'Approved info');
   check('guest-visibility', 'guest payload strips the internal policy field',
     guestRows.every((row) => !Object.prototype.hasOwnProperty.call(row, 'guest_visible')));
-  check('guest-visibility', 'privileged roles preserve schedules but also strip policy metadata',
-    studentRows.length === rows.length &&
-    studentRows.some((row) => row.hotspot_type === 'schedule') &&
+  check('guest-visibility', 'privileged roles preserve private information and strip policy metadata',
+    studentRows.length === rows.length - 1 &&
+    studentRows.some((row) => row.label === 'Private info') &&
     studentRows.every((row) => !Object.prototype.hasOwnProperty.call(row, 'guest_visible')));
   const routes = read('routes/buildings.js');
   const buildingView = read('views/buildings.ejs');
@@ -120,18 +117,17 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   const adminClient = read('public/js/admin/admin-vr.js');
   const vrController = read('controllers/vrController.js');
   const migration = read('database/supabase/0024_vr_hotspot_guest_visibility.sql');
-  check('guest-visibility', 'schedule API routes use the shared allowed-role middleware',
-    routes.includes('requireRole') && routes.includes('SCHEDULE_VIEW_ROLES') &&
-    (routes.match(/requireRole\(\.\.\.SCHEDULE_VIEW_ROLES\)/g) || []).length === 3);
+  check('guest-visibility', 'retired schedule API routes retain login then standard not-found handling',
+    routes.includes('requireLogin, notFound') && !routes.includes('SCHEDULE_VIEW_ROLES'));
   check('guest-visibility', 'VR controllers filter hotspots before rendering',
     vrController.includes('filterHotspotsForRole') &&
     (vrController.match(/filterHotspotsForRole\(/g) || []).length >= 3);
   check('guest-visibility', 'guest building UI has no legacy restricted-entry warning',
     !/Guests Cannot Enter|route-restricted-warning/.test(buildingView) &&
-    buildingView.includes('canViewRoomSchedules'));
-  check('guest-visibility', 'guest VR views conditionally omit schedule UI assets',
-    vrView.includes('typeof canViewRoomSchedules') &&
-    vrRouteView.includes('typeof canViewRoomSchedules'));
+    !buildingView.includes('canViewRoomSchedules'));
+  check('guest-visibility', 'VR views omit schedule UI assets for every role',
+    !/canViewRoomSchedules|vr-schedule|room-schedule-viewer/.test(vrView) &&
+    !/canViewRoomSchedules|vr-schedule|room-schedule-viewer/.test(vrRouteView));
   check('guest-visibility', 'admin hotspot editor exposes and submits guest_visible',
     adminView.includes('id="vr-hotspot-guest-visible"') &&
     adminClient.includes('guest_visible: type ==='));
@@ -367,9 +363,8 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
       !src.includes('bindDirectionalHotspotArrows') && !src.includes('directionalHotspotCleanup'));
     check('views', `${rel} includes the shared nonce-protected scene marker styles`,
       (src.match(/include\('partials\/vr-scene-hotspot-styles'\)/g) || []).length === 1);
-    check('views', `${rel} keeps the schedule integration separate (single-argument call)`,
-      src.includes('scheduleUi.makePannellumHotspot(h)') &&
-      !/makePannellumHotspot\(h,/.test(src));
+    check('views', `${rel} has no retired schedule integration`,
+      !/scheduleUi|makePannellumHotspot|vr-schedule/.test(src));
   }
   const guidedView = read('views/vr-route.ejs');
   check('views', 'guided view keeps the accessible per-hotspot fallback link (nav_url)',
@@ -377,12 +372,9 @@ const roam = (target_scene_key) => ({ hotspot_type: 'scene', target_scene_key })
   const roamView = read('views/vr.ejs');
   check('views', 'Free Roam view keeps the accessible fallback link (/vr/<target_scene_key>)',
     roamView.includes('class="vr-hotspot__go" href="/vr/<%= h.target_scene_key %>"'));
-  const schedule = read('public/js/vr-schedule.js');
-  check('views', 'vr-schedule.js remains schedule-only with no legacy navigation fallback',
-    schedule.includes('window.CampuSphereVrSchedule') &&
-    schedule.includes('function makePannellumHotspot(hotspot)') &&
-    !schedule.includes('fallbackClickHandler') &&
-    !schedule.includes('CampuSphereVrHotspotNavigation'));
+  check('views', 'retired schedule script is absent; shared scene navigation remains',
+    !fs.existsSync(path.join(ROOT,'public/js/vr-schedule.js')) &&
+    fs.existsSync(path.join(ROOT,HELPER_REL)));
   const sceneStyles = read('views/partials/vr-scene-hotspot-styles.ejs');
   check('views', 'scene styles keep a 44px target with a compact 24px portal ring and center dot',
     sceneStyles.includes('width: 44px') &&

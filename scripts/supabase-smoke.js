@@ -78,13 +78,11 @@ function skip(message) {
   // becomes fail. Keep the flags separate so only relevant schema probes run.
   const sessionSupabaseRequired =
     String(process.env.SESSION_STORE || '').trim().toLowerCase() === 'supabase';
-  const scheduleSupabaseRequired =
-    String(process.env.SCHEDULE_DATA_SOURCE || '').trim().toLowerCase() === 'supabase';
-  const supabaseRequired = sessionSupabaseRequired || scheduleSupabaseRequired;
+  const supabaseRequired = sessionSupabaseRequired;
   if (!supabase.hasSupabaseConfig()) {
     if (supabaseRequired) {
       fail(
-        'A Supabase session/schedule runtime is selected but SUPABASE_URL and/or ' +
+        'A Supabase session runtime is selected but SUPABASE_URL and/or ' +
         'SUPABASE_SERVICE_ROLE_KEY are not set. The selected runtime ' +
         'cannot initialize without them.'
       );
@@ -137,44 +135,11 @@ function skip(message) {
       }
     }
 
-    // Migration 0020 is a separately applied operational boundary. In the
-    // selected schedule mode, prove both new read surfaces without mutation.
-    if (scheduleSupabaseRequired) {
-      const { error: documentErr } = await client
-        .from('room_schedule_documents')
-        .select('id')
-        .limit(1);
-      if (documentErr) {
-        fail(
-          'Read query against "room_schedule_documents" failed ' +
-          '(SCHEDULE_DATA_SOURCE=supabase; migration 0020 may not be applied).',
-          safeMessage(documentErr)
-        );
-        return;
-      }
-
-      const { error: hotspotErr } = await client
-        .from('vr_hotspots')
-        .select('schedule_document_id')
-        .limit(1);
-      if (hotspotErr) {
-        fail(
-          'Read query for "vr_hotspots.schedule_document_id" failed ' +
-          '(SCHEDULE_DATA_SOURCE=supabase; migration 0020 may not be applied).',
-          safeMessage(hotspotErr)
-        );
-        return;
-      }
-    }
-
     const rowCount = Array.isArray(data) ? data.length : 0;
     pass(
       'Read query against "' + TABLE + '" returned ' + rowCount +
       ' row(s). Connectivity and read access verified.' +
-      (sessionSupabaseRequired ? ' app_sessions (0011) reachable.' : '') +
-      (scheduleSupabaseRequired
-        ? ' room_schedule_documents and vr_hotspots.schedule_document_id (0020) reachable.'
-        : '')
+      (sessionSupabaseRequired ? ' app_sessions (0011) reachable.' : '')
     );
   } catch (err) {
     fail('Unexpected error during smoke query.', safeMessage(err));

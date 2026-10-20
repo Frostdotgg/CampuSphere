@@ -17,9 +17,6 @@
         })();
     </script>
     <link rel="stylesheet" href="/css/styles.css?v=13">
-    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-    <link rel="stylesheet" href="/css/room-schedule-viewer.css">
-    <% } %>
     <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/campussphere-favicon-48.png">
     <!-- PWA: installability + app metadata (Milestone 6, Section 6.2) -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -118,11 +115,7 @@
         .vr-hotspot__go { display: inline-block; margin-top: 6px;
             text-decoration: none; font-weight: 600; border: 1px solid currentColor;
             padding: 6px 12px; border-radius: 8px; font-size: .85rem; }
-        .vr-hotspot__schedule-btn { display: inline-flex; align-items: center;
-            min-height: 44px; margin-top: 8px; border: 1px solid currentColor;
-            border-radius: 8px; background: transparent; color: inherit;
-            padding: 6px 12px; font: inherit; font-size: .85rem;
-            font-weight: 700; cursor: pointer; }
+
         .vr-hotspot--disabled { opacity: .55; }
         .vr-scenelist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .vr-scenelist a { text-decoration: none; border: 1px solid currentColor;
@@ -207,18 +200,6 @@
                         <span class="vr-hotspot__text">(Target scene not available.)</span>
                         <% } %>
                     <% } %>
-                    <% if (h.hotspot_type === 'schedule' && (h.schedule_document_id || (h.schedule_building_id && h.schedule_location_type && h.schedule_location_label))) { %>
-                    <button type="button" class="vr-hotspot__schedule-btn"
-                        data-vr-schedule-hotspot
-                        data-schedule-title="<%= h.label || 'Room schedule' %>"
-                        data-schedule-document-id="<%= h.schedule_document_id || '' %>"
-                        data-schedule-building-id="<%= h.schedule_building_id %>"
-                        data-schedule-location-type="<%= h.schedule_location_type %>"
-                        data-schedule-location-label="<%= h.schedule_location_label %>"
-                        data-schedule-floor-label="<%= h.schedule_floor_label || '' %>">
-                        View schedule
-                    </button>
-                    <% } %>
                 </li>
                 <% }); %>
             </ul>
@@ -240,18 +221,10 @@
             <% } %>
         </div>
 
-        <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-        <%- include('partials/room-schedule-viewer') %>
-        <% } %>
     </main>
 
     <%- include('partials/theme-toggle') %>
 
-    <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-    <script src="/js/media-url.js"></script>
-    <script src="/js/room-schedule-viewer.js"></script>
-    <script src="/js/vr-schedule.js"></script>
-    <% } %>
     <%# M12.P1-D3: shared scene-hotspot navigation helper, loaded BEFORE the
         inline viewer initialization below. %>
     <script src="/js/vr-hotspot-navigation.js"></script>
@@ -269,10 +242,7 @@
             var stagePano = document.getElementById('vrPano');
             var fallback = document.getElementById('vrFallback');
             var scene = data.scene;
-            var scheduleUi = null;
-            <% if (typeof canViewRoomSchedules !== 'undefined' && canViewRoomSchedules) { %>
-            scheduleUi = window.CampuSphereVrSchedule ? window.CampuSphereVrSchedule.init() : null;
-            <% } %>
+
             var hotspotNav = window.CampuSphereVrHotspotNavigation || null;
 
             // No scene or no image: leave the server-rendered fallback visible.
@@ -302,8 +272,7 @@
             // against the server scene-key contract, keeps Pannellum's native
             // URL anchor and assigns the compact portal-ring CSS marker. A
             // rejected or missing target stays a non-navigating info point.
-            // info/exit hotspots keep their label tooltip; schedule hotspots
-            // open the shared image viewer via vr-schedule.js. The
+            // Information and exit hotspots retain their label tooltip.
             // server-rendered list below remains the accessible fallback if
             // Pannellum is unavailable.
             function buildHotspots() {
@@ -318,8 +287,6 @@
                     };
                     if (h.hotspot_type === 'scene' && hotspotNav) {
                         hs = hotspotNav.decoratePannellumHotspot(hs, h, 'free-roam', window.location) || hs;
-                    } else if (h.hotspot_type === 'schedule' && scheduleUi) {
-                        hs = scheduleUi.makePannellumHotspot(h);
                     }
                     out.push(hs);
                 });

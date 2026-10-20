@@ -1129,6 +1129,7 @@ async function seed() {
         // Info / exit hotspot: keyed by (scene_id, hotspot_type, label),
         // target_scene_id IS NULL.
         async function upsertMarkerHotspot(sceneKey, type, label, text, yaw, pitch, order) {
+            if (!['info', 'exit'].includes(type)) throw new Error('Seed marker type must be info or exit; room scheduling is retired.');
             const sceneId = vrSceneIdByKey.get(sceneKey);
             if (!sceneId) {
                 console.warn(`  Skipping ${type} hotspot on ${sceneKey}: scene not found.`);

@@ -1306,6 +1306,13 @@ function leakScan(mode, bodies) {
   runStaticChecks();
   runIntegrationChecks();
 
+  if (process.argv.includes('--source-only')) {
+    console.log('BUILDING-DETAILS-EDITOR SOURCE ' + (failures.length ? 'FAILED' : 'OK') +
+      ': ' + failures.length + ' failed checks; live database legs not run.');
+    if (failures.length) process.exitCode = 1;
+    return;
+  }
+
   console.log('\nmysql mode:');
   const mysqlBodies = await withServer({ mode: 'mysql', port: 3496, sessionStore: 'mysql' }, (base) => runLiveMode('mysql', base));
   leakScan('mysql', mysqlBodies || []);

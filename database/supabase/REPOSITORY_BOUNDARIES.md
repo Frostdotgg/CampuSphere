@@ -1,6 +1,16 @@
 # Repository Boundary Design
 
-## Current migration and release note (2026-10-19)
+## Current local retirement candidate (2026-10-19)
+
+Room scheduling is retired in the local, uncommitted and not deployed candidate.
+See `docs/room-scheduling-removal.md` for owner-controlled backup/cleanup and
+restore instructions. No migration is changed or applied, and empty tables and
+fields remain for compatibility. Building deletion retains a narrow reference
+guard until cleanup; floor and room descriptions remain. Old schedule runtime
+entrypoints/repositories are removed. The application no longer consumes
+SCHEDULE_DATA_SOURCE. Do not execute historical schedule verification steps.
+
+## Historical Walking migration and release note (2026-10-19)
 
 Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
 before historical design/migration notes. Production data and Express sessions
@@ -274,7 +284,7 @@ Migration notes:
 | Current callers | `controllers/dashboardController.js` (audience-filtered announcements), `controllers/eventsController.js` (index - public `/events` page; requests `event_date DESC`, then `id DESC`, and reshapes rows into `{id, title, category, dateObj, desc, location, time}` for the EJS template), `controllers/pageController.js` (bounded latest-event projection for `/home`), `controllers/adminContentController.js` (CRUD for news + events), `controllers/adminController.js` (index - recent news `LIMIT 4` ordered by `published_date DESC` + `COUNT(*)` total news on the admin dashboard; news page - full articles list ordered by `created_at DESC`, full events list ordered by `event_date DESC`, plus totalArticles / published / drafts / totalEvents stats). |
 | MySQL tables | `news_announcements`, `events` |
 | Supabase tables | `news_announcements` (with `audience` CHECK), `events` (with the additive `audience` CHECK from `0025_event_audience.sql`) |
-| Role/security | Participant reads of announcements and events respect `audience` ('all' or session role). Drafts (`published_date IS NULL`) are never returned to dashboards. Writes are admin-only at the route layer; category/audience allowlists in `adminContentController.js` stay in the controller. |
+| Role/security | Participant reads require login. Scheduling is retired for every role; old schedule endpoints return JSON 404 after authentication. Schedule rows/metadata never reach VR responses. Admin scene/hotspot CRUD remains behind the `/admin` role/CSRF gates. Scene/exit navigation remains Guest-visible; information hotspots need explicit Guest approval. Converted room markers default to private Info until approved. |
 
 Method responsibilities:
 

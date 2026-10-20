@@ -250,8 +250,7 @@ exports.logs = (req, res) => {
 /**
  * GET /admin/vr — VR Scene & Hotspot Administration (Milestone 7, Section 7.8)
  *
- * Schedule documents are loaded through the bounded admin JSON API by the
- * page client. No building/media rows need to be embedded in this view.
+ * Room scheduling is retired; this page manages buildings and campus routes.
  */
 exports.vr = (req, res) => {
   const baseLocals = {

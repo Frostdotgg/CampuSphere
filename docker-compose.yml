@@ -27,7 +27,6 @@ services:
       BUILDING_DATA_SOURCE: supabase
       ROUTE_DATA_SOURCE: supabase
       VR_DATA_SOURCE: supabase
-      SCHEDULE_DATA_SOURCE: supabase
       MAP_RENDERER: maplibre
       SUPABASE_URL: "${SUPABASE_URL:?set SUPABASE_URL in the protected ICTU environment file}"
       SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY in the protected ICTU environment file}"

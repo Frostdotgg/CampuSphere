@@ -113,8 +113,6 @@ const INDEXED_FLOWS = [
     sql: 'SELECT id FROM vr_scenes ORDER BY display_order ASC, id ASC' },
   { flow: 'VR: hotspots per scene order', table: 'vr_hotspots', cols: ['scene_id', 'display_order'], sbIndex: 'vr_hotspots_scene_id_display_order_idx',
     sql: 'SELECT id FROM vr_hotspots WHERE scene_id = 1 ORDER BY display_order ASC' },
-  { flow: 'VR: schedule hotspots by target', table: 'vr_hotspots', cols: ['schedule_building_id', 'schedule_location_type', 'schedule_location_label'], sbIndex: 'vr_hotspots_schedule_target_idx',
-    sql: "SELECT id FROM vr_hotspots WHERE schedule_building_id = 1 AND schedule_location_type = 'room' AND schedule_location_label = 'demo' LIMIT 50" },
   { flow: 'admin: recent users by created_at', table: 'users', cols: ['created_at'], sbIndex: 'users_created_at_idx',
     sql: 'SELECT id FROM users ORDER BY created_at DESC LIMIT 5' },
   { flow: 'admin: users by role', table: 'users', cols: ['role'], sbIndex: 'users_role_idx',
@@ -124,14 +122,6 @@ const INDEXED_FLOWS = [
   // Milestone 11 (room scheduling, Section 11.3) read paths from the domain
   // contract: building detail view (building + bounded date range) and the
   // cross-building bounded date-range listing.
-  { flow: 'schedules: by building+date (building view)', table: 'room_schedules', cols: ['building_id', 'schedule_date'], sbIndex: 'room_schedules_building_date_idx',
-    sql: 'SELECT id FROM room_schedules WHERE building_id = 1 AND schedule_date >= CURDATE() ORDER BY schedule_date ASC LIMIT 50' },
-  { flow: 'schedules: by date range', table: 'room_schedules', cols: ['schedule_date'], sbIndex: 'room_schedules_schedule_date_idx',
-    sql: "SELECT id FROM room_schedules WHERE schedule_date BETWEEN '2026-01-01' AND '2026-03-31' ORDER BY schedule_date ASC LIMIT 50" },
-  { flow: 'schedule images: by building and term', table: 'room_schedule_documents', cols: ['building_id', 'semester', 'school_year'], sbIndex: 'room_schedule_documents_building_term_idx',
-    sql: "SELECT id FROM room_schedule_documents WHERE building_id = 1 AND semester = 'first-semester' AND school_year = '2026-2027' LIMIT 50" },
-  { flow: 'VR: schedule image hotspots by document', table: 'vr_hotspots', cols: ['schedule_document_id'], sbIndex: 'vr_hotspots_schedule_document_idx',
-    sql: 'SELECT id FROM vr_hotspots WHERE schedule_document_id = 1 LIMIT 50' },
 ];
 
 async function verifyMysql() {
@@ -244,7 +234,7 @@ async function verifySupabase() {
   critical(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.room_schedules/i.test(sbSql), 'Supabase declares public.room_schedules table (0012)');
   critical(declared.has('room_schedules_building_date_idx'), 'Supabase declares index room_schedules_building_date_idx (0012)');
   critical(declared.has('room_schedules_schedule_date_idx'), 'Supabase declares index room_schedules_schedule_date_idx (0012)');
-  note('0012 room_schedules is OWNER-APPLIED legacy fallback storage; its old mutation probe is no longer part of the active semester-image flow.');
+  note('0012 is retained historical storage; room scheduling is retired and owner cleanup is separate.');
 
   // (a.3) VR room-door schedule metadata (migration 0013): nullable schedule
   //       target columns on vr_hotspots plus the lookup index used by admin and
@@ -252,7 +242,7 @@ async function verifySupabase() {
   critical(/ALTER\s+TABLE\s+public\.vr_hotspots[\s\S]{0,600}schedule_building_id/i.test(sbSql), 'Supabase declares vr_hotspots.schedule_building_id (0013)');
   critical(/ALTER\s+TABLE\s+public\.vr_hotspots[\s\S]{0,700}schedule_location_type/i.test(sbSql), 'Supabase declares vr_hotspots.schedule_location_type (0013)');
   critical(declared.has('vr_hotspots_schedule_target_idx'), 'Supabase declares index vr_hotspots_schedule_target_idx (0013)');
-  note('0013 vr_hotspot_schedule_metadata is OWNER-APPLIED legacy fallback metadata; new links use 0020 schedule_document_id.');
+  note('0013 metadata remains for compatibility until owner-controlled cleanup.');
 
   // (a.3.1) Semester room schedule images (0020): source-only until the owner
   // separately authorizes application. The declaration is still required so
@@ -265,7 +255,7 @@ async function verifySupabase() {
     'Supabase declares index room_schedule_documents_building_term_idx (0020)');
   critical(declared.has('vr_hotspots_schedule_document_idx'),
     'Supabase declares index vr_hotspots_schedule_document_idx (0020)');
-  note('0020 room_schedule_documents is DECLARED in source only; applying it and running live query-path checks require separate owner authorization.');
+  note('0020 remains historical schema; the retired schedule feature has no active query-path gate.');
 
   // (a.4) Route graph accuracy (0014) and route edge drawing geometry (0015)
   //       are IMMUTABLE OWNER-APPLIED PREDECESSORS: they shipped the pre-repair

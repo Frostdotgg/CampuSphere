@@ -77,9 +77,9 @@ const VERCEL_JSON_FILE = 'vercel.json';
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 213,
-  bytes: 8755240,
-  sha256: '55bd59fb311569ef55a137f1d6bcbe9e56844dc4cf607555af12f54740a49990',
+  files: 201,
+  bytes: 8577707,
+  sha256: '6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709',
 });
 
 /* M12.P1-R8 label correction.

@@ -949,47 +949,7 @@ html[data-theme="dark"] body {
     }
 }
 
-/* Semester room schedule image management */
-.schedule-form-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: .75rem;
-}
-
-.schedule-document-card {
-    display: grid;
-    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
-    gap: 1rem;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid var(--border);
-    border-radius: .75rem;
-    background: var(--card);
-}
-
-#schedule-list {
-    display: grid;
-    gap: .75rem;
-}
-
-.schedule-document-card__thumbnail {
-    aspect-ratio: 16 / 10;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: .5rem;
-    background: var(--muted);
-    display: grid;
-    place-items: center;
-}
-
-.schedule-document-card__thumbnail-error {
-    padding: .75rem;
-    color: var(--muted-foreground);
-    font-size: .8rem;
-    text-align: center;
-}
-
-.schedule-document-card__thumbnail img,
+/* Shared building and panorama image previews. The legacy class name remains. */
 .schedule-image-preview img {
     width: 100%;
     height: 100%;
@@ -997,38 +957,6 @@ html[data-theme="dark"] body {
     object-fit: contain;
     background: #fff;
 }
-
-.schedule-document-card__content h4,
-.schedule-document-card__content p {
-    margin: 0;
-}
-
-.schedule-document-card__content h4 {
-    color: var(--foreground);
-    font-size: 1rem;
-    line-height: 1.4;
-}
-
-.schedule-document-card__term {
-    margin-top: .35rem !important;
-    color: var(--foreground);
-    font-weight: 600;
-}
-
-.schedule-document-card__meta {
-    margin-top: .25rem !important;
-    color: var(--muted-foreground);
-    font-size: .85rem;
-}
-
-.schedule-document-card__actions {
-    display: flex;
-    gap: .5rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.schedule-document-card__actions .ui-button { min-height: 44px; }
 
 .schedule-image-preview {
     margin-top: .5rem;
@@ -1048,24 +976,6 @@ html[data-theme="dark"] body {
 .schedule-image-preview img {
     aspect-ratio: 16 / 10;
     border-radius: .5rem;
-}
-
-@media (max-width: 760px) {
-    .schedule-form-grid { grid-template-columns: 1fr; }
-
-    .schedule-document-card {
-        grid-template-columns: 1fr;
-        align-items: stretch;
-    }
-
-    .schedule-document-card__actions {
-        justify-content: stretch;
-    }
-
-    .schedule-document-card__actions .ui-button {
-        min-height: 44px;
-        flex: 1 1 9rem;
-    }
 }
 
 /* ============================================
@@ -1438,12 +1348,12 @@ html[data-theme="dark"] body {
 }
 
 /* ============================================================
-   M12.P1-D4 — Campus-map schedule & graph search controls
+   M12.P1-D4 — Campus-map graph search controls
    Scoped to the new search/filter/status elements on
    /admin/campus-map only; no unrelated admin UI is restyled.
    ============================================================ */
 
-/* Labelled search field inside the schedule filter bar. */
+/* Shared labelled graph-search fields. */
 .admin-search-field {
     display: flex;
     flex-direction: column;
@@ -1493,20 +1403,14 @@ html[data-theme="dark"] body {
 
 /* Visible keyboard focus for every new control, in both themes. */
 .admin-search-field input:focus-visible,
-#schedule-search:focus-visible,
-#schedule-building-search:focus-visible,
 #route-dest-search:focus-visible,
 #edge-from-search:focus-visible,
-#edge-to-search:focus-visible,
-#schedule-clear-filters:focus-visible,
-#schedule-apply-filters:focus-visible {
+#edge-to-search:focus-visible {
     outline: 2px solid var(--ring, var(--primary));
     outline-offset: 2px;
 }
 
 /* Truthful disabled/loading state while a filter request is current. */
-#schedule-apply-filters[aria-busy="true"],
-#schedule-apply-filters:disabled,
 #edge-from-search:disabled,
 #edge-to-search:disabled {
     opacity: 0.6;
@@ -1523,18 +1427,12 @@ html[data-theme="dark"] body {
     }
 
     .admin-search-field input,
-    #schedule-search,
-    #schedule-building-search,
     #route-dest-search,
     #edge-from-search,
     #edge-to-search {
         min-height: 44px;
     }
 
-    #schedule-clear-filters {
-        width: 100%;
-        min-height: 44px;
-    }
 }
 
 /* ============================================================

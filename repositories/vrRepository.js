@@ -25,9 +25,7 @@
                        node_id, building_id, initial_yaw, initial_pitch,
                        display_order
        hotspot       : hotspot_type, label, text, yaw, pitch, guest_visible,
-                       target_scene_id, target_scene_key, target_title,
-                       schedule_building_id, schedule_location_type,
-                       schedule_location_label, schedule_floor_label
+                       target_scene_id, target_scene_key, target_title
    - Explicit column lists only (never select('*')). Browser/graph methods omit
      reserved columns and flatten the nested target embed. The internal guided
      scene read intentionally includes cloudinary_public_id for server-side
@@ -38,6 +36,7 @@
      (never keys, URLs, headers, or other secret-like values).
    ======================================== */
 
+const { isSupportedHotspot } = require('../utils/participantVisibility');
 const { getSupabaseClient } = require('../config/supabase');
 
 // Explicit column lists pin browser/public row shapes. Guided verification
@@ -55,8 +54,6 @@ const GUIDED_SCENE_COLUMNS =
 // target_title below; the nested object itself is never returned.
 const HOTSPOT_SELECT =
   'hotspot_type, label, text, yaw, pitch, target_scene_id, guest_visible, ' +
-  'schedule_building_id, schedule_location_type, schedule_location_label, schedule_floor_label, ' +
-  'schedule_document_id, ' +
   'target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
 
 // Redact anything that could resemble the service role key (a JWT) or a
@@ -154,11 +151,12 @@ async function listHotspotsForScene(sceneId) {
     .from('vr_hotspots')
     .select(HOTSPOT_SELECT)
     .eq('scene_id', numId)
+    .in('hotspot_type', ['scene', 'info', 'exit'])
     .order('display_order', { ascending: true })
     .order('id', { ascending: true });
   if (error) throw fail('listHotspotsForScene', error);
 
-  return (data || []).map((h) => {
+  return (data || []).filter(isSupportedHotspot).map((h) => {
     // PostgREST returns a to-one embed as an object (null when unmatched);
     // guard against an array shape defensively, then drop the nested object.
     const t = Array.isArray(h.target) ? (h.target[0] || null) : (h.target || null);
@@ -172,11 +170,6 @@ async function listHotspotsForScene(sceneId) {
       guest_visible: h.guest_visible === true,
       target_scene_key: t ? t.scene_key : null,
       target_title: t ? t.title : null,
-      schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
-      schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
-      schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
-      schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
-      schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id
     };
   });
 }
@@ -328,8 +321,8 @@ const SCENE_ADMIN_COLUMNS =
 // display. The nested target object is flattened and never returned raw.
 const HOTSPOT_ADMIN_SELECT =
   'id, scene_id, target_scene_id, hotspot_type, label, text, guest_visible, yaw, pitch, ' +
-  'display_order, schedule_building_id, schedule_location_type, schedule_location_label, ' +
-  'schedule_floor_label, schedule_document_id, target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
+  'display_order, ' +
+  'target:vr_scenes!vr_hotspots_target_scene_id_fkey(scene_key, title)';
 
 function flattenHotspot(h) {
   if (!h) return null;
@@ -345,11 +338,6 @@ function flattenHotspot(h) {
     yaw: h.yaw,
     pitch: h.pitch,
     display_order: h.display_order,
-    schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
-    schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
-    schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
-    schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
-    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id,
     target_scene_key: t ? t.scene_key : null,
     target_title: t ? t.title : null
   };
@@ -405,7 +393,6 @@ async function rowExists(table, method, id) {
 function sceneExists(id) { return rowExists('vr_scenes', 'sceneExists', id); }
 function nodeExists(id) { return rowExists('route_nodes', 'nodeExists', id); }
 function buildingExists(id) { return rowExists('buildings', 'buildingExists', id); }
-function scheduleDocumentExists(id) { return rowExists('room_schedule_documents', 'scheduleDocumentExists', id); }
 
 /** Count of hotspots whose target_scene_id points at this scene (delete guard). */
 async function countHotspotsTargetingScene(sceneId) {
@@ -490,10 +477,11 @@ async function listHotspotsAdmin(sceneId) {
     .from('vr_hotspots')
     .select(HOTSPOT_ADMIN_SELECT)
     .eq('scene_id', n)
+    .in('hotspot_type', ['scene', 'info', 'exit'])
     .order('display_order', { ascending: true })
     .order('id', { ascending: true });
   if (error) throw fail('listHotspotsAdmin', error);
-  return (data || []).map(flattenHotspot);
+  return (data || []).filter(isSupportedHotspot).map(flattenHotspot);
 }
 
 /** One hotspot by id in the admin shape, or null. */
@@ -505,13 +493,15 @@ async function findHotspotById(id) {
     .from('vr_hotspots')
     .select(HOTSPOT_ADMIN_SELECT)
     .eq('id', n)
+    .in('hotspot_type', ['scene', 'info', 'exit'])
     .maybeSingle();
   if (error) throw fail('findHotspotById', error);
-  return flattenHotspot(data);
+  return isSupportedHotspot(data) ? flattenHotspot(data) : null;
 }
 
 /** Insert a hotspot from a controller-validated payload; returns the admin shape. */
 async function insertHotspot(payload) {
+  if (!isSupportedHotspot(payload) || Object.keys(payload).some(k => k.startsWith('schedule_'))) throw new Error('Unsupported hotspot payload.');
   const sb = getSupabaseClient();
   const { data, error } = await sb
     .from('vr_hotspots')
@@ -522,11 +512,6 @@ async function insertHotspot(payload) {
       label: payload.label,
       text: payload.text,
       guest_visible: payload.guest_visible === true,
-      schedule_building_id: payload.schedule_building_id,
-      schedule_location_type: payload.schedule_location_type,
-      schedule_location_label: payload.schedule_location_label,
-      schedule_floor_label: payload.schedule_floor_label,
-      schedule_document_id: payload.schedule_document_id,
       yaw: payload.yaw,
       pitch: payload.pitch,
       display_order: payload.display_order
@@ -539,6 +524,7 @@ async function insertHotspot(payload) {
 
 /** Update a hotspot by id; returns the admin shape, or null when no row matched. */
 async function updateHotspotById(id, payload) {
+  if (!isSupportedHotspot(payload) || Object.keys(payload).some(k => k.startsWith('schedule_'))) throw new Error('Unsupported hotspot payload.');
   const sb = getSupabaseClient();
   const { data, error } = await sb
     .from('vr_hotspots')
@@ -548,17 +534,13 @@ async function updateHotspotById(id, payload) {
       label: payload.label,
       text: payload.text,
       guest_visible: payload.guest_visible === true,
-      schedule_building_id: payload.schedule_building_id,
-      schedule_location_type: payload.schedule_location_type,
-      schedule_location_label: payload.schedule_location_label,
-      schedule_floor_label: payload.schedule_floor_label,
-      schedule_document_id: payload.schedule_document_id,
       yaw: payload.yaw,
       pitch: payload.pitch,
       display_order: payload.display_order,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
+    .in('hotspot_type', ['scene', 'info', 'exit'])
     .select(HOTSPOT_ADMIN_SELECT)
     .maybeSingle();
   if (error) throw fail('updateHotspotById', error);
@@ -572,6 +554,7 @@ async function deleteHotspotById(id) {
     .from('vr_hotspots')
     .delete()
     .eq('id', id)
+    .in('hotspot_type', ['scene', 'info', 'exit'])
     .select('id')
     .maybeSingle();
   if (error) throw fail('deleteHotspotById', error);
@@ -594,7 +577,6 @@ module.exports = {
   sceneExists,
   nodeExists,
   buildingExists,
-  scheduleDocumentExists,
   countHotspotsTargetingScene,
   insertScene,
   updateSceneById,

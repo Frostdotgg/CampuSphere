@@ -5,11 +5,9 @@
 
 const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
-const scheduleDataSource = require('../config/scheduleDataSource');
 const buildingRepository = require('../repositories/buildingRepository');
 const routeRepository = require('../repositories/routeRepository');
-const scheduleRepository = require('../repositories/scheduleRepository');
-const roomScheduleDocumentRepository = require('../repositories/roomScheduleDocumentRepository');
+const legacyScheduleReferences = require('../services/legacyScheduleReferences');
 const auditService = require('../services/auditService');
 const routeAvailability = require('../services/routeAvailability');
 const V = require('../utils/adminValidation');
@@ -322,16 +320,6 @@ exports.deleteBuilding = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid building id.' });
   }
 
-  // Cross-backend numeric IDs are not a safe natural identity. Fail closed
-  // before dependency checks or deletion if the building and schedule domains
-  // do not point at the same backend.
-  if (scheduleDataSource.isSupabase() !== mapRuntime.isBuildingSupabase()) {
-    return res.status(409).json({
-      success: false,
-      message: 'Building and room schedule data sources must match before a building can be deleted.'
-    });
-  }
-
   try {
     // R5 / Section 7.9 destructive-delete guard: a building referenced by a
     // campus route as its destination must NOT be deleted. The DB FK is
@@ -339,17 +327,8 @@ exports.deleteBuilding = async (req, res) => {
     // would silently take the route — and its ordered steps — with it. Block
     // with 409 in both runtime modes, after the 404 existence check and BEFORE
     // any delete, so no building/route/step/graph/VR/audit mutation occurs.
+    const SCHEDULE_REF_MESSAGE = 'This building has archived schedule references. Complete the owner-controlled schedule cleanup before deleting it.';
     const ROUTE_REF_MESSAGE = 'This building is used by one or more campus routes. Update or remove those routes before deleting this building.';
-    // Milestone 11, Section 11.5: room_schedules also reference buildings
-    // (FK ON DELETE RESTRICT in both backends), so a referenced building
-    // must return a clean 409 instead of surfacing a raw FK failure as 500.
-    const SCHEDULE_REF_MESSAGE = 'This building has room schedule entries. Delete those schedule entries before deleting this building.';
-
-    // Existence-check, then route-dependency guard, then schedule-dependency
-    // guard, then delete. Supabase branch when BUILDING_DATA_SOURCE=supabase;
-    // otherwise the MySQL path. The schedule pre-check goes through
-    // scheduleRepository so it always inspects the ACTIVE schedule backend
-    // (SCHEDULE_DATA_SOURCE), which may differ from the building source.
     if (mapRuntime.isBuildingSupabase()) {
       const existing = await buildingRepository.findById(id);
       if (!existing) {
@@ -359,17 +338,11 @@ exports.deleteBuilding = async (req, res) => {
       if (routeRefs > 0) {
         return res.status(409).json({ success: false, message: ROUTE_REF_MESSAGE });
       }
-      const scheduleRefs = await scheduleRepository.countSchedulesByBuilding(id);
-      const scheduleDocumentRefs = (await roomScheduleDocumentRepository.listDocuments({ buildingId: id, limit: 1 })).total;
-      if (scheduleRefs > 0 || scheduleDocumentRefs > 0) {
+      if (await legacyScheduleReferences.hasBuildingReferences(id, { supabase: true })) {
         return res.status(409).json({ success: false, message: SCHEDULE_REF_MESSAGE });
       }
       await buildingRepository.delete(id);
     } else {
-      // Runtime-source schedule guard (see comment above); the tx re-check
-      // below covers same-backend races, and the MySQL FK RESTRICT backstops.
-      const scheduleRefs = await scheduleRepository.countSchedulesByBuilding(id);
-      const scheduleDocumentRefs = (await roomScheduleDocumentRepository.listDocuments({ buildingId: id, limit: 1 })).total;
       // L2 TOCTOU hardening: lock the target building row, re-check route
       // references, and delete inside ONE transaction. SELECT ... FOR UPDATE
       // holds the building row's lock, so a concurrent campus_routes insert
@@ -389,20 +362,9 @@ exports.deleteBuilding = async (req, res) => {
         );
         if (routeRefs.length > 0) return { status: 409, reason: 'route' };
 
-        // Schedule guard: the runtime-source count captured before the tx,
-        // plus a same-backend re-check on the tx connection while the
-        // building row is locked (mirrors the route re-check above).
-        if (scheduleRefs > 0 || scheduleDocumentRefs > 0) return { status: 409, reason: 'schedule' };
-        const [schedRefs] = await conn.query(
-          'SELECT id FROM room_schedules WHERE building_id = ? LIMIT 1',
-          [id]
-        );
-        if (schedRefs.length > 0) return { status: 409, reason: 'schedule' };
-        const [scheduleImageRefs] = await conn.query(
-          'SELECT id FROM room_schedule_documents WHERE building_id = ? LIMIT 1',
-          [id]
-        );
-        if (scheduleImageRefs.length > 0) return { status: 409, reason: 'schedule' };
+        if (await legacyScheduleReferences.hasBuildingReferences(id, { connection: conn })) {
+          return { status: 409, reason: 'schedule' };
+        }
 
         await conn.query('DELETE FROM buildings WHERE id = ?', [id]);
         return { status: 200 };

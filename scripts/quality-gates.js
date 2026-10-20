@@ -2663,38 +2663,21 @@ function runVrRuntimeGate() {
   return rec.failures;
 }
 
-/* ---------------- static admin VR schedule-UX gate (no server) ---------------- */
-// Semester-image flow: admins search and select an existing room schedule
-// document. The saved hotspot stores only schedule_document_id; its room,
-// semester, school year, and image update automatically with that record.
-function runAdminVrScheduleUxGate() {
+/* ---------------- static supported admin VR hotspot UX gate (no server) ---------------- */
+// Scheduling is retired. Preserve scene-target search and supported hotspot
+// editing without a schedule-document selector. Historical schema assertions
+// remain separate from this active UI contract.
+function runAdminVrHotspotUxGate() {
   const rec = makeRecorder('admin-vr-ux');
   const { ok } = rec;
   const root = path.join(__dirname, '..');
   const view = fs.readFileSync(path.join(root, 'views', 'admin', 'vr.ejs'), 'utf8');
   const js = fs.readFileSync(path.join(root, 'public', 'js', 'admin', 'admin-vr.js'), 'utf8');
   const ctrl = fs.readFileSync(path.join(root, 'controllers', 'adminVrController.js'), 'utf8');
-  ok('vr.ejs has a native schedule document select named schedule_document_id',
-    /<select name="schedule_document_id" id="vr-hotspot-schedule-document">/.test(view));
-  ok('vr.ejs has no legacy editable schedule metadata inputs',
-    !/<(?:input|select)[^>]*name="schedule_(?:building_id|location_type|location_label|floor_label)"/.test(view));
-  ok('vr.ejs has a labelled schedule search with live result status',
-    /<label for="vr-hotspot-schedule-search">Search room schedules<\/label>/.test(view) &&
-    /id="vr-hotspot-schedule-search"[^>]*type="search"|type="search"[^>]*id="vr-hotspot-schedule-search"/.test(view) &&
-    /id="vr-hotspot-schedule-status"[^>]*aria-live="polite"/.test(view));
-  ok('admin-vr.js loads bounded room schedule documents from the admin API',
-    /apiRequest\('\/admin\/api\/room-schedule-documents\?limit=200'/.test(js) &&
-    /SCHEDULE_MAX_ROWS\s*=\s*2000/.test(js) && /&offset=/.test(js));
-  ok('admin-vr.js filters schedule documents locally and creates options safely',
-    /function renderScheduleDocumentOptions\(/.test(js) &&
-    /scheduleDocumentLabel\(documentRow\)\.toLocaleLowerCase\('en'\)\.includes\(query\)/.test(js) &&
-    /document\.createElement\('option'\)/.test(js));
-  ok('admin-vr.js schedule payload sends only schedule_document_id',
-    /payload\.schedule_document_id = documentId;/.test(js) &&
-    !/payload\.schedule_(?:building_id|location_type|location_label|floor_label)\s*=/.test(js));
-  ok('adminVrController requires the selected document and fails closed on backend mismatch',
-    ctrl.includes('A schedule hotspot requires a room schedule selection.') &&
-    ctrl.includes('scheduleDataSource.getScheduleDataSource() !== vrDataSource.getVrDataSource()'));
+  ok('VR editor has only supported hotspot types and no schedule selector',
+    !/value="schedule"|schedule_document_id|vr-hotspot-schedule/.test(view) &&
+    !/loadScheduleDocuments|room-schedule-documents/.test(js) &&
+    ctrl.includes("const HOTSPOT_TYPES = ['scene', 'info', 'exit']"));
 
   // Searchable Target-scene selector (Add/Edit Hotspot modal):
   ok('vr.ejs has the labeled type="search" target search input with autocomplete off',
@@ -7119,6 +7102,50 @@ function walkingReleaseHandoffProblems(value, { prompt = false } = {}) {
   return problems;
 }
 
+const CURRENT_ROOM_REMOVAL_HEADING = '## Current Release Continuity (2026-10-19 room-scheduling removal candidate)';
+/** PURE: local retirement cannot inherit the preceding release permissions. */
+function roomSchedulingRemovalHandoffProblems(value, { prompt = false } = {}) {
+  const t = String(value || '').replace(/[*]/g, '').split(String.fromCharCode(96)).join('').replace(/\s+/g, ' ');
+  const problems = [];
+  const need = (label, pass) => { if (!pass) problems.push(label); };
+  need('local branch, source and no publication authority',
+    /codex\/remove-room-scheduling/.test(t) && /0af76f161443f8259858f4fa67116bc12f51321e/.test(t) &&
+    /uncommitted, not deployed candidate/.test(t) && /no commit, push, deployment, vendor changes or live data cleanup/.test(t));
+  need('removed surfaces, preserved rooms and hotspot policy',
+    /Room scheduling is retired for every role/.test(t) && /Floor and room descriptions remain/.test(t) &&
+    /standard JSON 404/.test(t) && /CSRF/.test(t) && /Guest visibility rules/.test(t));
+  need('separate backed-up cleanup and compatible data structures',
+    /No live rows have been deleted/.test(t) && /empty tables\/fields retained/.test(t) &&
+    /owner-controlled target verification/.test(t) && /external backup/.test(t) &&
+    /External hosted images and audit history remain untouched/.test(t) && /Synchronization tools reject/.test(t));
+  need('reuse placed room markers with private information policy',
+    /Cleanup converts schedule hotspots to private Info markers with room names\/positions preserved/.test(t));
+  need('completed saved-marker conversion with bounded retained data',
+    /73 saved Schedule hotspots became private Info markers/.test(t) &&
+    /Recorded read-back found zero Schedule types among 1,469 hotspots/.test(t) &&
+    /69 image entries and 2 legacy entries remain intact/.test(t) &&
+    /Schedule metadata remains for the later full cleanup/.test(t) &&
+    /one-time conversion authorization is complete and grants no further database writes or deployment/.test(t));
+  need('current cache and offline compatibility',
+    /service worker is v53; shared stylesheet remains v13/.test(t) &&
+    /no guide schema change or forced redownload/.test(t) && /Migration sources remain contiguous through 0028/.test(t));
+  need('dated Walking release evidence and unresolved acceptance',
+    /dpl_94jYqWkHoC19cLKnfooTVEG8SCyU/.test(t) && /26\/26 saved paths, zero missing/.test(t) &&
+    /12 Warning rows \/ 0 Error \/ 0 Fatal/.test(t) && /session retry uncertainty/.test(t) &&
+    /not a full npm test\/qa pass/.test(t) && /not verification of this local candidate/.test(t));
+  need('explicit next-session stop and no inherited permissions',
+    /Prior permissions do not carry forward/.test(t) && /one writer/.test(t) &&
+    /read-only and context-only/.test(t) && /report and stop after grounding/.test(t) &&
+    /Availability does not expand authority/.test(t) && /docs\/room-scheduling-removal.md/.test(t));
+  if (prompt) need('complete standalone grounding prompt',
+    /initial grounding turn/.test(t) && /Discover the repository root/.test(t) &&
+    /Do not edit files, review a pending diff, run tests\/QA\/probes/.test(t) &&
+    /Stop and wait for the owner's explicit task/.test(t) &&
+    ['AGENTS.md','CLAUDE.md','README.md','package.json','.vercelignore','docs/room-scheduling-removal.md'].every(p=>t.includes(p)));
+  if (/Removal is deployed|The removal has been deployed|Production currently serves|Live schedule data has been deleted|All walking routes are visually approved|The full suite passed|The previous database approval still applies|This grounding prompt authorizes deployment|Prior permissions carry forward|Deploy now/i.test(t)) problems.push('unsupported acceptance or inherited permission');
+  return problems;
+}
+
 const CURRENT_RELEASE_CONTINUITY_START = '<!-- M12 RELEASE CONTINUITY START -->';
 const CURRENT_RELEASE_CONTINUITY_END = '<!-- M12 RELEASE CONTINUITY END -->';
 
@@ -7239,6 +7266,8 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   if (historicalAt >= 0) scope = scope.slice(0, historicalAt);
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  if (t.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(t);
 
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes('2026-10-19 Walking 2D release handoff')) {
     return walkingReleaseHandoffProblems(t);
@@ -8645,6 +8674,7 @@ function currentOfflineCorrectionEvidenceProblems(value) {
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
+  if (t.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(t, { prompt: true }).length === 0;
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return walkingReleaseHandoffProblems(t, { prompt: true }).length === 0;
   }
@@ -9235,6 +9265,7 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes('room-scheduling removal candidate')) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
@@ -9319,6 +9350,7 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes('room-scheduling removal candidate')) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
@@ -10287,6 +10319,11 @@ function declaresStalePilotSurfaceDeploymentClaim(text) {
  */
 function deploymentDocumentClaimsAreCurrent(text) {
   const current = currentDeploymentAuthorityScope(text);
+  // A not-deployed candidate has a different lifecycle from the published
+  // Walking release. Do not interpret its source SHA as deployed-byte proof.
+  if (current.includes('room-scheduling removal candidate')) {
+    return roomSchedulingRemovalHandoffProblems(current).length === 0;
+  }
   return typeof text === 'string' && text !== '' &&
     !declaresStalePilotSurfaceDeploymentClaim(current) &&
     documentConflictingDeployedShaProblems(current).length === 0;
@@ -10339,6 +10376,8 @@ function recordsPostDeploymentAuthority(text) {
   if (typeof text !== 'string' || text === '') return false;
   const current = currentDeploymentAuthorityScope(text);
   const t = current.replace(/\s+/g, ' ');
+
+  if (current.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(current).length === 0;
 
   if (current.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA)) {
     return walkingReleaseHandoffProblems(current).length === 0;
@@ -11180,6 +11219,7 @@ function runDocsCurrentGate() {
     [CURRENT_WALKING_HANDOFF_NOTE]: readIf(CURRENT_WALKING_HANDOFF_NOTE),
     'docs/walking-2d-release-2026-10-18.md': readIf('docs/walking-2d-release-2026-10-18.md'),
     'docs/walking-2d-team-guide.md': readIf('docs/walking-2d-team-guide.md'),
+    'docs/room-scheduling-removal.md': readIf('docs/room-scheduling-removal.md'),
     'database/supabase/README.md': readIf('database/supabase/README.md'),
     'database/supabase/REPOSITORY_BOUNDARIES.md': readIf('database/supabase/REPOSITORY_BOUNDARIES.md'),
     'docs/session-readiness-incident-2026-09-14.md': readIf(path.join('docs', 'session-readiness-incident-2026-09-14.md')),
@@ -11406,7 +11446,7 @@ function runDocsCurrentGate() {
     const doc = docs[name].replace(/\s+/g, ' ');
     // The unmodified environment template retains its dated 0027 checkpoint.
     // Current documentation must describe the owner-applied 0028 inventory.
-    const migrationEnd = name === '.env.example' ? '0027' : '0028';
+    const migrationEnd = '0028';
     ok(`${name} records migrations through ${migrationEnd}`,
       new RegExp('0001[\\s\\S]{0,2000}' + migrationEnd).test(doc));
     ok(`${name} records 0001-${migrationEnd} owner application`,
@@ -11740,20 +11780,50 @@ function runDocsCurrentGate() {
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
 
-  function normalizedCurrentReleaseSection(value) {
+  function normalizedCurrentReleaseSection(value, heading = CURRENT_ROOM_REMOVAL_HEADING) {
     const raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
-    const start = raw.indexOf(CURRENT_WALKING_HANDOFF_HEADING);
+    const start = raw.indexOf(heading);
     if (start < 0) return '';
-    const afterHeading = start + CURRENT_WALKING_HANDOFF_HEADING.length;
+    const afterHeading = start + heading.length;
     const nextHeading = raw.slice(afterHeading).search(/^## /m);
     const end = nextHeading < 0 ? raw.length : afterHeading + nextHeading;
     return raw.slice(start, end).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative October 19 Walking 2D summaries are exactly synchronized',
+  ok('all eleven operative room-scheduling removal summaries are exactly synchronized',
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
+
+  const retirementFixture = currentSections[0];
+  for (const [label, from, to] of [
+    ['candidate source', '0af76f161443f8259858f4fa67116bc12f51321e', '0000000000000000000000000000000000000000'],
+    ['publication boundary', 'no commit,\npush, deployment, vendor changes or live data cleanup', 'publication and cleanup allowed'],
+    ['cache generation', 'service worker is v53', 'service worker is v52'],
+    ['room descriptions', 'Floor and room descriptions remain', 'Floor and room descriptions are removed'],
+    ['room-marker reuse', 'room names/positions preserved', 'room markers deleted'],
+    ['converted marker privacy', 'private Info markers', 'Guest-visible Info markers'],
+    ['converted saved count', '73 saved Schedule hotspots', '72 saved Schedule hotspots'],
+    ['converted data coverage', '1,469 hotspots', '1,468 hotspots'],
+    ['retained schedule entries', '69 image entries and 2 legacy entries remain intact', 'schedule entries were removed'],
+    ['live data qualification', 'No live rows have been deleted', 'All live rows have been deleted'],
+    ['inherited permissions', 'Prior permissions do\nnot carry forward', 'Prior permissions carry forward']
+  ]) {
+    ok('fixture: removal handoff rejects ' + label, retirementFixture.includes(from) &&
+      roomSchedulingRemovalHandoffProblems(retirementFixture.replace(from, to)).length > 0);
+  }
+  const retirementPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  for (const [label, body, prompt] of [['summary', retirementFixture, false],
+    ['Codex', retirementPrompts && retirementPrompts.codex, true], ['Claude', retirementPrompts && retirementPrompts.claude, true]]) {
+    ok('removal ' + label + ' is complete without relying on archived evidence',
+      roomSchedulingRemovalHandoffProblems(body, { prompt }).length === 0);
+    for (const claim of ['Removal is deployed.', 'Production currently serves 0af76f1.',
+      'Live schedule data has been deleted.', 'The full suite passed.',
+      'The previous database approval still applies.', 'This grounding prompt authorizes deployment.']) {
+      ok('fixture: removal ' + label + ' rejects: ' + claim,
+        roomSchedulingRemovalHandoffProblems(body + '\n' + claim, { prompt }).length > 0);
+    }
+  }
 
   const currentAuthority = docs['docs/current-authority.md'];
   const currentAuthorityText = currentAuthority.replace(/\s+/g, ' ').trim();
@@ -11761,7 +11831,7 @@ function runDocsCurrentGate() {
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
   const transitionNote = docs[CURRENT_PANEL_HANDOFF_NOTE];
   ok('canonical current authority records the October source, evidence and next-task boundaries',
-    walkingReleaseHandoffProblems(normalizedCurrentReleaseSection(currentAuthority)).length === 0 &&
+    roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(currentAuthority)).length === 0 &&
     /Last updated: 2026-10-19/.test(currentAuthority) &&
     /Architecture and rules to preserve/.test(currentAuthority));
   ok('detailed transition note preserves source map, local research artifacts and missing panel requests',
@@ -11844,7 +11914,9 @@ function runDocsCurrentGate() {
   }
   // Independent literals pin rejection targets; removing a claim must fail even
   // if historical sections still contain the old release facts.
-  const walkingFixture = currentSections[0];
+  const walkingHistoryHeading = '## Historical Release Continuity (2026-10-19 Walking 2D release handoff; superseded by local removal candidate)';
+  const walkingFixture = normalizedCurrentReleaseSection(docs['CODEX_HANDOFF.md'], walkingHistoryHeading)
+    .replace(walkingHistoryHeading, CURRENT_WALKING_HANDOFF_HEADING);
   ok('Walking 2D current summary independently validates without historical sections',
     walkingReleaseHandoffProblems(walkingFixture).length === 0);
   for (const [name, from, to] of [
@@ -11886,7 +11958,13 @@ function runDocsCurrentGate() {
       walkingFixture.replace('26/26 saved walking paths', '2/26 saved walking paths') +
       '\n## Historical Release Continuity (fixture)\n' + walkingFixture +
       '\n' + CURRENT_RELEASE_CONTINUITY_END).length > 0);
-  const walkingOwnerPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  const walkingOwnerPrompts = {};
+  for (const [role, title] of [['codex','Codex'],['claude','Claude Code']]) {
+    const doc = docs['docs/new-session-grounding-prompts.md'];
+    const at = doc.indexOf('## Historical ' + title + ' Grounding Prompt (2026-10-19 Walking 2D; superseded)');
+    const a = doc.indexOf('```text\n', at) + 8, b = doc.indexOf('\n```', a);
+    walkingOwnerPrompts[role] = doc.slice(a,b);
+  }
   for (const role of ['codex','claude']) {
     const body = walkingOwnerPrompts && walkingOwnerPrompts[role];
     ok('Walking 2D ' + role + ' standalone prompt is complete and bounded',
@@ -11905,7 +11983,7 @@ function runDocsCurrentGate() {
     }
   }
   ok('October 19 detailed handoff records the current release, source map and bounded validation',
-    walkingReleaseHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE])).length === 0 &&
+    roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE])).length === 0 &&
     /Last updated: 2026-10-19/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /Source map for the next focused task/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /isolated network-free/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]));
@@ -12405,7 +12483,7 @@ function runDocsCurrentGate() {
   const REQUIRED_VERCEL_PROFILE_KEYS = Object.freeze([
     'NODE_ENV', 'SESSION_STORE', 'AUTH_DATA_SOURCE', 'CONTENT_DATA_SOURCE',
     'BUILDING_DATA_SOURCE', 'ROUTE_DATA_SOURCE', 'VR_DATA_SOURCE',
-    'SCHEDULE_DATA_SOURCE', 'MAP_RENDERER', 'SUPABASE_URL',
+    'MAP_RENDERER', 'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY', 'UPSTASH_REDIS_REST_URL',
     'UPSTASH_REDIS_REST_TOKEN', 'RATE_LIMIT_KEY_SECRET',
   ]);
@@ -13305,13 +13383,11 @@ function runDocsCurrentGate() {
     ok('current full-QA dispositions bind all five exact transcript stage markers in both evidence documents',
       analyzeCurrentQaStageMarkers(te, sc).length === 0);
 
-    const scheduleAuditService = readIf(path.join('services', 'auditService.js'));
-    const scheduleAuditController = readIf(path.join('controllers', 'adminScheduleController.js'));
-    const liveScheduleAudit = analyzeScheduleAuditContract(scheduleAuditService, scheduleAuditController);
-    ok('auditService allowlists exactly the three contracted schedule mutation actions',
-      liveScheduleAudit.allowlist.length === 0);
-    ok('adminScheduleController maps create, update, and delete to the exact schedule audit actions',
-      liveScheduleAudit.controller.length === 0);
+    // Historical schedule audit fixtures below remain regression coverage for
+    // the audit analyzer; a retired controller is no longer an active source.
+    ok('retired schedule controllers are absent from the active application',
+      !readIf('controllers/adminScheduleController.js') &&
+      !readIf('controllers/adminRoomScheduleDocumentController.js'));
 
     /* ---- fixtures for the R8 evidence-consistency rules, pinned independently
        of the live documents. Each rule gets an accepting AND a rejecting case. ---- */
@@ -14881,70 +14957,30 @@ function runSwPrecacheGate() {
 }
 
 /* -------- static room-scheduling docs/deployment wording gate (semester images) -------- */
-function runScheduleDocsGate() {
-  const rec = makeRecorder('schedule-docs');
-  const { ok } = rec;
+function runSchedulingRetirementDocsGate() {
+  const rec = makeRecorder('schedule-retirement-docs');
   const root = path.join(__dirname, '..');
-  const readIf = (rel) => { const p = path.join(root, rel); return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; };
-  const envEx = readIf('.env.example');
-  const readme = readIf('README.md');
-  const deploy = readIf(path.join('docs', 'deployment.md'));
-  const agents = readIf('AGENTS.md');
-  const claude = readIf('CLAUDE.md');
-  const grounding = readIf(path.join('docs', 'new-session-grounding-prompts.md'));
-  const dbPerfGate = readIf(path.join('scripts', 'db-perf-gate.js'));
-
-  ok('.env.example documents SCHEDULE_DATA_SOURCE', envEx.includes('SCHEDULE_DATA_SOURCE'));
-  ok('.env.example names legacy schedule migrations plus owner-applied 0020 for the image runtime',
-    envEx.includes('0012_room_schedules') && envEx.includes('0013_vr_hotspot_schedule_metadata') &&
-    envEx.includes('0020_room_schedule_documents'));
-  ok('README documents schedule migrations and the current owner-applied 0001-0027 span',
-    readme.includes('0012_room_schedules') &&
-    readme.includes('0013_vr_hotspot_schedule_metadata') &&
-    readme.includes('0020_room_schedule_documents') &&
-    /0001[\s\S]{0,120}0027/.test(readme) &&
-    /owner-applied[\s\S]{0,40}0001[\s\S]{0,40}0027/i.test(readme));
-  ok('README drops stale 0001-0011-as-current migration span', !/0001.{1,3}0011/.test(readme));
-  ok('deployment.md lists 0012, 0013, and 0020 in the apply order',
-    deploy.includes('0012_room_schedules') && deploy.includes('0013_vr_hotspot_schedule_metadata') &&
-    deploy.includes('0020_room_schedule_documents'));
-  ok('deployment.md documents SCHEDULE_DATA_SOURCE', deploy.includes('SCHEDULE_DATA_SOURCE'));
-  ok('deployment.md production GO gate covers 0012, 0013, and owner-applied 0020',
-    /GO gate[\s\S]{0,900}0012_room_schedules[\s\S]{0,900}0013_vr_hotspot_schedule_metadata[\s\S]{0,900}0020_room_schedule_documents/i.test(deploy) &&
-    /0020[\s\S]{0,180}separate owner operational authorization/i.test(deploy));
-  for (const [name, doc] of [['AGENTS.md', agents], ['CLAUDE.md', claude]]) {
-    ok(`${name} documents SCHEDULE_DATA_SOURCE + roomScheduleDocumentRepository`,
-      doc.includes('SCHEDULE_DATA_SOURCE') && doc.includes('roomScheduleDocumentRepository'));
-    ok(`${name} documents the owner-applied 0020 direct-link boundary`,
-      doc.includes('0020_room_schedule_documents') && doc.includes('schedule_document_id') &&
-      /0020[\s\S]{0,180}owner-applied/i.test(doc));
-  }
-  // Anti-scope wording: schedules are real admin-managed data, never
-  // SIS/enrollment/instructor-load simulation.
-  for (const [name, doc] of [['README.md', readme], ['deployment.md', deploy], ['AGENTS.md', agents], ['CLAUDE.md', claude]]) {
-    ok(`${name} states schedules are admin-managed, not SIS/enrollment simulation`,
-      /admin-managed[\s\S]{0,400}(SIS|enrollment)/i.test(doc));
-  }
-  ok('grounding prompts no longer claim 0013 should not exist', !/0013 should not exist/i.test(grounding));
-  ok('grounding prompts preserve the accepted historical 0001-0019 boundary', /0001[\s\S]{0,40}0019/.test(grounding));
-  ok('db-perf gate no longer claims 0013 owner apply is pending',
-    !/(0013[\s\S]{0,160}owner apply is required|owner apply is required[\s\S]{0,160}0013)/i.test(dbPerfGate));
-
+  const doc = fs.readFileSync(path.join(root, 'docs/room-scheduling-removal.md'), 'utf8');
+  const template = fs.readFileSync(path.join(root, '.env.example'), 'utf8');
+  rec.ok('retirement runbook preserves floors/rooms and owner-controlled cleanup',
+    /floor and room descriptions/i.test(doc) && /owner-controlled/i.test(doc) &&
+    /not committed|uncommitted/i.test(doc) && /not deployed/i.test(doc));
+  rec.ok('obsolete runtime switch is absent from the configuration template',
+    !/SCHEDULE_DATA_SOURCE/.test(template));
   return rec.failures;
 }
 
-/* -------- semester room-schedule image probe gate --------
-   Database-free and network-free. Runtime CRUD parity stays a separate gate
-   until migration 0020 is explicitly authorized and applied to the selected
-   verification backends. The old time-row probes remain in source as legacy
-   transition evidence but are no longer registered in the active flow. */
-const SCHEDULE_PROBES = [
-  ['semester room schedule image contracts', 'roomScheduleDocument-probe.js'],
+/* -------- active scheduling retirement probe gate --------
+   Database-free fixtures exercise retired endpoints, role/CSRF policy,
+   preserved room details and supported hotspot types. Data conversion remains
+   a separate owner-controlled operation; historical SQL stays intact. */
+const SCHEDULING_RETIREMENT_PROBES = [
+  ['retired room scheduling contracts', 'roomSchedulingRemoval-probe.js'],
 ];
 
 // Milestone 11, Section 11.8C (+ BE.4): Free Roam 360 (map entry ->
 // /vr/scene-guard-house scene browser at the Guard House, routeless; /vr
-// stays a compatible fallback). Kept separate from SCHEDULE_PROBES because it
+// stays a compatible fallback). Kept separate from SCHEDULING_RETIREMENT_PROBES because it
 // exercises the Free Roam domain rather than schedule-document behavior.
 const FREE_ROAM_PROBES = [
   ['free-roam VR scene browser contracts', 'freeRoamVr-probe.js'],
@@ -15178,8 +15214,8 @@ const SESSION_RESIDUE_PROBES = [
    Each stage: { key, heading, prefix, probes } — heading and prefix are the
    exact strings previously used inline, so console output is unchanged. */
 const SPAWNED_PROBE_STAGES = [
-  { key: 'schedule', prefix: 'schedule', probes: SCHEDULE_PROBES,
-    heading: '[Room scheduling QA] (semester image source contracts + direct VR linkage + legacy fallback)' },
+  { key: 'schedule-retirement', prefix: 'schedule-retirement', probes: SCHEDULING_RETIREMENT_PROBES,
+    heading: '[Room scheduling retirement QA] (removed APIs/UI + preserved VR policy)' },
   { key: 'free-roam', prefix: 'free-roam', probes: FREE_ROAM_PROBES,
     heading: '[Free Roam 360 QA] (map entry + /vr scene browser + routeless-contract probe)' },
   { key: 'logout', prefix: 'logout', probes: LOGOUT_PROBES,
@@ -16062,7 +16098,7 @@ async function main() {
   console.log('');
 
   console.log('[Admin VR schedule UX] (static vr.ejs/admin-vr.js/adminController analysis)');
-  allFailures.push(...runAdminVrScheduleUxGate().map((f) => 'admin-vr-ux :: ' + f));
+  allFailures.push(...runAdminVrHotspotUxGate().map((f) => 'admin-vr-ux :: ' + f));
   console.log('');
 
   console.log('[Admin search icon layout] (static users.ejs/shared/admin CSS analysis)');
@@ -16154,7 +16190,7 @@ async function main() {
   console.log('');
 
   console.log('[Room scheduling docs/deployment wording] (static docs analysis)');
-  allFailures.push(...runScheduleDocsGate().map((f) => 'schedule-docs :: ' + f));
+  allFailures.push(...runSchedulingRetirementDocsGate().map((f) => 'schedule-docs :: ' + f));
   console.log('');
 
   console.log('[Leaflet vendor hygiene] (static views/vendor/CSP analysis)');
@@ -16241,6 +16277,7 @@ if (require.main === module) {
 module.exports = {
   currentReleaseContinuityProblems,
   panelFeatureHandoffProblems,
+  roomSchedulingRemovalHandoffProblems,
   walkingReleaseHandoffProblems,
   dashboardOmitsNavigateBuildings,
   extractReusablePrompts,
@@ -16251,7 +16288,7 @@ module.exports = {
   homeQuickAccessContract,
   landingShowsTruthfulRoleCount,
   runAdminSearchIconLayoutGate,
-  runAdminVrScheduleUxGate,
+  runAdminVrHotspotUxGate,
   runBuildingDeleteTxGate,
   runDashboardNavigateBuildingsRemovalGate,
   runGuestDashboardNavigationGate,
@@ -16265,5 +16302,5 @@ module.exports = {
   reusablePromptIsCurrent,
   runPublicEventsDateOrderingGate,
   runDocsCurrentGate,
-  runScheduleDocsGate,
+  runSchedulingRetirementDocsGate,
 };

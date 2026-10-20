@@ -7,7 +7,7 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Server-rendered EJS views with shared partials (`head`, `navbar`, `dash-navbar`, `footer`).
 - Session-based authentication (`express-session` + `bcrypt`) with Google OAuth as a second sign-in path.
 - Role-based access control (`student-cspc`, `instructor`, `admin`, `guest`) via `middleware/roleAuth.js`.
-- Signed-in guests can browse every building and 360 scene; room schedules stay participant-only and VR information hotspots require explicit guest approval.
+- Signed-in guests can browse every building and 360 scene; VR information hotspots require explicit guest approval. Room scheduling is retired in the local candidate.
 - Events are filtered server-side by the administrator-selected audience:
   everyone, guest, CSPC student, instructor, or admin.
 - Domain-to-role mapping at OAuth registration (`@my.cspc.edu.ph` → student, `@cspc.edu.ph` → instructor, `@gmail.com` → guest).
@@ -18,7 +18,7 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Vehicle/Walking 2D selection online and offline, with independently drawn
   walking paths, dashed blue entrance/red return, and an Administrator editor.
   Walking return reverses its saved path; Vehicle return stays independently drawn.
-- Building, room-schedule, and 360-scene media may reference approved
+- Building and 360-scene media may reference approved
   Cloudinary or Google Drive files; Drive images use an authenticated
   same-origin proxy.
 - Dual-backend repository persistence: Supabase/PostgreSQL in Production and a
@@ -27,19 +27,14 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 
 ## Current source and handoff (2026-10-19)
 
-Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
-before older milestones. Walking 2D was released October 18 from application
-baseline `c533719` (feature `9a4a628`). The October 19 saved counter is
-26/26, zero missing; this does not establish visual approval of every walkway.
-Current cache/stylesheet are v52/v13; migration sources extend through 0028.
-
-The owner approved review, documentation/static-check updates, one commit and
-a normal push. Recompute the resulting documentation HEAD rather than treating
-the application baseline as current HEAD. A push may trigger a Vercel build;
-manual promotion, ICTU deployment, database changes and new panelist features
-are excluded. A new session grounds read-only, reports and stops, then waits
-for its owner-selected task. Preserve pending/local documents and one writer
-per scope; prior permissions do not carry forward.
+Read `docs/current-authority.md` and `docs/room-scheduling-removal.md` first.
+Room scheduling is removed in the uncommitted local candidate; floor and room
+descriptions remain. This candidate is not deployed and grants no commit/push,
+live data cleanup or deployment authority. The last published Walking release
+and October 19 saved-path coverage remain dated evidence.
+The owner separately approved conversion of 73 saved Schedule markers to
+private Info hotspots in the running Docker app's Supabase database. Names and
+positions were verified unchanged; schedule entries remain for later cleanup.
 
 ## Tech Stack
 
@@ -136,7 +131,7 @@ migrations through `0028`.
 The migration summary in the next paragraph is retained as historical setup
 context; the owner-applied status above is the current authority.
 
-CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0028`, and all are owner-applied on the selected project. Migration `0020_room_schedule_documents.sql` provides semester-long room schedule images and direct VR hotspot links. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the OAuth-profile RPC while removing the old instructor-field guard. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp. Directional migration `0023` provides independent reverse-geometry saves; `0024` adds explicit guest-visible hotspot policy; `0025` adds role-targeted event audiences; and `0026` preserves instructor-profile integrity. Migration `0027` adds the service-role-only atomic directed-edge geometry and geometry-derived metric save. Owner-applied `0028` adds independently authored Walking 2D paths, separate from vehicle edges and Walking VR. See **[docs/deployment.md](docs/deployment.md)** for environment names and the fresh-project apply order. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. `config/selectedDemoFreeze.js` is a QA record rather than a runtime/admin write lock. A separately authorized SELECT-only double-read on 2026-09-10 verified the updated Guided-VR catalog while preserving the current Supabase route fingerprint SHA-256 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the refreshed expanded-freeze manifest SHA-256 is `c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`. No 2D route or migration changed.
+CampuSphere runs against **MySQL** (default and fallback) and/or **Supabase/PostgreSQL**, selected per domain at runtime by the `*_DATA_SOURCE` switches (read by `config/authDataSource.js`, `config/contentDataSource.js`, `config/vrDataSource.js`, `config/scheduleDataSource.js`, and `config/mapRuntime.js`). When a switch is set to `supabase`, the matching controllers read through the **server-only** Supabase client (`config/supabase.js`) and the `repositories/` layer; otherwise the MySQL path runs unchanged. The schema + migration sources under `database/supabase/` are contiguous from `0001` through `0028`, and all are owner-applied on the selected project. Historical migration `0020_room_schedule_documents.sql` retains empty-compatible schedule storage and nullable hotspot fields; its feature is retired. Auth-only migration `0021_minimal_instructor_oauth_registration.sql` preserves the OAuth-profile RPC while removing the old instructor-field guard. Presence migration `0022_user_presence.sql` adds one server-controlled, admin-only last-seen timestamp. Directional migration `0023` provides independent reverse-geometry saves; `0024` adds explicit guest-visible hotspot policy; `0025` adds role-targeted event audiences; and `0026` preserves instructor-profile integrity. Migration `0027` adds the service-role-only atomic directed-edge geometry and geometry-derived metric save. Owner-applied `0028` adds independently authored Walking 2D paths, separate from vehicle edges and Walking VR. See **[docs/deployment.md](docs/deployment.md)** for environment names and the fresh-project apply order. The 13-building `models/data.js` roster remains the reproducible seed baseline, not the complete live catalog. `config/selectedDemoFreeze.js` is a QA record rather than a runtime/admin write lock. A separately authorized SELECT-only double-read on 2026-09-10 verified the updated Guided-VR catalog while preserving the current Supabase route fingerprint SHA-256 `a59b44716e67260b1be1ed398039784a576d42802e3db2ac5d8291f88c0700d1`; the refreshed expanded-freeze manifest SHA-256 is `c1f81799a164cb843cedddb52c25652662988506b2dee842e3f07ada5ce5c20c`. No 2D route or migration changed.
 
 Historical selected-freeze note: a reverse pair is a pair of directed edges,
 while an exact reverse geometry is a byte-equivalent mirrored drawing. The
@@ -151,7 +146,7 @@ The recorded shared Guided-VR catalog baseline is 25 active destinations, 484
 configured steps, and 100 unique scene keys; this is source/QA evidence rather
 than a live-data guarantee.
 
-Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary or Google Drive media metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room scheduling stores one admin-managed current-semester image per room or facility; this admin-managed data is not SIS, enrollment, assigned-class, or instructor-load simulation. Schedule hotspots link to that stable record. `SCHEDULE_DATA_SOURCE` must match `BUILDING_DATA_SOURCE` for building-linked flows and `VR_DATA_SOURCE` for new schedule hotspots; numeric IDs are never guessed across backends. Admins provide one validated Cloudinary or Google Drive delivery URL; CampuSphere does not upload, transform, or delete the asset. Legacy time rows remain read-only fallback data during transition, and schedule images remain outside offline-guide packages. Offline-guide downloads include separately authored Main Gate entry routes and building-to-Main-Gate exit routes when the reverse geometry is reachable, explicitly drawn, valid, and distinct from the entry path.
+Destination routes are computed from CampuSphere's own campus graph and drawn from owner-managed road geometry. Google Maps, Google Earth, Strava, SIS, and external routing engines are not integrated. Guided VR reports arrival only after the configured natural destination node, stored start/arrival scene mappings, approved Cloudinary or Google Drive media metadata, and exact forward/reverse adjacent-scene links all validate; incomplete coverage fails closed with an explicit notice. Room scheduling is retired in the local candidate; floor/room descriptions remain. Owner-controlled cleanup converts placed schedule markers to private Info hotspots, retaining room names and positions, before deleting saved schedule entries. See `docs/room-scheduling-removal.md`. Offline-guide downloads include separately authored Main Gate entry routes and building-to-Main-Gate exit routes when the reverse geometry is reachable, explicitly drawn, valid, and distinct from the entry path.
 
 ```
 # Supabase (server-only; enable per-domain via *_DATA_SOURCE switches)
@@ -180,7 +175,7 @@ The script SKIPs cleanly and exits 0 if the Supabase env vars are unset **and** 
 
 #### Media delivery (Cloudinary or Google Drive)
 
-CampuSphere delivers building pictures, semester room-schedule images, and 360-degree VR panoramas through either **Cloudinary** or **Google Drive**. Administrators paste a validated delivery link into `image_url`; `cloudinary_public_id` is optional metadata for Cloudinary only. Cloudinary media remains on `https://res.cloudinary.com`. Drive media is rendered through the authenticated same-origin `/api/media/google-drive/:fileId` proxy, so browser pages never load an arbitrary Drive URL directly. The application does not upload, delete, or manage vendor assets. Google-managed profile photos remain read-only and manual profile-photo upload is deferred. When no remote asset is configured the app falls back to local `/img/*` and `/img/vr/*` placeholders.
+CampuSphere delivers building pictures and 360-degree VR panoramas through either **Cloudinary** or **Google Drive**. Administrators paste a validated delivery link into `image_url`; `cloudinary_public_id` is optional metadata for Cloudinary only. Cloudinary media remains on `https://res.cloudinary.com`. Drive media is rendered through the authenticated same-origin `/api/media/google-drive/:fileId` proxy, so browser pages never load an arbitrary Drive URL directly. The application does not upload, delete, or manage vendor assets. Google-managed profile photos remain read-only and manual profile-photo upload is deferred. When no remote asset is configured the app falls back to local `/img/*` and `/img/vr/*` placeholders.
 
 Rules:
 
@@ -188,7 +183,7 @@ Rules:
 - A Drive file must be shared as **Anyone with the link · Viewer**. Folder links, fragments, unsupported query parameters, and look-alike hosts are rejected. The proxy follows only approved Google HTTPS redirects, enforces image signature/MIME checks and a 50 MiB limit, and sends private/no-store or short private caching headers.
 - `cloudinary_public_id` is administrator/server metadata only, applies only to a Cloudinary URL, and never appears in public/runtime responses. Selecting Drive clears stale Cloudinary metadata.
 - Campus/VR/schedule asset upload, sharing, and credential entry are owner-controlled outside the app. Cloudinary delivery remains owner-controlled; CampuSphere has no browser direct-upload, Drive OAuth, unsigned-upload preset, SDK write, Cloudinary Admin API, vendor management API, or asset-delete flow.
-- Room-schedule images and Drive-backed media are online-only and are not copied into offline-guide IndexedDB packages.
+- Drive-backed media is online-only and are not copied into offline-guide IndexedDB packages.
 - Uploading final 360 panoramas is owner-controlled asset work; manual profile-photo upload is deferred and excluded from this candidate.
 
 ### Database Setup

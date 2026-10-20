@@ -37,7 +37,6 @@
     <script src="/js/admin/admin-buildings.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
     <script src="/js/admin/admin-walking-routes.js" defer></script>
-    <script src="/js/admin/admin-schedules.js" defer></script>
     <style nonce="<%= cspNonce %>">
         .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
         .modal-backdrop.modal--open{display:flex;}
@@ -232,45 +231,6 @@
                         </div>
                     </div>
 
-                    <!-- ======== Room Schedules (Milestone 11, Section 11.5) ======== -->
-                    <div class="ui-card border-border" id="schedule-card">
-                        <div class="p-6 pb-0">
-                            <h3 class="text-lg font-semibold tracking-tight text-foreground">Room Schedule Images</h3>
-                            <p class="text-sm text-muted-foreground">Keep one current semester schedule image for each room or facility.</p>
-                        </div>
-                        <div class="p-6 pt-4">
-                            <div class="graph-panel-bar admin-filter-bar" style="flex-wrap:wrap;gap:0.5rem;">
-                                <%# Bounded server-backed text search across building, room/facility,
-                                    floor, semester, and school year. Enter applies; typing
-                                    alone never calls the server. %>
-                                <div class="admin-search-field">
-                                    <label for="schedule-search">Search schedules</label>
-                                    <input type="search" id="schedule-search" class="ui-input" maxlength="100" aria-describedby="schedule-result-status"
-                                        autocomplete="off" placeholder="Building, room, floor, semester, school year…">
-                                </div>
-                                <select id="schedule-filter-building" aria-label="Filter by building" class="ui-input" style="max-width:220px;">
-                                    <option value="">All buildings</option>
-                                </select>
-                                <select id="schedule-filter-semester" aria-label="Filter by semester" class="ui-input" style="max-width:180px;">
-                                    <option value="">All semesters</option>
-                                    <option value="first-semester">First Semester</option>
-                                    <option value="second-semester">Second Semester</option>
-                                    <option value="midyear">Midyear</option>
-                                </select>
-                                <input type="text" id="schedule-filter-school-year" aria-label="Filter by school year" class="ui-input" maxlength="9" style="max-width:150px;" placeholder="2026-2027">
-                                <button id="schedule-apply-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="filter" class="mr-2 h-4 w-4"></i>Apply</button>
-                                <button id="schedule-clear-filters" type="button" class="ui-button ui-button-outline ui-button-size-default"><i data-lucide="x" class="mr-2 h-4 w-4"></i>Clear</button>
-                                <button id="add-schedule-btn" type="button" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Schedule</button>
-                            </div>
-                            <%# Live result summary for the server-applied room, semester, year, and search filters. %>
-                            <p id="schedule-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
-                            <div id="schedule-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading schedules…</p></div>
-                            <div id="schedule-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p id="schedule-error-text" class="text-sm text-muted-foreground">Could not load schedules.</p><button id="schedule-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
-                            <div id="schedule-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No room schedule images yet. Choose “Add Schedule” to create the first one.</p></div>
-                            <div id="schedule-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No schedules match the current filters. Adjust the search or choose “Clear”.</p></div>
-                            <div id="schedule-list" hidden></div>
-                        </div>
-                    </div>
 
                 </div>
             </main>
@@ -545,57 +505,6 @@
             <div class="modal-header"><h3 id="graph-delete-title">Confirm Deletion</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
             <div class="modal-body"><div class="modal-delete-warn"><i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i><p id="graph-delete-text">Are you sure?</p><p style="margin-top:0.5rem;">This action cannot be undone.</p></div></div>
             <div class="modal-footer"><button id="graph-cancel-delete" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button><button id="graph-confirm-delete" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</button></div>
-        </div>
-    </div>
-
-    <!-- ======== SCHEDULE MODAL (Create/Edit) — Milestone 11, Section 11.5 ======== -->
-    <div id="schedule-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 id="schedule-modal-title"><i data-lucide="calendar-clock" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Add Schedule</h3>
-                <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button>
-            </div>
-            <form id="schedule-form">
-                <div class="modal-body">
-                    <div class="form-error"></div>
-                    <div class="form-group">
-                        <label for="schedule-building-search">Search buildings</label>
-                        <input type="search" id="schedule-building-search" class="ui-input" autocomplete="off" aria-describedby="schedule-building-count" placeholder="Filter by building name…">
-                        <p id="schedule-building-count" class="admin-field-count" aria-live="polite"></p>
-                    </div>
-                    <div class="form-group"><label for="schedule-building">Building</label><select name="building_id" id="schedule-building" required><option value="">Select a building…</option></select></div>
-                    <div class="schedule-form-grid">
-                        <div class="form-group"><label for="schedule-location-type">Location type</label><select name="location_type" id="schedule-location-type" required><option value="room">room</option><option value="facility">facility</option></select></div>
-                        <div class="form-group"><label for="schedule-location-label">Location label</label><input type="text" name="location_label" id="schedule-location-label" class="ui-input" maxlength="120" required placeholder="e.g. Room 204 or Gymnasium"></div>
-                    </div>
-                    <div class="form-group"><label for="schedule-floor-label">Floor label <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label><input type="text" name="floor_label" id="schedule-floor-label" class="ui-input" maxlength="80" placeholder="e.g. 2nd Floor"></div>
-                    <p id="schedule-identity-hint" class="form-hint" hidden>This schedule is linked to a VR hotspot. Its building and room identity are locked; semester, school year, and image can still be updated.</p>
-                    <div class="schedule-form-grid">
-                        <div class="form-group"><label for="schedule-semester">Semester</label><select name="semester" id="schedule-semester" required><option value="first-semester">First Semester</option><option value="second-semester">Second Semester</option><option value="midyear">Midyear</option></select></div>
-                        <div class="form-group"><label for="schedule-school-year">School year</label><input type="text" name="school_year" id="schedule-school-year" class="ui-input" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" required placeholder="2026-2027" aria-describedby="schedule-school-year-hint"><small id="schedule-school-year-hint">Use consecutive years in YYYY-YYYY format.</small></div>
-                    </div>
-                    <div class="form-group"><label for="schedule-image-url">Schedule image URL</label><input type="url" name="image_url" id="schedule-image-url" class="ui-input" maxlength="1000" required placeholder="Cloudinary URL or Google Drive file link" aria-describedby="schedule-image-hint"><small id="schedule-image-hint">Use either a Cloudinary delivery URL or a Google Drive file shared as “Anyone with the link · Viewer”. Keep the image free of participant PII. CampuSphere stores the link and does not upload or delete external assets.</small></div>
-                    <div class="form-group"><label for="schedule-cloudinary-id">Cloudinary public ID <span class="text-muted-foreground" style="font-weight:400;">(optional; Cloudinary only)</span></label><input type="text" name="cloudinary_public_id" id="schedule-cloudinary-id" class="ui-input" maxlength="255" placeholder="e.g. CampuSphere/room-schedules/ab4-cslab"><small class="form-hint">Leave blank when the image uses Google Drive.</small></div>
-                    <div class="schedule-image-preview" id="schedule-image-preview" hidden>
-                        <p class="schedule-image-preview__label">Image preview</p>
-                        <img id="schedule-image-preview-img" alt="Selected room schedule preview" loading="lazy" referrerpolicy="no-referrer">
-                        <p id="schedule-image-preview-error" class="form-error" role="alert"></p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button>
-                    <button type="submit" id="schedule-submit" class="ui-button ui-button-default ui-button-size-default"><span id="schedule-submit-label">Create Schedule</span></button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ======== SCHEDULE DELETE CONFIRMATION MODAL ======== -->
-    <div id="schedule-delete-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-delete-title">
-        <div class="modal-box" style="max-width:420px;">
-            <div class="modal-header"><h3 id="schedule-delete-title">Confirm Deletion</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
-            <div class="modal-body"><div class="modal-delete-warn"><i data-lucide="alert-triangle" style="width:2.5rem;height:2.5rem;display:inline-block;"></i><p id="schedule-delete-text">Are you sure you want to delete this schedule entry?</p><p style="margin-top:0.5rem;">This action cannot be undone.</p></div></div>
-            <div class="modal-footer"><button id="schedule-cancel-delete" type="button" class="ui-button ui-button-outline ui-button-size-default">Cancel</button><button id="schedule-confirm-delete" type="button" class="ui-button ui-button-size-default" style="background:var(--destructive);color:#fff;"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</button></div>
         </div>
     </div>
 

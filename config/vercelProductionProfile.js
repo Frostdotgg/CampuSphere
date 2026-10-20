@@ -83,7 +83,6 @@ const REQUIRED_EXACT = Object.freeze({
   BUILDING_DATA_SOURCE: 'supabase',
   ROUTE_DATA_SOURCE: 'supabase',
   VR_DATA_SOURCE: 'supabase',
-  SCHEDULE_DATA_SOURCE: 'supabase',
   MAP_RENDERER: 'maplibre',
 });
 

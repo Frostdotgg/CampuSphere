@@ -2,7 +2,17 @@
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current migration and release note (2026-10-19)
+## Current local retirement candidate (2026-10-19)
+
+Room scheduling is retired in the local, uncommitted and not deployed candidate.
+See `docs/room-scheduling-removal.md` for owner-controlled backup/cleanup and
+restore instructions. No migration is changed or applied, and empty tables and
+fields remain for compatibility. Building deletion retains a narrow reference
+guard until cleanup; floor and room descriptions remain. Old schedule runtime
+entrypoints/repositories are removed. The application no longer consumes
+SCHEDULE_DATA_SOURCE. Do not execute historical schedule verification steps.
+
+## Historical Walking migration and release note (2026-10-19)
 
 Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
 before historical design/migration notes. Production data and Express sessions

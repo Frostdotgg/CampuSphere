@@ -21,7 +21,9 @@
     "repair:missing-guided-vr-mysql": "node scripts/repairMissingGuidedVrMysql.js",
     "qa:session-resilience": "node scripts/vercelRuntimeSessionBootstrap-probe.js && node scripts/supabaseSessionResilience-probe.js",
     "repair:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings.js",
-    "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js"
+    "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js",
+    "qa:scheduling-removal": "node scripts/roomSchedulingRemoval-probe.js",
+    "qa:scheduling-cleanup": "node scripts/roomSchedulingCleanup-probe.js --disposable"
   },
   "keywords": [
     "cspc",

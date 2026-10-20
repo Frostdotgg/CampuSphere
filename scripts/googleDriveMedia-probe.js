@@ -5,7 +5,7 @@
  *
  * Database-free, server-free, session-free, and network-free. It exercises the
  * shared URL policy, the authenticated proxy's pure validation seams, the
- * guided-VR media predicate, and the room-schedule/public wiring. It never
+ * guided-VR media predicate, and the building/panorama public wiring. It never
  * calls the proxy controller itself, so no upstream request can be made.
  */
 
@@ -15,7 +15,6 @@ const path = require('path');
 const mediaUrl = require('../utils/mediaUrl');
 const mediaController = require('../controllers/mediaController');
 const guidedVr = require('../services/guidedVrResolution');
-const scheduleDocument = require('../utils/roomScheduleDocument');
 
 const ROOT = path.join(__dirname, '..');
 const DRIVE_FILE = 'https://drive.google.com/file/d/1AbC_def-123/view?usp=sharing';
@@ -123,8 +122,8 @@ const chain = guidedVr.verifyGuidedChain({
   ]
 });
 check('guided chain can complete with Drive-backed scenes', chain.complete === true && chain.verified.length === 2);
-check('public schedule shaping converts Drive to proxy',
-  scheduleDocument.normalizeScheduleImageUrl(DRIVE_FILE) === '/api/media/google-drive/1AbC_def-123');
+check('retained public media shaping converts Drive to proxy',
+  mediaUrl.resolveMediaUrlForBrowser(DRIVE_FILE) === '/api/media/google-drive/1AbC_def-123');
 
 const source = (relative) => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 noThrow('server mounts the authenticated Drive proxy', () =>
@@ -133,8 +132,9 @@ noThrow('building admin UI includes the Drive provider and preview helper', () =
   /Google Drive file link/.test(source('views/admin/campus-map.ejs')) && /media-url\.js/.test(source('views/admin/campus-map.ejs')));
 noThrow('VR admin UI includes the Drive provider and preview helper', () =>
   /Google Drive file link/.test(source('views/admin/vr.ejs')) && /media-url\.js/.test(source('views/admin/vr.ejs')));
-noThrow('schedule admin UI includes Drive sharing guidance', () =>
-  /Anyone with the link/.test(source('views/admin/campus-map.ejs')) && /approved Google Drive/.test(source('controllers/adminRoomScheduleDocumentController.js')));
+noThrow('retired schedule UI is absent while building and panorama previews remain', () =>
+  !/schedule-form|schedule-image-url/.test(source('views/admin/campus-map.ejs')) &&
+  /building-image-preview/.test(source('views/admin/campus-map.ejs')) && /vr-scene-image-preview/.test(source('views/admin/vr.ejs')));
 noThrow('browser helper emits only same-origin Drive proxy paths', () =>
   /googleDriveProxyUrl/.test(source('public/js/media-url.js')) && /\/api\/media\/google-drive\//.test(source('public/js/media-url.js')));
 

@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertNoRetiredScheduling } = require('../utils/retiredScheduling');
+
 /*
  * CampuSphere selected CAS VR parity — Supabase -> MySQL (BE.4 NO-GO repair, v3).
  *
@@ -23,6 +25,9 @@
  *   snapshot; 8 await + verify its returned path/fingerprint; 9 selective scene
  *   + hotspot mutations; 10 in-tx parity proof + out-of-scope-branch preservation
  *   proof; 11 commit only after the proof; 12 distinct post-commit readback.
+ *
+ * Retirement override: no CAS schedule target is required or permitted.
+ * Preflight rejects retired schedule content before any plan or write.
  *
  * Usage:
  *   node scripts/syncSelectedCasVrSupabaseToMysql.js --dry-run
@@ -446,6 +451,8 @@ function externalBranchFingerprint(backend, selectedKeys) {
 
 /* ---------- pure plan (full semantic comparison; parity over in-scope only) ---------- */
 function buildPlan(supabase, mysql) {
+  assertNoRetiredScheduling(supabase);
+  assertNoRetiredScheduling(mysql);
   const blockers = [];
   const notes = [];
 
@@ -527,7 +534,7 @@ function buildPlan(supabase, mysql) {
       }
     }
 
-    if (scheduleTargets !== 1) blockers.push(`Expected exactly one CAS 101 / room / First Floor schedule target; found ${scheduleTargets}.`);
+    if (scheduleTargets !== 0) blockers.push('Retired schedule hotspots must be removed before synchronization.');
   }
 
   const counts = {
@@ -564,7 +571,7 @@ function planIsFullyPresent(plan) {
     plan.counts.scene_insert === 0 && plan.counts.scene_update === 0 &&
     plan.counts.hotspot_insert === 0 && plan.counts.hotspot_update === 0 &&
     plan.counts.hotspot_delete === 0 &&
-    plan.schedule_targets === 1;
+    plan.schedule_targets === 0;
 }
 
 /* ---------- reads (add ALL-scene id->key reference) ---------- */

@@ -294,7 +294,6 @@
                             <option value="scene">scene — jump to another scene</option>
                             <option value="info">info — show text</option>
                             <option value="exit">exit — arrival / close</option>
-                            <option value="schedule">schedule - show room/facility schedule</option>
                         </select>
                     </div>
                     <div class="form-group" id="vr-hotspot-guest-visibility-group" style="display:none;">
@@ -302,7 +301,7 @@
                             <input type="checkbox" name="guest_visible" id="vr-hotspot-guest-visible">
                             <span>Visible to guests</span>
                         </label>
-                        <p class="form-hint">Only information hotspots can be approved for guests. Scene and exit hotspots are always visible; schedules are always private.</p>
+                        <p class="form-hint">Only information hotspots can be approved for guests. Scene and exit hotspots are always visible.</p>
                     </div>
                     <div class="form-group">
                         <label for="vr-hotspot-label">Label</label>
@@ -317,22 +316,6 @@
                             <option value="">Select a target scene…</option>
                         </select>
                         <p class="form-hint">Required for a “scene” hotspot. Ignored for info/exit.</p>
-                    </div>
-                    <div id="vr-hotspot-schedule-group" style="display:none;">
-                        <div class="form-group">
-                            <label for="vr-hotspot-schedule-search">Search room schedules</label>
-                            <input type="search" id="vr-hotspot-schedule-search" class="ui-input" autocomplete="off"
-                                placeholder="Building, room, semester, or school year…" aria-controls="vr-hotspot-schedule-document"
-                                aria-describedby="vr-hotspot-schedule-status">
-                            <p id="vr-hotspot-schedule-status" class="form-hint" role="status" aria-live="polite">Loading room schedules…</p>
-                        </div>
-                        <div class="form-group">
-                            <label for="vr-hotspot-schedule-document">Room schedule</label>
-                            <select name="schedule_document_id" id="vr-hotspot-schedule-document">
-                                <option value="">Select a room schedule…</option>
-                            </select>
-                            <p class="form-hint">The hotspot stays linked when the semester, school year, or image is replaced.</p>
-                        </div>
                     </div>
                     <div class="form-group">
                         <label for="vr-hotspot-text">Text <span class="text-muted-foreground" style="font-weight:400;">(optional)</span></label>

@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertNoRetiredScheduling } = require('../utils/retiredScheduling');
+
 /*
  * Supabase -> local MySQL campus/VR sync.
  *
@@ -9,8 +11,9 @@
  * separate destructive confirmation.
  * Users, profiles, sessions, schedules, announcements, events, FAQs,
  * settings, team members, and audit logs are protected by before/after
- * fingerprints.  room_schedule_documents are included only as references
- * required by VR schedule hotspots; room_schedules themselves are untouched.
+ * fingerprints. Legacy schedule descriptors remain for compatibility, but
+ * preflight now rejects any schedule documents, hotspots or metadata in either
+ * snapshot. Complete the separate owner-controlled cleanup before syncing.
  *
  * Default is a read-only merge preview. Merge apply requires:
  *   node scripts/syncCampusVrSupabaseToMysql.js --apply --confirm=SYNC_CAMPUS_VR_TO_MYSQL
@@ -478,6 +481,8 @@ function protectedEqual(a, b) {
 }
 
 function buildPlan(source, target) {
+  assertNoRetiredScheduling(source);
+  assertNoRetiredScheduling(target);
   const sourceMaps = sourceNaturalMaps(source);
   const targetMaps = targetNaturalMaps(target);
   const keyed = sourceAndTargetKeys(source, target, sourceMaps, targetMaps);

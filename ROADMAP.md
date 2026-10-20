@@ -2,19 +2,11 @@
 
 ## Current Status (2026-10-19)
 
-Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
-before older milestones. Walking 2D was released October 18 from application
-baseline `c533719` (feature `9a4a628`). The October 19 saved counter is
-26/26, zero missing; this does not establish visual approval of every walkway.
-Current cache/stylesheet are v52/v13; migration sources extend through 0028.
-
-The owner approved review, documentation/static-check updates, one commit and
-a normal push. Recompute the resulting documentation HEAD rather than treating
-the application baseline as current HEAD. A push may trigger a Vercel build;
-manual promotion, ICTU deployment, database changes and new panelist features
-are excluded. A new session grounds read-only, reports and stops, then waits
-for its owner-selected task. Preserve pending/local documents and one writer
-per scope; prior permissions do not carry forward.
+Read `docs/current-authority.md` and `docs/room-scheduling-removal.md` first.
+The local room-scheduling removal is uncommitted and not deployed, on
+`codex/remove-room-scheduling` from `0af76f1`. Floor/room descriptions remain.
+Only local implementation and focused testing are authorized; no commit, push,
+deployment or live cleanup. Prior release records below are dated history.
 
 ## Historical Room Schedule Image Change (2026-08-25; superseded)
 
@@ -200,7 +192,75 @@ caching remains available, and browser Back/reload after logout cannot replay
 the authenticated map or retain CampuSphere dynamic caches/catalog records.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-10-19 Walking 2D release handoff)
+## Current Release Continuity (2026-10-19 room-scheduling removal candidate)
+
+Read `docs/current-authority.md`, `docs/room-scheduling-removal.md` and
+`docs/session-handoff-2026-10-19.md` before history. This is the uncommitted,
+not deployed candidate on `codex/remove-room-scheduling`, based on
+`0af76f161443f8259858f4fa67116bc12f51321e`. Recompute live Git truth.
+The owner authorized local implementation and focused tests only: no commit,
+push, deployment, vendor changes or live data cleanup. Prior permissions do
+not carry forward; one writer owns a scope at a time.
+
+A separate owner-approved data operation completed on October 19 at 20:23
+Asia/Manila: 73 saved Schedule hotspots became private Info markers in the
+Docker app's configured Supabase database. Recorded read-back found zero
+Schedule types among 1,469 hotspots. Room names, text, positions and unrelated
+hotspots were unchanged; 69 image entries and 2 legacy entries remain intact.
+Only hotspot_type and guest_visible were written; existing Guest flags were
+already false. Schedule metadata remains for the later full cleanup. External
+backups and restore SQL are retained outside Git. This one-time conversion
+authorization is complete and grants no further database writes or deployment.
+
+Room scheduling is retired for every role: no schedule editor, schedule image
+viewer, legacy schedule read API or schedule hotspots in participant/Admin VR.
+Authorized retired-API requests return the standard JSON 404; login, role and
+CSRF checks remain. Scene, exit and information hotspots retain their previous
+Guest visibility rules. Floor and room descriptions remain available. Building
+and panorama image previews, Walking/Vehicle routes and Guided VR are preserved.
+
+The owner chose deletion of saved entries with empty tables/fields retained.
+No live rows have been deleted. PostgreSQL/MySQL cleanup scripts under
+`database/maintenance/` require owner-controlled target verification, stopped
+old writers, an external backup and explicit confirmation. Cleanup converts
+schedule hotspots to private Info markers with room names/positions preserved,
+clears schedule metadata, then deletes both schedule formats. Restore preparation is offline; records/URLs never belong in
+Git. External hosted images and audit history remain untouched. A narrow
+same-backend legacy-reference guard protects building deletion until cleanup.
+Synchronization tools reject retired schedule content before writing.
+
+Migration sources remain contiguous through 0028; owner-applied 0001 through
+0028 is dated prior evidence, not a new database check. No migration is added,
+changed or applied. Production uses Supabase/PostgreSQL and Express sessions;
+MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The unused
+SCHEDULE_DATA_SOURCE switch is removed from source templates, never live env.
+Current candidate service worker is v53; shared stylesheet remains v13.
+Offline guides already exclude schedules: no guide schema change or forced
+redownload is needed for retirement. Walking path updates still require each
+device to refresh its downloaded guide. PWA Cache Storage is shell/static-only;
+IndexedDB contains the explicit user-downloaded guide and PMTiles Blob.
+
+The October 18 published Walking 2D source remains c533719, feature 9a4a628,
+verified deployment dpl_94jYqWkHoC19cLKnfooTVEG8SCyU. October 19's observed
+26/26 saved paths, zero missing, does not establish visual walkway approval.
+The historical 16/16 Production smoke, 12 Warning rows / 0 Error / 0 Fatal,
+session retry uncertainty and online visual-capture limitations remain dated
+evidence, not verification of this local candidate. Current full-suite/MySQL
+parity, physical-device acceptance and exhaustive route/VR coverage remain
+unestablished. ICTU code readiness is separate from actual deployment; saved
+walking paths reside in Supabase, not Git. No Vercel/ICTU deployment claim advances.
+
+Focused removal checks and disposable cleanup/restore rehearsals are recorded
+in `docs/room-scheduling-removal.md`. These are not a full npm test/qa pass.
+The current source package inventory is recorded there after canonical Git-byte
+verification; the Walking release's 213-file package pin is historical.
+Preserve protected local documents, ignored output and the local exclude file.
+A new session's initial turn is read-only and context-only: inventory tools,
+read current source, report and stop after grounding, then wait for an explicit
+focused owner task. Availability does not expand authority. No automatic
+database repair, cleanup, commit, push or deployment follows this candidate.
+
+## Historical Release Continuity (2026-10-19 Walking 2D release handoff; superseded by local removal candidate)
 
 Read `docs/current-authority.md`, then `docs/session-handoff-2026-10-19.md`
 and the current owner prompts in `docs/new-session-grounding-prompts.md`.

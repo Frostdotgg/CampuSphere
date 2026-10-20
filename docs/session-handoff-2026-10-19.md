@@ -4,14 +4,105 @@ Last updated: 2026-10-19 (Asia/Manila)
 
 ## Purpose and scope
 
-This is the completed Walking 2D release handoff. The owner approved review,
-documentation/static-check updates, one commit and a normal push on main.
-The application baseline is c533719; the resulting documentation commit's
-actual SHA belongs in the final report and live Git, not a self-referential pin.
-Manual promotion, ICTU deployment, schema/data changes and new panelist work
-are excluded. A push may trigger Vercel's automatic build.
+This handoff now describes the local room-scheduling removal candidate.
+The completed Walking release and its earlier publication permissions are
+history below. Read `docs/room-scheduling-removal.md` for final local evidence
+and the later owner-controlled conversion/cleanup/restore steps. No commit,
+push, deployment or live cleanup is authorized by this candidate.
 
-## Current Release Continuity (2026-10-19 Walking 2D release handoff)
+## Current Release Continuity (2026-10-19 room-scheduling removal candidate)
+
+Read `docs/current-authority.md`, `docs/room-scheduling-removal.md` and
+`docs/session-handoff-2026-10-19.md` before history. This is the uncommitted,
+not deployed candidate on `codex/remove-room-scheduling`, based on
+`0af76f161443f8259858f4fa67116bc12f51321e`. Recompute live Git truth.
+The owner authorized local implementation and focused tests only: no commit,
+push, deployment, vendor changes or live data cleanup. Prior permissions do
+not carry forward; one writer owns a scope at a time.
+
+A separate owner-approved data operation completed on October 19 at 20:23
+Asia/Manila: 73 saved Schedule hotspots became private Info markers in the
+Docker app's configured Supabase database. Recorded read-back found zero
+Schedule types among 1,469 hotspots. Room names, text, positions and unrelated
+hotspots were unchanged; 69 image entries and 2 legacy entries remain intact.
+Only hotspot_type and guest_visible were written; existing Guest flags were
+already false. Schedule metadata remains for the later full cleanup. External
+backups and restore SQL are retained outside Git. This one-time conversion
+authorization is complete and grants no further database writes or deployment.
+
+Room scheduling is retired for every role: no schedule editor, schedule image
+viewer, legacy schedule read API or schedule hotspots in participant/Admin VR.
+Authorized retired-API requests return the standard JSON 404; login, role and
+CSRF checks remain. Scene, exit and information hotspots retain their previous
+Guest visibility rules. Floor and room descriptions remain available. Building
+and panorama image previews, Walking/Vehicle routes and Guided VR are preserved.
+
+The owner chose deletion of saved entries with empty tables/fields retained.
+No live rows have been deleted. PostgreSQL/MySQL cleanup scripts under
+`database/maintenance/` require owner-controlled target verification, stopped
+old writers, an external backup and explicit confirmation. Cleanup converts
+schedule hotspots to private Info markers with room names/positions preserved,
+clears schedule metadata, then deletes both schedule formats. Restore preparation is offline; records/URLs never belong in
+Git. External hosted images and audit history remain untouched. A narrow
+same-backend legacy-reference guard protects building deletion until cleanup.
+Synchronization tools reject retired schedule content before writing.
+
+Migration sources remain contiguous through 0028; owner-applied 0001 through
+0028 is dated prior evidence, not a new database check. No migration is added,
+changed or applied. Production uses Supabase/PostgreSQL and Express sessions;
+MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The unused
+SCHEDULE_DATA_SOURCE switch is removed from source templates, never live env.
+Current candidate service worker is v53; shared stylesheet remains v13.
+Offline guides already exclude schedules: no guide schema change or forced
+redownload is needed for retirement. Walking path updates still require each
+device to refresh its downloaded guide. PWA Cache Storage is shell/static-only;
+IndexedDB contains the explicit user-downloaded guide and PMTiles Blob.
+
+The October 18 published Walking 2D source remains c533719, feature 9a4a628,
+verified deployment dpl_94jYqWkHoC19cLKnfooTVEG8SCyU. October 19's observed
+26/26 saved paths, zero missing, does not establish visual walkway approval.
+The historical 16/16 Production smoke, 12 Warning rows / 0 Error / 0 Fatal,
+session retry uncertainty and online visual-capture limitations remain dated
+evidence, not verification of this local candidate. Current full-suite/MySQL
+parity, physical-device acceptance and exhaustive route/VR coverage remain
+unestablished. ICTU code readiness is separate from actual deployment; saved
+walking paths reside in Supabase, not Git. No Vercel/ICTU deployment claim advances.
+
+Focused removal checks and disposable cleanup/restore rehearsals are recorded
+in `docs/room-scheduling-removal.md`. These are not a full npm test/qa pass.
+The current source package inventory is recorded there after canonical Git-byte
+verification; the Walking release's 213-file package pin is historical.
+Preserve protected local documents, ignored output and the local exclude file.
+A new session's initial turn is read-only and context-only: inventory tools,
+read current source, report and stop after grounding, then wait for an explicit
+focused owner task. Availability does not expand authority. No automatic
+database repair, cleanup, commit, push or deployment follows this candidate.
+
+## Local candidate verification and handoff
+
+The owner subsequently chose to convert schedule hotspots to private Info
+markers, retaining room names and positions, instead of deleting those markers.
+The prepared PostgreSQL/MySQL cleanup and restore scripts reflect that choice;
+the full cleanup has not run against shared data. The separately approved
+73-marker type conversion has completed, with schedule entries retained. See
+`docs/room-scheduling-removal.md`.
+
+Local evidence: removal fixtures 401/401; disposable cleanup/restore 28/28;
+Walking 118/118; offline navigation 49/49; PWA 148/148; VR hotspot navigation
+140/140; Vercel startup profile 116/116; documentation 595/595; package 75/75.
+Other focused checks and the incomplete legacy Supabase harness attempts are
+recorded in the runbook. No full-suite or physical-device acceptance is claimed.
+The candidate package is 201 files / 8,577,707 bytes, aggregate SHA-256
+`6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709`.
+Protected local documents and original SQL sources remain byte-identical.
+The index is empty; no commit, push, deployment or full schedule cleanup has
+occurred. The separately authorized 73-marker type conversion is complete.
+
+Next-session order: current authority, removal runbook, this candidate section,
+current role grounding prompt, then the relevant source. A later publication
+or owner database operation requires its own focused request.
+
+## Historical Release Continuity (2026-10-19 Walking 2D release handoff; superseded by local removal candidate)
 
 Read `docs/current-authority.md`, then `docs/session-handoff-2026-10-19.md`
 and the current owner prompts in `docs/new-session-grounding-prompts.md`.
@@ -141,7 +232,7 @@ its roles/data/offline effects and acceptance checks before implementation on
 a fresh branch from then-current clean main. One writer owns a scope at a time.
 Do not automatically resume MySQL remediation, deploy or reapply migrations.
 
-## Preservation and current documentation validation
+## Historical Walking release: preservation and documentation validation
 
 The 16 pending handoff paths were backed up before editing with raw SHA-256
 fingerprints. The protection manifest also covers tracked files outside the
@@ -165,7 +256,7 @@ records their safe summaries and limitations. Do not treat screenshots of a
 blank online canvas as successful line-render proof or relabel pilot evidence
 as exhaustive 26-path validation.
 
-## Source map for the next focused task
+## Historical Walking release: Source map for the next focused task
 
 | Area | Local source to read; do not execute during grounding |
 | --- | --- |
@@ -182,7 +273,7 @@ as exhaustive 26-path validation.
 | Focused retained probes | scripts/walking2dRoutes-probe.js; scripts/offline2dNavigation-probe.js; scripts/off2PwaLifecycle-probe.js; scripts/vercelPackageBoundary-probe.js |
 | Separate Guided-VR catalog | config/guidedVrRoutes.js; config/selectedDemoFreeze.js |
 
-## Remaining work and next-session reading order
+## Historical Walking release: remaining work and next-session reading order
 
 ### October 19 documentation validation
 

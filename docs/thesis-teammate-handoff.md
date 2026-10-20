@@ -8,19 +8,11 @@ history and may describe superseded states.
 
 ## Current Release Checkpoint (2026-10-19)
 
-Read `docs/current-authority.md` and `docs/session-handoff-2026-10-19.md`
-before older milestones. Walking 2D was released October 18 from application
-baseline `c533719` (feature `9a4a628`). The October 19 saved counter is
-26/26, zero missing; this does not establish visual approval of every walkway.
-Current cache/stylesheet are v52/v13; migration sources extend through 0028.
-
-The owner approved review, documentation/static-check updates, one commit and
-a normal push. Recompute the resulting documentation HEAD rather than treating
-the application baseline as current HEAD. A push may trigger a Vercel build;
-manual promotion, ICTU deployment, database changes and new panelist features
-are excluded. A new session grounds read-only, reports and stops, then waits
-for its owner-selected task. Preserve pending/local documents and one writer
-per scope; prior permissions do not carry forward.
+Read `docs/current-authority.md` and `docs/room-scheduling-removal.md` first.
+Room scheduling is removed in the uncommitted local candidate; floor and room
+descriptions remain. This candidate is not deployed and grants no commit/push,
+live data cleanup or deployment authority. The last published Walking release
+and October 19 saved-path coverage remain dated evidence.
 
 ## What CampuSphere Is
 
@@ -29,7 +21,7 @@ Express 5, EJS, HTML, CSS, and browser JavaScript. Its main capabilities are:
 
 - local and Google OAuth sign-in with four application roles;
 - role-aware dashboards, profiles, announcements, and events;
-- building discovery, room/facility information, and private room schedules;
+- building discovery, room/facility information, and floor/room descriptions;
 - administrator-authored 2D campus graph routing with distinct entry and exit
   lines, geometry-derived distance/walk time, and offline route packages;
 - Pannellum-based 360 scenes and Guided VR navigation;
@@ -114,7 +106,7 @@ names are `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `PORT`, and
 
 Runtime selection names include `SESSION_STORE`, `AUTH_DATA_SOURCE`,
 `CONTENT_DATA_SOURCE`, `BUILDING_DATA_SOURCE`, `ROUTE_DATA_SOURCE`,
-`VR_DATA_SOURCE`, `SCHEDULE_DATA_SOURCE`, and `MAP_RENDERER`. Supabase paths
+`VR_DATA_SOURCE`, and `MAP_RENDERER`. Supabase paths
 also require server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 Production-only shared rate limiting uses `UPSTASH_REDIS_REST_URL`,
 `UPSTASH_REDIS_REST_TOKEN`, and `RATE_LIMIT_KEY_SECRET`. These are names only;

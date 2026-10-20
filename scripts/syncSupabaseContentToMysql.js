@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertNoRetiredScheduling } = require('../utils/retiredScheduling');
+
 /*
  * Supabase -> MySQL non-user content reconciliation.
  *
@@ -30,8 +32,6 @@ const IGNORED_SOURCE_COLUMNS = new Set(['location']);
 // is the forward dependency order. All names are fixed constants, never input.
 const TABLES = Object.freeze([
   { name: 'buildings', primaryKey: ['id'] },
-  { name: 'room_schedules', primaryKey: ['id'], nullColumns: ['created_by_user_id'] },
-  { name: 'room_schedule_documents', primaryKey: ['id'], nullColumns: ['created_by_user_id'] },
   { name: 'news_announcements', primaryKey: ['id'], nullColumns: ['author_id'] },
   { name: 'team_members', primaryKey: ['id'] },
   { name: 'events', primaryKey: ['id'] },
@@ -46,9 +46,7 @@ const TABLES = Object.freeze([
 ]);
 
 const DELETE_ORDER = Object.freeze([
-  'room_schedules',
   'vr_hotspots',
-  'room_schedule_documents',
   'vr_scenes',
   'route_edges',
   'campus_route_steps',
@@ -63,6 +61,8 @@ const DELETE_ORDER = Object.freeze([
 ]);
 
 const EXCLUDED_TABLES = Object.freeze([
+  'room_schedules',
+  'room_schedule_documents',
   'users',
   'student_profiles',
   'instructor_profiles',
@@ -290,12 +290,12 @@ function assertGeometry(value) {
 }
 
 function validateRelationships(source, descriptors, schemas) {
+  assertNoRetiredScheduling(source);
   const byTable = new Map(descriptors.map((descriptor) => [descriptor.name, source[descriptor.name] || []]));
   const buildings = idSet(byTable.get('buildings'));
   const routes = idSet(byTable.get('campus_routes'));
   const nodes = idSet(byTable.get('route_nodes'));
   const scenes = idSet(byTable.get('vr_scenes'));
-  const scheduleDocuments = idSet(byTable.get('room_schedule_documents'));
 
   for (const row of byTable.get('campus_routes')) assertOptionalForeignKey(row.destination_building_id, buildings, 'campus route building');
   for (const row of byTable.get('campus_route_steps')) assertOptionalForeignKey(row.route_id, routes, 'route step route');
@@ -312,11 +312,7 @@ function validateRelationships(source, descriptors, schemas) {
   for (const row of byTable.get('vr_hotspots')) {
     assertOptionalForeignKey(row.scene_id, scenes, 'VR hotspot scene');
     assertOptionalForeignKey(row.target_scene_id, scenes, 'VR hotspot target scene');
-    assertOptionalForeignKey(row.schedule_building_id, buildings, 'VR hotspot schedule building');
-    assertOptionalForeignKey(row.schedule_document_id, scheduleDocuments, 'VR hotspot room schedule document');
   }
-  for (const row of byTable.get('room_schedules')) assertOptionalForeignKey(row.building_id, buildings, 'room schedule building');
-  for (const row of byTable.get('room_schedule_documents')) assertOptionalForeignKey(row.building_id, buildings, 'room schedule document building');
 
   // Force schema metadata to be consumed during validation so a missing target
   // table/column cannot be hidden by an empty source table.
@@ -473,6 +469,7 @@ function printSummary(source, target, descriptors, schemas, applyMode) {
 }
 
 async function insertRows(conn, descriptor, rows, columns) {
+  assertNoRetiredScheduling({ [descriptor.name]: rows });
   if (!rows.length) return;
   const names = columns.map((column) => column.name);
   const columnSql = names.map(quoteIdentifier).join(', ');
@@ -491,6 +488,7 @@ async function insertRows(conn, descriptor, rows, columns) {
 }
 
 async function applySnapshot(conn, source, descriptors, schemas) {
+  assertNoRetiredScheduling(source);
   for (const name of DELETE_ORDER) await conn.query(`DELETE FROM ${quoteIdentifier(name)}`);
   for (const descriptor of descriptors) await insertRows(conn, descriptor, source[descriptor.name], schemas.get(descriptor.name));
 }
@@ -611,8 +609,12 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  const message = error instanceof SyncError ? error.publicMessage : 'Sync failed safely; no uncommitted database changes remain.';
-  console.error(`SYNC FAILED: ${message}`);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    const message = error instanceof SyncError ? error.publicMessage : 'Sync failed safely; no uncommitted database changes remain.';
+    console.error(`SYNC FAILED: ${message}`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { TABLES, DELETE_ORDER, EXCLUDED_TABLES, validateRelationships, insertRows, applySnapshot };

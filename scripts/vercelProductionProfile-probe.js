@@ -83,7 +83,6 @@ function validEnv(overrides) {
     BUILDING_DATA_SOURCE: 'supabase',
     ROUTE_DATA_SOURCE: 'supabase',
     VR_DATA_SOURCE: 'supabase',
-    SCHEDULE_DATA_SOURCE: 'supabase',
     MAP_RENDERER: 'maplibre',
     SUPABASE_URL: CANARY_URL,
     SUPABASE_SERVICE_ROLE_KEY: CANARY_KEY_OPAQUE,
@@ -144,7 +143,6 @@ const EXACT_VARS = [
   ['BUILDING_DATA_SOURCE', 'Supabase', 'mysql'],
   ['ROUTE_DATA_SOURCE', 'supabse', 'mysql'],
   ['VR_DATA_SOURCE', 'SUPABASE', 'mysql'],
-  ['SCHEDULE_DATA_SOURCE', 'supabases', 'mysql'],
   ['MAP_RENDERER', 'Maplibre', 'leaflet'],
 ];
 for (const [name, misspelled, conflicting] of EXACT_VARS) {
@@ -157,6 +155,8 @@ expectRejected('matrix', 'SUPABASE_URL missing', validEnv({ SUPABASE_URL: undefi
 expectRejected('matrix', 'SUPABASE_URL blank', validEnv({ SUPABASE_URL: '   ' }));
 expectRejected('matrix', 'SUPABASE_SERVICE_ROLE_KEY missing', validEnv({ SUPABASE_SERVICE_ROLE_KEY: undefined }));
 expectRejected('matrix', 'SUPABASE_SERVICE_ROLE_KEY blank', validEnv({ SUPABASE_SERVICE_ROLE_KEY: '   ' }));
+check('retirement', 'retired schedule setting is optional and ignored without weakening the active matrix',
+  attempt(validEnv()).result === true && attempt(validEnv({ SCHEDULE_DATA_SOURCE: 'mysql' })).result === true);
 
 /* ---------------- 3. URL shape cases ---------------- */
 expectRejected('url', 'non-HTTPS URL', validEnv({ SUPABASE_URL: `http://${CANARY_HOST}` }));
@@ -279,15 +279,14 @@ expectKeyRejected('JWT with an empty signature segment', `${b64url({ alg: 'HS256
     "const a=require('./config/authDataSource').getAuthDataSource();" +
     "const c=require('./config/contentDataSource').getContentDataSource();" +
     "const v=require('./config/vrDataSource').getVrDataSource();" +
-    "const s=require('./config/scheduleDataSource').getScheduleDataSource();" +
     "const m=require('./config/mapRuntime');" +
-    "console.log(JSON.stringify({a,c,v,s,b:m.getBuildingDataSource(),r:m.getRouteDataSource(),map:m.getMapRenderer()}));";
+    "console.log(JSON.stringify({a,c,v,b:m.getBuildingDataSource(),r:m.getRouteDataSource(),map:m.getMapRenderer()}));";
   const r = spawnSync(process.execPath, ['-e', code], { cwd: ROOT, env, encoding: 'utf8', timeout: 30000 });
   let parsed = null;
   try { parsed = JSON.parse(String(r.stdout || '').trim().split(/\r?\n/).pop()); } catch (_) { /* fails below */ }
-  check('fallback', 'non-Vercel getters resolve mysql/mysql/mysql/mysql/mysql/mysql/leaflet defaults',
+  check('fallback', 'non-Vercel active getters resolve mysql/mysql/mysql/mysql/mysql/leaflet defaults',
     r.status === 0 && !!parsed &&
-    parsed.a === 'mysql' && parsed.c === 'mysql' && parsed.v === 'mysql' && parsed.s === 'mysql' &&
+    parsed.a === 'mysql' && parsed.c === 'mysql' && parsed.v === 'mysql' &&
     parsed.b === 'mysql' && parsed.r === 'mysql' && parsed.map === 'leaflet');
 }
 

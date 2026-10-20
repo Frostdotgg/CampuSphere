@@ -49,8 +49,8 @@ const {
 } = require('../config/guidedVrRoutes');
 const { canonicalKey } = require('../services/routeAvailability');
 const {
-  canViewRoomSchedules,
   filterHotspotsForRole,
+  isSupportedHotspot,
   isGuestVisible
 } = require('../utils/participantVisibility');
 const {
@@ -555,8 +555,7 @@ const START_UNAVAILABLE_NOTICE =
      - `orderedScenes` is the ordered [{ scene_key, ... }] step list;
      - `step` is 1-based; prev/next scene keys come from adjacent steps;
      - `isFinal` marks the truthful arrival scene (interior explore links).
-   Non-scene hotspots (info/exit/schedule) are passed through unchanged with a
-   'none' nav so schedule buttons and info tooltips keep working.
+   Information/exit hotspots retain their tooltip and have no navigation URL.
 --------------------------------------------------------- */
 function attachHotspotNav(hotspots, orderedScenes, step, isFinal, prevUrl, nextUrl) {
   const prevSceneKey = step > 1 ? orderedScenes[step - 2].scene_key : null;
@@ -979,7 +978,7 @@ async function resolveDestinationScenes(buildingIdRaw, sources, travelMode = 've
 // produce byte-identical hotspot locals. target_scene_id is intentionally
 // dropped (the views use target_scene_key / target_title only).
 function normalizeHotspots(rows) {
-  return (rows || []).map((h) => ({
+  return (rows || []).filter(isSupportedHotspot).map((h) => ({
     hotspot_type: h.hotspot_type || 'info',
     label: h.label || '',
     text: h.text != null ? h.text : null,
@@ -990,11 +989,6 @@ function normalizeHotspots(rows) {
     // contract the guided resolver enforces); valid keys pass unchanged.
     target_scene_key: isSafeSceneKey(h.target_scene_key) ? h.target_scene_key : null,
     target_title: h.target_title || null,
-    schedule_building_id: h.schedule_building_id == null ? null : h.schedule_building_id,
-    schedule_location_type: h.schedule_location_type == null ? null : h.schedule_location_type,
-    schedule_location_label: h.schedule_location_label == null ? null : h.schedule_location_label,
-    schedule_floor_label: h.schedule_floor_label == null ? null : h.schedule_floor_label,
-    schedule_document_id: h.schedule_document_id == null ? null : h.schedule_document_id,
     // Internal policy bit. filterHotspotsForRole strips it before a view or
     // inline JSON payload is rendered.
     guest_visible: isGuestVisible(h.guest_visible)
@@ -1011,8 +1005,6 @@ async function loadSceneHotspots(sceneId) {
     `SELECT h.hotspot_type, h.label, h.\`text\` AS text, h.yaw, h.pitch,
             h.target_scene_id, t.scene_key AS target_scene_key,
             t.title AS target_title,
-            h.schedule_building_id, h.schedule_location_type,
-            h.schedule_location_label, h.schedule_floor_label, h.schedule_document_id,
             h.guest_visible
        FROM vr_hotspots h
        LEFT JOIN vr_scenes t ON t.id = h.target_scene_id
@@ -1034,7 +1026,6 @@ exports.routeViewer = async (req, res) => {
     title: 'CampuSphere | VR Route',
     description: 'Guided 360-degree campus route walkthrough for CSPC.',
     activeTab: 'tabMap',
-    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
   const routeBaseUrl = `/vr/routes/${encodeURIComponent(req.params.routeId)}`;
   const requestedDirection = parseTravelDirection(req.query && req.query.direction);
@@ -1359,7 +1350,6 @@ exports.destinationViewer = async (req, res) => {
     title: 'CampuSphere | VR Route',
     description: 'Guided 360-degree campus route walkthrough for CSPC.',
     activeTab: 'tabMap',
-    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
   const destinationBaseUrl = `/vr/to/${encodeURIComponent(req.params.buildingId)}`;
   const requestedDirection = parseTravelDirection(req.query && req.query.direction);
@@ -1667,7 +1657,6 @@ exports.viewer = async (req, res) => {
     title: 'CampuSphere | VR Campus Tour',
     description: 'Browse 360-degree campus scenes for CSPC.',
     activeTab: 'tabMap',
-    canViewRoomSchedules: canViewRoomSchedules(req.session && req.session.user)
   };
 
   try {

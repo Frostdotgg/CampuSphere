@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertNoRetiredScheduling } = require('../utils/retiredScheduling');
+
 /*
  * CampuSphere MySQL -> Supabase VR metadata sync.
  *
@@ -14,7 +16,8 @@
  *   - route nodes: node_key
  *   - scenes: scene_key
  *   - hotspots: source scene_key + display_order
- *   - room schedule documents: canonical building name + location_key
+ * Legacy schedule identity helpers remain for snapshot compatibility, but
+ * retired documents, hotspots and metadata now fail preflight before writes.
  *
  * Numeric IDs are backend-local. MySQL IDs are used only to resolve the source
  * row; every Supabase foreign key is planned from the natural identity above.
@@ -325,6 +328,8 @@ async function readSupabase(client = null) {
 }
 
 function buildPlan(source, target) {
+  assertNoRetiredScheduling(source);
+  assertNoRetiredScheduling(target);
   const blockers = [];
   const warnings = [];
   const media = { cloudinary: 0, local: 0, missing: 0 };

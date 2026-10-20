@@ -152,7 +152,7 @@ check('home preview receives the same public basemap and start-node contract as 
   /mapBasemap:\s*mapController\.getPublicBasemapConfig\(\)/.test(pageController) &&
   /mapStartNode:\s*startNodeResult/.test(pageController));
 check('service worker advances the offline shell for the new manager/CSS',
-/CACHE_VERSION\s*=\s*'v52'/.test(sw) &&
+/CACHE_VERSION\s*=\s*'v53'/.test(sw) &&
   /'\/js\/offline-guide-manager\.js'/.test(sw) &&
   /'\/css\/offline\.css'/.test(sw));
 
