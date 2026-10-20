@@ -1,5 +1,10 @@
 # CampuSphere
 
+October 20 release: room scheduling is retired; floor/room descriptions and
+73 private Info room markers remain. See docs/room-scheduling-release-2026-10-20.md
+for the verified product release, tests and limits. Remaining schedule-data
+cleanup and ICTU deployment are separate owner tasks.
+
 CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtual campus map tour for **Camarines Sur Polytechnic Colleges (CSPC)**. It provides authenticated access for students, instructors, guests, and admins, with role-aware navigation, profile management, an interactive campus map, and an admin CRUD dashboard for users, news, events, and buildings.
 
 ## Features

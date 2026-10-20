@@ -1,6 +1,6 @@
-# Room scheduling removal — local candidate
+# Room scheduling removal — release and cleanup runbook
 
-Date: 2026-10-19 (Asia/Manila)
+Last updated: 2026-10-20 (Asia/Manila)
 
 October 20 publication follow-up: the owner separately authorized release
 testing, commit/push and staged Production deployment. Fresh evidence and the
@@ -8,7 +8,15 @@ publication record are in `docs/room-scheduling-release-2026-10-20.md`. The
 October 19 candidate/authorization statements below describe that earlier
 checkpoint; saved-data deletion remains excluded from the release.
 
-## Status and scope
+## Current release status
+
+Product commit b39d08cf2536cafc5d965adba0803e743425a698 was published and
+verified on October 20 as dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha. The normal website
+passed the immediate offline download and disconnected-reload check. See the
+October 20 release record for bounded evidence and the later documentation-only
+handoff. No schedule entries were deleted and no migration was applied.
+
+## Historical local candidate status (October 19)
 
 This is the uncommitted, not deployed candidate on `codex/remove-room-scheduling`,
 based on `0af76f161443f8259858f4fa67116bc12f51321e`. The original removal task authorized local

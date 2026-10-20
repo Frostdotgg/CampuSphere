@@ -4,8 +4,10 @@
 
 The owner approved reviewing, testing, committing, pushing and deploying this
 removal on October 20. The October 19 uncommitted-candidate sections are the
-earlier local checkpoint. Publication is pending at this record's preparation;
-no successful deployment is claimed by the preparation checks below.
+earlier local checkpoint. The product release was subsequently verified at source
+b39d08cf2536cafc5d965adba0803e743425a698, deployment
+dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha. Preparation checks and later live evidence
+remain separate below.
 
 The release target is `https://campusphere-cspc.vercel.app`, project
 `calagrimas-projects/campusphere-cspc`, connected to `Frostdotgg/CampuSphere`.
@@ -94,3 +96,43 @@ schedule entries, clear saved metadata, apply SQL/migrations, delete hosted
 images or deploy ICTU. Cleanup/restore instructions remain in
 `docs/room-scheduling-removal.md`. All private backups, screenshots and detailed
 logs are outside Git in the owner's October 20 release evidence directory.
+
+## Verified initial Production publication
+
+The staged Production build for exact source b39d08c was Ready and Staged;
+the normal domain remained on the recorded rollback target until promotion.
+The owner signed in through the staged email/password form. The dashboard,
+CSLAB Info editor/privacy, preserved room descriptions and real panorama,
+Vehicle entrance and Walking entrance/return were checked. Seven authorized
+retired API reads returned the standard JSON 404 with their real HTTP statuses.
+No form was saved and no shared content was changed.
+
+The staged basemap request redirected to Vercel /sso-api, explaining its
+Failed to fetch download result. Protection remained enabled. Promotion was
+followed immediately by a successful download on the normal website: 26
+buildings, 26 entry routes, 26 exit routes and 26 walking paths. The Update now
+prompt activated the new PWA shell; disconnected reload and retained room text
+worked. Live offline Walking to Academic Building IV measured 358 m. A 390 px
+view retained a 390 px content width. Real live CSLAB Info and panorama remained
+available, with no schedule controls. The anonymous live smoke passed 20/20,
+including exact comparisons of five committed assets. These sampled checks do
+not establish complete immutable deployed-byte equality.
+
+The staged snapshot showed 3 Warning rows, 0 Error, 0 Fatal, including
+session-store touch timeout retries. Displayed completed responses do not prove
+every retry outcome. Post-promotion monitoring is retained separately in the
+external release evidence. This is not a zero-warning release claim.
+
+A documentation/static-check successor records this completed product release
+and preserves its runtime package byte-for-byte. Its final Git/deployment IDs
+are necessarily determined after this evidence commit; the final owner report
+and external release evidence record them. Do not identify the product commit
+above as a future documentation HEAD, or inherit permission for another release.
+
+The post-publication handoff gate passed **652/652** in the isolated loader,
+including independent release-identity, privacy, retained-data, cache, migration,
+warning and unsupported-claim rejection fixtures. The original 595/595 above
+remains the pre-publication result. Live Administrator read-back also confirmed
+CSLAB remains a private Info marker at yaw 50, pitch -10, with no Schedule option;
+the editor was canceled. Academic Building IV still lists its floors and rooms,
+including CS Laboratory. No shared content was edited during these checks.

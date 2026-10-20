@@ -7102,9 +7102,66 @@ function walkingReleaseHandoffProblems(value, { prompt = false } = {}) {
   return problems;
 }
 
-const CURRENT_ROOM_REMOVAL_HEADING = '## Current Release Continuity (2026-10-19 room-scheduling removal candidate)';
+const CURRENT_ROOM_REMOVAL_HEADING = '## Current Release Continuity (2026-10-20 room-scheduling removal release)';
+/** PURE: the published retirement has its own dated evidence and stop boundary. */
+function roomSchedulingReleaseHandoffProblems(value, { prompt = false } = {}) {
+  const t = String(value || '').replace(/[*]/g, '').split(String.fromCharCode(96)).join('').replace(/\s+/g, ' ');
+  const problems = [];
+  const need = (label, pass) => { if (!pass) problems.push(label); };
+  need('published product and rollback identities',
+    t.includes('b39d08cf2536cafc5d965adba0803e743425a698') &&
+    t.includes('dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha') && t.includes('codex/remove-room-scheduling') &&
+    t.includes('0af76f161443f8259858f4fa67116bc12f51321e') &&
+    /dated October 20 product-release observation/.test(t) &&
+    /not a claim about a later documentation HEAD or deployment/.test(t) &&
+    /rollback target/.test(t) && t.includes('dpl_94jYqWkHoC19cLKnfooTVEG8SCyU'));
+  need('retired surfaces and retained room/privacy protections',
+    /Room scheduling is retired for every role/.test(t) && /standard JSON 404/.test(t) &&
+    /login, role and CSRF/.test(t) && /Floor and room descriptions remain/.test(t) &&
+    /Guest visibility rules/.test(t) && /responses omit schedule types\/metadata/.test(t));
+  need('completed conversion and preserved saved entries',
+    /73 saved Schedule hotspots became private Info markers across 65 scenes/.test(t) &&
+    /room names\/positions preserved/.test(t) && /zero Schedule types among 1,469 hotspots/.test(t) &&
+    /69 image entries and 2 legacy entries remain intact/.test(t) &&
+    /schedule metadata remains for the later full cleanup/.test(t) && /No live rows have been deleted/.test(t));
+  need('separate cleanup, unchanged structures and external assets',
+    /Empty tables\/fields are retained/.test(t) && /owner-controlled target verification/.test(t) &&
+    /external backup and explicit confirmation/.test(t) && /External hosted images and audit history remain untouched/.test(t) &&
+    /legacy-reference guard/.test(t) && /synchronization tools reject/.test(t) &&
+    /Migration sources remain contiguous through 0028 and unchanged/.test(t) && /No migration was applied/.test(t));
+  need('cache, offline boundaries and qualified walking coverage',
+    /service worker is v53; shared stylesheet remains v13/.test(t) &&
+    /No guide schema change or forced redownload/.test(t) && /IndexedDB/.test(t) && /Cache Storage is shell\/static-only/.test(t) &&
+    /26\/26 saved paths, zero missing/.test(t) && /does not establish visual approval/.test(t) &&
+    /Supabase\/PostgreSQL/.test(t) && /Supabase Auth is not used/.test(t));
+  need('bounded local, staged, live and package evidence',
+    ['401/401','118/118','49/49','148/148','140/140','121/121','21/21','180/180','28/28','75/75','20/20'].every(s=>t.includes(s)) &&
+    /five exact committed asset matches/.test(t) && /201 files, 8,577,707 bytes/.test(t) &&
+    t.includes('6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709') &&
+    /not complete immutable deployed-byte equality/.test(t) && /Protection was unchanged/.test(t));
+  need('warnings and unestablished acceptance remain explicit',
+    /3 Warning rows, 0 Error, 0 Fatal/.test(t) && /12 Warning rows \/ 0 Error \/ 0 Fatal/.test(t) &&
+    /do not establish every retry outcome/.test(t) && /do not claim a zero-warning window/.test(t) &&
+    /not a full npm test\/qa pass/.test(t) && /physical-device acceptance or exhaustive route\/VR traversal/.test(t) &&
+    /no full R6 pass is claimed/.test(t));
+  need('next-session stop, local preservation and no inherited authority',
+    /Prior permissions do not carry forward/.test(t) && /one writer/.test(t) &&
+    /read-only and context-only/.test(t) && /report and stop after grounding/.test(t) &&
+    /Availability does not expand authority/.test(t) && /No ICTU deployment or live cleanup ran/.test(t) &&
+    /Preserve protected local documents/.test(t) && t.includes('docs/room-scheduling-release-2026-10-20.md'));
+  if (prompt) need('complete standalone grounding prompt',
+    /Discover the repository root/.test(t) && /initial grounding turn/.test(t) &&
+    /Do not edit files, review a pending diff, run tests\/QA\/probes/.test(t) &&
+    /Stop and wait for the owner's explicit task/.test(t) &&
+    ['AGENTS.md','CLAUDE.md','README.md','package.json','.vercelignore'].every(p=>t.includes(p)));
+  if (/The full suite passed|Current npm test passed|Full npm test passed|Live schedule data has been deleted|All walking routes are visually approved|The previous database approval still applies|This grounding prompt authorizes deployment|Prior permissions carry forward|Production currently serves 0af76f1|Current live MySQL parity is verified/i.test(t)) {
+    problems.push('unsupported acceptance or inherited permission');
+  }
+  return problems;
+}
 /** PURE: local retirement cannot inherit the preceding release permissions. */
 function roomSchedulingRemovalHandoffProblems(value, { prompt = false } = {}) {
+  if (String(value || '').includes('room-scheduling removal release')) return roomSchedulingReleaseHandoffProblems(value, { prompt });
   const t = String(value || '').replace(/[*]/g, '').split(String.fromCharCode(96)).join('').replace(/\s+/g, ' ');
   const problems = [];
   const need = (label, pass) => { if (!pass) problems.push(label); };
@@ -7267,7 +7324,7 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
 
   const t = scope.replace(/\s+/g, ' ').trim();
 
-  if (t.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(t);
+  if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return roomSchedulingRemovalHandoffProblems(t);
 
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes('2026-10-19 Walking 2D release handoff')) {
     return walkingReleaseHandoffProblems(t);
@@ -8674,7 +8731,7 @@ function currentOfflineCorrectionEvidenceProblems(value) {
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
-  if (t.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(t, { prompt: true }).length === 0;
+  if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return roomSchedulingRemovalHandoffProblems(t, { prompt: true }).length === 0;
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return walkingReleaseHandoffProblems(t, { prompt: true }).length === 0;
   }
@@ -9265,7 +9322,7 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes('room-scheduling removal candidate')) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
+  if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
@@ -9350,7 +9407,7 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
-  if (t.includes('room-scheduling removal candidate')) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
+  if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
       /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
@@ -10321,7 +10378,7 @@ function deploymentDocumentClaimsAreCurrent(text) {
   const current = currentDeploymentAuthorityScope(text);
   // A not-deployed candidate has a different lifecycle from the published
   // Walking release. Do not interpret its source SHA as deployed-byte proof.
-  if (current.includes('room-scheduling removal candidate')) {
+  if (current.includes('room-scheduling removal release') || current.includes('room-scheduling removal candidate')) {
     return roomSchedulingRemovalHandoffProblems(current).length === 0;
   }
   return typeof text === 'string' && text !== '' &&
@@ -10377,7 +10434,7 @@ function recordsPostDeploymentAuthority(text) {
   const current = currentDeploymentAuthorityScope(text);
   const t = current.replace(/\s+/g, ' ');
 
-  if (current.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(current).length === 0;
+  if (current.includes('room-scheduling removal release') || current.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(current).length === 0;
 
   if (current.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA)) {
     return walkingReleaseHandoffProblems(current).length === 0;
@@ -11234,8 +11291,8 @@ function runDocsCurrentGate() {
   const codexH = docs['CODEX_HANDOFF.md'];
   const claudeH = docs['CLAUDE_HANDOFF.md'];
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-19';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-10-19';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-20';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-10-20';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -11286,12 +11343,16 @@ function runDocsCurrentGate() {
     'docs/security-checklist.md': '## Current Release Continuity (2026-10-19)',
     'docs/test-evidence.md': '## Current Release Continuity (2026-10-19)',
   };
+  const CURRENT_DATE_FIXTURE = Object.fromEntries(Object.entries(DATE_FIXTURE)
+    .map(([name, value]) => [name, value.split('2026-10-19').join('2026-10-20')]));
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
-    currentCandidateDateProblems(DATE_FIXTURE).length === 0 &&
-    currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
+    currentCandidateDateProblems(DATE_FIXTURE, '2026-10-19', '2026-10-19').length === 0 &&
+    currentCandidateDateProblems(CURRENT_DATE_FIXTURE).length === 0 &&
+    currentCandidateDateProblems(DATE_FIXTURE).length > 0 &&
+    currentCandidateDateProblems(Object.assign({}, CURRENT_DATE_FIXTURE, {
       'docs/security-checklist.md': '## Current Release Continuity (2026-08-10)',
     })).length > 0 &&
-    currentCandidateDateProblems(Object.assign({}, DATE_FIXTURE, {
+    currentCandidateDateProblems(Object.assign({}, CURRENT_DATE_FIXTURE, {
       'ROADMAP.md': '## Current Release Continuity (2026-08-10)',
     })).length > 0);
 
@@ -11775,7 +11836,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the October 19 Walking 2D release handoff boundary`,
+    ok(`${name} records the October 20 removal release handoff boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -11795,7 +11856,7 @@ function runDocsCurrentGate() {
     currentSections.every((section) => section !== '') &&
     new Set(currentSections).size === 1);
 
-  const retirementFixture = currentSections[0];
+  const retirementFixture = normalizedCurrentReleaseSection(docs['CODEX_HANDOFF.md'], '## Historical Release Continuity (2026-10-19 room-scheduling removal candidate; superseded)').replace('## Historical Release Continuity (2026-10-19 room-scheduling removal candidate; superseded)', '## Current Release Continuity (2026-10-19 room-scheduling removal candidate)');
   for (const [label, from, to] of [
     ['candidate source', '0af76f161443f8259858f4fa67116bc12f51321e', '0000000000000000000000000000000000000000'],
     ['publication boundary', 'no commit,\npush, deployment, vendor changes or live data cleanup', 'publication and cleanup allowed'],
@@ -11812,7 +11873,14 @@ function runDocsCurrentGate() {
     ok('fixture: removal handoff rejects ' + label, retirementFixture.includes(from) &&
       roomSchedulingRemovalHandoffProblems(retirementFixture.replace(from, to)).length > 0);
   }
-  const retirementPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  const retirementPrompts = {};
+  for (const [role, title] of [['codex','Codex'], ['claude','Claude Code']]) {
+    const archive = docs['docs/new-session-grounding-prompts.md'];
+    const at = archive.indexOf('## Historical ' + title + ' Grounding Prompt (2026-10-19; superseded)');
+    const begin = archive.indexOf('\x60\x60\x60text\n', at);
+    const end = archive.indexOf('\n\x60\x60\x60', begin + 8);
+    retirementPrompts[role] = begin >= 0 && end > begin ? archive.slice(begin + 8, end) : '';
+  }
   for (const [label, body, prompt] of [['summary', retirementFixture, false],
     ['Codex', retirementPrompts && retirementPrompts.codex, true], ['Claude', retirementPrompts && retirementPrompts.claude, true]]) {
     ok('removal ' + label + ' is complete without relying on archived evidence',
@@ -11825,6 +11893,38 @@ function runDocsCurrentGate() {
     }
   }
 
+  const publishedRemovalPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  for (const [label, body, prompt] of [['summary', currentSections[0], false],
+    ['Codex', publishedRemovalPrompts && publishedRemovalPrompts.codex, true],
+    ['Claude', publishedRemovalPrompts && publishedRemovalPrompts.claude, true]]) {
+    ok('published removal ' + label + ' carries independent current evidence',
+      roomSchedulingReleaseHandoffProblems(body, { prompt }).length === 0);
+    for (const [name, from, to] of [
+      ['product source', 'b39d08cf2536cafc5d965adba0803e743425a698', '0000000000000000000000000000000000000000'],
+      ['deployment', 'dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha', 'dpl_wrong'],
+      ['privacy', 'private Info markers', 'Guest-visible Info markers'],
+      ['marker count', '73 saved Schedule', '72 saved Schedule'],
+      ['coverage', '26/26 saved paths', '25/26 saved paths'],
+      ['preserved entries', '69 image entries', '68 image entries'],
+      ['cache', 'service worker is v53', 'service worker is v52'],
+      ['migration', 'through 0028 and unchanged', 'through 0027 and unchanged'],
+      ['warning snapshot', '3 Warning rows, 0 Error, 0 Fatal', 'zero warnings'],
+      ['smoke', '20/20', '19/20'],
+      ['package', '6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709', '0'.repeat(64)],
+      ['next-session authority', 'Prior permissions do not carry forward', 'Prior permissions carry forward']
+    ]) {
+      ok('fixture: published removal ' + label + ' rejects ' + name,
+        Boolean(body) && body.includes(from) &&
+        roomSchedulingReleaseHandoffProblems(body.split(from).join(to), { prompt }).length > 0);
+    }
+    for (const claim of ['The full suite passed.', 'Live schedule data has been deleted.',
+      'All walking routes are visually approved.', 'The previous database approval still applies.',
+      'This grounding prompt authorizes deployment.', 'Current live MySQL parity is verified.']) {
+      ok('fixture: published removal ' + label + ' rejects unsupported claim: ' + claim,
+        roomSchedulingReleaseHandoffProblems(body + '\n' + claim, { prompt }).length > 0);
+    }
+  }
+
   const currentAuthority = docs['docs/current-authority.md'];
   const currentAuthorityText = currentAuthority.replace(/\s+/g, ' ').trim();
   const incidentRecord = docs['docs/session-readiness-incident-2026-09-14.md'];
@@ -11832,7 +11932,7 @@ function runDocsCurrentGate() {
   const transitionNote = docs[CURRENT_PANEL_HANDOFF_NOTE];
   ok('canonical current authority records the October source, evidence and next-task boundaries',
     roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(currentAuthority)).length === 0 &&
-    /Last updated: 2026-10-19/.test(currentAuthority) &&
+    /Last updated: 2026-10-20/.test(currentAuthority) &&
     /Architecture and rules to preserve/.test(currentAuthority));
   ok('detailed transition note preserves source map, local research artifacts and missing panel requests',
     /Last updated: 2026-10-17/.test(transitionNote) &&
@@ -11982,9 +12082,9 @@ function runDocsCurrentGate() {
         Boolean(body) && body.includes(from) && !reusablePromptIsCurrent(body.split(from).join('omitted')));
     }
   }
-  ok('October 19 detailed handoff records the current release, source map and bounded validation',
+  ok('October 19 transition note carries the October 20 release, source map and bounded validation',
     roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE])).length === 0 &&
-    /Last updated: 2026-10-19/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
+    /Last updated: 2026-10-20/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /Source map for the next focused task/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /isolated network-free/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]));
   const walkingReleaseGuide = docs['docs/walking-2d-release-2026-10-18.md'].replace(/\s+/g, ' ');
