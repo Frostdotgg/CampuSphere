@@ -73,13 +73,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the current implementation candidate.
+/* Independent exact-byte authority for the local session-log pairing candidate.
+   The October 20 published package fingerprint remains dated release evidence
+   in docs/room-scheduling-release-2026-10-20.md.
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
   files: 201,
-  bytes: 8577707,
-  sha256: '6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709',
+  bytes: 8580207,
+  sha256: '01966f8b17022c7d43d9976876ef19e2680dda1b8c7c473cf683453f3368dfd0',
 });
 
 /* M12.P1-R8 label correction.

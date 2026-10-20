@@ -19,7 +19,7 @@
 
    Privacy: diagnostics contain only a fixed operation/state, a safe failure
    category, an optional numeric HTTP status, an attempt count, a coarse
-   elapsed-time bucket, and a server-generated opaque request id. They never
+   elapsed-time bucket, and server-generated opaque request/operation ids. They never
    contain a session id, cookie value, session JSON, Supabase URL/key,
    PostgREST/SQL detail, stack, or raw error. Store-operation failures surface a
    fixed sanitized Error to express-session; init failure throws a fixed
@@ -30,6 +30,7 @@
 
 const session = require('express-session');
 const Store = session.Store;
+const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
 const { getSupabaseClient } = require('../config/supabase');
 const {
@@ -125,6 +126,7 @@ class SupabaseSessionStore extends Store {
     sleep = wait,
     monotonicNow = () => performance.now(),
     requestIdProvider = requestCorrelationId,
+    operationIdProvider = () => randomBytes(16).toString('hex'),
   } = {}) {
     super();
     if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
@@ -145,6 +147,8 @@ class SupabaseSessionStore extends Store {
     this._monotonicNow = typeof monotonicNow === 'function' ? monotonicNow : () => performance.now();
     this._requestIdProvider = typeof requestIdProvider === 'function'
       ? requestIdProvider : requestCorrelationId;
+    this._operationIdProvider = typeof operationIdProvider === 'function'
+      ? operationIdProvider : () => randomBytes(16).toString('hex');
     this._lastDiagnosticAt = new Map();
     this._reapTimer = null;
   }
@@ -181,21 +185,73 @@ class SupabaseSessionStore extends Store {
     }
   }
 
-  _diagnostic(operation, state, failure, attempts, { requestId = '-', elapsedMs = null } = {}) {
-    const key = `${operation}:${state}:${failure.category}:${failure.status || 0}`;
-    const timestamp = this._now();
-    const previous = this._lastDiagnosticAt.get(key) || 0;
-    if (previous && timestamp - previous < DIAGNOSTIC_WINDOW_MS) return;
-    this._lastDiagnosticAt.set(key, timestamp);
+  _claimDiagnostic(operation, state, failure) {
+    try {
+      const key = `${operation}:${state}:${failure.category}:${failure.status || 0}`;
+      const timestamp = this._now();
+      if (!Number.isFinite(timestamp)) return false;
+      if (this._lastDiagnosticAt.has(key) &&
+          timestamp - this._lastDiagnosticAt.get(key) < DIAGNOSTIC_WINDOW_MS) return false;
+      // Claim before invoking a writer, including when its implementation reenters.
+      this._lastDiagnosticAt.set(key, timestamp);
+      return true;
+    } catch (e) {
+      return false; // Observability must never change a store operation's result.
+    }
+  }
 
-    const level = state === 'recovered' ? 'info' : (state === 'failed' ? 'error' : 'warn');
-    const writer = this.logger && typeof this.logger[level] === 'function' ? this.logger[level] : null;
-    if (!writer) return;
-    let line = `[session-store] operation=${operation} state=${state} category=${failure.category}`;
-    if (failure.status !== null) line += ` status=${failure.status}`;
-    line += ` attempts=${attempts} attempt_elapsed=${elapsedBucket(elapsedMs)}`;
-    line += ` request_id=${safeRequestCorrelationId(requestId)}`;
-    writer.call(this.logger, line);
+  _writeDiagnostic(operation, state, failure, attempts, {
+    requestId = '-', operationId = null, elapsedMs = null,
+  } = {}) {
+    try {
+      const level = state === 'recovered' ? 'info' : (state === 'failed' ? 'error' : 'warn');
+      const writer = this.logger && this.logger[level];
+      if (typeof writer !== 'function') return false;
+      let line = `[session-store] operation=${operation} state=${state} category=${failure.category}`;
+      if (failure.status !== null) line += ` status=${failure.status}`;
+      line += ` attempts=${attempts} attempt_elapsed=${elapsedBucket(elapsedMs)}`;
+      line += ` request_id=${safeRequestCorrelationId(requestId)}`;
+      if (operationId !== null) {
+        const safeId = safeRequestCorrelationId(operationId);
+        if (safeId === '-') return false;
+        line += ` operation_id=${safeId}`;
+      }
+      writer.call(this.logger, line);
+      return true;
+    } catch (e) {
+      // No recursive logging and no raw logger error. Console-compatible writers
+      // are synchronous; failure here must not cause another provider request.
+      return false;
+    }
+  }
+
+  _diagnostic(operation, state, failure, attempts, context) {
+    if (!this._claimDiagnostic(operation, state, failure)) return false;
+    return this._writeDiagnostic(operation, state, failure, attempts, context);
+  }
+
+  _sampleRetry(operation, failure, attempts, context) {
+    if (!this._claimDiagnostic(operation, 'retrying', failure)) return null;
+    try {
+      const operationId = safeRequestCorrelationId(this._operationIdProvider());
+      if (operationId === '-') return null;
+      const pair = { operationId, requestId: context.requestId, finished: false };
+      return this._writeDiagnostic(operation, 'retrying', failure, attempts, {
+        ...context, operationId,
+      }) ? pair : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  _finishDiagnosticPair(pair, operation, state, failure, attempts, elapsedMs) {
+    if (!pair || pair.finished) return;
+    pair.finished = true;
+    // This line uses the outcome slot reserved by this exact operation. It is
+    // not subject to another operation's outcome throttle or a new admission.
+    this._writeDiagnostic(operation, state, failure, attempts, {
+      requestId: pair.requestId, operationId: pair.operationId, elapsedMs,
+    });
   }
 
   async _requestOnce(makeQuery, { initialization = false, signal: externalSignal = null } = {}) {
@@ -233,31 +289,35 @@ class SupabaseSessionStore extends Store {
   async _runtimeRequest(operation, makeQuery) {
     let lastFailure = { category: 'unknown', status: null };
     const requestId = this._requestId();
+    let diagnosticPair = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       const startedAt = this._monotonicStart();
       try {
         const result = await this._requestOnce(makeQuery);
-        if (attempt > 1) {
-          this._diagnostic(operation, 'recovered', lastFailure, attempt, {
-            requestId,
-            elapsedMs: this._elapsedSince(startedAt),
-          });
+        if (attempt > 1 && diagnosticPair) {
+          this._finishDiagnosticPair(diagnosticPair, operation, 'recovered',
+            lastFailure, attempt, this._elapsedSince(startedAt));
         }
         return result;
       } catch (error) {
         lastFailure = classifyFailure(error);
         if (attempt < 2 && isRuntimeRetryable(lastFailure)) {
-          this._diagnostic(operation, 'retrying', lastFailure, attempt, {
+          diagnosticPair = this._sampleRetry(operation, lastFailure, attempt, {
             requestId,
             elapsedMs: this._elapsedSince(startedAt),
           });
           if (this.retryDelayMs > 0) await this._sleep(this.retryDelayMs);
           continue;
         }
-        this._diagnostic(operation, 'failed', lastFailure, attempt, {
-          requestId,
-          elapsedMs: this._elapsedSince(startedAt),
-        });
+        if (diagnosticPair) {
+          this._finishDiagnosticPair(diagnosticPair, operation, 'failed',
+            lastFailure, attempt, this._elapsedSince(startedAt));
+        } else {
+          this._diagnostic(operation, 'failed', lastFailure, attempt, {
+            requestId,
+            elapsedMs: this._elapsedSince(startedAt),
+          });
+        }
         throw sanitizedStoreError(lastFailure);
       }
     }

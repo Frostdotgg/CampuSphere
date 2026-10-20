@@ -14,9 +14,10 @@
         HTML refusal responses, and single timer/listener creation. Plus a
         REAL in-process Express app (loopback, OS-assigned port) proving that
         a synchronous route throw and a rejected async route both reach the
-         application's own error handler rather than the readiness 503. A
-         failed express-session touch after a completed 204 also proves the
-         global error handler cannot attempt a second response write.
+        application's own error handler rather than the readiness 503.
+        The real Supabase store with a fake provider exercises immediate,
+        recovered and failed touches through HTTP 200/204/304, retaining
+        paired diagnostics and preventing a second response write.
      2. STATIC: the R2 preflight ordering invariant is intact, the security
         headers precede the readiness gate, the gate precedes static/session/
         routes, start() awaits the shared promise before app.listen(), the
@@ -112,6 +113,162 @@ function loadIsolatedServerError() {
 }
 
 /* ---------------- test doubles ---------------- */
+
+// This fixture supplies its own provider. Loading the actual store must not
+// load dotenv or any real backend configuration into this database-free leg.
+function loadIsolatedSupabaseSessionStore() {
+  const configPath = require.resolve('../config/supabase');
+  const storePath = require.resolve('../services/supabaseSessionStore');
+  const previousConfig = require.cache[configPath];
+  const previousStore = require.cache[storePath];
+  require.cache[configPath] = {
+    id: configPath, filename: configPath, loaded: true,
+    exports: { getSupabaseClient() { throw new Error(CANARY); } },
+  };
+  delete require.cache[storePath];
+  try { return require(storePath).SupabaseSessionStore; }
+  finally {
+    if (previousConfig) require.cache[configPath] = previousConfig;
+    else delete require.cache[configPath];
+    if (previousStore) require.cache[storePath] = previousStore;
+    else delete require.cache[storePath];
+  }
+}
+
+async function sectionPairedSessionDiagnosticResponses() {
+  const SupabaseSessionStore = loadIsolatedSupabaseSessionStore();
+  const rows = new Map();
+  let pendingTouches = [];
+  let touchAttempts = 0;
+  let clock = 0;
+  const storeLines = [];
+  const client = {
+    from() {
+      let operation;
+      let id;
+      let payload;
+      let signal;
+      const query = {
+        select() { operation = 'get'; return query; },
+        eq(_column, value) { id = value; return query; },
+        maybeSingle() { return query; },
+        update(value) { operation = 'touch'; payload = value; return query; },
+        upsert(value) { operation = 'set'; payload = value; id = value.sid; return query; },
+        delete() { operation = 'destroy'; return query; },
+        abortSignal(value) { signal = value; return query; },
+        then(resolve, reject) {
+          if (operation === 'touch') {
+            touchAttempts += 1;
+            if (pendingTouches.shift() === 'hang') {
+              signal.addEventListener('abort', () => {
+                const error = new Error(CANARY);
+                error.name = 'AbortError';
+                reject(error);
+              }, { once: true });
+              return;
+            }
+            if (rows.has(id)) Object.assign(rows.get(id), payload);
+          }
+          if (operation === 'set') rows.set(id, JSON.parse(JSON.stringify(payload)));
+          if (operation === 'destroy') rows.delete(id);
+          const row = rows.get(id);
+          resolve({ error: null, status: 200, data: operation === 'get' && row
+            ? { sess: JSON.parse(JSON.stringify(row.sess)), expires_at: row.expires_at } : null });
+        },
+      };
+      return query;
+    },
+  };
+  const store = new SupabaseSessionStore({
+    client, requestTimeoutMs: 25, retryDelayMs: 0, now: () => clock,
+    logger: { warn: line => storeLines.push(line), info: line => storeLines.push(line), error: line => storeLines.push(line) },
+  });
+  const app = express();
+  const errorHandler = loadIsolatedServerError();
+  let errorCalls = 0;
+  let secondWrites = 0;
+  const lateErrors = [];
+  const originalError = console.error;
+  const controllers = [];
+  app.use(requestDiagnostics);
+  app.use(session({
+    secret: 'paired-loopback-only-synthetic-secret', store,
+    resave: false, saveUninitialized: false,
+    cookie: { secure: false, httpOnly: true, sameSite: 'lax', maxAge: 60000 },
+  }));
+  app.get('/seed', (req, res) => {
+    req.session.user = { role: 'guest' };
+    res.status(204).end();
+  });
+  app.get('/api/pairing-probe/:status', (req, res) => {
+    if (!req.session.user) return res.status(401).end();
+    res.status(Number(req.params.status));
+    return Number(req.params.status) === 200 ? res.send('paired response') : res.end();
+  });
+  app.post('/logout', (req, res, next) => req.session.destroy(error => error ? next(error) : res.status(204).end()));
+  app.use((error, req, res, next) => {
+    errorCalls += 1;
+    const json = res.json.bind(res);
+    const render = res.render.bind(res);
+    res.json = (...args) => { secondWrites += 1; return json(...args); };
+    res.render = (...args) => { secondWrites += 1; return render(...args); };
+    return errorHandler(error, req, res, next);
+  });
+  let server;
+  try {
+    server = await new Promise((resolve, reject) => {
+      const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      listener.once('error', reject);
+    });
+    console.error = (...args) => lateErrors.push(args.map(String).join(' '));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const request = async (url, options = {}) => {
+      const controller = new AbortController();
+      controllers.push(controller);
+      const timer = setTimeout(() => controller.abort(), 3000);
+      try {
+        const response = await fetch(base + url, { ...options, signal: controller.signal });
+        return { status: response.status, body: await response.text(), headers: response.headers };
+      } finally { clearTimeout(timer); }
+    };
+    const seed = await request('/seed');
+    const cookie = String(seed.headers.get('set-cookie') || '').split(';')[0];
+    check('paired-response', 'one synthetic loopback session is created without a real provider', seed.status === 204 && rows.size === 1 && !!cookie);
+    for (const status of [200, 204, 304]) {
+      for (const mode of ['immediate', 'recovered', 'failed']) {
+        clock += 60000;
+        pendingTouches = mode === 'immediate' ? ['ok'] : mode === 'recovered' ? ['hang', 'ok'] : ['hang', 'hang'];
+        const priorAttempts = touchAttempts;
+        const priorErrors = errorCalls;
+        const priorLines = storeLines.length;
+        const response = await request('/api/pairing-probe/' + status, { headers: { Cookie: cookie } });
+        await new Promise(resolve => setImmediate(resolve));
+        const lines = storeLines.slice(priorLines);
+        const ids = lines.map(line => (line.match(/ operation_id=([a-f0-9]{32})$/) || [])[1]);
+        check('paired-response', status + ' ' + mode + ' keeps the complete original response',
+          response.status === status && response.body === (status === 200 ? 'paired response' : ''));
+        check('paired-response', status + ' ' + mode + ' keeps the provider attempt and error-handler contract',
+          touchAttempts - priorAttempts === (mode === 'immediate' ? 1 : 2) && errorCalls - priorErrors === (mode === 'failed' ? 1 : 0));
+        check('paired-response', status + ' ' + mode + ' emits only the correct complete diagnostic pair',
+          mode === 'immediate' ? lines.length === 0 : lines.length === 2 && ids[0] && ids[0] === ids[1] &&
+          lines[0].includes('state=retrying') && lines[1].includes('state=' + mode));
+        check('paired-response', status + ' ' + mode + ' exposes no internal diagnostic identifier in headers or session data',
+          !response.headers.has('operation_id') && !response.headers.has('x-operation-id') &&
+          !response.headers.has('x-request-id') && ids.filter(Boolean).every(id => !JSON.stringify([...rows.values()]).includes(id)));
+      }
+    }
+    check('paired-response', 'terminal refresh errors produce no second response writes or private diagnostic data',
+      secondWrites === 0 && !storeLines.join('\n').includes(CANARY) && !lateErrors.join('\n').includes(CANARY));
+    pendingTouches = [];
+    const logout = await request('/logout', { method: 'POST', headers: { Cookie: cookie } });
+    const rejected = await request('/api/pairing-probe/204', { headers: { Cookie: cookie } });
+    check('paired-response', 'logout still removes the synthetic session and prevents reuse', logout.status === 204 && rows.size === 0 && rejected.status === 401);
+  } finally {
+    console.error = originalError;
+    controllers.forEach(controller => controller.abort());
+    if (server) await new Promise(resolve => server.close(resolve));
+  }
+}
 
 // Minimal Express-shaped response recorder.
 function makeRes() {
@@ -1147,6 +1304,7 @@ async function main() {
   await sectionDiagnostics();
   await sectionExpressErrorPropagation();
   await sectionCompletedResponseTouchFailure();
+  await sectionPairedSessionDiagnosticResponses();
   await sectionHtmlSecurityIntegration();
   sectionWiring();
   sectionImportNoListener();

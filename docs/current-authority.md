@@ -2,6 +2,16 @@
 
 Last updated: 2026-10-20 (Asia/Manila)
 
+## Session diagnostic release candidate (2026-10-20)
+
+The reviewed session-diagnostic fix is described in
+`docs/session-retry-log-pairing.md`. It reserves each sampled retry warning's
+own outcome without changing session timeout/retry behavior. This local
+candidate has a new package fingerprint; the release records below retain the
+published fingerprint. The owner approved a separate controlled release after
+local verification. This candidate record does not establish a staged/live
+publication. Recompute Git truth and read the local note before continuing.
+
 ## Current Release Continuity (2026-10-20 room-scheduling removal release)
 
 Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
