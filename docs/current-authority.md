@@ -2,15 +2,43 @@
 
 Last updated: 2026-10-20 (Asia/Manila)
 
-## Session diagnostic release candidate (2026-10-20)
+## Session retry logging release (2026-10-20)
 
-The reviewed session-diagnostic fix is described in
-`docs/session-retry-log-pairing.md`. It reserves each sampled retry warning's
-own outcome without changing session timeout/retry behavior. This local
-candidate has a new package fingerprint; the release records below retain the
-published fingerprint. The owner approved a separate controlled release after
-local verification. This candidate record does not establish a staged/live
-publication. Recompute Git truth and read the local note before continuing.
+Read `docs/session-retry-log-pairing-release-2026-10-20.md` and
+`docs/session-retry-log-pairing.md` before the predecessor release blocks below.
+The initial verified product source is
+`6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21`, deployment
+`dpl_AFoQhojBv2ha95QRHd944dJayw7w`, observed Ready and serving the normal
+Production domain on October 20. This is the product-release observation, not
+the identity of a later documentation successor. Its final source/deployment
+identities and monitoring receipt are recorded outside Git and in the owner
+report after verification. Recompute live Git truth.
+
+Each admitted session retry reserves its own recovered/failed outcome and
+opaque operation ID. Sampling remains one pair per store instance, operation
+and initial failure category/status every 60 seconds, plus the existing
+standalone-failure allowance. Timeout/retry defaults remain 2,000 ms per attempt,
+two attempts and 200 ms delay. Authentication, expiry, logout, response handling,
+public APIs, dependencies, schemas, saved content and cache versions are unchanged.
+
+Fresh locked-copy gates passed session resilience 73/73, runtime bootstrap
+160/160 and startup/profile 116/116; documentation 652/652 and canonical package
+boundary 75/75 also passed. Public live smoke passed 20/20, including five exact
+committed asset matches. Owner sign-in, retained sessions, map administration,
+Vehicle/Walking reads, room descriptions and a real panorama passed representative
+checks. Natural timeout diagnostics included a verified warning/failed pair and
+a verified warning/recovered pair. A post-response error also occurred; this
+was not a zero-warning/error release. No provider cause is established.
+
+The new runtime package is 201 files / 8,580,207 bytes, aggregate SHA-256
+`01966f8b17022c7d43d9976876ef19e2680dda1b8c7c473cf683453f3368dfd0`.
+Only `services/supabaseSessionStore.js` differs from the predecessor runtime.
+The older fingerprint below remains dated predecessor evidence. These focused
+checks do not establish full QA, exhaustive role/route/VR coverage, permanent
+provider availability or complete immutable deployed-byte equality. The owner
+approved this controlled release only; future deployments, repairs, migrations
+or cleanup require a new focused task. The original investigation, protected
+local files, previous release evidence and application data remain preserved.
 
 ## Current Release Continuity (2026-10-20 room-scheduling removal release)
 

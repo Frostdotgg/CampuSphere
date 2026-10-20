@@ -1,12 +1,12 @@
 # Session retry log pairing
 
-Date: 2026-10-20 (Asia/Manila). Status: reviewed release candidate.
+Date: 2026-10-20 (Asia/Manila). Status: released product; original local evidence retained.
 
-The owner approved the controlled release task after the local verification
-recorded below. Staged and live publication have not yet been verified by this
-candidate record. Final product/deployment identities and observations belong
-in the release handoff after those checks. The local-only statements below
-describe the original implementation task, not a later deployment.
+The owner approved the controlled release after the local verification below.
+Product source `6a5bbd8` was verified on staged Production and the normal website.
+See `session-retry-log-pairing-release-2026-10-20.md` for release identities,
+real-session checks and warning evidence. The local-only statements below
+describe the original implementation task, not the later release.
 
 Branch: `codex/session-retry-log-pairing`, based on
 `59b61b8217881e28f7ad8514e82b3d3ff19534da`. GitHub `main` matched that baseline
@@ -100,16 +100,17 @@ local evidence. These focused checks are not a full
 
 ## Runtime package and evidence
 
-The local candidate package contains **201 files / 8,580,207 bytes**, aggregate
+The released product package contains **201 files / 8,580,207 bytes**, aggregate
 SHA-256 `01966f8b17022c7d43d9976876ef19e2680dda1b8c7c473cf683453f3368dfd0`.
 An external temporary Git index supplies canonical bytes without staging the
 normal index. Exactly one included runtime file differs from the published
 package: `services/supabaseSessionStore.js`. Tests/docs remain excluded.
 
-The published October 20 package remains **201 files / 8,577,707 bytes**, SHA-256
+The predecessor room-scheduling release package remains dated evidence:
+**201 files / 8,577,707 bytes**, SHA-256
 `6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709`.
-The standalone package probe's pin now describes this local candidate; the
-published fingerprint remains unchanged in the dated release documents.
+The standalone package probe's pin describes the session-log pairing runtime;
+the predecessor fingerprint remains unchanged in its dated release documents.
 
 Sanitized logs, before/after evidence, fingerprints and canonical package
 inventory are outside Git at
@@ -129,8 +130,9 @@ no message. This change cannot establish the outcome or provider cause of old
 warnings, and it does not reduce session-refresh latency or change retry policy.
 
 The original local implementation ended without commit, push or deployment.
-The owner subsequently approved the controlled release: repeat isolated gates,
-publish a staged Production build, check real sessions, promote, record the
-handoff, deploy its runtime-identical documentation successor, and monitor the
-final release for ten minutes. Do not force Production failures. Read the final
-release record before treating publication as verified.
+The separately approved release subsequently verified the product on staged
+Production and the normal website. The release handoff records that dated
+evidence. The documentation successor retains identical runtime bytes; its
+actual deployment identity and final ten-minute monitoring results belong in
+the external receipt and owner report. No future deployment, database repair
+or policy change is authorized by this completed release.
