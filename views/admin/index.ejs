@@ -566,6 +566,7 @@
             --analytics-role-2: #2563a8;
             --analytics-role-3: #8a5a00;
             --analytics-role-4: #4b5563;
+            --analytics-role-5: #7e22ce;
         }
 
         [data-theme="dark"] {
@@ -576,6 +577,7 @@
             --analytics-role-2: #5eead4;
             --analytics-role-3: #f2c14e;
             --analytics-role-4: #d1d5db;
+            --analytics-role-5: #c4b5fd;
         }
 
         /* A patterned swatch accompanies every colour so no series or segment
@@ -862,13 +864,13 @@
                             ? monthRows.reduce((sum, m) => sum + m.buildingAdditions, 0) : null;
                         const roleTotal = usersReady
                             ? roleRows.reduce((sum, r) => sum + r.count, 0) : null;
-                        /* The four non-colour encodings, in role order. They
+                        /* The five non-colour encodings, in role order. They
                            match ROLE_PATTERNS in
                            public/js/admin/dashboard-analytics.js, so the legend
                            swatch and the donut segment for a role always carry
                            the same pattern. Colours come from the
                            --analytics-role-N tokens, never from a literal here. */
-                        const rolePatternKinds = ['solid', 'diagonal', 'crosshatch', 'dots'];
+                        const rolePatternKinds = ['solid', 'diagonal', 'crosshatch', 'dots', 'horizontal'];
                     %>
                     <section class="admin-kpi-grid" aria-label="Key metrics">
                         <div class="admin-kpi">
@@ -1010,7 +1012,7 @@
                             </div>
                             <div class="admin-body-pad">
                                 <p id="roleChartDescription" class="admin-analytics-note">
-                                    Exact number of accounts currently held by each of the four CampuSphere roles.
+                                    Exact number of accounts currently held by each of the five CampuSphere roles.
                                     Every value is listed in the table below the chart.
                                 </p>
                                 <% if (!usersReady) { %>
@@ -1044,6 +1046,8 @@
                                                                 <% } else if (kind === 'crosshatch') { %>
                                                                     <path d="M4,0 L4,8" style="stroke: var(--analytics-surface);" stroke-width="1.6"></path>
                                                                     <path d="M0,4 L8,4" style="stroke: var(--analytics-surface);" stroke-width="1.6"></path>
+                                                                <% } else if (kind === 'horizontal') { %>
+                                                                    <path d="M0,4 L8,4" stroke="var(--analytics-surface)" stroke-width="2"></path>
                                                                 <% } else if (kind === 'dots') { %>
                                                                     <circle cx="2" cy="2" r="1.4" style="fill: var(--analytics-surface);"></circle>
                                                                     <circle cx="6" cy="6" r="1.4" style="fill: var(--analytics-surface);"></circle>

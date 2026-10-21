@@ -126,7 +126,7 @@ exports.users = async (req, res) => {
       // users with no heartbeat row as Offline/Never. Presence never updates
       // users.updated_at.
       const [rows] = await db.query(
-        'SELECT u.id, u.username, u.email, u.role, u.first_name, u.last_name, ' +
+        'SELECT u.id, u.username, u.email, u.role, u.department_code, u.first_name, u.last_name, ' +
         'u.created_at, p.last_seen_at AS presence_last_seen_at ' +
         'FROM users u LEFT JOIN user_presence p ON p.user_id = u.id ' +
         'ORDER BY u.created_at DESC'

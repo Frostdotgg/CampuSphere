@@ -3637,7 +3637,7 @@ function runLogoutOutputHygieneGate() {
 const EXPECTED_D6_TIMEZONE = 'Asia/Manila';
 const EXPECTED_D6_MANILA_OFFSET_MINUTES = 480; // UTC+08:00, no DST
 const EXPECTED_D6_MONTH_COUNT = 12;
-const EXPECTED_D6_ROLE_KEYS = Object.freeze(['student-cspc', 'instructor', 'admin', 'guest']);
+const EXPECTED_D6_ROLE_KEYS = Object.freeze(['student-cspc', 'instructor', 'admin', 'guest', 'department-admin']);
 const EXPECTED_D6_UNAVAILABLE_MESSAGE = 'Analytics data is unavailable right now.';
 const EXPECTED_D6_CLIENT_SCRIPT = '/js/admin/dashboard-analytics.js';
 const EXPECTED_D6_THEME_ATTRIBUTE = 'data-theme';
@@ -3649,22 +3649,22 @@ const EXPECTED_D6_NORMAL_MARKER = 'ADMIN-DASHBOARD-ANALYTICS-PROBE OK';
 const EXPECTED_D6_STATIC_ONLY_MARKER = 'D6-STATIC-ONLY-PROBE OK';
 const FORBIDDEN_D6_STATIC_ONLY_FLAG = '--static-only';
 
-/* The four non-colour encodings, and the verified data palette. Both are
+/* The five non-colour encodings, and the verified data palette. Both are
    pinned INDEPENDENTLY of the client module and the view, so a coordinated
    edit to those two files cannot redefine what "accessible" means here. */
-const EXPECTED_D6_ROLE_PATTERNS = Object.freeze(['solid', 'diagonal', 'crosshatch', 'dots']);
+const EXPECTED_D6_ROLE_PATTERNS = Object.freeze(['solid', 'diagonal', 'crosshatch', 'dots', 'horizontal']);
 const EXPECTED_D6_PALETTE = Object.freeze({
   light: Object.freeze({
     surface: '#ffffff',
     users: '#1a3a6b',
     buildings: '#8a5a00',
-    roles: Object.freeze(['#1a3a6b', '#2563a8', '#8a5a00', '#4b5563']),
+    roles: Object.freeze(['#1a3a6b', '#2563a8', '#8a5a00', '#4b5563', '#7e22ce']),
   }),
   dark: Object.freeze({
     surface: '#0b1220',
     users: '#8ab4f8',
     buildings: '#f2c14e',
-    roles: Object.freeze(['#8ab4f8', '#5eead4', '#f2c14e', '#d1d5db']),
+    roles: Object.freeze(['#8ab4f8', '#5eead4', '#f2c14e', '#d1d5db', '#c4b5fd']),
   }),
 });
 // WCAG minimum for a graphical object / non-text contrast.
@@ -3843,7 +3843,7 @@ function d6EmptyRepository() {
     MAX_WINDOW_ROWS: 20000,
     readUserAdditionTimestamps: async () => ({ timestampsMs: [], capped: false }),
     readBuildingAdditionTimestamps: async () => ({ timestampsMs: [], capped: false }),
-    countUsersByRole: async () => ({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 }),
+    countUsersByRole: async () => ({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }),
     countUsersTotal: async () => 0,
     countBuildingsTotal: async () => 0,
   };
@@ -3855,7 +3855,7 @@ function d6EmptyRepository() {
  */
 function d6MalformedRepository(overrides) {
   const spec = overrides || {};
-  const roleCounts = spec.roleCounts || { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 };
+  const roleCounts = spec.roleCounts || { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 };
   const userTotal = spec.userTotal === undefined ? 4 : spec.userTotal;
   return {
     MAX_WINDOW_ROWS: 20000,
@@ -3986,25 +3986,25 @@ async function runAdminDashboardAnalyticsGate() {
       'twelve', '1e3', '0x10', ' 12 ', Number.MAX_SAFE_INTEGER + 1,
       String(Number.MAX_SAFE_INTEGER + 2), {}, []]
       .every((value) => parseCount(value) === null));
-  ok('the strict role parser requires EXACTLY the four keys with exact values',
+  ok('the strict role parser requires EXACTLY the five keys with exact values',
     (() => {
-      const good = analytics.parseRoleCounts({ 'student-cspc': 1, instructor: 2, admin: 3, guest: 4 });
-      return good !== null && Object.keys(good).length === 4 && good.guest === 4;
+      const good = analytics.parseRoleCounts({ 'student-cspc': 1, instructor: 2, admin: 3, guest: 4, 'department-admin': 0 });
+      return good !== null && Object.keys(good).length === 5 && good.guest === 4 && good['department-admin'] === 0;
     })());
   ok('the strict role parser rejects a missing key, an extra key, and every bad value',
     [
       { 'student-cspc': 1, instructor: 1, admin: 1 },
-      { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 1 },
-      { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 },
-      { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 },
-      { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 },
-      { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 1, admin: 1, guest: 1 },
+      { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0, 'student-guest': 1 },
+      { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 },
+      { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 },
+      { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1, 'department-admin': 0 },
+      { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 },
       null, 'nope', [],
     ].every((value) => analytics.parseRoleCounts(value) === null));
-  ok('the four role counts must SUM to the total user count',
-    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 4) === true &&
-    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 5) === false &&
-    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, 3) === false);
+  ok('the five role counts must SUM to the total user count',
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, 4) === true &&
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, 5) === false &&
+    analytics.roleCountsMatchTotal({ 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, 3) === false);
   ok('a bucket result with any invalid OR any out-of-window row is unusable',
     (() => {
       const windows = analytics.buildMonthWindows(D6_NOW);
@@ -4015,11 +4015,11 @@ async function runAdminDashboardAnalyticsGate() {
 
   const malformedCases = [
     ['a MISSING role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1 }, userTotal: 3 }],
-    ['an ADDITIONAL role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 2 }, userTotal: 6 }],
-    ['a NEGATIVE role count', { roleCounts: { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 }, userTotal: 2 }],
-    ['a FRACTIONAL role count', { roleCounts: { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 }, userTotal: 5 }],
-    ['a NON-NUMERIC role count', { roleCounts: { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 }, userTotal: 4 }],
-    ['an UNSAFE role count', { roleCounts: { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 0, admin: 0, guest: 0 }, userTotal: 1 }],
+    ['an ADDITIONAL role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0, 'student-guest': 2 }, userTotal: 6 }],
+    ['a NEGATIVE role count', { roleCounts: { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotal: 2 }],
+    ['a FRACTIONAL role count', { roleCounts: { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotal: 5 }],
+    ['a NON-NUMERIC role count', { roleCounts: { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotal: 4 }],
+    ['an UNSAFE role count', { roleCounts: { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }, userTotal: 1 }],
     ['an INVALID user total', { userTotal: -4 }],
     ['a role/total MISMATCH', { userTotal: 99 }],
     ['a row OUTSIDE the requested window', { userWindow: 'outside' }],
@@ -4075,7 +4075,7 @@ async function runAdminDashboardAnalyticsGate() {
       return !/\b(INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+TABLE|ALTER\s+TABLE|TRUNCATE|DROP\s+TABLE)\b/i.test(code) &&
         !/\.rpc\(|\.insert\(|\.upsert\(|\.delete\(/.test(code);
     })());
-  ok('the repository pins the same four roles independently of the service',
+  ok('the repository pins the same five roles independently of the service',
     (() => {
       const repoKeys = require('../repositories/analyticsRepository').ANALYTICS_ROLE_KEYS;
       return Array.isArray(repoKeys) && repoKeys.length === EXPECTED_D6_ROLE_KEYS.length &&
@@ -4089,7 +4089,7 @@ async function runAdminDashboardAnalyticsGate() {
   ok('the dashboard action contains no analytics SQL', !d6ControllerHasAnalyticsSql(controller));
   ok('GET /admin stays behind requireRole(\'admin\') declared before the route',
     (() => {
-      const guard = adminRoutes.indexOf("router.use(requireRole('admin'))");
+      const guard = adminRoutes.indexOf("router.use(requireAdminArea)");
       const route = adminRoutes.search(/router\.get\('\/',\s*adminController\.index\)/);
       return guard >= 0 && route > guard;
     })());
@@ -4243,7 +4243,7 @@ async function runAdminDashboardAnalyticsGate() {
       const actual = clientPalette[theme];
       return actual && actual.surface === expected.surface &&
         actual.users === expected.users && actual.buildings === expected.buildings &&
-        actual.roles.length === 4 &&
+        actual.roles.length === 5 &&
         actual.roles.every((c, i) => c === expected.roles[i]);
     }));
   ok(`every pinned data colour clears ${EXPECTED_D6_MIN_CONTRAST}:1 against its own surface`,
@@ -4252,9 +4252,9 @@ async function runAdminDashboardAnalyticsGate() {
       return [set.users, set.buildings].concat(set.roles)
         .every((color) => d6ContrastRatio(color, set.surface) >= EXPECTED_D6_MIN_CONTRAST);
     }));
-  ok('the four role colours are distinct within each theme',
-    new Set(EXPECTED_D6_PALETTE.light.roles).size === 4 &&
-    new Set(EXPECTED_D6_PALETTE.dark.roles).size === 4);
+  ok('the five role colours are distinct within each theme',
+    new Set(EXPECTED_D6_PALETTE.light.roles).size === 5 &&
+    new Set(EXPECTED_D6_PALETTE.dark.roles).size === 5);
   ok('fixture: a low-contrast colour would be rejected by the same measurement',
     d6ContrastRatio('#d4a843', '#ffffff') < EXPECTED_D6_MIN_CONTRAST &&
     d6ContrastRatio('#ffffff', '#ffffff') < EXPECTED_D6_MIN_CONTRAST);
@@ -4281,13 +4281,13 @@ async function runAdminDashboardAnalyticsGate() {
   ok('the client prefers those page tokens over its built-in copy',
     /getComputedStyle/.test(client) && /--analytics-role-/.test(client));
 
-  ok('exactly four distinct non-colour encodings are declared and pinned',
-    Array.isArray(clientPatterns) && clientPatterns.length === 4 &&
+  ok('exactly five distinct non-colour encodings are declared and pinned',
+    Array.isArray(clientPatterns) && clientPatterns.length === 5 &&
     clientPatterns.join(',') === EXPECTED_D6_ROLE_PATTERNS.join(','));
   ok('the donut fills every segment from its own pattern, not a flat colour',
     /fill', 'url\(#' \+ rolePatternId\(i\) \+ '\)'/.test(client) &&
     !/setAttribute\('fill',\s*palette\.roles\[/.test(client));
-  ok('the legend renders four swatches carrying the same four pattern kinds',
+  ok('the legend renders five swatches carrying the same five pattern kinds',
     (() => {
       const kinds = [...view.matchAll(/rolePatternKinds\s*=\s*\[([^\]]*)\]/g)]
         .map((m) => m[1].replace(/['\s]/g, ''));
@@ -5435,8 +5435,8 @@ function runPilotReadinessGate() {
     !landingStatesTruthfulRoleMapping('') && !landingStatesTruthfulRoleMapping(null) &&
     !landingStatesTruthfulRoleMapping(['x']));
   ok('fixture: stale, mismatched, duplicated, or missing landing role counts are rejected',
-    !landingShowsTruthfulRoleCount(landingView.replace('data-target="4">4', 'data-target="5">5')) &&
-    !landingShowsTruthfulRoleCount(landingView.replace('data-target="4">4', 'data-target="4">5')) &&
+    !landingShowsTruthfulRoleCount(landingView.replace('data-target="5">5', 'data-target="4">4')) &&
+    !landingShowsTruthfulRoleCount(landingView.replace('data-target="5">5', 'data-target="5">4')) &&
     !landingShowsTruthfulRoleCount(landingView.replace('User Roles', 'Access Types')) &&
     !landingShowsTruthfulRoleCount(landingView +
       '\n<div class="stat"><div class="stat__number" data-target="4">4</div><div class="stat__label">User Roles</div></div>'));
@@ -11344,6 +11344,87 @@ function analyzeScheduleAuditContract(serviceSrc, controllerSrc) {
   return problems;
 }
 
+
+/** PURE: preserve the dated local implementation contract as history. */
+function departmentNewsCandidateProblems(value) {
+  const t=String(value||'').replace(/`/g,'').replace(/\s+/g,' ');
+  const problems=[];
+  for(const [label,pattern] of [
+    ['local authority',/local, uncommitted and not deployed candidate/],
+    ['role',/department-admin/],['editor',/directly to \/admin\/news/],
+    ['shared editing',/all departments' articles\/events and University-wide posts/],
+    ['private audience',/Existing role-based audiences and unpublished-news privacy remain/],
+    ['restricted accounts',/Public registration cannot create this role/],
+    ['retired categories',/Both Event and Events are removed/],
+    ['migration',/0029_department_news_admin/],['source cache',/service worker is v54; stylesheet remains v13/],
+    ['no live migration',/not been applied to a shared database/],
+    ['no future action',/Do not commit, push, deploy/],['limited evidence',/Full QA, live backend parity/]
+  ])if(!pattern.test(t))problems.push(label);
+  for(const code of ['graduate-school','cea','ccs','chs','cthbm','ctde','cas'])if(!t.includes('| '+code+' |'))problems.push('department '+code);
+  if(/Department admins may manage accounts|Only own department content is editable|0029 was applied to Production|This candidate is deployed|Full QA passed/.test(t))problems.push('unsupported claim');
+  return problems;
+}
+function runDepartmentNewsDocsGate() {
+  const rec=makeRecorder('department-news-docs');const note=fs.readFileSync(path.join(__dirname,'..','docs','department-news-admin.md'),'utf8').replace(/\s+/g,' ');
+  rec.ok('local candidate scope and selected policy are recorded',departmentNewsCandidateProblems(note).length===0);
+  for(const [from,to] of [['local, uncommitted and not deployed candidate','published candidate'],["all departments' articles/events and University-wide posts",'own department only'],['service worker is v54; stylesheet remains v13','service worker is v53; stylesheet remains v13'],['not been applied to a shared database','already applied to a shared database'],['Do not commit, push, deploy','Commit, push and deploy'],['| cas |','| missing |']])rec.ok('fixture rejects missing policy '+from,note.includes(from)&&departmentNewsCandidateProblems(note.split(from).join(to)).length>0);
+  for(const claim of ['Department admins may manage accounts.','Only own department content is editable.','0029 was applied to Production.','This candidate is deployed.','Full QA passed.'])rec.ok('fixture rejects '+claim,departmentNewsCandidateProblems(note+'\n'+claim).length>0);
+  const names=['AGENTS.md','CLAUDE.md','CODEX_HANDOFF.md','CLAUDE_HANDOFF.md','plan.md','ROADMAP.md','docs/deployment.md','docs/new-session-grounding-prompts.md','docs/demo-script.md','docs/security-checklist.md','docs/test-evidence.md'];
+  const blocks=names.map(name=>{const text=fs.readFileSync(path.join(__dirname,'..',name),'utf8');return (text.match(/<!-- DEPARTMENT NEWS CANDIDATE START -->[\s\S]*?<!-- DEPARTMENT NEWS CANDIDATE END -->/)||[])[0]||'';});
+  rec.ok('all eleven local-candidate notices match',blocks.every(Boolean)&&new Set(blocks).size===1);
+  rec.ok('published baseline stays distinct',/published application below remains source 38fd296, cache v53/.test(blocks[0]));
+  return rec.failures.concat(runDepartmentNewsReleaseDocsGate());
+}
+
+/** PURE: release evidence cannot inherit the earlier implementation authority. */
+function departmentNewsReleaseProblems(value) {
+  const t=String(value||'').replace(/`/g,'').replace(/\s+/g,' ');
+  const checks=[
+    ['release status',/Release status: (?:in progress|completed)/],
+    ['rollback identity',/38fd296[\s\S]*dpl_86Lge98zAWnSKYbG7b14ef4uMpfF/],
+    ['manual promotion',/automatic Production domain assignment is disabled/],
+    ['owner migration',/owner completed migration 0029/],
+    ['source verification',/Function bodies match reviewed source after CRLF\/LF normalization/],
+    ['original data',/Existing account\/content hashes, authors, audiences and publication dates were unchanged/],
+    ['server-only RPC',/PUBLIC, anon and authenticated cannot execute either new RPC; service_role can/],
+    ['fixture limits',/one temporary department account, a draft article and an Administrator-only event/],
+    ['permanent accounts',/Seven permanent accounts are deferred to the owner after release closure/],
+    ['cache',/Source cache v54; stylesheet v13; downloaded-guide format unchanged/],
+    ['package',/205 files \/ 8,610,129 bytes[\s\S]*f72729ca781528f1fce24cfe81fa0a102bcdbb5b0856b15bb9af9ce44e4406f0/],
+    ['focused evidence',/not a full npm test\/QA pass, live MySQL parity, exhaustive route\/VR traversal or physical-device acceptance/],
+    ['rollback revocation',/Delete only tracked temporary records and revoke their sessions[\s\S]*before old-code rollback/],
+    ['additive rollback',/Keep additive 0029 in place on rollback/],
+    ['excluded work',/No shared MySQL migration, schedule cleanup or ICTU deployment is included/]
+  ];
+  const problems=checks.filter(([,pattern])=>!pattern.test(t)).map(([label])=>label);
+  if(/Full QA passed|All seven permanent accounts were created|Department labels grant reading access|Rollback may retain temporary account sessions|Codex applied the Production migration/.test(t))problems.push('unsupported release claim');
+  return problems;
+}
+
+function runDepartmentNewsReleaseDocsGate() {
+  const rec=makeRecorder('department-news-release-docs');
+  const text=fs.readFileSync(path.join(__dirname,'..','docs','department-news-release-2026-10-21.md'),'utf8');
+  const normalized=text.replace(/`/g,'').replace(/\s+/g,' ');
+  rec.ok('controlled release evidence and remaining boundaries are recorded',departmentNewsReleaseProblems(text).length===0);
+  for(const [from,to] of [
+    ['38fd296','0000000'],['dpl_86Lge98zAWnSKYbG7b14ef4uMpfF','dpl_stale'],
+    ['automatic Production domain assignment is disabled','automatic Production domain assignment is enabled'],
+    ['owner completed migration 0029','owner completed migration 0028'],
+    ['PUBLIC, anon and authenticated cannot execute','PUBLIC, anon and authenticated may execute'],
+    ['one temporary department account','seven permanent department accounts'],
+    ['a draft article','a public article'],['Administrator-only event','public event'],
+    ['Source cache v54','Source cache v53'],['stylesheet v13','stylesheet v14'],
+    ['8,610,129','8,610,130'],['not a full npm test/QA pass','a full npm test/QA pass'],
+    ['revoke their sessions','retain their sessions'],['Keep additive 0029 in place','Drop additive 0029']
+  ])rec.ok('independent fixture rejects '+from,normalized.includes(from)&&departmentNewsReleaseProblems(normalized.split(from).join(to)).length>0);
+  for(const claim of ['Full QA passed.','All seven permanent accounts were created.','Department labels grant reading access.','Rollback may retain temporary account sessions.','Codex applied the Production migration.'])rec.ok('fixture rejects '+claim,departmentNewsReleaseProblems(text+'\n'+claim).length>0);
+  const names=['AGENTS.md','CLAUDE.md','CODEX_HANDOFF.md','CLAUDE_HANDOFF.md','plan.md','ROADMAP.md','docs/deployment.md','docs/new-session-grounding-prompts.md','docs/demo-script.md','docs/security-checklist.md','docs/test-evidence.md'];
+  const notices=names.map(name=>(fs.readFileSync(path.join(__dirname,'..',name),'utf8').match(/<!-- DEPARTMENT NEWS RELEASE START -->[\s\S]*?<!-- DEPARTMENT NEWS RELEASE END -->/)||[])[0]||'');
+  rec.ok('eleven current release notices agree',notices.every(Boolean)&&new Set(notices).size===1);
+  rec.ok('historical candidate authority is explicitly superseded',/historical implementation instructions, superseded for this explicit release/.test(notices[0].replace(/\s+/g,' ')));
+  return rec.failures;
+}
+
 function runDocsCurrentGate() {
   const rec = makeRecorder('docs-current');
   const { ok } = rec;
@@ -14270,7 +14351,7 @@ function runDocsCurrentGate() {
       recordsPostDeploymentAuthority(null) === false);
   }
 
-  return rec.failures;
+  return rec.failures.concat(runDepartmentNewsDocsGate());
 }
 
 /* -------- static shared rate-limit gate (M12.P1-R4) --------
@@ -15374,6 +15455,11 @@ const ADMIN_MAP_BASEMAP_PROBES = [
   ['walking 2D route contracts and isolated API fixtures', 'walking2dRoutes-probe.js'],
 ];
 
+// In-memory providers and synthetic sessions only; SQL rehearsals stay opt-in.
+const DEPARTMENT_NEWS_PROBES = [
+  ['department news role, CRUD, privacy and session fixtures', 'departmentNewsAdmin-probe.js'],
+];
+
 // M12.P1-D5: friendly building additional-details editor — structured
 // replacement for the raw details JSON textarea. Covers the pure
 // parse/serialize contract (supported keys, legacy {num,use} rooms, string
@@ -15561,6 +15647,8 @@ const SPAWNED_PROBE_STAGES = [
     heading: '[Admin campus-map search/filter QA] (M12.P1-D4 bounded q + appliedFilters + graph/selector searches)' },
   { key: 'admin-map-basemap', prefix: 'admin-map-basemap', probes: ADMIN_MAP_BASEMAP_PROBES,
     heading: '[Admin campus-map picker QA] (shared MapLibre/PMTiles basemap + Building/Node point selection + Edge geometry contracts)' },
+  { key: 'department-news', prefix: 'department-news', probes: DEPARTMENT_NEWS_PROBES,
+    heading: '[Department news QA] (editor-only access, content, privacy and session fixtures)' },
   { key: 'building-details-editor', prefix: 'building-details-editor', probes: BUILDING_DETAILS_EDITOR_PROBES,
     heading: '[Building details editor QA] (M12.P1-D5 structured details editor + preservation contracts)' },
   { key: 'admin-analytics', prefix: 'admin-analytics', probes: ADMIN_ANALYTICS_PROBES,
@@ -16596,6 +16684,7 @@ if (require.main === module) {
 // Export selected database-free analyzers so a migration-source candidate can
 // verify its static gate changes without starting the server or touching a DB.
 module.exports = {
+  runDepartmentNewsDocsGate, departmentNewsCandidateProblems, runAdminDashboardAnalyticsGate,
   currentReleaseContinuityProblems,
   panelFeatureHandoffProblems,
   roomSchedulingRemovalHandoffProblems,

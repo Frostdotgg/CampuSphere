@@ -249,6 +249,9 @@ app.use(session({
 /* ---- Make session user available to all views ---- */
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
+  const departments = require('./utils/departments');
+  res.locals.departmentOptions = departments.CONTENT_DEPARTMENTS;
+  res.locals.departmentLabel = departments.departmentLabel;
   next();
 });
 
@@ -273,6 +276,7 @@ app.use(authenticatedHtmlNoStore);
 app.use(attachCsrfToken);
 
 /* ---- Custom Middleware ---- */
+app.use(require('./middleware/departmentAccess').departmentAccess);
 app.use(logger);
 
 // Drive-backed campus media is read-only and authentication-bound. The admin

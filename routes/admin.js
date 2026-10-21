@@ -13,13 +13,14 @@ const adminVrController = require('../controllers/adminVrController');
 const adminRouteController = require('../controllers/adminRouteController');
 const presenceController = require('../controllers/presenceController');
 const walkingRouteController = require('../controllers/walkingRouteController');
-const { requireRole } = require('../middleware/roleAuth');
+const { requireAdminArea } = require('../middleware/departmentAccess');
 const { verifyCsrf } = require('../middleware/csrfProtection');
 const { adminMutationLimiter } = require('../middleware/rateLimit');
 
-// All admin routes require the 'admin' role via session
+// Only the news editor and its exact CRUD routes admit Department Administrators.
+// Every other route still requires the full 'admin' role.
 router.use('/api/walking-routes', walkingRouteController.noStore);
-router.use(requireRole('admin'));
+router.use(requireAdminArea);
 
 // CSRF guard for admin mutations (Milestone 8, Section 8.2). Placed AFTER
 // requireRole so anonymous callers keep their 401 JSON and non-admin callers

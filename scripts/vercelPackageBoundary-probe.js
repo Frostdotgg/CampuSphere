@@ -73,15 +73,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the local session-refresh lifetime candidate.
+/* Independent exact-byte authority for the local department-news candidate.
    The October 20 published fingerprints remain dated release evidence in
    docs/session-retry-log-pairing-release-2026-10-20.md and the room release note.
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 201,
-  bytes: 8591700,
-  sha256: 'dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890',
+  files: 205,
+  bytes: 8610129,
+  sha256: 'f72729ca781528f1fce24cfe81fa0a102bcdbb5b0856b15bb9af9ce44e4406f0',
 });
 
 /* M12.P1-R8 label correction.
@@ -1083,6 +1083,10 @@ async function main() {
   console.log('');
   console.log('package enumeration:');
   const manifest = buildPackageManifest(ROOT, parsed.rules);
+  check('package', 'department policy, access guard, selector and participant filter are included',
+    ['utils/departments.js', 'middleware/departmentAccess.js',
+      'views/partials/department-select.ejs', 'public/js/news-department-filter.js']
+      .every(rel => manifest.files.some(file => file.path === rel)));
   check('package', 'walking API, service, repository and editor are included',
     ['controllers/walkingRouteController.js', 'services/walkingRouteService.js',
       'repositories/walkingRouteRepository.js', 'public/js/admin/admin-walking-routes.js']

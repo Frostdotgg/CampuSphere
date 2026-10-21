@@ -53,6 +53,9 @@
         .tab-btn.bg-background{background:var(--background);}
         .tab-btn.shadow-sm{box-shadow:0 1px 2px rgba(0,0,0,0.05);}
         .tab-btn.text-muted-foreground{color:var(--muted-foreground);}
+        .news-toolbar-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;max-width:100%;min-width:0;}
+        .news-toolbar-actions>.relative{min-width:10rem;}
+        @media(max-width:640px){.news-toolbar-actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%;}.news-toolbar-actions>*{min-width:0!important;max-width:100%!important;width:100%;}#cat-filter-btn,#add-content-btn{width:100%!important;}}
     </style>
 </head>
 
@@ -70,14 +73,28 @@
                 </div>
             </div>
             <nav class="flex-1 px-2 py-4 overflow-y-auto" style="display:flex; flex-direction:column; gap:2px;">
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Dashboard</span></a>
+<% } %>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/users" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="users" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Users</span></a>
-                <a href="/admin/news" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i data-lucide="newspaper" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">News</span></a>
+<% } %>
+                <a href="/admin/news" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground mt-1"><i data-lucide="newspaper" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">News &amp; Events</span></a>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/faqs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="help-circle" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">FAQs</span></a>
+<% } %>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/logs" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="file-text" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">System Logs</span></a>
+<% } %>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/campus-map" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="map" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Campus Map</span></a>
+<% } %>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/vr" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="globe" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">VR Tour</span></a>
+<% } %>
+<% if (!user || user.role !== 'department-admin') { %>
                 <a href="/admin/settings" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-1"><i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="sidebar-text">Settings</span></a>
+<% } %>
             </nav>
             <div class="border-t border-sidebar-border p-4">
                 <div class="flex items-center gap-3">
@@ -138,11 +155,12 @@
                             <button id="tab-news" class="tab-btn bg-background shadow-sm">News & Announcements</button>
                             <button id="tab-events" class="tab-btn text-muted-foreground">Events</button>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="news-toolbar-actions">
                             <div class="relative flex-1 max-w-xs">
                                 <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
                                 <input id="content-search-input" type="text" placeholder="Search..." class="ui-input pl-9" style="width:100%;">
                             </div>
+                            <div style="max-width:20rem;min-width:0;"><%- include('../partials/department-select', {selectId:'department-filter',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:''}) %></div>
                             <div class="admin-filter-dropdown relative inline-block text-left">
                                 <button id="cat-filter-btn" class="ui-button ui-button-outline ui-button-size-default dropdown-trigger" style="width:150px;" data-dropdown-target="cat-filter-menu" aria-controls="cat-filter-menu" aria-haspopup="menu" aria-expanded="false">
                                     <span>All Categories</span><i data-lucide="chevron-down" class="h-4 w-4 opacity-50 ml-2"></i>
@@ -152,8 +170,6 @@
                                     <button type="button" class="dropdown-menu-item bg-accent text-accent-foreground" data-value="all" role="menuitemradio" aria-checked="true">All</button>
                                     <button type="button" class="dropdown-menu-item" data-value="General" role="menuitemradio" aria-checked="false">General</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Academic" role="menuitemradio" aria-checked="false">Academic</button>
-                                    <button type="button" class="dropdown-menu-item" data-value="Event" role="menuitemradio" aria-checked="false">Event</button>
-                                    <button type="button" class="dropdown-menu-item" data-value="Events" role="menuitemradio" aria-checked="false">Events</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Advisory" role="menuitemradio" aria-checked="false">Advisory</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Maintenance" role="menuitemradio" aria-checked="false">Maintenance</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Emergency" role="menuitemradio" aria-checked="false">Emergency</button>
@@ -177,14 +193,14 @@
                     <div id="panel-events" style="display:none;">
                         <div class="ui-card border-border">
                             <div class="p-0">
-                                <table class="ui-table">
+                                <div style="overflow-x:auto;"><table class="ui-table">
                                     <thead><tr>
-                                        <th>Event</th><th>Category</th><th>Audience</th><th>Date</th><th>Time</th><th>Location</th><th style="width:60px;"></th>
+                                        <th>Event</th><th>Category</th><th>Department</th><th>Audience</th><th>Date</th><th>Time</th><th>Location</th><th style="width:60px;"></th>
                                     </tr></thead>
                                     <tbody id="events-table-body">
                                         <!-- Rendered by admin-news.js -->
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                         </div>
                     </div>
@@ -196,7 +212,7 @@
 
     <!-- ======== NEWS MODAL (Create/Edit) ======== -->
     <div id="news-modal" class="modal-backdrop">
-        <div class="modal-box">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="news-modal-title">
             <div class="modal-header">
                 <h3 id="news-modal-title"><i data-lucide="newspaper" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Create New Article</h3>
                 <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8"><i data-lucide="x" class="h-4 w-4"></i></button>
@@ -204,6 +220,7 @@
             <form id="news-form">
                 <div class="modal-body">
                     <div class="form-error"></div>
+                    <div class="form-group"><%- include('../partials/department-select', {selectId:'news-department',selectRequired:true,accountOnly:false,includeAll:false,selectAttributes:''}) %></div>
                     <div class="form-group">
                         <label for="news-title">Title</label>
                         <input type="text" name="title_field" id="news-title" class="ui-input" placeholder="Article title..." required>
@@ -215,8 +232,6 @@
                                 <option value="">Select...</option>
                                 <option value="General">General</option>
                                 <option value="Academic">Academic</option>
-                                <option value="Event">Event</option>
-                                <option value="Events">Events</option>
                                 <option value="Advisory">Advisory</option>
                                 <option value="Maintenance">Maintenance</option>
                                 <option value="Emergency">Emergency</option>
@@ -262,7 +277,7 @@
 
     <!-- ======== EVENT MODAL (Create/Edit) ======== -->
     <div id="event-modal" class="modal-backdrop">
-        <div class="modal-box">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
             <div class="modal-header">
                 <h3 id="event-modal-title"><i data-lucide="calendar" class="h-5 w-5 mr-2" style="display:inline;vertical-align:middle;"></i>Create New Event</h3>
                 <button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8"><i data-lucide="x" class="h-4 w-4"></i></button>
@@ -270,6 +285,7 @@
             <form id="event-form">
                 <div class="modal-body">
                     <div class="form-error"></div>
+                    <div class="form-group"><%- include('../partials/department-select', {selectId:'event-department',selectRequired:true,accountOnly:false,includeAll:false,selectAttributes:''}) %></div>
                     <div class="form-group">
                         <label for="event-title">Title</label>
                         <input type="text" name="title_field" id="event-title" class="ui-input" placeholder="Event title..." required>
@@ -352,8 +368,9 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
-    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
+    <script id="department-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({options:typeof departmentOptions !== 'undefined'?departmentOptions:[],defaultCode:user && user.role==='department-admin'?user.department_code:'university-wide'}) %></script>
+    <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, department_code: a.department_code || 'university-wide', audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
+    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, department_code: e.department_code || 'university-wide', audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

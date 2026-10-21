@@ -36,6 +36,7 @@ const userRepository = require('../repositories/userRepository');
 const auditService = require('../services/auditService');
 const { revokeUserSessions } = require('../services/sessionRevocation');
 const V = require('../utils/adminValidation');
+const { DEPARTMENT_ADMIN, isDepartment } = require('../utils/departments');
 
 const SALT_ROUNDS = 10;
 
@@ -55,9 +56,9 @@ async function ensureMysqlInstructorProfile(conn, userId) {
 
 // R7: canonical role set + per-operation key allowlists. The admin user form
 // only collects these fields; role-profile fields are intentionally rejected.
-const USER_ROLES = ['student-cspc', 'instructor', 'admin', 'guest'];
-const USER_CREATE_KEYS = ['first_name', 'last_name', 'email', 'password', 'role'];
-const USER_UPDATE_KEYS = ['first_name', 'last_name', 'email', 'role', 'password'];
+const USER_ROLES = ['student-cspc', 'instructor', 'admin', 'guest', DEPARTMENT_ADMIN];
+const USER_CREATE_KEYS = ['first_name', 'last_name', 'email', 'password', 'role', 'department_code'];
+const USER_UPDATE_KEYS = ['first_name', 'last_name', 'email', 'role', 'password', 'department_code'];
 
 /**
  * Validate + normalize a user create/update body. Returns { ok, value } with
@@ -79,6 +80,14 @@ function validateUserPayload(body, requirePassword) {
   if (!role.ok) return { ok: false, message: 'Invalid role specified.' };
 
   const value = { first_name: first.value, last_name: last.value, email: email.value, role: role.value };
+
+  if (value.role === DEPARTMENT_ADMIN && !isDepartment(body.department_code)) {
+    return { ok: false, message: 'A valid department is required for a Department Administrator.' };
+  }
+  if (value.role !== DEPARTMENT_ADMIN && body.department_code != null && body.department_code !== '') {
+    return { ok: false, message: 'Department assignment is only for Department Administrators.' };
+  }
+  value.department_code = value.role === DEPARTMENT_ADMIN ? body.department_code : null;
 
   const rawPw = body.password;
   const pwProvided = typeof rawPw === 'string' ? rawPw.trim() !== '' : (rawPw !== undefined && rawPw !== null);
@@ -127,7 +136,7 @@ function auditSelfDeleteDenied(req, userId) {
 }
 
 // Safe public projection of a users row. Mirrors the column list selected
-// by the MySQL branch (`SELECT id, username, email, role, first_name,
+// by the MySQL branch (`SELECT id, username, email, role, department_code, first_name,
 // last_name, created_at, updated_at`) so the Supabase branch returns the
 // exact same JSON shape. Never includes password, oauth_subject, or any
 // other sensitive column.
@@ -136,6 +145,7 @@ const SAFE_USER_FIELDS = [
   'username',
   'email',
   'role',
+  'department_code',
   'first_name',
   'last_name',
   'created_at',
@@ -178,6 +188,7 @@ exports.createUser = async (req, res) => {
           email: value.email,
           passwordHash: sbHashedPassword,
           role: value.role,
+          department_code: value.department_code,
           first_name: value.first_name,
           last_name: value.last_name
           // The SQL function supplies the minimal instructor profile when
@@ -218,8 +229,8 @@ exports.createUser = async (req, res) => {
       }
 
       const [result] = await conn.query(
-        'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-        [username, value.email, hashedPassword, value.role, value.first_name, value.last_name]
+        'INSERT INTO users (username, email, password, role, first_name, last_name, department_code) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [username, value.email, hashedPassword, value.role, value.first_name, value.last_name, value.department_code]
       );
 
       if (value.role === 'instructor') {
@@ -227,7 +238,7 @@ exports.createUser = async (req, res) => {
       }
 
       const [newUser] = await conn.query(
-        'SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
+        'SELECT id, username, email, role, department_code, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
         [result.insertId]
       );
       await conn.commit();
@@ -282,6 +293,7 @@ exports.updateUser = async (req, res) => {
       // cannot keep the old role / old-credential access.
       const sbRoleChanged = String(sbExistingUser.role) !== String(value.role);
       const sbPasswordChanged = Boolean(value.password);
+      const sbDepartmentChanged = (sbExistingUser.department_code || null) !== value.department_code;
 
       // Duplicate email check. findUserByEmail is case-insensitive (matches
       // the login lookup), and we exclude the current user from the
@@ -296,6 +308,7 @@ exports.updateUser = async (req, res) => {
         username: sbUsername,
         email: value.email,
         role: value.role,
+        department_code: value.department_code,
         first_name: value.first_name,
         last_name: value.last_name
       };
@@ -321,7 +334,7 @@ exports.updateUser = async (req, res) => {
       // update already committed; a revocation failure returns a sanitized 500
       // (no success audit) so the admin can retry rather than silently leaving
       // a stale elevated session live.
-      if (sbRoleChanged || sbPasswordChanged) {
+      if (sbRoleChanged || sbDepartmentChanged || sbPasswordChanged) {
         try {
           await revokeUserSessions(userId);
         } catch (revokeErr) {
@@ -348,19 +361,21 @@ exports.updateUser = async (req, res) => {
     let conn = null;
     let committed = false;
     let roleChanged = false;
+    let departmentChanged = false;
     const passwordChanged = Boolean(value.password);
     let updatedUser = [];
     try {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
-      const [existingUser] = await conn.query('SELECT id, role FROM users WHERE id = ? FOR UPDATE', [userId]);
+      const [existingUser] = await conn.query('SELECT id, role, department_code FROM users WHERE id = ? FOR UPDATE', [userId]);
       if (existingUser.length === 0) {
         await conn.rollback();
         return res.status(404).json({ success: false, message: 'User not found.' });
       }
 
       roleChanged = String(existingUser[0].role) !== String(value.role);
+      departmentChanged = (existingUser[0].department_code || null) !== value.department_code;
 
       // Check if email is taken by another user while the update transaction is
       // open, so the following user/profile writes remain atomic.
@@ -376,13 +391,13 @@ exports.updateUser = async (req, res) => {
       // Build update query — include password only if provided
       if (passwordHash) {
         await conn.query(
-          'UPDATE users SET username = ?, email = ?, password = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
-          [username, value.email, passwordHash, value.role, value.first_name, value.last_name, userId]
+          'UPDATE users SET username = ?, email = ?, password = ?, role = ?, first_name = ?, last_name = ?, department_code = ?, updated_at = NOW() WHERE id = ?',
+          [username, value.email, passwordHash, value.role, value.first_name, value.last_name, value.department_code, userId]
         );
       } else {
         await conn.query(
-          'UPDATE users SET username = ?, email = ?, role = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?',
-          [username, value.email, value.role, value.first_name, value.last_name, userId]
+          'UPDATE users SET username = ?, email = ?, role = ?, first_name = ?, last_name = ?, department_code = ?, updated_at = NOW() WHERE id = ?',
+          [username, value.email, value.role, value.first_name, value.last_name, value.department_code, userId]
         );
       }
 
@@ -392,7 +407,7 @@ exports.updateUser = async (req, res) => {
 
       // Fetch updated user
       [updatedUser] = await conn.query(
-        'SELECT id, username, email, role, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
+        'SELECT id, username, email, role, department_code, first_name, last_name, created_at, updated_at FROM users WHERE id = ?',
         [userId]
       );
       await conn.commit();
@@ -409,7 +424,7 @@ exports.updateUser = async (req, res) => {
     // M1: revoke the target's live sessions when role/password changed. The
     // update already committed; a revocation failure returns a sanitized 500
     // (no success audit) so the admin can retry.
-    if (roleChanged || passwordChanged) {
+    if (roleChanged || departmentChanged || passwordChanged) {
       try {
         await revokeUserSessions(userId);
       } catch (revokeErr) {

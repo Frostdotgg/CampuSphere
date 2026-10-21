@@ -23,6 +23,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Toast
   const toast          = document.getElementById('admin-toast');
 
+  function syncDepartment(form) {
+    if (!form) return;
+    const active=form.role.value==='department-admin';
+    form.querySelector('[data-account-department]').hidden=!active;
+    form.department_code.required=active;
+    if(!active) form.department_code.value='';
+  }
+  for(const id of ['create-user-form','edit-user-form']) {
+    const form=document.getElementById(id);
+    form.role.addEventListener('change',()=>syncDepartment(form)); syncDepartment(form);
+  }
+
   // ---- State ----
   let allUsers = [];
   try { allUsers = JSON.parse(document.getElementById('users-data-json').textContent); } catch (e) { allUsers = []; }
@@ -57,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = {
       'student-cspc': { label: 'Student',    cls: 'bg-chart-1/10 text-chart-1 border-chart-1/20' },
       'instructor':   { label: 'Instructor', cls: 'bg-chart-2/10 text-chart-2 border-chart-2/20' },
+      'department-admin': { label: 'Department Administrator', cls:'bg-chart-4/10 text-chart-4 border-chart-4/20' },
       'admin':        { label: 'Admin',      cls: 'bg-chart-4/10 text-chart-4 border-chart-4/20' },
       'guest':        { label: 'Guest',      cls: 'bg-muted text-muted-foreground border-border' }
     };
@@ -169,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </td>
         <td class="text-sm text-muted-foreground">${escapeHtml(u.email)}</td>
-        <td>${roleBadge(u.role)}</td>
+        <td>${roleBadge(u.role)}<div class="text-xs" style="max-width:16rem;overflow-wrap:anywhere;">${escapeHtml(u.department_code||'')}</div></td>
         <td>${statusBadge(u.last_seen_at)}</td>
         <td class="text-sm text-muted-foreground">${timeAgo(u.last_seen_at)}</td>
         <td>
@@ -371,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addUserBtn.addEventListener('click', () => {
       // Reset form
       const form = document.getElementById('create-user-form');
-      if (form) form.reset();
+      if (form) { form.reset(); syncDepartment(form); }
       clearFormErrors(createModal);
       openModal(createModal);
     });
@@ -388,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         last_name:  createForm.last_name.value.trim(),
         email:      createForm.email.value.trim(),
         password:   createForm.password.value,
+        department_code: createForm.role.value==='department-admin'?createForm.department_code.value:null,
         role:       createForm.role.value
       };
 
@@ -444,6 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.email.value      = user.email || '';
     form.role.value       = user.role || 'guest';
     form.password.value   = ''; // Always blank — optional
+    form.department_code.value=user.department_code||''; syncDepartment(form);
 
     clearFormErrors(editModal);
     openModal(editModal);
@@ -460,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
         first_name: editForm.first_name.value.trim(),
         last_name:  editForm.last_name.value.trim(),
         email:      editForm.email.value.trim(),
+        department_code: editForm.role.value==='department-admin'?editForm.department_code.value:null,
         role:       editForm.role.value,
         password:   editForm.password.value // Blank = no change
       };

@@ -64,7 +64,7 @@ check('repository', 'event rows include audience and role reads are explicit',
   /listEventsForRole,/.test(repository));
 check('repository', 'event writes default missing audience to Everyone and update it',
   /audience: payload\.audience != null && payload\.audience !== '' \? payload\.audience : 'all'/.test(repository) &&
-  /\['title', 'category', 'audience', 'description'/.test(repository));
+  /\['title', 'category', 'audience', 'department_code', 'description'/.test(repository));
 
 check('participant reads', 'public events are filtered by the authenticated session role',
   /listEventsForRole\(role, \{ sortDirection: 'desc' \}\)/.test(eventsController) &&

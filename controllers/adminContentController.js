@@ -9,25 +9,23 @@ const contentRepository = require('../repositories/contentRepository');
 const siteContentRepository = require('../repositories/siteContentRepository');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
+const { isContentDepartment, UNIVERSITY_WIDE } = require('../utils/departments');
 const {
   SCHOOL_DESCRIPTION_MAX_LENGTH,
   canonicalizeSchoolDescription,
 } = require('../utils/siteSettingsDescription');
 
 // Standardized announcement category + audience values (Milestone 4).
-// R7 repair: the allowlist is the UNION of the admin UI options and every
-// category present in live/seeded data (both backends hold Academic, Advisory,
-// Events, Facilities, General). 'Events' (plural) and 'Facilities' are included
-// so existing announcements stay editable with their category preserved — no
-// data migration required — while validation remains a strict allowlist.
-const ALLOWED_NEWS_CATEGORIES = ['General', 'Academic', 'Event', 'Events', 'Advisory', 'Maintenance', 'Emergency', 'Facilities'];
+// Events belong in the separate Events tab. Legacy Event/Events articles stay
+// readable, but their next edit must choose one of the remaining categories.
+const ALLOWED_NEWS_CATEGORIES = ['General', 'Academic', 'Advisory', 'Maintenance', 'Emergency', 'Facilities'];
 const ALLOWED_AUDIENCES = ['all', 'student-cspc', 'instructor', 'guest', 'admin'];
 // R7: news status + event category allowlists (mirror the admin UI option sets
 // in views/admin/news.ejs). Field caps mirror the schema / spec.
 const ALLOWED_NEWS_STATUS = ['published', 'draft'];
 const EVENT_CATEGORIES = ['Academic', 'Sports', 'Cultural'];
-const NEWS_KEYS = ['title', 'category', 'excerpt', 'content', 'status', 'audience'];
-const EVENT_KEYS = ['title', 'category', 'event_date', 'event_time', 'location', 'description', 'audience'];
+const NEWS_KEYS = ['department_code', 'title', 'category', 'excerpt', 'content', 'status', 'audience'];
+const EVENT_KEYS = ['department_code', 'title', 'category', 'event_date', 'event_time', 'location', 'description', 'audience'];
 const NEWS_MAX_TITLE = 150;
 const NEWS_MAX_EXCERPT = 500;
 const NEWS_MAX_CONTENT = 10000;
@@ -46,6 +44,8 @@ function validateNewsPayload(body) {
   const shape = V.validateBody(body, NEWS_KEYS);
   if (!shape.ok) return shape;
 
+  const department = body.department_code === undefined ? UNIVERSITY_WIDE : body.department_code;
+  if (!isContentDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
   const title = V.requiredString(body.title, 'Title', NEWS_MAX_TITLE);
   if (!title.ok) return title;
   const category = V.allowedValue(body.category, 'category', ALLOWED_NEWS_CATEGORIES);
@@ -71,7 +71,7 @@ function validateNewsPayload(body) {
     status = s.value;
   }
 
-  return { ok: true, value: { title: title.value, category: category.value, audience, excerpt: excerpt.value, content, status } };
+  return { ok: true, value: { department_code: department, title: title.value, category: category.value, audience, excerpt: excerpt.value, content, status } };
 }
 
 /**
@@ -83,6 +83,8 @@ function validateEventPayload(body) {
   const shape = V.validateBody(body, EVENT_KEYS);
   if (!shape.ok) return shape;
 
+  const department = body.department_code === undefined ? UNIVERSITY_WIDE : body.department_code;
+  if (!isContentDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
   const title = V.requiredString(body.title, 'Title', EVENT_MAX_TITLE);
   if (!title.ok) return title;
   const category = V.allowedValue(body.category, 'category', EVENT_CATEGORIES);
@@ -103,7 +105,7 @@ function validateEventPayload(body) {
     audience = a.value;
   }
 
-  return { ok: true, value: { title: title.value, category: category.value, event_date: date.value, description: description.value, location: location.value, event_time: time.value, audience } };
+  return { ok: true, value: { department_code: department, title: title.value, category: category.value, event_date: date.value, description: description.value, location: location.value, event_time: time.value, audience } };
 }
 
 // Best-effort audit of a successful admin mutation. Fire-and-forget: it never
@@ -150,6 +152,7 @@ exports.createNews = async (req, res) => {
         title: value.title,
         category: value.category,
         audience: value.audience,
+        department_code: value.department_code,
         excerpt: value.excerpt,
         content: value.content,
         author_id: authorId,
@@ -164,9 +167,9 @@ exports.createNews = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `INSERT INTO news_announcements (title, category, audience, excerpt, content, author_id, published_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [value.title, value.category, value.audience, value.excerpt, value.content, authorId, publishedDate]
+      `INSERT INTO news_announcements (title, category, audience, excerpt, content, author_id, published_date, department_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [value.title, value.category, value.audience, value.excerpt, value.content, authorId, publishedDate, value.department_code]
     );
 
     const [newItem] = await db.query('SELECT * FROM news_announcements WHERE id = ?', [result.insertId]);
@@ -218,6 +221,7 @@ exports.updateNews = async (req, res) => {
         title: value.title,
         category: value.category,
         audience: value.audience,
+        department_code: value.department_code,
         excerpt: value.excerpt,
         content: value.content,
         published_date: publishedDate
@@ -250,9 +254,9 @@ exports.updateNews = async (req, res) => {
 
     await db.query(
       `UPDATE news_announcements
-       SET title = ?, category = ?, audience = ?, excerpt = ?, content = ?, published_date = ?, updated_at = NOW()
+       SET title = ?, category = ?, audience = ?, excerpt = ?, content = ?, published_date = ?, department_code = ?, updated_at = NOW()
        WHERE id = ?`,
-      [value.title, value.category, value.audience, value.excerpt, value.content, publishedDate, id]
+      [value.title, value.category, value.audience, value.excerpt, value.content, publishedDate, value.department_code, id]
     );
 
     const [updated] = await db.query('SELECT * FROM news_announcements WHERE id = ?', [id]);
@@ -333,6 +337,7 @@ exports.createEvent = async (req, res) => {
         title: value.title,
         category: value.category,
         audience: value.audience,
+        department_code: value.department_code,
         event_date: value.event_date,
         description: value.description,
         location: value.location,
@@ -347,9 +352,9 @@ exports.createEvent = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `INSERT INTO events (title, category, audience, event_date, description, location, event_time)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time]
+      `INSERT INTO events (title, category, audience, event_date, description, location, event_time, department_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time, value.department_code]
     );
 
     const [newEvent] = await db.query('SELECT * FROM events WHERE id = ?', [result.insertId]);
@@ -390,6 +395,7 @@ exports.updateEvent = async (req, res) => {
         title: value.title,
         category: value.category,
         audience: value.audience,
+        department_code: value.department_code,
         event_date: value.event_date,
         description: value.description,
         location: value.location,
@@ -413,9 +419,9 @@ exports.updateEvent = async (req, res) => {
 
     await db.query(
       `UPDATE events
-       SET title = ?, category = ?, audience = ?, event_date = ?, description = ?, location = ?, event_time = ?, updated_at = NOW()
+       SET title = ?, category = ?, audience = ?, event_date = ?, description = ?, location = ?, event_time = ?, department_code = ?, updated_at = NOW()
        WHERE id = ?`,
-      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time, id]
+      [value.title, value.category, value.audience, value.event_date, value.description, value.location, value.event_time, value.department_code, id]
     );
 
     const [updated] = await db.query('SELECT * FROM events WHERE id = ?', [id]);

@@ -38,8 +38,8 @@
    Colour is never the only carrier of meaning:
      - the two monthly series differ by line style (solid vs dashed) AND by
        point marker (circle vs square);
-     - the four donut roles differ by FILL PATTERN — solid, diagonal stripe,
-       crosshatch, dots — and the legend swatches carry the same four patterns;
+     - the five donut roles differ by FILL PATTERN — solid, diagonal stripe,
+       crosshatch, dots — and the legend swatches carry the same five patterns;
      - the semantic role-count table remains the authoritative alternative for
        screen readers and for a page with JavaScript disabled.
    ======================================== */
@@ -62,19 +62,19 @@
             surface: '#ffffff',
             users: '#1a3a6b',
             buildings: '#8a5a00',
-            roles: ['#1a3a6b', '#2563a8', '#8a5a00', '#4b5563']
+            roles: ['#1a3a6b', '#2563a8', '#8a5a00', '#4b5563', '#7e22ce']
         },
         dark: {
             surface: '#0b1220',
             users: '#8ab4f8',
             buildings: '#f2c14e',
-            roles: ['#8ab4f8', '#5eead4', '#f2c14e', '#d1d5db']
+            roles: ['#8ab4f8', '#5eead4', '#f2c14e', '#d1d5db', '#c4b5fd']
         }
     };
 
-    /* The four non-colour encodings, in role order. Kept as data so the legend
+    /* The five non-colour encodings, in role order. Kept as data so the legend
        contract can be checked against the same list the renderer uses. */
-    var ROLE_PATTERNS = ['solid', 'diagonal', 'crosshatch', 'dots'];
+    var ROLE_PATTERNS = ['solid', 'diagonal', 'crosshatch', 'dots', 'horizontal'];
     var ROLE_PATTERN_PREFIX = 'analytics-pattern-role-';
 
     var EMPTY_ADDITIONS_TEXT = 'No accounts or buildings were created in this period.';
@@ -448,6 +448,8 @@
         } else if (kind === 'crosshatch') {
             add('path', { d: 'M4,0 L4,8', stroke: surface, 'stroke-width': '1.6' });
             add('path', { d: 'M0,4 L8,4', stroke: surface, 'stroke-width': '1.6' });
+        } else if (kind === 'horizontal') {
+            add('path', { d: 'M0,4 L8,4', stroke: surface, 'stroke-width': '2' });
         } else if (kind === 'dots') {
             add('circle', { cx: '2', cy: '2', r: '1.4', fill: surface });
             add('circle', { cx: '6', cy: '6', r: '1.4', fill: surface });
@@ -459,7 +461,7 @@
     }
 
     /**
-     * Draw the four-role donut.
+     * Draw the five-role donut.
      * @returns {boolean} true when it drew, false when it could not.
      */
     function drawRoleChart(svg, model, options) {
@@ -498,7 +500,7 @@
             return true;
         }
 
-        // One <defs> carrying all four patterns, so a segment can never
+        // One <defs> carrying all five patterns, so a segment can never
         // reference a pattern that does not exist.
         var defs = doc.createElementNS(SVG_NS, 'defs');
         for (var p = 0; p < ROLE_PATTERNS.length; p++) {

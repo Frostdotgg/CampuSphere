@@ -1,4 +1,33 @@
+<!-- DEPARTMENT NEWS RELEASE START -->
+## Department News controlled release (October 21, 2026; in progress)
+
+Read `docs/department-news-release-2026-10-21.md` first for the active release.
+The owner authorized reviewed commit/push, staged Production checks, promotion
+and scoped temporary fixtures. The owner completed additive Supabase migration
+0029 after external backup validation; read-only checks preserved original data
+and verified constraints and server-only RPC permissions. The normal website
+still serves the dated 38fd296 release until staged acceptance and promotion.
+The earlier local-only candidate notices and grounding prompts below are
+historical implementation instructions, superseded for this explicit release.
+Seven permanent accounts remain owner-created after release closure. No shared
+MySQL migration, schedule cleanup or ICTU deployment is authorized.
+<!-- DEPARTMENT NEWS RELEASE END -->
+
 # CampuSphere Claude Continuity Handoff
+
+<!-- DEPARTMENT NEWS CANDIDATE START -->
+## Local Department News candidate (2026-10-21; not deployed)
+
+Read `docs/department-news-admin.md` first for the current local work on
+`codex/department-news-admin`, based on `71946ab`. Department Administrators
+are editor-only accounts, with shared editing across all seven departments and
+University-wide posts. The candidate prepares migration 0029 and cache v54;
+the published application below remains source 38fd296, cache v53 and prior
+owner-applied migrations through 0028. This task authorizes local implementation
+and isolated tests only: no commit, push, deployment, shared-database migration
+or live account creation. Preserve protected files and dated release evidence.
+<!-- DEPARTMENT NEWS CANDIDATE END -->
+
 
 Last updated: 2026-10-21 (Asia/Manila)
 

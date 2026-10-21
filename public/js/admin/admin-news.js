@@ -11,7 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
   try { allEvents = JSON.parse(document.getElementById('events-data-json').textContent); } catch(e){}
 
   let currentTab = 'news';
-  let filter = { search: '', category: 'all' };
+  let filter = { search: '', category: 'all', department: 'all' };
+  const departmentData = JSON.parse(document.getElementById('department-data-json').textContent);
+  const departmentNames = Object.fromEntries(departmentData.options.map(d => [d.code, d.label]));
+  const departmentLabel = code => departmentNames[code || 'university-wide'] || 'University-wide';
+  const departmentFilter = document.getElementById('department-filter');
+  departmentFilter.addEventListener('change', () => { filter.department = departmentFilter.value; renderAll(); });
 
   // ---- DOM ----
   const tabNews = document.getElementById('tab-news');
@@ -91,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Tab-aware category filter ----
-  const NEWS_CATEGORIES=['General','Academic','Event','Events','Advisory','Maintenance','Emergency','Facilities'];
+  const NEWS_CATEGORIES=['General','Academic','Advisory','Maintenance','Emergency','Facilities'];
   const EVENT_CATEGORIES=['Academic','Sports','Cultural'];
 
   function setCatFilterLabel(){
@@ -162,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!newsGrid) return;
     let items=allArticles.filter(a=>{
       if(filter.category!=='all' && a.category!==filter.category) return false;
+      if(filter.department!=='all' && (a.department_code||'university-wide')!==filter.department) return false;
       if(filter.search){
         const q=filter.search.toLowerCase();
         if(!(a.title||'').toLowerCase().includes(q) && !(a.excerpt||'').toLowerCase().includes(q)) return false;
@@ -193,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="dropdown-menu-item text-destructive btn-delete-news" data-id="${a.id}"><i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete</div>
             </div>
           </div>
+          <p class="text-sm" style="overflow-wrap:anywhere;">${esc(departmentLabel(a.department_code))}</p>
           <h4 class="text-base font-semibold text-foreground line-clamp-2">${esc(a.title)}</h4>
           <p class="text-sm text-muted-foreground line-clamp-2">${esc(a.excerpt)}</p>
           <div class="flex items-center justify-between mt-2">
@@ -212,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!eventsTableBody) return;
     let items=allEvents.filter(ev=>{
       if(filter.category!=='all' && ev.category!==filter.category) return false;
+      if(filter.department!=='all' && (ev.department_code||'university-wide')!==filter.department) return false;
       if(filter.search){
         const q=filter.search.toLowerCase();
         if(!(ev.title||'').toLowerCase().includes(q) && !(ev.location||'').toLowerCase().includes(q)) return false;
@@ -220,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if(items.length===0){
-      eventsTableBody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;">
+      eventsTableBody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:2rem;">
         <i data-lucide="calendar-x" style="width:2.5rem;height:2.5rem;color:var(--muted-foreground);display:inline-block;"></i>
         <p class="text-muted-foreground text-sm" style="margin-top:.5rem;">No events found.</p></td></tr>`;
       refreshIcons(); return;
@@ -229,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     eventsTableBody.innerHTML=items.map(ev=>`<tr data-id="${ev.id}">
       <td class="text-sm font-medium">${esc(ev.title)}</td>
       <td>${catBadge(ev.category)}</td>
+      <td style="max-width:18rem;white-space:normal;overflow-wrap:anywhere;">${esc(departmentLabel(ev.department_code))}</td>
       <td><span class="ui-badge ui-badge-outline">${esc(audienceLabel(ev.audience))}</span></td>
       <td class="text-sm text-muted-foreground">${fmtDate(ev.event_date)}</td>
       <td class="text-sm text-muted-foreground">${esc(ev.event_time||'—')}</td>
@@ -267,8 +276,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeAllDropdowns(){document.querySelectorAll('.dropdown-menu-content').forEach(m=>m.removeAttribute('data-state'));}
 
   // ---- Modal helpers ----
-  function openModal(m){if(m){m.classList.add('modal--open');document.body.style.overflow='hidden';}}
-  function closeModal(m){if(m){m.classList.remove('modal--open');document.body.style.overflow='';}}
+  let previousFocus = null;
+  function openModal(m){if(m){previousFocus=document.activeElement;m.classList.add('modal--open');document.body.style.overflow='hidden';m.querySelector('select,input,button,textarea')?.focus();}}
+  function closeModal(m){if(m){m.classList.remove('modal--open');document.body.style.overflow='';previousFocus?.focus();}}
+  document.addEventListener('keydown',e=>{
+    const modal=document.querySelector('.modal-backdrop.modal--open');
+    if(!modal)return;
+    if(e.key==='Escape'){e.preventDefault();closeModal(modal);return;}
+    if(e.key!=='Tab')return;
+    const controls=Array.from(modal.querySelectorAll('button,input,select,textarea,a[href]')).filter(el=>!el.disabled&&el.getClientRects().length);
+    const first=controls[0],last=controls[controls.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+  });
   document.querySelectorAll('.modal-backdrop').forEach(b=>{b.addEventListener('click',e=>{if(e.target===b)closeModal(b);});});
   document.querySelectorAll('.modal-close-btn').forEach(b=>{b.addEventListener('click',()=>closeModal(b.closest('.modal-backdrop')));});
 
@@ -297,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form=document.getElementById('news-form'); if(form)form.reset();
     form.removeAttribute('data-edit-id');
     if(form.audience) form.audience.value='all';
+    form.department_code.value=departmentData.defaultCode;
     document.getElementById('news-modal-title').textContent='Create New Article';
     document.getElementById('news-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Article';
     clearFormErrors(newsModal); openModal(newsModal); refreshIcons();
@@ -307,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const form=document.getElementById('news-form');
     form.dataset.editId=id;
     form.title_field.value=a.title||'';
-    form.category.value=a.category||'';
+    form.category.value=NEWS_CATEGORIES.includes(a.category)?a.category:'';
+    form.department_code.value=a.department_code||'university-wide';
     form.excerpt.value=a.excerpt||'';
     form.content.value=a.content||a.excerpt||'';
     form.status.value=a.published_date?'published':'draft';
@@ -321,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if(newsForm) newsForm.addEventListener('submit', async e=>{
     e.preventDefault(); clearFormErrors(newsModal);
     const editId=newsForm.dataset.editId;
-    const data={title:newsForm.title_field.value.trim(),category:newsForm.category.value,audience:newsForm.audience.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
+    const data={title:newsForm.title_field.value.trim(),department_code:newsForm.department_code.value,category:newsForm.category.value,audience:newsForm.audience.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
     if(!data.title||!data.category||!data.excerpt){showFormError(newsModal,'Title, category, and excerpt are required.');return;}
 
     const btn=document.getElementById('news-submit-btn');
@@ -349,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form=document.getElementById('event-form'); if(form)form.reset();
     form.removeAttribute('data-edit-id');
     if(form.audience) form.audience.value='all';
+    form.department_code.value=departmentData.defaultCode;
     document.getElementById('event-modal-title').textContent='Create New Event';
     document.getElementById('event-submit-btn').innerHTML='<i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Event';
     clearFormErrors(eventModal); openModal(eventModal); refreshIcons();
@@ -360,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.dataset.editId=id;
     form.title_field.value=ev.title||'';
     form.category.value=ev.category||'';
+    form.department_code.value=ev.department_code||'university-wide';
     if(form.audience) form.audience.value=ev.audience||'all';
     form.event_date.value=ev.event_date?new Date(ev.event_date).toISOString().split('T')[0]:'';
     form.event_time.value=ev.event_time||'';
@@ -374,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if(eventForm) eventForm.addEventListener('submit', async e=>{
     e.preventDefault(); clearFormErrors(eventModal);
     const editId=eventForm.dataset.editId;
-    const data={title:eventForm.title_field.value.trim(),category:eventForm.category.value,audience:eventForm.audience.value,event_date:eventForm.event_date.value,event_time:eventForm.event_time.value.trim(),location:eventForm.location.value.trim(),description:eventForm.description.value.trim()};
+    const data={title:eventForm.title_field.value.trim(),department_code:eventForm.department_code.value,category:eventForm.category.value,audience:eventForm.audience.value,event_date:eventForm.event_date.value,event_time:eventForm.event_time.value.trim(),location:eventForm.location.value.trim(),description:eventForm.description.value.trim()};
     if(!data.title||!data.category||!data.event_date){showFormError(eventModal,'Title, category, and date are required.');return;}
 
     const btn=document.getElementById('event-submit-btn');

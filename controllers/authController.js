@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const db = require('../config/db');
+const { homeForUser } = require('../utils/departments');
 const bcrypt = require('bcrypt');
 const authDataSource = require('../config/authDataSource');
 const userRepository = require('../repositories/userRepository');
@@ -176,6 +177,7 @@ async function hydrateSessionUser(req, userRow) {
     username: userRow.username,
     email: userRow.email,
     role: userRow.role,
+    department_code: userRow.department_code || null,
     first_name: userRow.first_name,
     last_name: userRow.last_name,
     profile_image_url: storedPicture,
@@ -468,7 +470,7 @@ async function completeOAuthRegistration(req, res, pending, body) {
  */
 exports.auth = (req, res) => {
   if (req.session.user) {
-    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/dashboard');
+    return res.redirect(homeForUser(req.session.user));
   }
   const qErr = typeof req.query.error === 'string' ? req.query.error : '';
   const oauthMsg = OAUTH_QUERY_ERRORS[qErr] || null;
@@ -860,6 +862,7 @@ exports.loginPost = async (req, res) => {
           username: sbUser.username,
           email: sbUser.email,
           role: sbUser.role,
+          department_code: sbUser.department_code || null,
           first_name: sbUser.first_name,
           last_name: sbUser.last_name
         };
@@ -899,7 +902,7 @@ exports.loginPost = async (req, res) => {
         message: 'Local login succeeded.'
       }).catch(() => {});
 
-      return res.redirect(sbUser.role === 'admin' ? '/admin' : '/dashboard');
+      return res.redirect(homeForUser(sbUser));
     }
 
     // ===== MySQL branch (default) =====
@@ -935,6 +938,7 @@ exports.loginPost = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        department_code: user.department_code || null,
         first_name: user.first_name,
         last_name: user.last_name
       };
@@ -986,7 +990,7 @@ exports.loginPost = async (req, res) => {
       message: 'Local login succeeded.'
     }).catch(() => {});
 
-    return res.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
+    return res.redirect(homeForUser(user));
   } catch (error) {
     console.error('Login error: unexpected failure.');
     auditService.record({
@@ -1237,7 +1241,7 @@ exports.googleCallback = async (req, res) => {
         actor_role: user.role,
         message: 'Google sign-in succeeded.'
       }).catch(() => {});
-      return res.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
+      return res.redirect(homeForUser(user));
     }
 
     const existing = useSupabase
@@ -1303,7 +1307,7 @@ const ROLE_LABELS = {
  */
 exports.completeRegistration = (req, res) => {
   if (req.session.user) {
-    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/dashboard');
+    return res.redirect(homeForUser(req.session.user));
   }
   const pending = req.session.pendingOAuthRegistration;
   if (!pending || !pending.email || !pending.role) {

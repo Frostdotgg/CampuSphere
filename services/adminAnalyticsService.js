@@ -57,12 +57,12 @@
    `repositories/analyticsRepository.js`. There is no `Number(x) || 0` in this
    path. On top of that, the users side is accepted ONLY when:
 
-     - the role map has EXACTLY the four reported own keys, no more and no less;
+     - the role map has EXACTLY the five reported own keys, no more and no less;
      - every role value and the total parse as exact counts; and
-     - the four role counts SUM to the total user count.
+     - the five role counts SUM to the total user count.
 
    The sum invariant is meaningful because `users.role` is constrained to those
-   four values, so a mismatch means the four buckets no longer describe the
+   five values, so a mismatch means the four buckets no longer describe the
    table — a condition under which reporting them would be misleading. Any of
    these failures makes the users side unavailable, and the overall model can
    never stay 'ready' once either side has failed.
@@ -81,14 +81,15 @@ const TIMEZONE = 'Asia/Manila';
 const MANILA_UTC_OFFSET_MINUTES = 480;
 const MONTH_COUNT = 12;
 
-// The exact four reported roles, in display order. Pinned here as well as in
+// The exact five reported roles, in display order. Pinned here as well as in
 // the repository so one edit cannot silently add or drop a category.
-const ROLE_KEYS = Object.freeze(['student-cspc', 'instructor', 'admin', 'guest']);
+const ROLE_KEYS = Object.freeze(['student-cspc', 'instructor', 'admin', 'guest', 'department-admin']);
 const ROLE_LABELS = Object.freeze({
   'student-cspc': 'Students',
   instructor: 'Instructors',
   admin: 'Administrators',
   guest: 'Guests',
+  'department-admin': 'Department Administrators',
 });
 
 // Fixed English abbreviations: deterministic on every host, no Intl/locale
@@ -233,7 +234,7 @@ function bucketByMonth(values, windows) {
 /**
  * PURE: strictly accept a raw backend role map, or reject it entirely.
  *
- * The map must be a plain object carrying EXACTLY the four reported roles as
+ * The map must be a plain object carrying EXACTLY the five reported roles as
  * own keys — a missing key and an extra key are both rejections — and every
  * value must pass `parseExactCount`. A legitimate zero must be supplied
  * explicitly as 0; a zero is never manufactured for a key that is absent,
@@ -245,7 +246,7 @@ function bucketByMonth(values, windows) {
 function parseRoleCounts(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
 
-  // Exactly four OWN keys: this rejects an extra role without needing to know
+  // Exactly five OWN keys: this rejects an extra role without needing to know
   // what it is, and rejects a missing role in the loop below.
   const ownKeys = Object.keys(raw);
   if (ownKeys.length !== ROLE_KEYS.length) return null;
@@ -261,7 +262,7 @@ function parseRoleCounts(raw) {
 }
 
 /**
- * PURE: do the four role counts account for exactly the total user population?
+ * PURE: do the five role counts account for exactly the total user population?
  * A mismatch means the reported buckets no longer describe the table.
  */
 function roleCountsMatchTotal(roleCounts, total) {
@@ -274,7 +275,7 @@ function roleCountsMatchTotal(roleCounts, total) {
   return sum === total;
 }
 
-/** PURE: the four role rows in display order, with labels and exact values. */
+/** PURE: the five role rows in display order, with labels and exact values. */
 function buildRoleRows(roleCounts) {
   return ROLE_KEYS.map((role) => ({
     role,
@@ -437,7 +438,7 @@ async function safeValue(read) {
   }
 }
 
-/** PURE: the four role keys with no value at all (never zero). */
+/** PURE: the five role keys with no value at all (never zero). */
 function nullRoleCounts() {
   const out = {};
   for (const role of ROLE_KEYS) out[role] = null;

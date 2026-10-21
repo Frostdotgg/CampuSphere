@@ -416,7 +416,7 @@ function runBucketing() {
    3. Exact count parsing and strict role acceptance
    -------------------------------------------------------------------------*/
 function runStrictCounts() {
-  console.log('[3] Exact count parsing and strict four-role acceptance');
+  console.log('[3] Exact count parsing and strict five-role acceptance');
 
   const parse = analyticsRepository.parseExactCount;
 
@@ -450,28 +450,28 @@ function runStrictCounts() {
     rejected.every(([, value]) => parse(value) !== 0));
 
   // ---- strict role-map acceptance ----
-  const good = { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3 };
+  const good = { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3, 'department-admin': 0 };
   const parsedGood = analytics.parseRoleCounts(good);
-  ok('an exact four-role map is accepted unchanged',
-    parsedGood !== null && Object.keys(parsedGood).length === 4 &&
+  ok('an exact five-role map is accepted unchanged',
+    parsedGood !== null && Object.keys(parsedGood).length === 5 &&
     parsedGood['student-cspc'] === 12 && parsedGood.instructor === 4 &&
     parsedGood.admin === 2 && parsedGood.guest === 3);
-  ok('an explicit all-zero four-role map is accepted as a genuine zero',
+  ok('an explicit all-zero five-role map is accepted as a genuine zero',
     (() => {
-      const zero = analytics.parseRoleCounts({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 });
+      const zero = analytics.parseRoleCounts({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 });
       return zero !== null && analytics.ROLE_KEYS.every((r) => zero[r] === 0);
     })());
 
   const roleRejections = [
     ['a MISSING role key', { 'student-cspc': 1, instructor: 1, admin: 1 }],
-    ['an ADDITIONAL role key', { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 1 }],
+    ['an ADDITIONAL role key', { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0, 'student-guest': 1 }],
     ['a renamed role key', { 'student-cspc': 1, instructor: 1, admin: 1, visitor: 1 }],
-    ['a NEGATIVE count', { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 }],
-    ['a FRACTIONAL count', { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 }],
-    ['a NON-NUMERIC count', { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 }],
-    ['a null count', { 'student-cspc': null, instructor: 1, admin: 1, guest: 1 }],
-    ['a boolean count', { 'student-cspc': true, instructor: 1, admin: 1, guest: 1 }],
-    ['an UNSAFE integer count', { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 1, admin: 1, guest: 1 }],
+    ['a NEGATIVE count', { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
+    ['a FRACTIONAL count', { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
+    ['a NON-NUMERIC count', { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
+    ['a null count', { 'student-cspc': null, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
+    ['a boolean count', { 'student-cspc': true, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
+    ['an UNSAFE integer count', { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }],
     ['a non-object', 'nope'],
     ['null', null],
     ['an array', []],
@@ -483,28 +483,28 @@ function runStrictCounts() {
     roleRejections.every(([, value]) => analytics.parseRoleCounts(value) === null));
 
   // ---- the sum invariant ----
-  ok('four role counts that sum to the total are accepted',
+  ok('five role counts that sum to the total are accepted',
     analytics.roleCountsMatchTotal(parsedGood, 21) === true);
   ok('a role/total MISMATCH is rejected in both directions',
     analytics.roleCountsMatchTotal(parsedGood, 20) === false &&
     analytics.roleCountsMatchTotal(parsedGood, 22) === false);
   ok('an all-zero role map matches a zero total',
-    analytics.roleCountsMatchTotal({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 }, 0) === true);
+    analytics.roleCountsMatchTotal({ 'student-cspc': 0, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }, 0) === true);
   ok('a null role map or an unsafe total is rejected',
     analytics.roleCountsMatchTotal(null, 0) === false &&
     analytics.roleCountsMatchTotal(parsedGood, Number.MAX_SAFE_INTEGER + 1) === false &&
     analytics.roleCountsMatchTotal(parsedGood, 21.5) === false);
 
-  ok('the repository pins the same four roles independently of the service',
-    analyticsRepository.ANALYTICS_ROLE_KEYS.length === 4 &&
+  ok('the repository pins the same five roles independently of the service',
+    analyticsRepository.ANALYTICS_ROLE_KEYS.length === 5 &&
     analyticsRepository.ANALYTICS_ROLE_KEYS.join(',') === analytics.ROLE_KEYS.join(',') &&
-    analytics.ROLE_KEYS.join(',') === 'student-cspc,instructor,admin,guest');
+    analytics.ROLE_KEYS.join(',') === 'student-cspc,instructor,admin,guest,department-admin');
 
-  ok('role rows carry a stable label for each of the four roles',
+  ok('role rows carry a stable label for each of the five roles',
     (() => {
       const rows = analytics.buildRoleRows(parsedGood);
-      return rows.length === 4 &&
-        rows.map((r) => r.role).join(',') === 'student-cspc,instructor,admin,guest' &&
+      return rows.length === 5 &&
+        rows.map((r) => r.role).join(',') === 'student-cspc,instructor,admin,guest,department-admin' &&
         rows.every((r) => typeof r.label === 'string' && r.label.length > 0);
     })());
 
@@ -532,7 +532,7 @@ function runStrictCounts() {
 /** A mock repository whose behaviour per entity is caller-controlled. */
 function mockRepository(spec) {
   const calls = { userWindow: 0, buildingWindow: 0 };
-  const roleCounts = spec.roleCounts || { 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 };
+  const roleCounts = spec.roleCounts || { 'student-cspc': 0, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 };
   let derivedTotal = 0;
   for (const key of Object.keys(roleCounts)) {
     if (typeof roleCounts[key] === 'number' && Number.isFinite(roleCounts[key])) {
@@ -587,7 +587,7 @@ async function runComposition() {
     repository: mockRepository({
       userTimestamps: [windows[11].startMs, windows[11].startMs + 5000, windows[3].startMs + 10],
       buildingTimestamps: [windows[0].startMs, windows[10].endMs],
-      roleCounts: { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3 },
+      roleCounts: { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3, 'department-admin': 0 },
       userTotalValue: 21,
       buildingTotalValue: 25,
     }),
@@ -609,8 +609,8 @@ async function runComposition() {
     ready.totals.users === 21 && ready.totals.buildings === 25 &&
     ready.roleCounts['student-cspc'] === 12 && ready.roleCounts.instructor === 4 &&
     ready.roleCounts.admin === 2 && ready.roleCounts.guest === 3);
-  ok('the model names Asia/Manila and exposes exactly the four role keys',
-    ready.timezone === 'Asia/Manila' && ready.roleKeys.join(',') === 'student-cspc,instructor,admin,guest');
+  ok('the model names Asia/Manila and exposes exactly the five role keys',
+    ready.timezone === 'Asia/Manila' && ready.roleKeys.join(',') === 'student-cspc,instructor,admin,guest,department-admin');
 
   const zero = await analytics.loadAdminDashboardAnalytics({
     now: NOW, repository: mockRepository({ userTotalValue: 0, buildingTotalValue: 0 }),
@@ -661,13 +661,13 @@ async function runComposition() {
   /* ---- every malformed-count path must make its side unavailable ---- */
   const malformed = [
     ['a MISSING role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1 }, userTotalValue: 3 }],
-    ['an ADDITIONAL role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'student-guest': 2 }, userTotalValue: 6 }],
-    ['a NEGATIVE role count', { roleCounts: { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1 }, userTotalValue: 2 }],
-    ['a FRACTIONAL role count', { roleCounts: { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1 }, userTotalValue: 5 }],
-    ['a NON-NUMERIC role count', { roleCounts: { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1 }, userTotalValue: 4 }],
-    ['an UNSAFE role count', { roleCounts: { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 0, admin: 0, guest: 0 }, userTotalValue: 1 }],
-    ['an INVALID user total', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, userTotalValue: -4 }],
-    ['a role/total MISMATCH', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1 }, userTotalValue: 99 }],
+    ['an ADDITIONAL role key', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0, 'student-guest': 2 }, userTotalValue: 6 }],
+    ['a NEGATIVE role count', { roleCounts: { 'student-cspc': -1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotalValue: 2 }],
+    ['a FRACTIONAL role count', { roleCounts: { 'student-cspc': 1.5, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotalValue: 5 }],
+    ['a NON-NUMERIC role count', { roleCounts: { 'student-cspc': 'x', instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotalValue: 4 }],
+    ['an UNSAFE role count', { roleCounts: { 'student-cspc': Number.MAX_SAFE_INTEGER + 1, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }, userTotalValue: 1 }],
+    ['an INVALID user total', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotalValue: -4 }],
+    ['a role/total MISMATCH', { roleCounts: { 'student-cspc': 1, instructor: 1, admin: 1, guest: 1, 'department-admin': 0 }, userTotalValue: 99 }],
   ];
   for (const [label, spec] of malformed) {
     const model = await analytics.loadAdminDashboardAnalytics({
@@ -684,7 +684,7 @@ async function runComposition() {
   const badBuildingTotal = await analytics.loadAdminDashboardAnalytics({
     now: NOW,
     repository: mockRepository({
-      roleCounts: { 'student-cspc': 1, instructor: 0, admin: 0, guest: 0 },
+      roleCounts: { 'student-cspc': 1, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 },
       userTotalValue: 1, buildingTotalValue: 'many',
     }),
   });
@@ -719,7 +719,7 @@ async function runComposition() {
     now: NOW,
     repository: mockRepository({
       buildings: 'outside',
-      roleCounts: { 'student-cspc': 1, instructor: 0, admin: 0, guest: 0 }, userTotalValue: 1,
+      roleCounts: { 'student-cspc': 1, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }, userTotalValue: 1,
     }),
   });
   ok('an out-of-window BUILDING row makes the buildings side unavailable too',
@@ -732,7 +732,7 @@ async function runComposition() {
 
   const mixed = mockRepository({
     userTimestamps: [windows[11].startMs], buildingTimestamps: [windows[11].startMs],
-    roleCounts: { 'student-cspc': 7, instructor: 0, admin: 0, guest: 0 },
+    roleCounts: { 'student-cspc': 7, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 },
     userTotalValue: 7, buildingTotalValue: 9,
   });
   const mixedModel = await analytics.loadAdminDashboardAnalytics({ now: NOW, repository: mixed });
@@ -857,8 +857,10 @@ function runStaticTruthfulness() {
     routeFiles.every((f) => !/router\.(get|post|put|patch|delete)\(\s*['"][^'"]*(analytics|metrics|stats|pageviews)/i
       .test(read(path.join('routes', f)))));
   ok('the dashboard stays a role-gated admin page render, not an API',
-    /router\.use\(requireRole\('admin'\)\)/.test(read('routes/admin.js')) &&
-    /router\.get\('\/',\s*adminController\.index\)/.test(read('routes/admin.js')) &&
+    /router\.use\(requireAdminArea\)/.test(read('routes/admin.js')) &&
+    /return requireRole\('admin'\)\(req, res, next\)/.test(read('middleware/departmentAccess.js')) &&
+    /router\.use\(requireAdminArea\)/.test(read('routes/admin.js')) &&
+    /return requireRole\('admin'\)\(req, res, next\)/.test(read('middleware/departmentAccess.js')) &&
     /res\.render\('admin\/index'/.test(indexAction));
 
   ok('the client module never uses innerHTML, eval, document.write, or Function',
@@ -894,10 +896,10 @@ function runStaticTruthfulness() {
 function fixtureModel(kind, nowMs) {
   const windows = analytics.buildMonthWindows(nowMs);
   const roleCounts = kind === 'unavailable'
-    ? { 'student-cspc': null, instructor: null, admin: null, guest: null }
+    ? { 'student-cspc': null, instructor: null, admin: null, guest: null, 'department-admin': null }
     : (kind === 'zero'
-      ? { 'student-cspc': 0, instructor: 0, admin: 0, guest: 0 }
-      : { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3 });
+      ? { 'student-cspc': 0, instructor: 0, admin: 0, guest: 0, 'department-admin': 0 }
+      : { 'student-cspc': 12, instructor: 4, admin: 2, guest: 3, 'department-admin': 0 });
   const months = windows.map((w, i) => ({
     key: w.key,
     label: w.label,
@@ -950,8 +952,8 @@ function runRendering() {
 
   ok('the ready render exposes exactly 12 keyed month rows',
     (ready.match(/data-month-key="/g) || []).length === 12);
-  ok('the ready render exposes exactly the four keyed role rows',
-    (ready.match(/data-role-key="/g) || []).length === 4 &&
+  ok('the ready render exposes exactly the five keyed role rows',
+    (ready.match(/data-role-key="/g) || []).length === 5 &&
     analytics.ROLE_KEYS.every((r) => ready.includes(`data-role-key="${r}"`)));
   ok('every rendered month value matches the model exactly',
     (() => {
@@ -977,7 +979,7 @@ function runRendering() {
   ok('both tables carry a caption and scoped headers',
     (ready.match(/<caption>/g) || []).length === 2 &&
     (ready.match(/<th scope="col">/g) || []).length === 5 &&
-    (ready.match(/<th scope="row">/g) || []).length === 16);
+    (ready.match(/<th scope="row">/g) || []).length === 17);
   ok('the section headings are truthful about what is counted',
     /Account and Building Additions/.test(ready) &&
     /Account Role Distribution/.test(ready) &&
@@ -986,7 +988,7 @@ function runRendering() {
     /Asia\/Manila/.test(ready) && /data-analytics-timezone="Asia\/Manila"/.test(ready));
 
   ok('a genuine zero renders visible zeroes, not "Unavailable"',
-    (zero.match(/data-value="0"/g) || []).length === 28 &&
+    (zero.match(/data-value="0"/g) || []).length === 29 &&
     !/>Unavailable</.test(zero) &&
     /<canvas id="additionsChart"/.test(zero) && /<svg id="roleChart"/.test(zero));
 
@@ -999,9 +1001,9 @@ function runRendering() {
     !/<canvas id="additionsChart"/.test(unavailable) && !/<svg id="roleChart"/.test(unavailable));
   ok('the unavailable state still lists all 12 months and all 4 roles as rows',
     (unavailable.match(/data-month-key="/g) || []).length === 12 &&
-    (unavailable.match(/data-role-key="/g) || []).length === 4);
+    (unavailable.match(/data-role-key="/g) || []).length === 5);
   ok('unavailable cells carry an EMPTY data-value so the client cannot invent one',
-    (unavailable.match(/data-value=""/g) || []).length === 28);
+    (unavailable.match(/data-value=""/g) || []).length === 29);
   ok('no rendered state leaks a backend identifier, SQL, host, or stack',
     [ready, zero, unavailable].every((html) =>
       !/AUTH_DATA_SOURCE|BUILDING_DATA_SOURCE|SUPABASE_URL|service_role|SELECT |UNIX_TIMESTAMP|\bat \/|Error:/i.test(html)));
@@ -1248,11 +1250,11 @@ function runClientModule() {
       m.key === readyModel.months[i].key &&
       m.users === readyModel.months[i].userAdditions &&
       m.buildings === readyModel.months[i].buildingAdditions));
-  ok('the client reads exactly the four roles and their exact counts',
+  ok('the client reads exactly the five roles and their exact counts',
     (() => {
       const roles = charts.readRoleModel(doc);
-      return roles.roles.length === 4 && roles.ready === true && roles.total === 21 &&
-        roles.roles.map((r) => r.key).join(',') === 'student-cspc,instructor,admin,guest' &&
+      return roles.roles.length === 5 && roles.ready === true && roles.total === 21 &&
+        roles.roles.map((r) => r.key).join(',') === 'student-cspc,instructor,admin,guest,department-admin' &&
         roles.roles[0].count === 12 && roles.roles[3].count === 3;
     })());
   ok('an empty data-value marks the whole series unavailable rather than 0',
@@ -1379,14 +1381,14 @@ function runChartAccessibility() {
   for (const theme of ['light', 'dark']) {
     const set = palette[theme];
     const colors = [set.users, set.buildings].concat(set.roles);
-    ok(`${theme}: exactly two series colours and four role colours are defined`,
-      set.roles.length === 4 && colors.every(charts.isHexColor));
+    ok(`${theme}: exactly two series colours and five role colours are defined`,
+      set.roles.length === 5 && colors.every(charts.isHexColor));
     const ratios = colors.map((c) => contrastRatio(c, set.surface));
     ok(`${theme}: every data colour clears ${MIN_RATIO}:1 against its own surface ` +
       `(measured ${ratios.map((r) => r.toFixed(2)).join(', ')})`,
       ratios.every((r) => r >= MIN_RATIO));
-    ok(`${theme}: the four role colours are all distinct`,
-      new Set(set.roles).size === 4);
+    ok(`${theme}: the five role colours are all distinct`,
+      new Set(set.roles).size === 5);
   }
 
   /* The ratios recorded in the view and in the client header are recomputed
@@ -1395,13 +1397,13 @@ function runChartAccessibility() {
   ok('the recorded light-surface role ratios reproduce (11.28, 6.12, 5.93, 7.56)',
     (() => {
       const s = palette.light;
-      const measured = s.roles.map((c) => Number(contrastRatio(c, s.surface).toFixed(2)));
+      const measured = s.roles.slice(0, 4).map((c) => Number(contrastRatio(c, s.surface).toFixed(2)));
       return measured.join(',') === '11.28,6.12,5.93,7.56';
     })());
   ok('the recorded dark-surface role ratios reproduce (8.88, 12.66, 11.16, 12.71)',
     (() => {
       const s = palette.dark;
-      const measured = s.roles.map((c) => Number(contrastRatio(c, s.surface).toFixed(2)));
+      const measured = s.roles.slice(0, 4).map((c) => Number(contrastRatio(c, s.surface).toFixed(2)));
       return measured.join(',') === '8.88,12.66,11.16,12.71';
     })());
   ok('the two series colours reproduce their own recorded ratios',
@@ -1464,21 +1466,21 @@ function runChartAccessibility() {
         !/#d4a843/i.test((markup.match(/<ul class="admin-(analytics-legend|mini-legend)"[\s\S]*?<\/ul>/g) || []).join(''));
     })());
 
-  // ---- four distinct patterns, in the donut AND the legend ----
-  ok('exactly four distinct non-colour encodings are declared',
-    charts.ROLE_PATTERNS.length === 4 &&
-    new Set(charts.ROLE_PATTERNS).size === 4 &&
-    charts.ROLE_PATTERNS.join(',') === 'solid,diagonal,crosshatch,dots');
+  // ---- five distinct patterns, in the donut AND the legend ----
+  ok('exactly five distinct non-colour encodings are declared',
+    charts.ROLE_PATTERNS.length === 5 &&
+    new Set(charts.ROLE_PATTERNS).size === 5 &&
+    charts.ROLE_PATTERNS.join(',') === 'solid,diagonal,crosshatch,dots,horizontal');
 
   const doc = buildMockDocument(fixtureModel('ready', NOW));
   charts.renderAdminAnalytics(doc);
   const defs = doc.svg.childNodes.find((n) => n.tagName === 'DEFS');
-  ok('the donut declares exactly four SVG patterns with the four distinct kinds',
-    !!defs && defs.childNodes.length === 4 &&
+  ok('the donut declares exactly five SVG patterns with the five distinct kinds',
+    !!defs && defs.childNodes.length === 5 &&
     defs.childNodes.every((p) => p.tagName === 'PATTERN') &&
     defs.childNodes.map((p) => p.getAttribute('data-pattern-kind')).join(',') ===
       charts.ROLE_PATTERNS.join(',') &&
-    new Set(defs.childNodes.map((p) => p.getAttribute('id'))).size === 4);
+    new Set(defs.childNodes.map((p) => p.getAttribute('id'))).size === 5);
   ok('each pattern tile is filled with its own role colour and textured in the surface colour',
     defs.childNodes.every((pattern, i) => {
       const base = pattern.childNodes[0];
@@ -1512,16 +1514,16 @@ function runChartAccessibility() {
       return donutSegmentsUsePatterns(mutated.svg, 4) === false;
     })());
 
-  // ---- the legend repeats the same four encodings ----
+  // ---- the legend repeats the same five encodings ----
   const rendered = renderDashboard(fixtureModel('ready', NOW));
-  ok('the legend renders four swatches carrying the same four pattern kinds, in order',
+  ok('the legend renders five swatches carrying the same four pattern kinds, in order',
     (() => {
       const kinds = [...rendered.matchAll(/data-pattern-kind="([a-z]+)"/g)].map((m) => m[1]);
-      return kinds.length === 4 && kinds.join(',') === charts.ROLE_PATTERNS.join(',');
+      return kinds.length === 5 && kinds.join(',') === charts.ROLE_PATTERNS.join(',');
     })());
   ok('each legend swatch fills from its own pattern and its own colour token',
     (() => {
-      for (let i = 1; i <= 4; i += 1) {
+      for (let i = 1; i <= 5; i += 1) {
         if (!rendered.includes('fill="url(#legend-pattern-role-' + i + ')"')) return false;
         if (!rendered.includes('var(--analytics-role-' + i + ')')) return false;
       }
@@ -1533,7 +1535,7 @@ function runChartAccessibility() {
     /New buildings \(dashed line, square marker\)/.test(rendered));
   ok('the semantic role table remains the authoritative non-visual alternative',
     /<table class="admin-analytics-table" id="roleTable">/.test(rendered) &&
-    (rendered.match(/data-role-key="/g) || []).length === 4);
+    (rendered.match(/data-role-key="/g) || []).length === 5);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1843,7 +1845,7 @@ async function compareBackend(mode, label) {
         model.totals.buildings === Number(buildingRow.total));
       ok(`${label}: every role count matches an independent GROUP BY`,
         analytics.ROLE_KEYS.every((r) => model.roleCounts[r] === (roleMap[r] || 0)));
-      ok(`${label}: the four role counts SUM to the independent total`,
+      ok(`${label}: the five role counts SUM to the independent total`,
         analytics.ROLE_KEYS.reduce((s, r) => s + model.roleCounts[r], 0) === Number(userRow.total));
 
       const userCounts = await independentMysqlCounts(db, 'users', windows);
@@ -1866,7 +1868,7 @@ async function compareBackend(mode, label) {
       ok(`${label}: every role count matches an independent per-role exact count`,
         (await Promise.all(analytics.ROLE_KEYS.map((r) => userRepository.countByRole(r))))
           .every((count, i) => model.roleCounts[analytics.ROLE_KEYS[i]] === Number(count)));
-      ok(`${label}: the four role counts SUM to the independent total`,
+      ok(`${label}: the five role counts SUM to the independent total`,
         analytics.ROLE_KEYS.reduce((s, r) => s + model.roleCounts[r], 0) === userTotal);
 
       const client = getSupabaseClient();

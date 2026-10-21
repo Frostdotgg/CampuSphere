@@ -19,9 +19,9 @@
    - Returns plain row-like objects in the MySQL-era shapes the
      controllers/views already consume; the controllers keep owning
      response/EJS shaping:
-       announcements: id, title, category, audience, excerpt, content,
+       announcements: id, title, category, audience, department_code, excerpt, content,
                       author_id, published_date, created_at, updated_at
-     events:        id, title, category, audience, event_date, description,
+     events:        id, title, category, audience, department_code, event_date, description,
                     location, event_time, created_at, updated_at
    - Ordering / draft-visibility / audience rules (s7 + plan.md 4.4):
        listAnnouncementsForRole     : published only (published_date
@@ -50,9 +50,9 @@ const { getSupabaseClient } = require('../config/supabase');
 // Explicit column lists pin the MySQL-era row shape and avoid leaking
 // any column the controllers/views do not already expect.
 const ANNOUNCEMENT_COLUMNS =
-  'id, title, category, audience, excerpt, content, author_id, published_date, created_at, updated_at';
+  'id, title, category, audience, department_code, excerpt, content, author_id, published_date, created_at, updated_at';
 const EVENT_COLUMNS =
-  'id, title, category, audience, event_date, description, location, event_time, created_at, updated_at';
+  'id, title, category, audience, department_code, event_date, description, location, event_time, created_at, updated_at';
 
 // listRecentAnnouncements limit clamp. The admin "recent news" panel
 // uses 4 today; missing/invalid -> 4, otherwise clamped to 1..50.
@@ -299,6 +299,7 @@ async function createAnnouncement(payload = {}) {
   const row = {
     title: payload.title,
     category: payload.category,
+    department_code: payload.department_code === undefined ? 'university-wide' : payload.department_code,
     audience: payload.audience != null && payload.audience !== '' ? payload.audience : 'all',
     excerpt: payload.excerpt != null ? payload.excerpt : null,
     content: payload.content != null ? payload.content : null,
@@ -329,7 +330,7 @@ async function updateAnnouncement(id, payload = {}) {
   if (!Number.isInteger(numId) || numId < 1) return null;
 
   const patch = {};
-  for (const key of ['title', 'category', 'audience', 'excerpt', 'content', 'author_id']) {
+  for (const key of ['title', 'category', 'audience', 'department_code', 'excerpt', 'content', 'author_id']) {
     if (payload[key] !== undefined) patch[key] = payload[key];
   }
   if ('published_date' in payload) {
@@ -376,6 +377,7 @@ async function createEvent(payload = {}) {
   const row = {
     title: payload.title,
     category: payload.category,
+    department_code: payload.department_code === undefined ? 'university-wide' : payload.department_code,
     audience: payload.audience != null && payload.audience !== '' ? payload.audience : 'all',
     event_date: normalizeEventDate(payload.event_date),
     description: payload.description != null ? payload.description : null,
@@ -403,7 +405,7 @@ async function updateEvent(id, payload = {}) {
   if (!Number.isInteger(numId) || numId < 1) return null;
 
   const patch = {};
-  for (const key of ['title', 'category', 'audience', 'description', 'location', 'event_time']) {
+  for (const key of ['title', 'category', 'audience', 'department_code', 'description', 'location', 'event_time']) {
     if (payload[key] !== undefined) patch[key] = payload[key];
   }
   if (payload.event_date !== undefined) patch.event_date = normalizeEventDate(payload.event_date);

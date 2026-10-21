@@ -137,7 +137,7 @@ function pureChecks() {
   });
   check('migration sources are contiguous and both schemas have a separate walking table', () => {
     const files = fs.readdirSync(path.join(ROOT, 'database/supabase')).filter(f => f.endsWith('.sql')).sort();
-    assert.equal(files.length, 28); files.forEach((file, index) => assert.equal(Number(file.slice(0, 4)), index + 1));
+    assert.equal(files.length, 29); files.forEach((file, index) => assert.equal(Number(file.slice(0, 4)), index + 1));
     const pg = fs.readFileSync(path.join(ROOT, 'database/supabase/0028_walking_2d_routes.sql'), 'utf8');
     assert.match(pg, /REVOKE ALL ON public\.walking_routes FROM PUBLIC, anon, authenticated/);
     assert.match(pg, /GRANT SELECT, INSERT, UPDATE, DELETE ON public\.walking_routes TO service_role/);

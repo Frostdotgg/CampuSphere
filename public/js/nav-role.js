@@ -18,6 +18,7 @@
         'anonymous': PUBLIC_PAGES,
         'student-cspc': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/'],
         'instructor': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/'],
+        'department-admin': ['/admin/news'],
         'admin': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/', '/admin'],
         'guest': ['/home', '/dashboard', '/buildings', '/events', '/map', '/about', '/faq', '/']
     };
@@ -27,6 +28,7 @@
         'anonymous': ['mobileLoginBtn'],
         'student-cspc': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
         'instructor': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
+        'department-admin': [],
         'admin': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile'],
         'guest': ['tabHome', 'tabDashboard', 'tabBuildings', 'tabEvents', 'tabMap', 'tabAbout', 'tabFaq', 'tabFaqMobile']
     };
@@ -59,7 +61,7 @@
         if (role === 'anonymous') {
             window.location.href = '/auth';
         } else {
-            window.location.href = '/dashboard';
+            window.location.href = role === 'department-admin' ? '/admin/news' : '/dashboard';
         }
         return;
     }

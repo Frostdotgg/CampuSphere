@@ -57,6 +57,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const { getSupabaseClient, hasSupabaseConfig } = require('../config/supabase');
+const { DEPARTMENT_ADMIN, isDepartment } = require('../utils/departments');
 const { normalizeMediaUrl } = require('../utils/mediaUrl');
 const { normalizeGoogleProfileImageUrl } = require('../utils/googleProfileImage');
 const { resolveAccountIdentityName } = require('../utils/accountIdentityName');
@@ -230,7 +231,7 @@ async function listAllUsersForAdmin() {
   const sb = client();
   const { data, error } = await sb
     .from(USERS)
-    .select('id, username, email, role, first_name, last_name, created_at')
+    .select('id, username, email, role, department_code, first_name, last_name, created_at')
     .order('created_at', { ascending: false });
   ensureNoError(error, 'listAllUsersForAdmin');
   return Array.isArray(data) ? data : [];
@@ -767,6 +768,7 @@ async function createAdminManagedUser(payload) {
     p_email: email,
     p_password_hash: passwordHash,
     p_role: role,
+    p_department_code: p.department_code || null,
     p_first_name: first_name,
     p_last_name: last_name,
     p_student_id_number: trimOrNull(profile.student_id_number),
@@ -781,7 +783,7 @@ async function createAdminManagedUser(payload) {
   };
 
   const sb = client();
-  const { data, error } = await sb.rpc('app_create_admin_managed_user', params);
+  const { data, error } = await sb.rpc('app_create_admin_managed_user_v2', params);
   if (error) throwRpcError(error, 'createAdminManagedUser');
   const id = typeof data === 'number' ? data : Number(data);
   if (!Number.isFinite(id)) {
@@ -808,7 +810,7 @@ async function updateAdminManagedUser(userId, fields) {
     throw new Error('userRepository.updateAdminManagedUser: userId is required');
   }
   const f = fields || {};
-  const VALID_ROLES = ['student-cspc', 'instructor', 'admin', 'guest'];
+  const VALID_ROLES = ['student-cspc', 'instructor', 'admin', 'guest', DEPARTMENT_ADMIN];
   const existing = await findUserById(userId);
   if (!existing) {
     const e = new Error('USER_NOT_FOUND');
@@ -825,7 +827,10 @@ async function updateAdminManagedUser(userId, fields) {
     throw e;
   }
 
+  const department = role === DEPARTMENT_ADMIN ? valueOrExisting('department_code') : null;
+  if (role === DEPARTMENT_ADMIN && !isDepartment(department)) throw new Error('Invalid department assignment.');
   const params = {
+    p_department_code: department,
     p_user_id: userId,
     p_username: String(valueOrExisting('username') == null ? '' : valueOrExisting('username')).slice(0, 50),
     p_email: String(valueOrExisting('email') == null ? '' : valueOrExisting('email')),
@@ -842,7 +847,7 @@ async function updateAdminManagedUser(userId, fields) {
   }
 
   const sb = client();
-  const { error } = await sb.rpc('app_update_admin_managed_user', params);
+  const { error } = await sb.rpc('app_update_admin_managed_user_v2', params);
   if (error) throwRpcError(error, 'updateAdminManagedUser');
 }
 

@@ -23,7 +23,9 @@
     "repair:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings.js",
     "probe:walking-arrivals": "node scripts/repairWalkingVrArrivalMappings-probe.js",
     "qa:scheduling-removal": "node scripts/roomSchedulingRemoval-probe.js",
-    "qa:scheduling-cleanup": "node scripts/roomSchedulingCleanup-probe.js --disposable"
+    "qa:scheduling-cleanup": "node scripts/roomSchedulingCleanup-probe.js --disposable",
+    "qa:department-news": "node scripts/departmentNewsAdmin-probe.js",
+    "qa:department-news-migration": "node scripts/departmentNewsMigration-probe.js --disposable"
   },
   "keywords": [
     "cspc",

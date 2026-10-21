@@ -72,6 +72,7 @@ const ANALYTICS_ROLE_KEYS = Object.freeze([
   'instructor',
   'admin',
   'guest',
+  'department-admin',
 ]);
 
 // Hard ceiling for one window read, and the Supabase page size beneath it.

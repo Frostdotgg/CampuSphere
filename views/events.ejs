@@ -70,6 +70,7 @@
 
                 <!-- Toolbar (Filters & Count) -->
 
+                <div style="max-width:28rem;margin:1rem 0;"><%- include('partials/department-select',{selectId:'events-department',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:''}) %></div>
                 <div class="events-toolbar">
 
                     <div class="events-filters" id="filterBar">
@@ -238,7 +239,9 @@
 
 
 
-                const filtered = filter === 'all' ? EVENTS : EVENTS.filter(e => e.category === filter);
+                const department = document.getElementById('events-department').value;
+                const filtered = EVENTS.filter(e => (filter === 'all' || e.category === filter) &&
+                  (department === 'all' || (e.department_code || 'university-wide') === department));
 
                 countEl.textContent = 'Showing ' + filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
 
@@ -292,6 +295,7 @@
 
                         </div>
 
+                        <p style="overflow-wrap:anywhere;">${escapeHtml(e.department_label || 'University-wide')}</p>
                         <p class="event-desc">${escapeHtml(e.desc)}</p>
 
                         <div class="event-meta">
@@ -334,6 +338,10 @@
 
             /* ===== FILTER BUTTONS ===== */
 
+            document.getElementById('events-department').addEventListener('change', () => {
+              const active=document.querySelector('.events-filter-btn.active');
+              renderEvents(active ? active.dataset.filter : 'all');
+            });
             document.querySelectorAll('.events-filter-btn').forEach(btn => {
 
                 btn.addEventListener('click', () => {
