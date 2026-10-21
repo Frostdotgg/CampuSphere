@@ -11398,6 +11398,34 @@ function departmentNewsReleaseProblems(value) {
   ];
   const problems=checks.filter(([,pattern])=>!pattern.test(t)).map(([label])=>label);
   if(/Full QA passed|All seven permanent accounts were created|Department labels grant reading access|Rollback may retain temporary account sessions|Codex applied the Production migration/.test(t))problems.push('unsupported release claim');
+  if(/Release status: completed/.test(t))problems.push(...departmentNewsCompletedReleaseProblems(t));
+  return problems;
+}
+
+function departmentNewsCompletedReleaseProblems(value) {
+  const t=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' ');
+  const checks=[
+    ['product source',/Product commit: 0968b5d107b69166301e9c80350d3f7c6a7ffcbb/],
+    ['product deployment',/Product deployment: dpl_7wPtbzKtFUuGAENtYWHHxGz4DJZJ, verified Ready \/ Production \/ Current/],
+    ['scoped cleanup',/cleanup of only account 3710, draft article 35 and Administrator-only event 22/],
+    ['application cleanup',/Each application deletion returned 200/],
+    ['revocation and audit',/Both former account sessions redirected to sign-in, and its creation audit remained visible after deletion/],
+    ['no direct cleanup',/No direct database cleanup was used/],
+    ['staged watch',/613\.585 seconds/],
+    ['live watch',/624\.425 seconds/],
+    ['loaded warning counts',/0 Warning \/ 0 Error \/ 0 Fatal request rows/],
+    ['finite warning observation',/no natural retry was observed in those finite watches/],
+    ['monitoring gaps',/Earlier owner waits and the Chrome restart are monitoring gaps, not continuous watch time/],
+    ['loading limitation',/Their loading cause remains unestablished and is not claimed fixed by this feature/],
+    ['observer limitations',/Two browser assertions initially failed because of masked email observation and inactive network capture/],
+    ['offline deferral resolved',/approved deferral was resolved immediately on the normal website/],
+    ['offline after update',/Update now flow completed, followed by another disconnected reload\. Connectivity was restored/],
+    ['cache inventory limit',/no direct Cache Storage inventory is claimed/],
+    ['successor package',/Before closure, prove its runtime package identical/],
+    ['external final receipt',/self-referential commit\/deployment IDs and final watch belong in the external receipt/]
+  ];
+  const problems=checks.filter(([,pattern])=>!pattern.test(t)).map(([label])=>'completed release '+label);
+  if(/Continuous overnight monitoring|Loading issue was fixed|All future timeouts are prevented|Full immutable deployed-byte equality was proved|Live MySQL parity was verified/.test(t))problems.push('unsupported completed release claim');
   return problems;
 }
 
@@ -11418,6 +11446,30 @@ function runDepartmentNewsReleaseDocsGate() {
     ['revoke their sessions','retain their sessions'],['Keep additive 0029 in place','Drop additive 0029']
   ])rec.ok('independent fixture rejects '+from,normalized.includes(from)&&departmentNewsReleaseProblems(normalized.split(from).join(to)).length>0);
   for(const claim of ['Full QA passed.','All seven permanent accounts were created.','Department labels grant reading access.','Rollback may retain temporary account sessions.','Codex applied the Production migration.'])rec.ok('fixture rejects '+claim,departmentNewsReleaseProblems(text+'\n'+claim).length>0);
+  if(/Release status: completed/.test(normalized)) {
+    rec.ok('completed product identities, cleanup and evidence limits agree',departmentNewsCompletedReleaseProblems(text).length===0);
+    for(const [from,to] of [
+      ['0968b5d107b69166301e9c80350d3f7c6a7ffcbb','0000000000000000000000000000000000000000'],
+      ['dpl_7wPtbzKtFUuGAENtYWHHxGz4DJZJ','dpl_stale_product'],
+      ['account 3710','account 1'],['draft article 35','draft article 1'],['event 22','event 1'],
+      ['Each application deletion returned 200','Each application deletion was skipped'],
+      ['Both former account sessions redirected to sign-in','Both former account sessions stayed signed in'],
+      ['creation audit remained visible','creation audit was deleted'],
+      ['No direct database cleanup was used','Direct database cleanup was used'],
+      ['613.585 seconds','13.585 seconds'],['624.425 seconds','24.425 seconds'],
+      ['0 Warning / 0 Error / 0 Fatal','0 Warning / 2 Error / 0 Fatal'],
+      ['no natural retry was observed','all natural retries were proven recovered'],
+      ['are monitoring gaps, not continuous watch time','are continuous watch time'],
+      ['loading cause remains unestablished','loading cause was fixed'],
+      ['Two browser assertions initially failed','No browser assertions initially failed'],
+      ['approved deferral was resolved immediately','approved deferral remains blocked'],
+      ['followed by another disconnected reload','without another disconnected reload'],
+      ['no direct Cache Storage inventory is claimed','a direct Cache Storage inventory is claimed'],
+      ['prove its runtime package identical','skip proving its runtime package'],
+      ['final watch belong in the external receipt','final watch are not recorded']
+    ])rec.ok('completed fixture rejects '+from,normalized.includes(from)&&departmentNewsCompletedReleaseProblems(normalized.split(from).join(to)).length>0);
+    for(const claim of ['Continuous overnight monitoring.','Loading issue was fixed.','All future timeouts are prevented.','Full immutable deployed-byte equality was proved.','Live MySQL parity was verified.'])rec.ok('completed fixture rejects '+claim,departmentNewsCompletedReleaseProblems(text+'\n'+claim).length>0);
+  }
   const names=['AGENTS.md','CLAUDE.md','CODEX_HANDOFF.md','CLAUDE_HANDOFF.md','plan.md','ROADMAP.md','docs/deployment.md','docs/new-session-grounding-prompts.md','docs/demo-script.md','docs/security-checklist.md','docs/test-evidence.md'];
   const notices=names.map(name=>(fs.readFileSync(path.join(__dirname,'..',name),'utf8').match(/<!-- DEPARTMENT NEWS RELEASE START -->[\s\S]*?<!-- DEPARTMENT NEWS RELEASE END -->/)||[])[0]||'');
   rec.ok('eleven current release notices agree',notices.every(Boolean)&&new Set(notices).size===1);

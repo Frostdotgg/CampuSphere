@@ -2,14 +2,18 @@
 
 ## Status and scope
 
-Release status: in progress. No product commit or deployment is accepted yet.
-The reviewed branch is `codex/department-news-admin`, starting at `71946ab`.
-Existing source release `38fd296` and Ready deployment
-`dpl_86Lge98zAWnSKYbG7b14ef4uMpfF` remain the rollback target and currently
-serve https://campusphere-cspc.vercel.app. GitHub has no rulesets or classic
-branch protections requiring a pull request at the recorded check. Production
-tracks main; automatic Production domain assignment is disabled. Settings and
-deployment protection remain unchanged. Recheck staging before pushing.
+Release status: completed product verification. The documentation successor's
+final commit, deployment and closing verification are recorded outside Git.
+Product commit: `0968b5d107b69166301e9c80350d3f7c6a7ffcbb` (`0968b5d`). Product deployment:
+`dpl_7wPtbzKtFUuGAENtYWHHxGz4DJZJ`, verified Ready / Production / Current
+on https://campusphere-cspc.vercel.app after staged acceptance. Promotion was
+requested at `2026-10-21T12:32:11.161Z`. The previous source `38fd296` and
+deployment `dpl_86Lge98zAWnSKYbG7b14ef4uMpfF` remain the recorded rollback
+target; they no longer serve the normal website. GitHub had no rulesets or
+classic branch protections requiring a pull request. The feature and main were
+pushed normally; no force push was used. Production tracks main; automatic
+Production domain assignment is disabled. Protection, secrets and provider
+settings remain unchanged. Recheck this setting before the documentation push.
 
 This explicit release authorizes one temporary department account, a draft
 article and an Administrator-only event, with exact IDs recorded outside Git.
@@ -81,17 +85,87 @@ with the same runtime fingerprint. All protected/evidence fingerprints remained.
 These focused results are not a full npm test/QA pass, live MySQL parity,
 exhaustive route/VR traversal or physical-device acceptance.
 
-## Staged acceptance and cleanup still required
+The documentation closeout passed **824/824** isolated contracts and **76/76**
+canonical package checks. It reviewed 19 documentation/static-assertion paths,
+one JavaScript syntax check, 19 UTF-8/NUL/BOM checks and 1,581 referenced paths.
+Whitespace and added-line secret checks passed. All 52 protected files and
+1,308 earlier evidence fingerprints remained unchanged. Sixteen current release
+notices agree, including the eleven continuity copies. The 797/797 result above
+is the earlier product-freeze documentation checkpoint, not this successor's total.
+The successor retains exactly the product runtime inventory and fingerprint.
+
+## Verified staged and normal-website acceptance
 
 Main Administrators retain User Management; department-admin accounts use only
 /admin/news and required authentication/CSRF/heartbeat operations. They share
 editing across all seven departments and University-wide posts. Department labels
 do not grant reading access: existing audiences and draft privacy remain.
 Both Event and Events article categories are rejected; old articles remain.
-Check account creation/update, revoked sessions, all roles, article/event CRUD,
-filters, desktop/390 px, normal sessions and representative maps/VR. Do not save
-unrelated shared content. Fresh/offline existing-guide checks and finite staged,
-live and final-successor ten-minute log watches remain pending.
+The main Administrator created and updated the one tracked account through
+User Management. Department sign-in opened the editor, and 22 direct forbidden
+paths returned 403 in staging. Guest, Student and Instructor checks hid the draft
+and Administrator-only event and denied the editor; each role change revoked
+the previous session. The account was restored to Department Administrator / CEA.
+Password and department updates also revoked its former session. All seven
+assignments and remaining backend/security cases passed the isolated fixtures.
+
+The tracked draft and event saved, reloaded and changed across departments and
+University-wide labels while retaining their private status/audience. Filters,
+desktop and 390 px forms, long names and Escape/focus restoration passed. An
+existing Events-category article remained readable, and its edit form required
+a remaining category without saving any change to that article.
+
+The normal website retained all main Administrator sections; the department
+account could update its private draft/event but received 403 for User Management,
+the participant dashboard and the offline-guide API. Walking and Vehicle entrance
+and return responses passed. Main Entrance Free Roam and representative Guided VR
+were checked in staging; the live Main Entrance panorama rendered before and
+after accepting the available browser update. Room descriptions were preserved.
+Public smoke passed **22/22**, including seven exact committed asset matches.
+
+The staged guide data API returned 200, but temporary-host Vercel protection
+redirected its basemap to SSO; CSP blocked that redirect. This approved deferral
+was resolved immediately on the normal website: its October 20 saved guide
+reloaded disconnected and drew a Walking route, then a fresh October 21 download
+succeeded with 26 buildings, 26 entry, 26 exit and 26 Walking paths. The refreshed
+guide reloaded disconnected and drew the Walking return. The browser's Update now
+flow completed, followed by another disconnected reload. Connectivity was restored.
+Raw cache-name inspection was unsupported; no direct Cache Storage inventory is
+claimed. The source v54 worker matched its committed bytes and its update flow
+and offline reload were exercised. Guide format is unchanged; news/events and
+Administrator data remain excluded.
+
+The owner explicitly confirmed cleanup of only account 3710, draft article 35
+and Administrator-only event 22. Each application deletion returned 200; fresh
+lists showed no tracked posts/account, with 8 articles, 0 drafts and 11 events.
+Both former account sessions redirected to sign-in, and its creation audit
+remained visible after deletion. No direct database cleanup was used. The owner
+then signed in as the main Administrator; a fresh protected tab confirmed the
+dashboard and complete sidebar. Seven permanent accounts remain uncreated.
+
+### Monitoring and limitations
+
+Staged closing watch: `2026-10-21T12:21:44.203Z`–`2026-10-21T12:31:57.788Z` UTC
+(**613.585 seconds**). Product-live watch:
+`2026-10-21T12:32:32.520Z`–`2026-10-21T12:42:56.945Z` UTC (**624.425 seconds**).
+Loaded all-severity closing views showed **0 Warning / 0 Error / 0 Fatal request
+rows**; no natural retry was observed in those finite watches. These are
+request-row counts, not console-message totals or a promise of future availability.
+Earlier owner waits and the Chrome restart are monitoring gaps, not continuous
+watch time. The original sign-in tabs repeatedly remained loading and browser
+inspection timed out; fresh protected tabs established usable signed-in sessions.
+Their loading cause remains unestablished and is not claimed fixed by this feature.
+Two browser assertions initially failed because of masked email observation and
+inactive network capture; both were resolved and independently rechecked. They
+are retained as observer limitations, not erased or counted as application defects.
+These browser observations do not establish exhaustive traversal, a physical-device
+acceptance pass, complete deployed-byte equality or a full QA pass.
+
+The documentation successor changes only these handoffs and static assertions.
+Before closure, prove its runtime package identical, validate its Ready / Staged
+Production build, promote it, repeat live smoke and observe ten minutes of logs.
+Its self-referential commit/deployment IDs and final watch belong in the external
+receipt, without another documentation commit.
 
 Delete only tracked temporary records and revoke their sessions through the
 application before old-code rollback. The older release does not enforce the
@@ -101,6 +175,5 @@ mismatched identities fail closed. Keep additive 0029 in place on rollback.
 Preserve audits, unrelated users/content, saved routes, room descriptions and
 private Info markers. Seven permanent accounts remain uncreated by this release.
 
-Product commit: pending. Product deployment: pending. Promotion: pending.
-Final documentation successor and deployment identities belong in the external
+The final documentation successor and deployment identities belong in the external
 receipt after verification, avoiding a self-referential follow-up commit.

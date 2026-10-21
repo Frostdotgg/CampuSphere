@@ -1,15 +1,28 @@
 # Department news administrators — implementation history and release guide
 
-## Current release progress — October 21
+## Current released setup — October 21
 
-The owner selected the controlled release in `docs/department-news-release-2026-10-21.md`.
-Owner-run migration 0029 succeeded after a validated external backup. Read-only
-verification matched original account/article/event hashes and the reviewed
-constraints, defaults, RPC sources and server-only permissions. No account was
-created by the migration. Commit, staged acceptance and promotion remain pending.
-The instructions and results below describe the earlier local implementation;
-their local-only authority is historical. The current release plan governs only
-this release, with seven permanent accounts deferred until it is closed.
+Product `0968b5d` is verified on the normal website. The owner completed
+migration 0029 after backup; do not reapply it. See
+`docs/department-news-release-2026-10-21.md` for exact evidence and limitations.
+The temporary verification account and its two private posts were removed;
+seven permanent department accounts remain for the owner after release closure.
+
+1. Sign in with the existing main Administrator account at
+   https://campusphere-cspc.vercel.app/admin/users.
+2. Choose Create User, select Department Administrator, select one of the seven
+   departments, and enter the owner's chosen name, email and password.
+3. Repeat for Graduate School, CEA, CCS, CHS, CTHBM, CTDE and CAS. Keep each
+   account's credentials private; there is no shared default password.
+4. Check that each login opens /admin/news with only News & Events and Logout.
+   These editors can manage every department and University-wide content.
+   Department labels do not replace audience restrictions or publish drafts.
+5. Role, department and password changes revoke the affected account's sessions.
+   Existing articles with Event/Events remain readable; choose a remaining
+   article category before saving an edit. Separate Events retain their categories.
+
+The implementation-only instructions and results below are history. They do
+not supersede the completed release or authorize future migrations or accounts.
 
 ## Historical local implementation — October 21, 2026
 

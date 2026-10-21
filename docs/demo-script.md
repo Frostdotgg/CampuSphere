@@ -1,16 +1,26 @@
 <!-- DEPARTMENT NEWS RELEASE START -->
-## Department News controlled release (October 21, 2026; in progress)
+## Department News product release (October 21, 2026; verified)
 
-Read `docs/department-news-release-2026-10-21.md` first for the active release.
-The owner authorized reviewed commit/push, staged Production checks, promotion
-and scoped temporary fixtures. The owner completed additive Supabase migration
-0029 after external backup validation; read-only checks preserved original data
-and verified constraints and server-only RPC permissions. The normal website
-still serves the dated 38fd296 release until staged acceptance and promotion.
+Read `docs/department-news-release-2026-10-21.md` first. Product source
+`0968b5d107b69166301e9c80350d3f7c6a7ffcbb`, deployment
+`dpl_7wPtbzKtFUuGAENtYWHHxGz4DJZJ`, was verified Ready / Production /
+Current on https://campusphere-cspc.vercel.app. The documentation successor
+uses the same runtime; its final identity and closing watch belong in the
+external receipt. Recompute live Git/deployment truth before future work.
+
+The owner completed additive Supabase migration 0029 after a validated external
+backup; read-only checks preserved original data and verified constraints,
+defaults and server-only RPCs. Cache v54 and stylesheet v13 are current source.
+Department Administrators use only /admin/news and its required operations;
+editing is shared across departments, with audience and draft privacy retained.
+The three tracked test records were removed and both former sessions denied.
+Seven permanent accounts remain owner-created after release closure.
+
 The earlier local-only candidate notices and grounding prompts below are
 historical implementation instructions, superseded for this explicit release.
-Seven permanent accounts remain owner-created after release closure. No shared
-MySQL migration, schedule cleanup or ICTU deployment is authorized.
+Preserve the later session fixes and dated warning/monitoring limitations.
+No shared MySQL migration, schedule cleanup or ICTU deployment is authorized.
+This completed release grants no future data, account or deployment permission.
 <!-- DEPARTMENT NEWS RELEASE END -->
 
 # CampuSphere Defense Demo Script
