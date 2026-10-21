@@ -6,13 +6,14 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
-## Current Release Checkpoint (2026-10-19)
+## Current source and handoff (2026-10-21)
 
-Read `docs/current-authority.md` and `docs/room-scheduling-removal.md` first.
-Room scheduling is removed in the uncommitted local candidate; floor and room
-descriptions remain. This candidate is not deployed and grants no commit/push,
-live data cleanup or deployment authority. The last published Walking release
-and October 19 saved-path coverage remain dated evidence.
+Read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
+Room Scheduling / Room Plotting removal and the later session fixes are released.
+The last verified application baseline is 38fd296, deployment
+dpl_86Lge98zAWnSKYbG7b14ef4uMpfF. These are dated release observations;
+recompute live Git truth. Room descriptions and 73 private Info markers remain.
+Cleanup, new features and deployment require their own focused owner task.
 
 ## What CampuSphere Is
 
@@ -25,7 +26,7 @@ Express 5, EJS, HTML, CSS, and browser JavaScript. Its main capabilities are:
 - administrator-authored 2D campus graph routing with distinct entry and exit
   lines, geometry-derived distance/walk time, and offline route packages;
 - Pannellum-based 360 scenes and Guided VR navigation;
-- administrator-managed building, schedule, and panorama media references via
+- administrator-managed building and panorama media references via
   Cloudinary or Google Drive;
 - administrative content, user, building, route, and VR management.
 

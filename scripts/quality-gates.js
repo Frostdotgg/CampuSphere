@@ -7102,7 +7102,87 @@ function walkingReleaseHandoffProblems(value, { prompt = false } = {}) {
   return problems;
 }
 
-const CURRENT_ROOM_REMOVAL_HEADING = '## Current Release Continuity (2026-10-20 room-scheduling removal release)';
+const CURRENT_COMPLETED_HANDOFF_HEADING = '## Current Release Continuity (2026-10-21 completed removal and session releases)';
+const CURRENT_COMPLETED_HANDOFF_NOTE = 'docs/session-handoff-2026-10-21.md';
+
+/** PURE: October 21 current authority; older release validators remain historical. */
+function completedReleaseHandoffProblems(value, { prompt = false } = {}) {
+  let raw = String(value == null ? '' : value).replace(/\r\n/g, '\n');
+  const start = raw.indexOf(CURRENT_COMPLETED_HANDOFF_HEADING);
+  if (start >= 0) {
+    const after = start + CURRENT_COMPLETED_HANDOFF_HEADING.length;
+    const next = raw.slice(after).search(/^## /m);
+    raw = raw.slice(start, next < 0 ? raw.length : after + next);
+  }
+  const text = raw.replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+  const problems = [];
+  const need = (name, valid) => { if (!valid) problems.push(name); };
+  need('current reading route and self-referential baseline',
+    text.includes('docs/current-authority.md') && text.includes(CURRENT_COMPLETED_HANDOFF_NOTE) &&
+    text.includes('38fd2962dccb096a8d45635790092e91c611952b') &&
+    text.includes('new documentation SHA is determined afterward') && /recompute live Git truth/i.test(text));
+  need('separate removal product and completed successor',
+    ['b39d08cf2536cafc5d965adba0803e743425a698','dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha',
+      '59b61b8217881e28f7ad8514e82b3d3ff19534da','dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY'].every(s=>text.includes(s)) &&
+    /dated removal release identities/.test(text));
+  need('separate later session releases and final deployment',
+    ['6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21','9401df5db59c829ec819d30c0e0081ddf3fd810b',
+      'dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E','07120e4c3313429dc765d42bc5bec8d062c6e761',
+      'dpl_86Lge98zAWnSKYbG7b14ef4uMpfF','https://campusphere-cspc.vercel.app'].every(s=>text.includes(s)) &&
+    /dated Production evidence/.test(text));
+  need('retired interfaces and retained privacy',
+    /Room scheduling is retired for every role/.test(text) && /standard JSON 404/.test(text) &&
+    /login, role and CSRF protections remain/.test(text) && /responses omit schedule types\/metadata/.test(text) &&
+    /Floor and room descriptions remain/.test(text) && /explicit Administrator approval for Guests/.test(text));
+  need('dated private-marker and retained-data evidence',
+    /73 saved Schedule hotspots to private Info markers across 65 scenes/.test(text) &&
+    /room names\/positions preserved/.test(text) && /zero Schedule types among 1,469 hotspots/.test(text) &&
+    /69 image entries and 2 legacy entries remain intact/.test(text) &&
+    /schedule metadata remains for later cleanup/.test(text) && /No live rows have been deleted/.test(text) &&
+    /not a fresh database count/.test(text));
+  need('separate owner-controlled cleanup and compatibility',
+    /owner-controlled target verification, stopped old writers, an external backup and explicit confirmation/.test(text) &&
+    /Empty tables\/fields, external hosted images and audit history are retained/.test(text) &&
+    /legacy-reference guard/.test(text) && /Migration sources remain contiguous through 0028 and unchanged/.test(text) &&
+    /service worker is v53; shared stylesheet remains v13/.test(text));
+  need('unchanged persistence, retry policy and bounded local model',
+    /@vercel\/functions 3\.10\.1 waitUntil/.test(text) &&
+    /2,000 ms per attempt, two attempts and 200 ms retry delay/.test(text) &&
+    /expiry-only touch is not a full-session save/.test(text) &&
+    /models lifetime draining; it does not reproduce actual cloud freezing/.test(text) &&
+    /Docker\/MySQL continue without a Vercel request context/.test(text));
+  need('separate warning windows and corrected uncertainty',
+    /3 Warning rows, 0 Error, 0 Fatal/.test(text) && /1 Warning row, 0 Error, 0 Fatal/.test(text) &&
+    /14 Warning rows, 6 Error, 0 Fatal/.test(text) && /request-row counts, not console-message totals/.test(text) &&
+    /zero-warning summary was corrected/.test(text) && /monitoring gap/.test(text) &&
+    /do not prove every refresh outcome/.test(text));
+  need('interrupted and fresh closing watches remain distinct',
+    /laptop shutdown/.test(text) && /15:42:36 UTC/.test(text) && /00:47:32 UTC/.test(text) &&
+    /No continuous overnight monitoring is claimed/.test(text) && /655\.105 seconds/.test(text) &&
+    /0 Warning \/ 0 Error \/ 0 Fatal request rows/.test(text) && /do not promise zero future timeouts/.test(text));
+  need('focused evidence and preserved acceptance limits',
+    ['401/401','118/118','49/49','148/148','140/140','28/28','75/75','20/20','72/72','73/73','160/160','116/116','180/180','659/659'].every(s=>text.includes(s)) &&
+    /not a full npm test\/qa pass/.test(text) && /no full R6 pass is claimed/.test(text) &&
+    /physical-device acceptance or complete immutable deployed-byte equality/.test(text));
+  need('current package, source-backed offline rules and ICTU boundary',
+    /201 files, 8,591,700 bytes/.test(text) && text.includes('dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890') &&
+    /IndexedDB/.test(text) && /Cache Storage is shell\/static-only/.test(text) &&
+    /26\/26 saved paths, zero missing/.test(text) && /does not establish visual approval/.test(text) &&
+    /Supabase Auth is not used/.test(text) && /No ICTU deployment or live cleanup ran/.test(text));
+  need('local preservation, next-session stop and no inherited authority',
+    /Preserve protected local documents/.test(text) && /Prior permissions do not carry forward/.test(text) &&
+    /one writer/.test(text) && /read-only and context-only/.test(text) && /report and stop after grounding/.test(text) &&
+    /Availability does not expand authority/.test(text) && /does not promote a deployment/.test(text));
+  if (prompt) need('complete standalone grounding prompt',
+    /Discover the repository root/.test(text) && /initial grounding turn/.test(text) &&
+    /Do not edit files, review a pending diff, run tests\/QA\/probes/.test(text) &&
+    /Stop and wait for the owner's explicit task/.test(text) &&
+    ['AGENTS.md','CLAUDE.md','README.md','package.json','.vercelignore'].every(s=>text.includes(s)));
+  if (/The full suite passed|Current npm test passed|Full npm test passed|Live schedule data has been deleted|All walking routes are visually approved|The previous database approval still applies|This grounding prompt authorizes deployment|Prior permissions carry forward|Current live MySQL parity is verified|All timeouts are fixed|Provider outages are impossible|Continuous overnight monitoring passed|Production currently serves (?:b39d08c|59b61b8|9401df5)|Room scheduling is (?:uncommitted|not deployed)|Room scheduling is retired in the local candidate/i.test(text)) problems.push('unsupported current claim or inherited permission');
+  return problems;
+}
+
+const CURRENT_ROOM_REMOVAL_HEADING = '## Historical Release Continuity (2026-10-20 room-scheduling removal release; superseded by October 21 handoff)';
 /** PURE: the published retirement has its own dated evidence and stop boundary. */
 function roomSchedulingReleaseHandoffProblems(value, { prompt = false } = {}) {
   const t = String(value || '').replace(/[*]/g, '').split(String.fromCharCode(96)).join('').replace(/\s+/g, ' ');
@@ -7323,6 +7403,8 @@ function currentReleaseContinuityProblems(value, { requireMarkers = true } = {})
   if (historicalAt >= 0) scope = scope.slice(0, historicalAt);
 
   const t = scope.replace(/\s+/g, ' ').trim();
+
+  if (t.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return completedReleaseHandoffProblems(t);
 
   if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return roomSchedulingRemovalHandoffProblems(t);
 
@@ -8731,6 +8813,7 @@ function currentOfflineCorrectionEvidenceProblems(value) {
 function reusablePromptIsCurrent(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
   if (t === '') return false;
+  if (t.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return completedReleaseHandoffProblems(t, { prompt: true }).length === 0;
   if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return roomSchedulingRemovalHandoffProblems(t, { prompt: true }).length === 0;
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return walkingReleaseHandoffProblems(t, { prompt: true }).length === 0;
@@ -9322,6 +9405,7 @@ function reusablePromptHasExplicitWaitBoundary(value) {
 /** PURE: Codex grounds current truth and waits without performing a review. */
 function reusableCodexPromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
   if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Codex continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
@@ -9407,6 +9491,7 @@ function reusableCodexPromptHasWaitBoundary(body) {
 /** PURE: Claude grounds the exact state, performs no review, and waits. */
 function reusableClaudePromptHasWaitBoundary(body) {
   const t = String(body == null ? '' : body).replace(/\s+/g, ' ').trim();
+  if (t.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
   if ((t.includes('room-scheduling removal release') || t.includes('room-scheduling removal candidate'))) return reusablePromptIsCurrent(t) && /initial grounding turn for a new CampuSphere Claude Code continuity session/i.test(t);
   if (t.includes(CURRENT_WALKING_HANDOFF_BASELINE_SHA) || t.includes(CURRENT_WALKING_HANDOFF_NOTE)) {
     return reusablePromptIsCurrent(t) &&
@@ -10378,6 +10463,8 @@ function deploymentDocumentClaimsAreCurrent(text) {
   const current = currentDeploymentAuthorityScope(text);
   // A not-deployed candidate has a different lifecycle from the published
   // Walking release. Do not interpret its source SHA as deployed-byte proof.
+  if (current.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return completedReleaseHandoffProblems(current).length === 0;
+
   if (current.includes('room-scheduling removal release') || current.includes('room-scheduling removal candidate')) {
     return roomSchedulingRemovalHandoffProblems(current).length === 0;
   }
@@ -10433,6 +10520,8 @@ function recordsPostDeploymentAuthority(text) {
   if (typeof text !== 'string' || text === '') return false;
   const current = currentDeploymentAuthorityScope(text);
   const t = current.replace(/\s+/g, ' ');
+
+  if (current.includes(CURRENT_COMPLETED_HANDOFF_NOTE)) return completedReleaseHandoffProblems(current).length === 0;
 
   if (current.includes('room-scheduling removal release') || current.includes('room-scheduling removal candidate')) return roomSchedulingRemovalHandoffProblems(current).length === 0;
 
@@ -11272,6 +11361,7 @@ function runDocsCurrentGate() {
     'docs/deployment.md': readIf(path.join('docs', 'deployment.md')),
     'docs/offline-map-refresh.md': readIf(path.join('docs', 'offline-map-refresh.md')),
     'docs/current-authority.md': readIf(path.join('docs', 'current-authority.md')),
+    [CURRENT_COMPLETED_HANDOFF_NOTE]: readIf(CURRENT_COMPLETED_HANDOFF_NOTE),
     [CURRENT_PANEL_HANDOFF_NOTE]: readIf(CURRENT_PANEL_HANDOFF_NOTE),
     [CURRENT_WALKING_HANDOFF_NOTE]: readIf(CURRENT_WALKING_HANDOFF_NOTE),
     'docs/walking-2d-release-2026-10-18.md': readIf('docs/walking-2d-release-2026-10-18.md'),
@@ -11321,8 +11411,8 @@ function runDocsCurrentGate() {
     ['inherited maintenance authority', refreshFixture.replace('no database maintenance', 'database maintenance is authorized')],
   ]) ok('fixture: lifetime note rejects ' + label, sessionRefreshNoteProblems(fixture).length > 0);
 
-  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-20';
-  const EXPECTED_LAST_UPDATED_DATE = '2026-10-20';
+  const EXPECTED_RELEASE_CONTINUITY_DATE = '2026-10-21';
+  const EXPECTED_LAST_UPDATED_DATE = '2026-10-21';
   /** PURE: all current authority surfaces must carry synchronized dates. */
   function currentCandidateDateProblems(
     sourceMap,
@@ -11374,7 +11464,7 @@ function runDocsCurrentGate() {
     'docs/test-evidence.md': '## Current Release Continuity (2026-10-19)',
   };
   const CURRENT_DATE_FIXTURE = Object.fromEntries(Object.entries(DATE_FIXTURE)
-    .map(([name, value]) => [name, value.split('2026-10-19').join('2026-10-20')]));
+    .map(([name, value]) => [name, value.split('2026-10-19').join('2026-10-21')]));
   ok('fixture: accepted continuity and candidate-update dates are accepted while stale dates are rejected',
     currentCandidateDateProblems(DATE_FIXTURE, '2026-10-19', '2026-10-19').length === 0 &&
     currentCandidateDateProblems(CURRENT_DATE_FIXTURE).length === 0 &&
@@ -11866,7 +11956,7 @@ function runDocsCurrentGate() {
 
   for (const name of currentReleaseAuthorityDocs) {
     const problems = currentReleaseContinuityProblems(docs[name]);
-    ok(`${name} records the October 20 removal release handoff boundary`,
+    ok(`${name} records the October 21 completed-release handoff boundary`,
       problems.length === 0);
     problems.forEach((problem) => console.error(`    - ${name} release continuity: ${problem}`));
   }
@@ -11881,10 +11971,14 @@ function runDocsCurrentGate() {
     return raw.slice(start, end).replace(/[ \t]+$/gm, '').trim();
   }
   const currentSections = currentReleaseAuthorityDocs
+    .map((name) => normalizedCurrentReleaseSection(docs[name], CURRENT_COMPLETED_HANDOFF_HEADING));
+  ok('all eleven October 21 operative summaries are exactly synchronized',
+    currentSections.every((section) => section !== '') && new Set(currentSections).size === 1);
+  const historicalRemovalSections = currentReleaseAuthorityDocs
     .map((name) => normalizedCurrentReleaseSection(docs[name]));
-  ok('all eleven operative room-scheduling removal summaries are exactly synchronized',
-    currentSections.every((section) => section !== '') &&
-    new Set(currentSections).size === 1);
+  ok('all eleven archived October 20 removal summaries remain synchronized',
+    historicalRemovalSections.every(section => section !== '') && new Set(historicalRemovalSections).size === 1);
+
 
   const retirementFixture = normalizedCurrentReleaseSection(docs['CODEX_HANDOFF.md'], '## Historical Release Continuity (2026-10-19 room-scheduling removal candidate; superseded)').replace('## Historical Release Continuity (2026-10-19 room-scheduling removal candidate; superseded)', '## Current Release Continuity (2026-10-19 room-scheduling removal candidate)');
   for (const [label, from, to] of [
@@ -11923,8 +12017,15 @@ function runDocsCurrentGate() {
     }
   }
 
-  const publishedRemovalPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
-  for (const [label, body, prompt] of [['summary', currentSections[0], false],
+  const publishedRemovalPrompts = {};
+  for (const [role, title] of [['codex','Codex'], ['claude','Claude Code']]) {
+    const archive = docs['docs/new-session-grounding-prompts.md'];
+    const at = archive.indexOf('## Historical ' + title + ' Grounding Prompt (2026-10-20; superseded)');
+    const begin = archive.indexOf('```text\n', at);
+    const end = archive.indexOf('\n```', begin + 8);
+    publishedRemovalPrompts[role] = at >= 0 && begin >= 0 && end > begin ? archive.slice(begin + 8, end) : '';
+  }
+  for (const [label, body, prompt] of [['summary', historicalRemovalSections[0], false],
     ['Codex', publishedRemovalPrompts && publishedRemovalPrompts.codex, true],
     ['Claude', publishedRemovalPrompts && publishedRemovalPrompts.claude, true]]) {
     ok('published removal ' + label + ' carries independent current evidence',
@@ -11955,14 +12056,104 @@ function runDocsCurrentGate() {
     }
   }
 
+  // Independent positive fixture: specified facts, not copied from a live document.
+  const completedFixture = [
+    'Read docs/current-authority.md and docs/session-handoff-2026-10-21.md; recompute live Git truth.',
+    'Baseline 38fd2962dccb096a8d45635790092e91c611952b; the new documentation SHA is determined afterward.',
+    'dated removal release identities: b39d08cf2536cafc5d965adba0803e743425a698 dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha 59b61b8217881e28f7ad8514e82b3d3ff19534da dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY.',
+    'Later 6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21 9401df5db59c829ec819d30c0e0081ddf3fd810b dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E 07120e4c3313429dc765d42bc5bec8d062c6e761 dpl_86Lge98zAWnSKYbG7b14ef4uMpfF https://campusphere-cspc.vercel.app; dated Production evidence.',
+    'Room scheduling is retired for every role; standard JSON 404; login, role and CSRF protections remain; responses omit schedule types/metadata. Floor and room descriptions remain; explicit Administrator approval for Guests.',
+    '73 saved Schedule hotspots to private Info markers across 65 scenes; room names/positions preserved; zero Schedule types among 1,469 hotspots. 69 image entries and 2 legacy entries remain intact; schedule metadata remains for later cleanup. No live rows have been deleted; not a fresh database count.',
+    'Owner cleanup: owner-controlled target verification, stopped old writers, an external backup and explicit confirmation. Empty tables/fields, external hosted images and audit history are retained; legacy-reference guard. Migration sources remain contiguous through 0028 and unchanged; service worker is v53; shared stylesheet remains v13.',
+    '@vercel/functions 3.10.1 waitUntil; 2,000 ms per attempt, two attempts and 200 ms retry delay; expiry-only touch is not a full-session save; models lifetime draining; it does not reproduce actual cloud freezing. Docker/MySQL continue without a Vercel request context.',
+    '3 Warning rows, 0 Error, 0 Fatal; 1 Warning row, 0 Error, 0 Fatal; 14 Warning rows, 6 Error, 0 Fatal; request-row counts, not console-message totals. The zero-warning summary was corrected; monitoring gap; responses do not prove every refresh outcome.',
+    'The laptop shutdown interrupted monitoring: 15:42:36 UTC, 00:47:32 UTC. No continuous overnight monitoring is claimed. Fresh watch 655.105 seconds; 0 Warning / 0 Error / 0 Fatal request rows; windows do not promise zero future timeouts.',
+    'Focused 401/401 118/118 49/49 148/148 140/140 28/28 75/75 20/20 72/72 73/73 160/160 116/116 180/180 659/659; not a full npm test/qa pass; no full R6 pass is claimed; not physical-device acceptance or complete immutable deployed-byte equality.',
+    '201 files, 8,591,700 bytes; dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890. IndexedDB; Cache Storage is shell/static-only. 26/26 saved paths, zero missing; coverage does not establish visual approval. Supabase Auth is not used. No ICTU deployment or live cleanup ran.',
+    'Preserve protected local documents. Prior permissions do not carry forward; one writer. New grounding is read-only and context-only: report and stop after grounding. Availability does not expand authority. This task does not promote a deployment.'
+  ].join(' ');
+  ok('fixture: independently specified October 21 handoff is accepted',
+    completedReleaseHandoffProblems(completedFixture).length === 0);
+  for (const [label, from, to] of [
+    ['reading route','docs/session-handoff-2026-10-21.md','missing.md'],
+    ['current baseline','38fd2962dccb096a8d45635790092e91c611952b','0'.repeat(40)],
+    ['removal product','b39d08cf2536cafc5d965adba0803e743425a698','0'.repeat(40)],
+    ['removal successor','59b61b8217881e28f7ad8514e82b3d3ff19534da','0'.repeat(40)],
+    ['removal final deployment','dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY','dpl_wrong'],
+    ['latest deployment','dpl_86Lge98zAWnSKYbG7b14ef4uMpfF','dpl_wrong'],
+    ['pairing successor','9401df5db59c829ec819d30c0e0081ddf3fd810b','0'.repeat(40)],
+    ['room descriptions','Floor and room descriptions remain','Floor and room descriptions are removed'],
+    ['marker privacy','private Info markers','Guest-visible Info markers'],
+    ['marker count','73 saved Schedule hotspots','72 saved Schedule hotspots'],
+    ['marker scenes','across 65 scenes','across 64 scenes'],
+    ['hotspot observation','1,469 hotspots','1,468 hotspots'],
+    ['image entries','69 image entries','68 image entries'],
+    ['legacy entries','2 legacy entries','0 legacy entries'],
+    ['metadata retention','schedule metadata remains for later cleanup','schedule metadata was cleared'],
+    ['dated database evidence','not a fresh database count','fresh database count'],
+    ['cleanup authority','external backup and explicit confirmation','inherited confirmation'],
+    ['migration generation','through 0028 and unchanged','through 0027 and unchanged'],
+    ['cache generation','service worker is v53','service worker is v52'],
+    ['stylesheet generation','stylesheet remains v13','stylesheet remains v12'],
+    ['timeout budget','2,000 ms per attempt','10,000 ms per attempt'],
+    ['local model limitation','does not reproduce actual cloud freezing','reproduces actual cloud freezing'],
+    ['warning correction','14 Warning rows, 6 Error, 0 Fatal','zero warnings'],
+    ['removal warning','1 Warning row, 0 Error, 0 Fatal','zero warnings'],
+    ['request-row qualification','request-row counts, not console-message totals','console totals'],
+    ['monitoring gap','monitoring gap','continuous watch'],
+    ['shutdown gap','laptop shutdown','continuous operation'],
+    ['overnight limitation','No continuous overnight monitoring is claimed','Continuous overnight monitoring passed'],
+    ['fresh-watch duration','655.105 seconds','65 seconds'],
+    ['future timeout limit','do not promise zero future timeouts','promise zero future timeouts'],
+    ['current runtime bytes','8,591,700 bytes','8,577,707 bytes'],
+    ['current runtime hash','dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890','0'.repeat(64)],
+    ['walking coverage','26/26 saved paths','25/26 saved paths'],
+    ['no inherited authority','Prior permissions do not carry forward','Prior permissions carry forward'],
+  ]) ok('fixture: October 21 handoff rejects ' + label,
+    completedFixture.includes(from) && completedReleaseHandoffProblems(completedFixture.split(from).join(to)).length > 0);
+
+  const completedPrompts = extractReusablePrompts(docs['docs/new-session-grounding-prompts.md']);
+  for (const [label, body, prompt] of [['summary', currentSections[0], false],
+    ['canonical authority', docs['docs/current-authority.md'], false],
+    ['new handoff', docs[CURRENT_COMPLETED_HANDOFF_NOTE], false],
+    ['Codex', completedPrompts && completedPrompts.codex, true],
+    ['Claude', completedPrompts && completedPrompts.claude, true]]) {
+    ok('October 21 ' + label + ' is complete and independently bounded',
+      completedReleaseHandoffProblems(body, { prompt }).length === 0);
+    for (const claim of ['The full suite passed.', 'Live schedule data has been deleted.',
+      'All walking routes are visually approved.', 'Current live MySQL parity is verified.',
+      'The previous database approval still applies.', 'This grounding prompt authorizes deployment.',
+      'All timeouts are fixed.', 'Provider outages are impossible.',
+      'Continuous overnight monitoring passed.', 'Production currently serves b39d08c.',
+      'Room scheduling is not deployed.']) {
+      // Append inside the active section so an archive boundary cannot hide it.
+      const active = prompt ? body : normalizedCurrentReleaseSection(body, CURRENT_COMPLETED_HANDOFF_HEADING);
+      ok('fixture: October 21 ' + label + ' rejects: ' + claim,
+        Boolean(active) && completedReleaseHandoffProblems(active + '\n' + claim, { prompt }).length > 0);
+    }
+  }
+  for (const name of ['README.md','docs/thesis-teammate-handoff.md',
+    'database/supabase/README.md','database/supabase/REPOSITORY_BOUNDARIES.md']) {
+    const active = String(docs[name] || '').split(/^## Historical/m)[0];
+    ok(name + ' has a released current summary without stale candidate instructions',
+      active.includes(CURRENT_COMPLETED_HANDOFF_NOTE) && !/uncommitted local candidate|not deployed candidate|retired in the local candidate/.test(active));
+  }
+  ok('October 21 handoff preserves source map and marks predecessor notes as history',
+    /Source map for the next focused task/.test(docs[CURRENT_COMPLETED_HANDOFF_NOTE]) &&
+    /isolated network-free/.test(docs[CURRENT_COMPLETED_HANDOFF_NOTE]) &&
+    [docs[CURRENT_PANEL_HANDOFF_NOTE],docs[CURRENT_WALKING_HANDOFF_NOTE]].every(value =>
+      value.includes('Historical checkpoint, superseded by `' + CURRENT_COMPLETED_HANDOFF_NOTE + '`')));
+  ok('README active runtime description does not reference the removed scheduling adapter',
+    !docs['README.md'].includes('config/scheduleDataSource.js'));
+
   const currentAuthority = docs['docs/current-authority.md'];
   const currentAuthorityText = currentAuthority.replace(/\s+/g, ' ').trim();
   const incidentRecord = docs['docs/session-readiness-incident-2026-09-14.md'];
   const teammateHandoff = docs['docs/thesis-teammate-handoff.md'];
   const transitionNote = docs[CURRENT_PANEL_HANDOFF_NOTE];
   ok('canonical current authority records the October source, evidence and next-task boundaries',
-    roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(currentAuthority)).length === 0 &&
-    /Last updated: 2026-10-20/.test(currentAuthority) &&
+    completedReleaseHandoffProblems(normalizedCurrentReleaseSection(currentAuthority, CURRENT_COMPLETED_HANDOFF_HEADING)).length === 0 &&
+    /Last updated: 2026-10-21/.test(currentAuthority) &&
     /Architecture and rules to preserve/.test(currentAuthority));
   ok('detailed transition note preserves source map, local research artifacts and missing panel requests',
     /Last updated: 2026-10-17/.test(transitionNote) &&
@@ -12113,7 +12304,7 @@ function runDocsCurrentGate() {
     }
   }
   ok('October 19 transition note carries the October 20 release, source map and bounded validation',
-    roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE])).length === 0 &&
+    roomSchedulingRemovalHandoffProblems(normalizedCurrentReleaseSection(docs[CURRENT_WALKING_HANDOFF_NOTE], '## Current Release Continuity (2026-10-20 room-scheduling removal release)')).length === 0 &&
     /Last updated: 2026-10-20/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /Source map for the next focused task/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]) &&
     /isolated network-free/.test(docs[CURRENT_WALKING_HANDOFF_NOTE]));

@@ -1,5 +1,9 @@
 # CampuSphere Session Handoff - 2026-10-17
 
+> Historical checkpoint, superseded by `docs/session-handoff-2026-10-21.md`.
+> Its dates, permissions, tests and candidate statements describe that earlier session.
+
+
 > Historical October 17 checkpoint, superseded by `docs/session-handoff-2026-10-19.md`
 > and `docs/current-authority.md`. Its permissions and source/deployment claims
 > describe that earlier task only. Preserve this record; do not resume its tasks.

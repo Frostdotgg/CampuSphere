@@ -1,15 +1,15 @@
 # CampuSphere New Session Grounding Prompts
 
-Last updated: 2026-10-20 (Asia/Manila)
+Last updated: 2026-10-21 (Asia/Manila)
 
 ## Current Handoff Override
 
-Read docs/current-authority.md, docs/room-scheduling-release-2026-10-20.md
-and docs/room-scheduling-removal.md first. Room scheduling removal was released
-on October 20 from product commit b39d08c; floor/room descriptions and the 73
-private Info markers remain. Deployment evidence is dated and separate from
-later documentation HEADs. The release task grants no future cleanup, database
-writes or deployment permission. Read the current continuity block before history.
+Read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
+Room Scheduling / Room Plotting removal and the later session fixes are released.
+The last verified application baseline is 38fd296, deployment
+dpl_86Lge98zAWnSKYbG7b14ef4uMpfF. These are dated release observations;
+recompute live Git truth. Room descriptions and 73 private Info markers remain.
+Cleanup, new features and deployment require their own focused owner task.
 
 ## Codex Grounding Prompt
 
@@ -50,34 +50,23 @@ for artifact work. Availability is not authorization to call a database,
 vendor, browser, test runner or deployment tool. Do not claim unavailable MCP
 results or let a missing optional skill prevent safe local source grounding.
 
-Read the current sections first, in this order; navigate long files by headings
-and markers, and follow relevant references without dumping secret material:
-1. `docs/current-authority.md` and `docs/room-scheduling-removal.md`, then `AGENTS.md` and `CLAUDE.md`.
-2. `docs/session-handoff-2026-10-19.md` in full, then the historical
-   `docs/session-handoff-2026-10-17.md`, `CODEX_HANDOFF.md`,
-   `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`, `README.md`, and
-   `docs/thesis-teammate-handoff.md`. Read their current summaries before history.
-3. `docs/test-evidence.md`, `docs/deployment.md`,
-   `docs/security-checklist.md`, `docs/demo-script.md`,
-   `docs/session-readiness-incident-2026-09-14.md`, and
-   `docs/offline-map-refresh.md` for retained evidence and operational boundaries.
-4. `database/supabase/README.md`,
-   `database/supabase/REPOSITORY_BOUNDARIES.md`, `load-tests/production/README.md`,
-   `package.json`, `.vercelignore`, `.gitattributes`, `.gitignore`, and the
-   checkout's `.git/info/exclude` if present (read it; do not recreate it).
-5. Read `docs/walking-2d-release-2026-10-18.md` and
-   `docs/walking-2d-team-guide.md`, then follow the focused source map in the transition note: authentication/session/
-   access controls; Administrator coordinate-picker and map views; route
-   geometry/graph; `config/guidedVrRoutes.js` and `config/selectedDemoFreeze.js`;
-   `public/sw.js`; offline guide/release/publisher pipeline; notification feed;
-   and the two guarded MySQL repair/sync tools. Inspect source, not live data.
-   Read relevant probe source, but do not execute it. Do not import modules that
-   load environment values, start services, or query backends merely to ground.
-
-Older continuity sections and prompts are historical. The operative summary
-is the October 19 local room-scheduling removal candidate. The earlier
-Walking release and older checkpoints remain historical evidence.
-The source alone is not a copy of the current live database or deployment.
+Read the current sections first, in this order:
+1. docs/current-authority.md and docs/session-handoff-2026-10-21.md.
+2. The dated room-removal, retry-pairing and session-refresh release notes;
+   then AGENTS.md, CLAUDE.md, CODEX_HANDOFF.md and CLAUDE_HANDOFF.md.
+3. plan.md, ROADMAP.md, README.md, docs/thesis-teammate-handoff.md,
+   docs/test-evidence.md, docs/deployment.md, docs/security-checklist.md
+   and docs/demo-script.md. Read current summaries before historical sections.
+4. database/supabase/README.md, database/supabase/REPOSITORY_BOUNDARIES.md,
+   package.json, .vercelignore, .gitattributes, .gitignore and the existing
+   .git/info/exclude. Preserve ignored output and protected local documents.
+5. Follow the new handoff's source map: authentication/session/role controls;
+   retired scheduling endpoints and retained rooms/Info privacy; Walking/Vehicle
+   geometry, Guided VR and offline acquisition/storage. Read public/sw.js,
+   relevant probes and guarded maintenance source without executing them.
+   Read docs/walking-2d-team-guide.md and the dated Walking release. Older
+   October 17/19 handoffs, prompts, SQL and verification steps are history.
+   Never import a module that loads environment values or connects to a backend.
 
 Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
 using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
@@ -88,90 +77,133 @@ cached origin/main reference. A clean status does not make ignored files trash.
 
 Recorded facts to verify, not repeat blindly:
 
-Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
-and `docs/room-scheduling-removal.md` before history. The room-scheduling removal
-release was owner-authorized on October 20, including review, release tests,
-commit/push, staged Production checks and promotion. Its verified product source
-is b39d08cf2536cafc5d965adba0803e743425a698, from
-codex/remove-room-scheduling and baseline 0af76f161443f8259858f4fa67116bc12f51321e.
-The initial verified Production deployment is dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha
-at https://campusphere-cspc.vercel.app. This is a dated October 20 product-release
-observation, not a claim about a later documentation HEAD or deployment.
-Recompute live Git truth. Documentation-only successors retain the same runtime
-package; record their actual source/deployment identity in the final release
-evidence. Ready alone is not acceptance. The rollback target recorded before
-promotion is dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-21.md`
+first, then the dated room-removal and session-release notes. Room Scheduling /
+Room Plotting removal is complete; the later session reliability releases are
+also complete. The next panelist objective has not been selected. Recompute
+live Git truth before a new task; a dated release is not a future Git HEAD.
+
+The documentation-review baseline is
+38fd2962dccb096a8d45635790092e91c611952b. At preparation, local main,
+origin/main and remote main matched, with a clean working tree, empty index,
+zero stashes and ahead/behind 0/0. The owner authorized this documentation and
+static-assertion review, one commit and a normal push. The new documentation
+SHA is determined afterward and recorded in the external receipt. This task
+does not promote a deployment or refresh application/database evidence.
+
+The October 20 removal product is
+b39d08cf2536cafc5d965adba0803e743425a698, initially verified as
+dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha. Its completed documentation successor is
+59b61b8217881e28f7ad8514e82b3d3ff19534da, deployment
+dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY. The earlier rollback target was
+dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719. These are dated removal
+release identities, not the latest application/deployment identity.
 
 Room scheduling is retired for every role. Authorized retired API requests
 return the standard JSON 404; login, role and CSRF protections remain. New
-schedule hotspots and schedule metadata writes are rejected. Participant and
-Administrator VR responses omit schedule types/metadata. Floor and room
-descriptions remain. Scene, exit and information hotspots retain the previous
-Guest visibility rules. Building/panorama image previews, Walking/Vehicle
-routes, Free Roam and Guided VR remain available.
+schedule hotspots and schedule metadata writes are rejected; participant and
+Administrator responses omit schedule types/metadata. Floor and room
+descriptions remain. Scene and exit hotspots remain Guest-visible; ordinary
+Info hotspots need explicit Administrator approval for Guests. Building and
+panorama previews, Walking/Vehicle routes, Free Roam and Guided VR remain.
 
-The October 19 one-time conversion is completed history: 73 saved Schedule
-hotspots became private Info markers across 65 scenes, with room names/positions
-preserved. October 20 read-back again found zero Schedule types among 1,469
-hotspots. All seven application checks passed. The 69 image entries and 2
-legacy entries remain intact; schedule metadata remains for the later full
-cleanup. No live rows have been deleted. External hosted images and audit
-history remain untouched. Empty tables/fields are retained. Future cleanup
-requires owner-controlled target verification, stopped old writers, an external
-backup and explicit confirmation. The prepared cleanup converts any remaining
-schedule markers to private Info before clearing metadata/deleting schedule
-entries. A same-backend legacy-reference guard protects building deletion;
-synchronization tools reject retired schedule content before writes.
+The October 19 conversion changed 73 saved Schedule hotspots to private Info
+markers across 65 scenes, with room names/positions preserved. October 20
+read-back found zero Schedule types among 1,469 hotspots; all seven application
+checks passed. The 69 image entries and 2 legacy entries remain intact in that
+record; schedule metadata remains for later cleanup. No live rows have been
+deleted. These are dated observations, not a fresh database count. Empty
+tables/fields, external hosted images and audit history are retained. Future
+cleanup requires owner-controlled target verification, stopped old writers,
+an external backup and explicit confirmation. Cleanup reuses remaining room
+markers as private Info; the legacy-reference guard protects building deletion
+and synchronization tools reject retired content before writes.
 
-Migration sources remain contiguous through 0028 and unchanged. No migration
-was applied. Production data and Express sessions use Supabase/PostgreSQL;
-MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The retired
-SCHEDULE_DATA_SOURCE switch is absent from source templates; live environment
-settings and secrets were not changed. Current service worker is v53; shared
-stylesheet remains v13. No guide schema change or forced redownload is needed
-for retirement. IndexedDB holds the explicit user-downloaded guide/PMTiles;
-PWA Cache Storage is shell/static-only. Walking updates require a connected
-refresh on each device. October 20 observed 26/26 saved paths, zero missing;
-saved coverage does not establish visual approval of every walkway.
+The later retry-log product is 6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21,
+initial deployment dpl_AFoQhojBv2ha95QRHd944dJayw7w; its completed successor is
+9401df5db59c829ec819d30c0e0081ddf3fd810b, deployment
+dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E. Each sampled warning reserves its own
+recovered/failed outcome and opaque operation ID. Privacy and bounded sampling
+remain; process termination, logger failure and retention can obscure a pair.
 
-Fresh focused results include removal 401/401, Walking 118/118, offline
-navigation 49/49, PWA lifecycle 148/148, shared VR navigation/Guest policy
-140/140, session bootstrap 121/121, session resilience 21/21, shared rate limits
-180/180, disposable PostgreSQL/MySQL cleanup/restore 28/28 and package boundary
-75/75. Production smoke passed 20/20, including five exact committed asset
-matches. Local/staged/live representative browser checks cover retained rooms,
-CSLAB Info/privacy, panoramas, routes and a refreshed guide with 26 walking
-paths; disconnected reload and 390 px layout passed. An existing local saved
-guide and isolated older vehicle-only fixtures passed separately. Temporary
-host protection redirected the basemap download to Vercel sign-in; the normal
-website download passed immediately after promotion. Protection was unchanged.
+The lifetime-correction product is
+07120e4c3313429dc765d42bc5bec8d062c6e761, initial deployment
+dpl_HBd5t8p1hqXXgdQoiyBRY3RDQHPn. Its final published source is
+38fd2962dccb096a8d45635790092e91c611952b, deployment
+dpl_86Lge98zAWnSKYbG7b14ef4uMpfF, observed Ready on the normal website
+https://campusphere-cspc.vercel.app during October 21 completion. This is
+dated Production evidence, not a fresh vendor check during this handoff.
+Official @vercel/functions 3.10.1 waitUntil retains the full expiry refresh
+through retries, paired diagnostics and callback settlement. Defaults remain
+2,000 ms per attempt, two attempts and 200 ms retry delay. Session creation,
+changed-session saves, scoped logout, cookies and completed-response protection
+retain their guarantees; expiry-only touch is not a full-session save. The
+local fixture models lifetime draining; it does not reproduce actual cloud
+freezing or establish every historical provider/network cause. Docker/MySQL
+continue without a Vercel request context.
 
-The staged warning snapshot had 3 Warning rows, 0 Error, 0 Fatal, including
-session-store touch timeout retries; displayed responses do not establish every
-retry outcome. The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot and
-online visual-capture limitations remain dated history. Current monitoring is
-recorded separately; do not claim a zero-warning window. This is not a full npm
-test/qa pass, live MySQL parity, physical-device acceptance or exhaustive
-route/VR traversal. An additional full R6 harness attempt stopped before its
-isolated MySQL listener was ready; its vendor inventory checks passed, but no
-full R6 pass is claimed. Focused checks do not erase historical failures.
+Keep warning windows separate. Removal's staged snapshot had 3 Warning rows,
+0 Error, 0 Fatal; its final recorded closing snapshots had 1 Warning row,
+0 Error, 0 Fatal. The later logging release's corrected Last 30 minutes
+snapshot had 14 Warning rows, 6 Error, 0 Fatal, with a monitoring gap. These
+are request-row counts, not console-message totals; displayed 200/204 responses
+do not prove every refresh outcome. The old zero-warning summary was corrected.
+The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot remains history.
 
-The staged-Git runtime package is 201 files, 8,577,707 bytes, aggregate SHA-256
-6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709.
-The Leaflet CSS Git copy was corrected to its independently pinned original
-bytes. Package identity and five sampled deployed assets are not complete
-immutable deployed-byte equality. Backups/screenshots/private records remain
-outside Git. Preserve protected local documents, ignored output and the local
-exclude file. ICTU source readiness is separate from an actual ICTU deployment;
-saved routes live in Supabase, not Git. No ICTU deployment or live cleanup ran.
+Lifetime-correction staged monitoring lasted 638.107 seconds and product-live
+monitoring 637.145 seconds. Its first final-build watch was interrupted by a
+laptop shutdown: last saved checkpoint 2026-10-20 15:42:36 UTC; fresh watch
+resumed 2026-10-21 00:47:32 UTC. No continuous overnight monitoring is claimed.
+The fresh October 21 watch ran 00:47:32–00:58:28 UTC (655.105 seconds); its
+loaded 08:27–08:57 Asia/Manila view showed 0 Warning / 0 Error / 0 Fatal request
+rows. No natural retry or blocking session error was observed in that watch.
+These finite windows do not promise zero future timeouts or provider outages.
 
-The release authorization and the earlier 73-marker authorization do not carry
-forward. Prior permissions do not carry forward; one writer owns a scope.
-A new session's initial grounding turn is read-only and context-only: inventory
-tools, read current source, report and stop after grounding, then wait for the
-owner's explicit focused task. Availability does not expand authority. No
-automatic commit, push, deployment, migration, cleanup, repair or data write
-follows this completed release.
+Dated removal checks include 401/401 retirement, 118/118 Walking, 49/49 offline,
+148/148 PWA, 140/140 VR/Guest policy, 28/28 disposable cleanup/restore, 75/75
+package and 20/20 Production smoke. Representative rooms, private CSLAB Info,
+panoramas, routes, 390 px layout, downloaded-guide reload and older-guide
+fixtures passed. The full R6 harness did not reach its isolated MySQL listener;
+no full R6 pass is claimed. Later lifetime checks passed 72/72 lifetime,
+73/73 resilience, 160/160 bootstrap, 116/116 Production profile, 401/401
+retirement, 118/118 Walking and 180/180 rate limits; isolated documentation
+659/659 and package 75/75 passed. The network-disabled Docker lifetime check
+passed 72/72; the dependency audit recorded 0 vulnerabilities. Public smoke
+passed 20/20, including five exact committed asset matches. This handoff runs
+only isolated documentation/static/package checks and reports its actual new
+totals. It is not a full npm test/qa pass, fresh live MySQL parity, exhaustive
+route/VR traversal, physical-device acceptance or complete immutable deployed-byte
+equality. Original investigations, warnings and failed/incomplete harness
+evidence remain preserved.
+
+The current source runtime package is 201 files, 8,591,700 bytes, aggregate
+SHA-256 dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890.
+Compare canonical staged Git bytes with 38fd296; Windows checkout line endings
+are not package identity. Older 201-file removal/pairing fingerprints are dated
+predecessor evidence. Migration sources remain contiguous through 0028 and
+unchanged; no migration was applied by these releases. Current service worker
+is v53; shared stylesheet remains v13. Production data and Express sessions
+use Supabase/PostgreSQL; MySQL is local/fallback/rehearsal. Supabase Auth is not
+used. No secret, provider setting, public API, schema or browser cache change
+belongs in this documentation task.
+
+Schedules were already excluded from downloaded guides; retirement required
+no guide-format change or forced redownload. IndexedDB holds the explicit
+user-downloaded guide and PMTiles; Cache Storage is shell/static-only. Walking
+updates require a connected refresh on each device. The October 20 observation
+was 26/26 saved paths, zero missing; saved coverage does not establish visual
+approval of every walkway. Walking 2D and Walking VR remain separate catalogs.
+ICTU code readiness is not an actual ICTU deployment; saved routes reside in
+Supabase, not Git. No ICTU deployment or live cleanup ran.
+
+Preserve protected local documents, ignored output, the local exclude file and
+external evidence. Prior permissions do not carry forward; one writer owns a
+scope. A new session's initial grounding turn is read-only and context-only:
+inventory available capabilities, read current authority/source, report and
+stop after grounding, then wait for an explicit focused owner task. Availability
+does not expand authority. No automatic test run, server/browser/database/vendor
+access, repair, cleanup, migration, commit, push or deployment follows a new
+grounding turn. The completed release and this handoff grant no future work.
 
 
 - Local academic work includes the CAPA Chapter 4 reviewer and v10 selected
@@ -229,34 +261,23 @@ for artifact work. Availability is not authorization to call a database,
 vendor, browser, test runner or deployment tool. Do not claim unavailable MCP
 results or let a missing optional skill prevent safe local source grounding.
 
-Read the current sections first, in this order; navigate long files by headings
-and markers, and follow relevant references without dumping secret material:
-1. `docs/current-authority.md` and `docs/room-scheduling-removal.md`, then `AGENTS.md` and `CLAUDE.md`.
-2. `docs/session-handoff-2026-10-19.md` in full, then the historical
-   `docs/session-handoff-2026-10-17.md`, `CODEX_HANDOFF.md`,
-   `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`, `README.md`, and
-   `docs/thesis-teammate-handoff.md`. Read their current summaries before history.
-3. `docs/test-evidence.md`, `docs/deployment.md`,
-   `docs/security-checklist.md`, `docs/demo-script.md`,
-   `docs/session-readiness-incident-2026-09-14.md`, and
-   `docs/offline-map-refresh.md` for retained evidence and operational boundaries.
-4. `database/supabase/README.md`,
-   `database/supabase/REPOSITORY_BOUNDARIES.md`, `load-tests/production/README.md`,
-   `package.json`, `.vercelignore`, `.gitattributes`, `.gitignore`, and the
-   checkout's `.git/info/exclude` if present (read it; do not recreate it).
-5. Read `docs/walking-2d-release-2026-10-18.md` and
-   `docs/walking-2d-team-guide.md`, then follow the focused source map in the transition note: authentication/session/
-   access controls; Administrator coordinate-picker and map views; route
-   geometry/graph; `config/guidedVrRoutes.js` and `config/selectedDemoFreeze.js`;
-   `public/sw.js`; offline guide/release/publisher pipeline; notification feed;
-   and the two guarded MySQL repair/sync tools. Inspect source, not live data.
-   Read relevant probe source, but do not execute it. Do not import modules that
-   load environment values, start services, or query backends merely to ground.
-
-Older continuity sections and prompts are historical. The operative summary
-is the October 19 local room-scheduling removal candidate. The earlier
-Walking release and older checkpoints remain historical evidence.
-The source alone is not a copy of the current live database or deployment.
+Read the current sections first, in this order:
+1. docs/current-authority.md and docs/session-handoff-2026-10-21.md.
+2. The dated room-removal, retry-pairing and session-refresh release notes;
+   then AGENTS.md, CLAUDE.md, CODEX_HANDOFF.md and CLAUDE_HANDOFF.md.
+3. plan.md, ROADMAP.md, README.md, docs/thesis-teammate-handoff.md,
+   docs/test-evidence.md, docs/deployment.md, docs/security-checklist.md
+   and docs/demo-script.md. Read current summaries before historical sections.
+4. database/supabase/README.md, database/supabase/REPOSITORY_BOUNDARIES.md,
+   package.json, .vercelignore, .gitattributes, .gitignore and the existing
+   .git/info/exclude. Preserve ignored output and protected local documents.
+5. Follow the new handoff's source map: authentication/session/role controls;
+   retired scheduling endpoints and retained rooms/Info privacy; Walking/Vehicle
+   geometry, Guided VR and offline acquisition/storage. Read public/sw.js,
+   relevant probes and guarded maintenance source without executing them.
+   Read docs/walking-2d-team-guide.md and the dated Walking release. Older
+   October 17/19 handoffs, prompts, SQL and verification steps are history.
+   Never import a module that loads environment values or connects to a backend.
 
 Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
 using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
@@ -267,90 +288,133 @@ cached origin/main reference. A clean status does not make ignored files trash.
 
 Recorded facts to verify, not repeat blindly:
 
-Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
-and `docs/room-scheduling-removal.md` before history. The room-scheduling removal
-release was owner-authorized on October 20, including review, release tests,
-commit/push, staged Production checks and promotion. Its verified product source
-is b39d08cf2536cafc5d965adba0803e743425a698, from
-codex/remove-room-scheduling and baseline 0af76f161443f8259858f4fa67116bc12f51321e.
-The initial verified Production deployment is dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha
-at https://campusphere-cspc.vercel.app. This is a dated October 20 product-release
-observation, not a claim about a later documentation HEAD or deployment.
-Recompute live Git truth. Documentation-only successors retain the same runtime
-package; record their actual source/deployment identity in the final release
-evidence. Ready alone is not acceptance. The rollback target recorded before
-promotion is dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719.
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-21.md`
+first, then the dated room-removal and session-release notes. Room Scheduling /
+Room Plotting removal is complete; the later session reliability releases are
+also complete. The next panelist objective has not been selected. Recompute
+live Git truth before a new task; a dated release is not a future Git HEAD.
+
+The documentation-review baseline is
+38fd2962dccb096a8d45635790092e91c611952b. At preparation, local main,
+origin/main and remote main matched, with a clean working tree, empty index,
+zero stashes and ahead/behind 0/0. The owner authorized this documentation and
+static-assertion review, one commit and a normal push. The new documentation
+SHA is determined afterward and recorded in the external receipt. This task
+does not promote a deployment or refresh application/database evidence.
+
+The October 20 removal product is
+b39d08cf2536cafc5d965adba0803e743425a698, initially verified as
+dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha. Its completed documentation successor is
+59b61b8217881e28f7ad8514e82b3d3ff19534da, deployment
+dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY. The earlier rollback target was
+dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719. These are dated removal
+release identities, not the latest application/deployment identity.
 
 Room scheduling is retired for every role. Authorized retired API requests
 return the standard JSON 404; login, role and CSRF protections remain. New
-schedule hotspots and schedule metadata writes are rejected. Participant and
-Administrator VR responses omit schedule types/metadata. Floor and room
-descriptions remain. Scene, exit and information hotspots retain the previous
-Guest visibility rules. Building/panorama image previews, Walking/Vehicle
-routes, Free Roam and Guided VR remain available.
+schedule hotspots and schedule metadata writes are rejected; participant and
+Administrator responses omit schedule types/metadata. Floor and room
+descriptions remain. Scene and exit hotspots remain Guest-visible; ordinary
+Info hotspots need explicit Administrator approval for Guests. Building and
+panorama previews, Walking/Vehicle routes, Free Roam and Guided VR remain.
 
-The October 19 one-time conversion is completed history: 73 saved Schedule
-hotspots became private Info markers across 65 scenes, with room names/positions
-preserved. October 20 read-back again found zero Schedule types among 1,469
-hotspots. All seven application checks passed. The 69 image entries and 2
-legacy entries remain intact; schedule metadata remains for the later full
-cleanup. No live rows have been deleted. External hosted images and audit
-history remain untouched. Empty tables/fields are retained. Future cleanup
-requires owner-controlled target verification, stopped old writers, an external
-backup and explicit confirmation. The prepared cleanup converts any remaining
-schedule markers to private Info before clearing metadata/deleting schedule
-entries. A same-backend legacy-reference guard protects building deletion;
-synchronization tools reject retired schedule content before writes.
+The October 19 conversion changed 73 saved Schedule hotspots to private Info
+markers across 65 scenes, with room names/positions preserved. October 20
+read-back found zero Schedule types among 1,469 hotspots; all seven application
+checks passed. The 69 image entries and 2 legacy entries remain intact in that
+record; schedule metadata remains for later cleanup. No live rows have been
+deleted. These are dated observations, not a fresh database count. Empty
+tables/fields, external hosted images and audit history are retained. Future
+cleanup requires owner-controlled target verification, stopped old writers,
+an external backup and explicit confirmation. Cleanup reuses remaining room
+markers as private Info; the legacy-reference guard protects building deletion
+and synchronization tools reject retired content before writes.
 
-Migration sources remain contiguous through 0028 and unchanged. No migration
-was applied. Production data and Express sessions use Supabase/PostgreSQL;
-MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The retired
-SCHEDULE_DATA_SOURCE switch is absent from source templates; live environment
-settings and secrets were not changed. Current service worker is v53; shared
-stylesheet remains v13. No guide schema change or forced redownload is needed
-for retirement. IndexedDB holds the explicit user-downloaded guide/PMTiles;
-PWA Cache Storage is shell/static-only. Walking updates require a connected
-refresh on each device. October 20 observed 26/26 saved paths, zero missing;
-saved coverage does not establish visual approval of every walkway.
+The later retry-log product is 6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21,
+initial deployment dpl_AFoQhojBv2ha95QRHd944dJayw7w; its completed successor is
+9401df5db59c829ec819d30c0e0081ddf3fd810b, deployment
+dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E. Each sampled warning reserves its own
+recovered/failed outcome and opaque operation ID. Privacy and bounded sampling
+remain; process termination, logger failure and retention can obscure a pair.
 
-Fresh focused results include removal 401/401, Walking 118/118, offline
-navigation 49/49, PWA lifecycle 148/148, shared VR navigation/Guest policy
-140/140, session bootstrap 121/121, session resilience 21/21, shared rate limits
-180/180, disposable PostgreSQL/MySQL cleanup/restore 28/28 and package boundary
-75/75. Production smoke passed 20/20, including five exact committed asset
-matches. Local/staged/live representative browser checks cover retained rooms,
-CSLAB Info/privacy, panoramas, routes and a refreshed guide with 26 walking
-paths; disconnected reload and 390 px layout passed. An existing local saved
-guide and isolated older vehicle-only fixtures passed separately. Temporary
-host protection redirected the basemap download to Vercel sign-in; the normal
-website download passed immediately after promotion. Protection was unchanged.
+The lifetime-correction product is
+07120e4c3313429dc765d42bc5bec8d062c6e761, initial deployment
+dpl_HBd5t8p1hqXXgdQoiyBRY3RDQHPn. Its final published source is
+38fd2962dccb096a8d45635790092e91c611952b, deployment
+dpl_86Lge98zAWnSKYbG7b14ef4uMpfF, observed Ready on the normal website
+https://campusphere-cspc.vercel.app during October 21 completion. This is
+dated Production evidence, not a fresh vendor check during this handoff.
+Official @vercel/functions 3.10.1 waitUntil retains the full expiry refresh
+through retries, paired diagnostics and callback settlement. Defaults remain
+2,000 ms per attempt, two attempts and 200 ms retry delay. Session creation,
+changed-session saves, scoped logout, cookies and completed-response protection
+retain their guarantees; expiry-only touch is not a full-session save. The
+local fixture models lifetime draining; it does not reproduce actual cloud
+freezing or establish every historical provider/network cause. Docker/MySQL
+continue without a Vercel request context.
 
-The staged warning snapshot had 3 Warning rows, 0 Error, 0 Fatal, including
-session-store touch timeout retries; displayed responses do not establish every
-retry outcome. The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot and
-online visual-capture limitations remain dated history. Current monitoring is
-recorded separately; do not claim a zero-warning window. This is not a full npm
-test/qa pass, live MySQL parity, physical-device acceptance or exhaustive
-route/VR traversal. An additional full R6 harness attempt stopped before its
-isolated MySQL listener was ready; its vendor inventory checks passed, but no
-full R6 pass is claimed. Focused checks do not erase historical failures.
+Keep warning windows separate. Removal's staged snapshot had 3 Warning rows,
+0 Error, 0 Fatal; its final recorded closing snapshots had 1 Warning row,
+0 Error, 0 Fatal. The later logging release's corrected Last 30 minutes
+snapshot had 14 Warning rows, 6 Error, 0 Fatal, with a monitoring gap. These
+are request-row counts, not console-message totals; displayed 200/204 responses
+do not prove every refresh outcome. The old zero-warning summary was corrected.
+The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot remains history.
 
-The staged-Git runtime package is 201 files, 8,577,707 bytes, aggregate SHA-256
-6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709.
-The Leaflet CSS Git copy was corrected to its independently pinned original
-bytes. Package identity and five sampled deployed assets are not complete
-immutable deployed-byte equality. Backups/screenshots/private records remain
-outside Git. Preserve protected local documents, ignored output and the local
-exclude file. ICTU source readiness is separate from an actual ICTU deployment;
-saved routes live in Supabase, not Git. No ICTU deployment or live cleanup ran.
+Lifetime-correction staged monitoring lasted 638.107 seconds and product-live
+monitoring 637.145 seconds. Its first final-build watch was interrupted by a
+laptop shutdown: last saved checkpoint 2026-10-20 15:42:36 UTC; fresh watch
+resumed 2026-10-21 00:47:32 UTC. No continuous overnight monitoring is claimed.
+The fresh October 21 watch ran 00:47:32–00:58:28 UTC (655.105 seconds); its
+loaded 08:27–08:57 Asia/Manila view showed 0 Warning / 0 Error / 0 Fatal request
+rows. No natural retry or blocking session error was observed in that watch.
+These finite windows do not promise zero future timeouts or provider outages.
 
-The release authorization and the earlier 73-marker authorization do not carry
-forward. Prior permissions do not carry forward; one writer owns a scope.
-A new session's initial grounding turn is read-only and context-only: inventory
-tools, read current source, report and stop after grounding, then wait for the
-owner's explicit focused task. Availability does not expand authority. No
-automatic commit, push, deployment, migration, cleanup, repair or data write
-follows this completed release.
+Dated removal checks include 401/401 retirement, 118/118 Walking, 49/49 offline,
+148/148 PWA, 140/140 VR/Guest policy, 28/28 disposable cleanup/restore, 75/75
+package and 20/20 Production smoke. Representative rooms, private CSLAB Info,
+panoramas, routes, 390 px layout, downloaded-guide reload and older-guide
+fixtures passed. The full R6 harness did not reach its isolated MySQL listener;
+no full R6 pass is claimed. Later lifetime checks passed 72/72 lifetime,
+73/73 resilience, 160/160 bootstrap, 116/116 Production profile, 401/401
+retirement, 118/118 Walking and 180/180 rate limits; isolated documentation
+659/659 and package 75/75 passed. The network-disabled Docker lifetime check
+passed 72/72; the dependency audit recorded 0 vulnerabilities. Public smoke
+passed 20/20, including five exact committed asset matches. This handoff runs
+only isolated documentation/static/package checks and reports its actual new
+totals. It is not a full npm test/qa pass, fresh live MySQL parity, exhaustive
+route/VR traversal, physical-device acceptance or complete immutable deployed-byte
+equality. Original investigations, warnings and failed/incomplete harness
+evidence remain preserved.
+
+The current source runtime package is 201 files, 8,591,700 bytes, aggregate
+SHA-256 dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890.
+Compare canonical staged Git bytes with 38fd296; Windows checkout line endings
+are not package identity. Older 201-file removal/pairing fingerprints are dated
+predecessor evidence. Migration sources remain contiguous through 0028 and
+unchanged; no migration was applied by these releases. Current service worker
+is v53; shared stylesheet remains v13. Production data and Express sessions
+use Supabase/PostgreSQL; MySQL is local/fallback/rehearsal. Supabase Auth is not
+used. No secret, provider setting, public API, schema or browser cache change
+belongs in this documentation task.
+
+Schedules were already excluded from downloaded guides; retirement required
+no guide-format change or forced redownload. IndexedDB holds the explicit
+user-downloaded guide and PMTiles; Cache Storage is shell/static-only. Walking
+updates require a connected refresh on each device. The October 20 observation
+was 26/26 saved paths, zero missing; saved coverage does not establish visual
+approval of every walkway. Walking 2D and Walking VR remain separate catalogs.
+ICTU code readiness is not an actual ICTU deployment; saved routes reside in
+Supabase, not Git. No ICTU deployment or live cleanup ran.
+
+Preserve protected local documents, ignored output, the local exclude file and
+external evidence. Prior permissions do not carry forward; one writer owns a
+scope. A new session's initial grounding turn is read-only and context-only:
+inventory available capabilities, read current authority/source, report and
+stop after grounding, then wait for an explicit focused owner task. Availability
+does not expand authority. No automatic test run, server/browser/database/vendor
+access, repair, cleanup, migration, commit, push or deployment follows a new
+grounding turn. The completed release and this handoff grant no future work.
 
 
 - Local academic work includes the CAPA Chapter 4 reviewer and v10 selected
@@ -498,7 +562,137 @@ integrity: admin creation and role promotion create a minimal
 `0026_admin_instructor_profile_integrity.sql`; Codex did not apply or reapply it.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-10-20 room-scheduling removal release)
+## Current Release Continuity (2026-10-21 completed removal and session releases)
+
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-21.md`
+first, then the dated room-removal and session-release notes. Room Scheduling /
+Room Plotting removal is complete; the later session reliability releases are
+also complete. The next panelist objective has not been selected. Recompute
+live Git truth before a new task; a dated release is not a future Git HEAD.
+
+The documentation-review baseline is
+38fd2962dccb096a8d45635790092e91c611952b. At preparation, local main,
+origin/main and remote main matched, with a clean working tree, empty index,
+zero stashes and ahead/behind 0/0. The owner authorized this documentation and
+static-assertion review, one commit and a normal push. The new documentation
+SHA is determined afterward and recorded in the external receipt. This task
+does not promote a deployment or refresh application/database evidence.
+
+The October 20 removal product is
+b39d08cf2536cafc5d965adba0803e743425a698, initially verified as
+dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha. Its completed documentation successor is
+59b61b8217881e28f7ad8514e82b3d3ff19534da, deployment
+dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY. The earlier rollback target was
+dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719. These are dated removal
+release identities, not the latest application/deployment identity.
+
+Room scheduling is retired for every role. Authorized retired API requests
+return the standard JSON 404; login, role and CSRF protections remain. New
+schedule hotspots and schedule metadata writes are rejected; participant and
+Administrator responses omit schedule types/metadata. Floor and room
+descriptions remain. Scene and exit hotspots remain Guest-visible; ordinary
+Info hotspots need explicit Administrator approval for Guests. Building and
+panorama previews, Walking/Vehicle routes, Free Roam and Guided VR remain.
+
+The October 19 conversion changed 73 saved Schedule hotspots to private Info
+markers across 65 scenes, with room names/positions preserved. October 20
+read-back found zero Schedule types among 1,469 hotspots; all seven application
+checks passed. The 69 image entries and 2 legacy entries remain intact in that
+record; schedule metadata remains for later cleanup. No live rows have been
+deleted. These are dated observations, not a fresh database count. Empty
+tables/fields, external hosted images and audit history are retained. Future
+cleanup requires owner-controlled target verification, stopped old writers,
+an external backup and explicit confirmation. Cleanup reuses remaining room
+markers as private Info; the legacy-reference guard protects building deletion
+and synchronization tools reject retired content before writes.
+
+The later retry-log product is 6a5bbd8b81fd0ff874f3de0bc2ec38ac47c68d21,
+initial deployment dpl_AFoQhojBv2ha95QRHd944dJayw7w; its completed successor is
+9401df5db59c829ec819d30c0e0081ddf3fd810b, deployment
+dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E. Each sampled warning reserves its own
+recovered/failed outcome and opaque operation ID. Privacy and bounded sampling
+remain; process termination, logger failure and retention can obscure a pair.
+
+The lifetime-correction product is
+07120e4c3313429dc765d42bc5bec8d062c6e761, initial deployment
+dpl_HBd5t8p1hqXXgdQoiyBRY3RDQHPn. Its final published source is
+38fd2962dccb096a8d45635790092e91c611952b, deployment
+dpl_86Lge98zAWnSKYbG7b14ef4uMpfF, observed Ready on the normal website
+https://campusphere-cspc.vercel.app during October 21 completion. This is
+dated Production evidence, not a fresh vendor check during this handoff.
+Official @vercel/functions 3.10.1 waitUntil retains the full expiry refresh
+through retries, paired diagnostics and callback settlement. Defaults remain
+2,000 ms per attempt, two attempts and 200 ms retry delay. Session creation,
+changed-session saves, scoped logout, cookies and completed-response protection
+retain their guarantees; expiry-only touch is not a full-session save. The
+local fixture models lifetime draining; it does not reproduce actual cloud
+freezing or establish every historical provider/network cause. Docker/MySQL
+continue without a Vercel request context.
+
+Keep warning windows separate. Removal's staged snapshot had 3 Warning rows,
+0 Error, 0 Fatal; its final recorded closing snapshots had 1 Warning row,
+0 Error, 0 Fatal. The later logging release's corrected Last 30 minutes
+snapshot had 14 Warning rows, 6 Error, 0 Fatal, with a monitoring gap. These
+are request-row counts, not console-message totals; displayed 200/204 responses
+do not prove every refresh outcome. The old zero-warning summary was corrected.
+The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot remains history.
+
+Lifetime-correction staged monitoring lasted 638.107 seconds and product-live
+monitoring 637.145 seconds. Its first final-build watch was interrupted by a
+laptop shutdown: last saved checkpoint 2026-10-20 15:42:36 UTC; fresh watch
+resumed 2026-10-21 00:47:32 UTC. No continuous overnight monitoring is claimed.
+The fresh October 21 watch ran 00:47:32–00:58:28 UTC (655.105 seconds); its
+loaded 08:27–08:57 Asia/Manila view showed 0 Warning / 0 Error / 0 Fatal request
+rows. No natural retry or blocking session error was observed in that watch.
+These finite windows do not promise zero future timeouts or provider outages.
+
+Dated removal checks include 401/401 retirement, 118/118 Walking, 49/49 offline,
+148/148 PWA, 140/140 VR/Guest policy, 28/28 disposable cleanup/restore, 75/75
+package and 20/20 Production smoke. Representative rooms, private CSLAB Info,
+panoramas, routes, 390 px layout, downloaded-guide reload and older-guide
+fixtures passed. The full R6 harness did not reach its isolated MySQL listener;
+no full R6 pass is claimed. Later lifetime checks passed 72/72 lifetime,
+73/73 resilience, 160/160 bootstrap, 116/116 Production profile, 401/401
+retirement, 118/118 Walking and 180/180 rate limits; isolated documentation
+659/659 and package 75/75 passed. The network-disabled Docker lifetime check
+passed 72/72; the dependency audit recorded 0 vulnerabilities. Public smoke
+passed 20/20, including five exact committed asset matches. This handoff runs
+only isolated documentation/static/package checks and reports its actual new
+totals. It is not a full npm test/qa pass, fresh live MySQL parity, exhaustive
+route/VR traversal, physical-device acceptance or complete immutable deployed-byte
+equality. Original investigations, warnings and failed/incomplete harness
+evidence remain preserved.
+
+The current source runtime package is 201 files, 8,591,700 bytes, aggregate
+SHA-256 dfe57b2a9cc634f2a5f02758750be704ca02cff457388161fc282c0d21137890.
+Compare canonical staged Git bytes with 38fd296; Windows checkout line endings
+are not package identity. Older 201-file removal/pairing fingerprints are dated
+predecessor evidence. Migration sources remain contiguous through 0028 and
+unchanged; no migration was applied by these releases. Current service worker
+is v53; shared stylesheet remains v13. Production data and Express sessions
+use Supabase/PostgreSQL; MySQL is local/fallback/rehearsal. Supabase Auth is not
+used. No secret, provider setting, public API, schema or browser cache change
+belongs in this documentation task.
+
+Schedules were already excluded from downloaded guides; retirement required
+no guide-format change or forced redownload. IndexedDB holds the explicit
+user-downloaded guide and PMTiles; Cache Storage is shell/static-only. Walking
+updates require a connected refresh on each device. The October 20 observation
+was 26/26 saved paths, zero missing; saved coverage does not establish visual
+approval of every walkway. Walking 2D and Walking VR remain separate catalogs.
+ICTU code readiness is not an actual ICTU deployment; saved routes reside in
+Supabase, not Git. No ICTU deployment or live cleanup ran.
+
+Preserve protected local documents, ignored output, the local exclude file and
+external evidence. Prior permissions do not carry forward; one writer owns a
+scope. A new session's initial grounding turn is read-only and context-only:
+inventory available capabilities, read current authority/source, report and
+stop after grounding, then wait for an explicit focused owner task. Availability
+does not expand authority. No automatic test run, server/browser/database/vendor
+access, repair, cleanup, migration, commit, push or deployment follows a new
+grounding turn. The completed release and this handoff grant no future work.
+
+## Historical Release Continuity (2026-10-20 room-scheduling removal release; superseded by October 21 handoff)
 
 Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
 and `docs/room-scheduling-removal.md` before history. The room-scheduling removal
@@ -6856,6 +7050,364 @@ for factual claims. Do not repair discrepancies or recommend a deployment.
 Stop and wait for the owner's explicit task.
 ```
 
+
+## Historical Codex Grounding Prompt (2026-10-20; superseded)
+
+This complete prompt records the earlier removal release. Use the current prompt above.
+
+```text
+This is the initial grounding turn for a new CampuSphere Codex continuity
+session. Act as a senior developer and careful handoff reviewer; implementation
+and review actions require their own later owner task.
+
+Discover the repository root from the current workspace. Never assume an
+owner-specific absolute path. This first turn is read-only and context-only.
+Do not edit files, review a pending diff, run tests/QA/probes, start servers or
+containers, open/control a browser, access MySQL/Supabase/sessions, inspect
+vendor dashboards, change Git state, deploy/promote, run a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, compare, or package `.env` or
+secret values. Report and stop after grounding; wait for the owner's focused
+task. Tool, MCP, browser, skill, or subagent availability does not expand
+authority. Completed repair, revocation, commit, push, and promotion permissions
+from earlier tasks do not carry forward. No delegated task may exceed this
+boundary; do not start another writer or message another thread on your own.
+
+These grounding-only restrictions apply to the first turn. Later work requires
+a focused owner request with an explicit scope; this prompt does not authorize
+that later work. Do not let an older handoff's task-specific permission override
+this first-turn boundary.
+
+Inventory the tools, MCP/connectors, and skills actually available in this
+session. Read an applicable skill's complete instructions before using it.
+Use an installed repository-grounding skill only if available; do not install
+or invent it. Use only local read-only filesystem inspection and Git inspection,
+including the read-only remote Git lookup specified below. This does not permit
+browser, database, vendor-dashboard or other service access.
+For a later authorized task, use code-reviewer for scoped code/security review,
+the available browser/computer-use skill for approved UI work, current official
+documentation tools for unfamiliar APIs, and document/presentation/PDF skills
+for artifact work. Availability is not authorization to call a database,
+vendor, browser, test runner or deployment tool. Do not claim unavailable MCP
+results or let a missing optional skill prevent safe local source grounding.
+
+Read the current sections first, in this order; navigate long files by headings
+and markers, and follow relevant references without dumping secret material:
+1. `docs/current-authority.md` and `docs/room-scheduling-removal.md`, then `AGENTS.md` and `CLAUDE.md`.
+2. `docs/session-handoff-2026-10-19.md` in full, then the historical
+   `docs/session-handoff-2026-10-17.md`, `CODEX_HANDOFF.md`,
+   `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`, `README.md`, and
+   `docs/thesis-teammate-handoff.md`. Read their current summaries before history.
+3. `docs/test-evidence.md`, `docs/deployment.md`,
+   `docs/security-checklist.md`, `docs/demo-script.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, and
+   `docs/offline-map-refresh.md` for retained evidence and operational boundaries.
+4. `database/supabase/README.md`,
+   `database/supabase/REPOSITORY_BOUNDARIES.md`, `load-tests/production/README.md`,
+   `package.json`, `.vercelignore`, `.gitattributes`, `.gitignore`, and the
+   checkout's `.git/info/exclude` if present (read it; do not recreate it).
+5. Read `docs/walking-2d-release-2026-10-18.md` and
+   `docs/walking-2d-team-guide.md`, then follow the focused source map in the transition note: authentication/session/
+   access controls; Administrator coordinate-picker and map views; route
+   geometry/graph; `config/guidedVrRoutes.js` and `config/selectedDemoFreeze.js`;
+   `public/sw.js`; offline guide/release/publisher pipeline; notification feed;
+   and the two guarded MySQL repair/sync tools. Inspect source, not live data.
+   Read relevant probe source, but do not execute it. Do not import modules that
+   load environment values, start services, or query backends merely to ground.
+
+Older continuity sections and prompts are historical. The operative summary
+is the October 19 local room-scheduling removal candidate. The earlier
+Walking release and older checkpoints remain historical evidence.
+The source alone is not a copy of the current live database or deployment.
+
+Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
+using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
+and a short recent graph. Do not fetch, pull, reset, clean, switch, restore,
+stage, stash, commit or push. Preserve any pending documentation delta. If a
+remote lookup is unavailable, report it; do not infer remote equality from the
+cached origin/main reference. A clean status does not make ignored files trash.
+
+Recorded facts to verify, not repeat blindly:
+
+Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
+and `docs/room-scheduling-removal.md` before history. The room-scheduling removal
+release was owner-authorized on October 20, including review, release tests,
+commit/push, staged Production checks and promotion. Its verified product source
+is b39d08cf2536cafc5d965adba0803e743425a698, from
+codex/remove-room-scheduling and baseline 0af76f161443f8259858f4fa67116bc12f51321e.
+The initial verified Production deployment is dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha
+at https://campusphere-cspc.vercel.app. This is a dated October 20 product-release
+observation, not a claim about a later documentation HEAD or deployment.
+Recompute live Git truth. Documentation-only successors retain the same runtime
+package; record their actual source/deployment identity in the final release
+evidence. Ready alone is not acceptance. The rollback target recorded before
+promotion is dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719.
+
+Room scheduling is retired for every role. Authorized retired API requests
+return the standard JSON 404; login, role and CSRF protections remain. New
+schedule hotspots and schedule metadata writes are rejected. Participant and
+Administrator VR responses omit schedule types/metadata. Floor and room
+descriptions remain. Scene, exit and information hotspots retain the previous
+Guest visibility rules. Building/panorama image previews, Walking/Vehicle
+routes, Free Roam and Guided VR remain available.
+
+The October 19 one-time conversion is completed history: 73 saved Schedule
+hotspots became private Info markers across 65 scenes, with room names/positions
+preserved. October 20 read-back again found zero Schedule types among 1,469
+hotspots. All seven application checks passed. The 69 image entries and 2
+legacy entries remain intact; schedule metadata remains for the later full
+cleanup. No live rows have been deleted. External hosted images and audit
+history remain untouched. Empty tables/fields are retained. Future cleanup
+requires owner-controlled target verification, stopped old writers, an external
+backup and explicit confirmation. The prepared cleanup converts any remaining
+schedule markers to private Info before clearing metadata/deleting schedule
+entries. A same-backend legacy-reference guard protects building deletion;
+synchronization tools reject retired schedule content before writes.
+
+Migration sources remain contiguous through 0028 and unchanged. No migration
+was applied. Production data and Express sessions use Supabase/PostgreSQL;
+MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The retired
+SCHEDULE_DATA_SOURCE switch is absent from source templates; live environment
+settings and secrets were not changed. Current service worker is v53; shared
+stylesheet remains v13. No guide schema change or forced redownload is needed
+for retirement. IndexedDB holds the explicit user-downloaded guide/PMTiles;
+PWA Cache Storage is shell/static-only. Walking updates require a connected
+refresh on each device. October 20 observed 26/26 saved paths, zero missing;
+saved coverage does not establish visual approval of every walkway.
+
+Fresh focused results include removal 401/401, Walking 118/118, offline
+navigation 49/49, PWA lifecycle 148/148, shared VR navigation/Guest policy
+140/140, session bootstrap 121/121, session resilience 21/21, shared rate limits
+180/180, disposable PostgreSQL/MySQL cleanup/restore 28/28 and package boundary
+75/75. Production smoke passed 20/20, including five exact committed asset
+matches. Local/staged/live representative browser checks cover retained rooms,
+CSLAB Info/privacy, panoramas, routes and a refreshed guide with 26 walking
+paths; disconnected reload and 390 px layout passed. An existing local saved
+guide and isolated older vehicle-only fixtures passed separately. Temporary
+host protection redirected the basemap download to Vercel sign-in; the normal
+website download passed immediately after promotion. Protection was unchanged.
+
+The staged warning snapshot had 3 Warning rows, 0 Error, 0 Fatal, including
+session-store touch timeout retries; displayed responses do not establish every
+retry outcome. The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot and
+online visual-capture limitations remain dated history. Current monitoring is
+recorded separately; do not claim a zero-warning window. This is not a full npm
+test/qa pass, live MySQL parity, physical-device acceptance or exhaustive
+route/VR traversal. An additional full R6 harness attempt stopped before its
+isolated MySQL listener was ready; its vendor inventory checks passed, but no
+full R6 pass is claimed. Focused checks do not erase historical failures.
+
+The staged-Git runtime package is 201 files, 8,577,707 bytes, aggregate SHA-256
+6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709.
+The Leaflet CSS Git copy was corrected to its independently pinned original
+bytes. Package identity and five sampled deployed assets are not complete
+immutable deployed-byte equality. Backups/screenshots/private records remain
+outside Git. Preserve protected local documents, ignored output and the local
+exclude file. ICTU source readiness is separate from an actual ICTU deployment;
+saved routes live in Supabase, not Git. No ICTU deployment or live cleanup ran.
+
+The release authorization and the earlier 73-marker authorization do not carry
+forward. Prior permissions do not carry forward; one writer owns a scope.
+A new session's initial grounding turn is read-only and context-only: inventory
+tools, read current source, report and stop after grounding, then wait for the
+owner's explicit focused task. Availability does not expand authority. No
+automatic commit, push, deployment, migration, cleanup, repair or data write
+follows this completed release.
+
+
+- Local academic work includes the CAPA Chapter 4 reviewer and v10 selected
+  defense script (slides 15-19 and 23). The v10 PPTX has 26 slides ending at
+  26:05. Preserve source manuscripts, tables/figures and PowerPoint. Deck slide
+  16 has older diagrams than CAPA: explain differences, do not silently repair.
+  Further Sprint contribution paragraphs were chat-only, not inserted into DOCX.
+  Preserve 472 survey vs 467 complete SUS records, SUS 65.16/100 (not a percent),
+  five evaluators vs seven form sets, and executed 200-user vs planned 300-user
+  distinctions. Do not upgrade older manuscript results with newer repo evidence.
+
+Report: actual capabilities/skills used and limitations; Git truth; authoritative
+files read; current architecture/features; completed work; local-only artifacts;
+source-vs-history/deployment/test distinctions; unresolved discrepancies; the completed removal scope and remaining owner steps; and the owner-controlled next-step boundary. Cite source files
+for factual claims. Do not repair discrepancies or recommend a deployment.
+Stop and wait for the owner's explicit task.
+```
+
+## Historical Claude Code Grounding Prompt (2026-10-20; superseded)
+
+This complete prompt records the earlier removal release. Use the current prompt above.
+
+```text
+This is the initial grounding turn for a new CampuSphere Claude Code continuity
+session. Act as a senior developer and careful handoff reviewer; implementation
+and review actions require their own later owner task.
+
+Discover the repository root from the current workspace. Never assume an
+owner-specific absolute path. This first turn is read-only and context-only.
+Do not edit files, review a pending diff, run tests/QA/probes, start servers or
+containers, open/control a browser, access MySQL/Supabase/sessions, inspect
+vendor dashboards, change Git state, deploy/promote, run a Production smoke,
+or issue GO/NO-GO. Never read, print, summarize, compare, or package `.env` or
+secret values. Report and stop after grounding; wait for the owner's focused
+task. Tool, MCP, browser, skill, or subagent availability does not expand
+authority. Completed repair, revocation, commit, push, and promotion permissions
+from earlier tasks do not carry forward. No delegated task may exceed this
+boundary; do not start another writer or message another thread on your own.
+
+These grounding-only restrictions apply to the first turn. Later work requires
+a focused owner request with an explicit scope; this prompt does not authorize
+that later work. Do not let an older handoff's task-specific permission override
+this first-turn boundary.
+
+Inventory the tools, MCP/connectors, and skills actually available in this
+session. Read an applicable skill's complete instructions before using it.
+Use an installed repository-grounding skill only if available; do not install
+or invent it. Use only local read-only filesystem inspection and Git inspection,
+including the read-only remote Git lookup specified below. This does not permit
+browser, database, vendor-dashboard or other service access.
+For a later authorized task, use code-reviewer for scoped code/security review,
+the available browser/computer-use skill for approved UI work, current official
+documentation tools for unfamiliar APIs, and document/presentation/PDF skills
+for artifact work. Availability is not authorization to call a database,
+vendor, browser, test runner or deployment tool. Do not claim unavailable MCP
+results or let a missing optional skill prevent safe local source grounding.
+
+Read the current sections first, in this order; navigate long files by headings
+and markers, and follow relevant references without dumping secret material:
+1. `docs/current-authority.md` and `docs/room-scheduling-removal.md`, then `AGENTS.md` and `CLAUDE.md`.
+2. `docs/session-handoff-2026-10-19.md` in full, then the historical
+   `docs/session-handoff-2026-10-17.md`, `CODEX_HANDOFF.md`,
+   `CLAUDE_HANDOFF.md`, `plan.md`, `ROADMAP.md`, `README.md`, and
+   `docs/thesis-teammate-handoff.md`. Read their current summaries before history.
+3. `docs/test-evidence.md`, `docs/deployment.md`,
+   `docs/security-checklist.md`, `docs/demo-script.md`,
+   `docs/session-readiness-incident-2026-09-14.md`, and
+   `docs/offline-map-refresh.md` for retained evidence and operational boundaries.
+4. `database/supabase/README.md`,
+   `database/supabase/REPOSITORY_BOUNDARIES.md`, `load-tests/production/README.md`,
+   `package.json`, `.vercelignore`, `.gitattributes`, `.gitignore`, and the
+   checkout's `.git/info/exclude` if present (read it; do not recreate it).
+5. Read `docs/walking-2d-release-2026-10-18.md` and
+   `docs/walking-2d-team-guide.md`, then follow the focused source map in the transition note: authentication/session/
+   access controls; Administrator coordinate-picker and map views; route
+   geometry/graph; `config/guidedVrRoutes.js` and `config/selectedDemoFreeze.js`;
+   `public/sw.js`; offline guide/release/publisher pipeline; notification feed;
+   and the two guarded MySQL repair/sync tools. Inspect source, not live data.
+   Read relevant probe source, but do not execute it. Do not import modules that
+   load environment values, start services, or query backends merely to ground.
+
+Older continuity sections and prompts are historical. The operative summary
+is the October 19 local room-scheduling removal candidate. The earlier
+Walking release and older checkpoints remain historical evidence.
+The source alone is not a copy of the current live database or deployment.
+
+Recompute read-only Git truth: root, branch, full HEAD, origin/main, remote main
+using git ls-remote, ahead/behind, staged/tracked/untracked status, stash count,
+and a short recent graph. Do not fetch, pull, reset, clean, switch, restore,
+stage, stash, commit or push. Preserve any pending documentation delta. If a
+remote lookup is unavailable, report it; do not infer remote equality from the
+cached origin/main reference. A clean status does not make ignored files trash.
+
+Recorded facts to verify, not repeat blindly:
+
+Read `docs/current-authority.md`, `docs/room-scheduling-release-2026-10-20.md`
+and `docs/room-scheduling-removal.md` before history. The room-scheduling removal
+release was owner-authorized on October 20, including review, release tests,
+commit/push, staged Production checks and promotion. Its verified product source
+is b39d08cf2536cafc5d965adba0803e743425a698, from
+codex/remove-room-scheduling and baseline 0af76f161443f8259858f4fa67116bc12f51321e.
+The initial verified Production deployment is dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha
+at https://campusphere-cspc.vercel.app. This is a dated October 20 product-release
+observation, not a claim about a later documentation HEAD or deployment.
+Recompute live Git truth. Documentation-only successors retain the same runtime
+package; record their actual source/deployment identity in the final release
+evidence. Ready alone is not acceptance. The rollback target recorded before
+promotion is dpl_94jYqWkHoC19cLKnfooTVEG8SCyU, source c533719.
+
+Room scheduling is retired for every role. Authorized retired API requests
+return the standard JSON 404; login, role and CSRF protections remain. New
+schedule hotspots and schedule metadata writes are rejected. Participant and
+Administrator VR responses omit schedule types/metadata. Floor and room
+descriptions remain. Scene, exit and information hotspots retain the previous
+Guest visibility rules. Building/panorama image previews, Walking/Vehicle
+routes, Free Roam and Guided VR remain available.
+
+The October 19 one-time conversion is completed history: 73 saved Schedule
+hotspots became private Info markers across 65 scenes, with room names/positions
+preserved. October 20 read-back again found zero Schedule types among 1,469
+hotspots. All seven application checks passed. The 69 image entries and 2
+legacy entries remain intact; schedule metadata remains for the later full
+cleanup. No live rows have been deleted. External hosted images and audit
+history remain untouched. Empty tables/fields are retained. Future cleanup
+requires owner-controlled target verification, stopped old writers, an external
+backup and explicit confirmation. The prepared cleanup converts any remaining
+schedule markers to private Info before clearing metadata/deleting schedule
+entries. A same-backend legacy-reference guard protects building deletion;
+synchronization tools reject retired schedule content before writes.
+
+Migration sources remain contiguous through 0028 and unchanged. No migration
+was applied. Production data and Express sessions use Supabase/PostgreSQL;
+MySQL remains local/fallback/rehearsal. Supabase Auth is not used. The retired
+SCHEDULE_DATA_SOURCE switch is absent from source templates; live environment
+settings and secrets were not changed. Current service worker is v53; shared
+stylesheet remains v13. No guide schema change or forced redownload is needed
+for retirement. IndexedDB holds the explicit user-downloaded guide/PMTiles;
+PWA Cache Storage is shell/static-only. Walking updates require a connected
+refresh on each device. October 20 observed 26/26 saved paths, zero missing;
+saved coverage does not establish visual approval of every walkway.
+
+Fresh focused results include removal 401/401, Walking 118/118, offline
+navigation 49/49, PWA lifecycle 148/148, shared VR navigation/Guest policy
+140/140, session bootstrap 121/121, session resilience 21/21, shared rate limits
+180/180, disposable PostgreSQL/MySQL cleanup/restore 28/28 and package boundary
+75/75. Production smoke passed 20/20, including five exact committed asset
+matches. Local/staged/live representative browser checks cover retained rooms,
+CSLAB Info/privacy, panoramas, routes and a refreshed guide with 26 walking
+paths; disconnected reload and 390 px layout passed. An existing local saved
+guide and isolated older vehicle-only fixtures passed separately. Temporary
+host protection redirected the basemap download to Vercel sign-in; the normal
+website download passed immediately after promotion. Protection was unchanged.
+
+The staged warning snapshot had 3 Warning rows, 0 Error, 0 Fatal, including
+session-store touch timeout retries; displayed responses do not establish every
+retry outcome. The October 18 12 Warning rows / 0 Error / 0 Fatal snapshot and
+online visual-capture limitations remain dated history. Current monitoring is
+recorded separately; do not claim a zero-warning window. This is not a full npm
+test/qa pass, live MySQL parity, physical-device acceptance or exhaustive
+route/VR traversal. An additional full R6 harness attempt stopped before its
+isolated MySQL listener was ready; its vendor inventory checks passed, but no
+full R6 pass is claimed. Focused checks do not erase historical failures.
+
+The staged-Git runtime package is 201 files, 8,577,707 bytes, aggregate SHA-256
+6c20279df6b9297f7859d1b0d01f72f15d863937c7816695919cf269924fe709.
+The Leaflet CSS Git copy was corrected to its independently pinned original
+bytes. Package identity and five sampled deployed assets are not complete
+immutable deployed-byte equality. Backups/screenshots/private records remain
+outside Git. Preserve protected local documents, ignored output and the local
+exclude file. ICTU source readiness is separate from an actual ICTU deployment;
+saved routes live in Supabase, not Git. No ICTU deployment or live cleanup ran.
+
+The release authorization and the earlier 73-marker authorization do not carry
+forward. Prior permissions do not carry forward; one writer owns a scope.
+A new session's initial grounding turn is read-only and context-only: inventory
+tools, read current source, report and stop after grounding, then wait for the
+owner's explicit focused task. Availability does not expand authority. No
+automatic commit, push, deployment, migration, cleanup, repair or data write
+follows this completed release.
+
+
+- Local academic work includes the CAPA Chapter 4 reviewer and v10 selected
+  defense script (slides 15-19 and 23). The v10 PPTX has 26 slides ending at
+  26:05. Preserve source manuscripts, tables/figures and PowerPoint. Deck slide
+  16 has older diagrams than CAPA: explain differences, do not silently repair.
+  Further Sprint contribution paragraphs were chat-only, not inserted into DOCX.
+  Preserve 472 survey vs 467 complete SUS records, SUS 65.16/100 (not a percent),
+  five evaluators vs seven form sets, and executed 200-user vs planned 300-user
+  distinctions. Do not upgrade older manuscript results with newer repo evidence.
+
+Report: actual capabilities/skills used and limitations; Git truth; authoritative
+files read; current architecture/features; completed work; local-only artifacts;
+source-vs-history/deployment/test distinctions; unresolved discrepancies; the completed removal scope and remaining owner steps; and the owner-controlled next-step boundary. Cite source files
+for factual claims. Do not repair discrepancies or recommend a deployment.
+Stop and wait for the owner's explicit task.
+```
 
 ## Historical Codex Grounding Prompt (2026-10-19; superseded)
 

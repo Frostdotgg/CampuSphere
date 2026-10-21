@@ -1,5 +1,16 @@
 # Session retry logging release — 2026-10-20
 
+## Completed successor and corrected monitoring (recorded October 21)
+
+The completed successor was 9401df5db59c829ec819d30c0e0081ddf3fd810b, deployment
+dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E. The final corrected Last 30 minutes snapshot
+contained 14 Warning rows, 6 Error rows and 0 Fatal rows; these are request-row
+counts, not console totals or exact ten-minute totals. The earlier zero-warning
+summary was corrected. A monitoring gap from 11:26 to 14:16 UTC was followed by
+a fresh 620.715-second closing watch ending 14:28:05 UTC. Correlated recovered
+and failed retries and a post-response error were recorded. The later lifetime
+correction is a separate release; see docs/session-handoff-2026-10-21.md.
+
 ## Verified product publication
 
 The owner approved committing, pushing, staged Production checks, promotion,

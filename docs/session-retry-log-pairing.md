@@ -1,5 +1,12 @@
 # Session retry log pairing
 
+## Completed release continuity
+
+The final pairing-release successor is 9401df5 / dpl_9Y7bXk1NQttAYU6LiCUaLgPd1T4E.
+Its corrected warning/error counts and monitoring gap are recorded in the release
+note. The later lifetime correction is final baseline 38fd296. Read
+docs/session-handoff-2026-10-21.md before the original local evidence below.
+
 Date: 2026-10-20 (Asia/Manila). Status: released product; original local evidence retained.
 
 The owner approved the controlled release after the local verification below.

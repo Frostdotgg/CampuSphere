@@ -1,14 +1,15 @@
 # Repository Boundary Design
 
-## Current local retirement candidate (2026-10-19)
+## Current released retirement (2026-10-21 handoff)
 
-Room scheduling is retired in the local, uncommitted and not deployed candidate.
-See `docs/room-scheduling-removal.md` for owner-controlled backup/cleanup and
-restore instructions. No migration is changed or applied, and empty tables and
-fields remain for compatibility. Building deletion retains a narrow reference
-guard until cleanup; floor and room descriptions remain. Old schedule runtime
-entrypoints/repositories are removed. The application no longer consumes
-SCHEDULE_DATA_SOURCE. Do not execute historical schedule verification steps.
+Room scheduling removal is released. Read `docs/current-authority.md` and
+`docs/session-handoff-2026-10-21.md` for the latest application baseline;
+`docs/room-scheduling-removal.md` preserves owner-controlled cleanup/restore steps.
+No migration is changed or applied by this handoff. Empty tables/fields and the
+legacy-reference building-deletion guard remain. Floor/room descriptions and
+73 private Info markers are retained; the recorded 69 image entries and two
+legacy entries were not deleted. The app no longer consumes SCHEDULE_DATA_SOURCE.
+Historical schedule verification steps must not be executed automatically.
 
 ## Historical Walking migration and release note (2026-10-19)
 

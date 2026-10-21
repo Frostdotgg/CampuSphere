@@ -1,5 +1,19 @@
 # Session refresh lifetime correction — 2026-10-20
 
+## Completed final publication and interrupted-watch closure (October 21)
+
+The runtime-identical successor 38fd2962dccb096a8d45635790092e91c611952b was
+verified Ready on the normal domain as dpl_86Lge98zAWnSKYbG7b14ef4uMpfF.
+The first closing watch was interrupted by the owner shutting down the laptop;
+last saved checkpoint was 2026-10-20 15:42:36 UTC. No continuous overnight watch
+is claimed. A fresh watch ran 2026-10-21 00:47:32–00:58:28 UTC (655.105 seconds).
+Its loaded 08:27–08:57 Asia/Manila view showed 0 Warning / 0 Error / 0 Fatal
+request rows, and the final heartbeat completed 204. Public smoke passed 20/20;
+protected reloads, retained owner sign-in, both route modes/directions and a
+real panorama passed. No natural retry or blocking session error was observed.
+Finite observation does not promise zero future timeouts. No shared content
+was edited. Read docs/session-handoff-2026-10-21.md for the next-session route.
+
 ## Evidence and diagnosis
 
 The reviewed baseline is `9401df5db59c829ec819d30c0e0081ddf3fd810b`.

@@ -1,5 +1,14 @@
 # Room scheduling removal — release and cleanup runbook
 
+## October 21 continuity
+
+The application removal is released, including completed documentation source
+59b61b8 / deployment dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY. Later session fixes
+are included in final application baseline 38fd296. Start with
+docs/current-authority.md and docs/session-handoff-2026-10-21.md. The October
+19 candidate below is historical; cleanup/restore remains a separate owner task.
+No schedule entries or metadata were deleted by this handoff.
+
 Last updated: 2026-10-20 (Asia/Manila)
 
 October 20 publication follow-up: the owner separately authorized release

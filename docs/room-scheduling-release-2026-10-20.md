@@ -1,5 +1,18 @@
 # Room-scheduling removal release — 2026-10-20
 
+## Completed removal handoff (recorded October 21)
+
+The removal product b39d08c and initial deployment dpl_FKR7rgR6QPbsBJp1PXcdKrVroiha
+were followed by documentation source 59b61b8217881e28f7ad8514e82b3d3ff19534da,
+deployment dpl_5KW5rB3zwZT4SYpTCt9FJCYXzfgY. Its external receipt records a
+650-second closing observation with 1 Warning row, 0 Error and 0 Fatal in the
+loaded snapshots; these count request rows and do not establish every retry
+outcome. Preserve the staged 3-Warning snapshot below separately. This is dated
+October 20 release evidence. The latest session-correction baseline is 38fd296;
+read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
+Remaining schedule entries/metadata, hosted files and audit history were not
+deleted. This handoff does not execute cleanup or publish another deployment.
+
 ## Release execution
 
 The owner approved reviewing, testing, committing, pushing and deploying this
@@ -66,7 +79,7 @@ then explicitly refreshed to 26 walking paths. Synthetic fixtures cover older
 vehicle-only guides. These are representative browser checks, not exhaustive
 route/panorama traversal or physical-device acceptance.
 
-## Publication and rollback requirements
+## Historical publication and rollback requirements
 
 Publish the reviewed feature branch and main normally, build that exact main
 commit as staged Production, and complete authenticated staged checks before
