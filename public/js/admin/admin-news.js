@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let filter = { search: '', category: 'all', department: 'all' };
   const departmentData = JSON.parse(document.getElementById('department-data-json').textContent);
   const departmentNames = Object.fromEntries(departmentData.options.map(d => [d.code, d.label]));
-  const departmentLabel = code => departmentNames[code || 'university-wide'] || 'University-wide';
+  const departmentLabel = code => departmentNames[code] || '';
   const departmentFilter = document.getElementById('department-filter');
   departmentFilter.addEventListener('change', () => { filter.department = departmentFilter.value; renderAll(); });
 
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Tab-aware category filter ----
-  const NEWS_CATEGORIES=['General','Academic','Advisory','Maintenance','Emergency','Facilities'];
+  const NEWS_CATEGORIES=['General','Academic','Advisory','Maintenance','Emergency'];
   const EVENT_CATEGORIES=['Academic','Sports','Cultural'];
 
   function setCatFilterLabel(){
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!newsGrid) return;
     let items=allArticles.filter(a=>{
       if(filter.category!=='all' && a.category!==filter.category) return false;
-      if(filter.department!=='all' && (a.department_code||'university-wide')!==filter.department) return false;
+      if(filter.department!=='all' && a.department_code!==filter.department) return false;
       if(filter.search){
         const q=filter.search.toLowerCase();
         if(!(a.title||'').toLowerCase().includes(q) && !(a.excerpt||'').toLowerCase().includes(q)) return false;
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!eventsTableBody) return;
     let items=allEvents.filter(ev=>{
       if(filter.category!=='all' && ev.category!==filter.category) return false;
-      if(filter.department!=='all' && (ev.department_code||'university-wide')!==filter.department) return false;
+      if(filter.department!=='all' && ev.department_code!==filter.department) return false;
       if(filter.search){
         const q=filter.search.toLowerCase();
         if(!(ev.title||'').toLowerCase().includes(q) && !(ev.location||'').toLowerCase().includes(q)) return false;
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.dataset.editId=id;
     form.title_field.value=a.title||'';
     form.category.value=NEWS_CATEGORIES.includes(a.category)?a.category:'';
-    form.department_code.value=a.department_code||'university-wide';
+    form.department_code.value=departmentNames[a.department_code]?a.department_code:'';
     form.excerpt.value=a.excerpt||'';
     form.content.value=a.content||a.excerpt||'';
     form.status.value=a.published_date?'published':'draft';
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault(); clearFormErrors(newsModal);
     const editId=newsForm.dataset.editId;
     const data={title:newsForm.title_field.value.trim(),department_code:newsForm.department_code.value,category:newsForm.category.value,audience:newsForm.audience.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
-    if(!data.title||!data.category||!data.excerpt){showFormError(newsModal,'Title, category, and excerpt are required.');return;}
+    if(!data.department_code||!data.title||!data.category||!data.excerpt){showFormError(newsModal,'Department, title, category, and excerpt are required.');return;}
 
     const btn=document.getElementById('news-submit-btn');
     btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; refreshIcons();
@@ -382,8 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const form=document.getElementById('event-form');
     form.dataset.editId=id;
     form.title_field.value=ev.title||'';
-    form.category.value=ev.category||'';
-    form.department_code.value=ev.department_code||'university-wide';
+    form.category.value=EVENT_CATEGORIES.includes(ev.category)?ev.category:'';
+    form.department_code.value=departmentNames[ev.department_code]?ev.department_code:'';
     if(form.audience) form.audience.value=ev.audience||'all';
     form.event_date.value=ev.event_date?new Date(ev.event_date).toISOString().split('T')[0]:'';
     form.event_time.value=ev.event_time||'';
@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault(); clearFormErrors(eventModal);
     const editId=eventForm.dataset.editId;
     const data={title:eventForm.title_field.value.trim(),department_code:eventForm.department_code.value,category:eventForm.category.value,audience:eventForm.audience.value,event_date:eventForm.event_date.value,event_time:eventForm.event_time.value.trim(),location:eventForm.location.value.trim(),description:eventForm.description.value.trim()};
-    if(!data.title||!data.category||!data.event_date){showFormError(eventModal,'Title, category, and date are required.');return;}
+    if(!data.department_code||!data.title||!data.category||!data.event_date){showFormError(eventModal,'Department, title, category, and date are required.');return;}
 
     const btn=document.getElementById('event-submit-btn');
     btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; refreshIcons();

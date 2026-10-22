@@ -10,7 +10,7 @@ document.addEventListener('change', event => {
   panel.querySelectorAll('[data-news-department-label]').forEach(label => {
     const row = label.closest('.news-item,tr');
     if (!row) return;
-    const matches = select.value === 'all' || (label.dataset.department || 'university-wide') === select.value;
+    const matches = select.value === 'all' || label.dataset.department === select.value;
     row.hidden = !matches;
     if (matches) visible++;
   });

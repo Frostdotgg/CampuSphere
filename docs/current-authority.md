@@ -1,3 +1,33 @@
+<!-- NEWS OPTIONS RELEASE START -->
+## News options controlled release — October 22, 2026
+
+Read `docs/news-options-release-2026-10-22.md` first. The owner authorized
+this code-only controlled release from `codex/news-department-options`:
+review, focused tests, normal commit/push, staged Production checks and manual
+promotion. Publication is not yet claimed. Existing-post review/deletion is
+deferred; only the tracked disposable draft and Administrator-only event may
+be changed and removed for checks. No migration or shared maintenance runs.
+Candidate cache v55; downloaded-guide format and account access rules remain.
+Earlier local-only notices below are preserved as implementation history and
+are superseded only for this explicit release. Credentials/private artifacts
+remain outside Git. Recompute live source/deployment truth before later work.
+<!-- NEWS OPTIONS RELEASE END -->
+
+<!-- NEWS OPTIONS LOCAL START -->
+## Local news-option removal candidate — October 22, 2026
+
+Read `docs/news-department-options-2026-10-22.md` first for the uncommitted,
+not deployed work on `codex/news-department-options`, based on `ba7dd2c`.
+Only seven departments are selectable; University-wide and Facilities are
+retired content choices. Candidate cache v55; published cache v54 remains dated
+release evidence. Existing shared posts remain until a separate owner-reviewed
+cleanup. Docker localhost uses shared Supabase: only the tracked disposable
+draft/event may be changed and removed. No commit, push or deployment belongs
+to this implementation. Account editing remains shared across departments;
+audience/draft privacy and building Facilities remain. Historical notices below
+are preserved and do not override this focused local task.
+<!-- NEWS OPTIONS LOCAL END -->
+
 <!-- DEPARTMENT NEWS RELEASE START -->
 ## Department News product release (October 21, 2026; verified)
 

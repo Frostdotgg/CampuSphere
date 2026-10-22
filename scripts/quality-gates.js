@@ -11373,10 +11373,92 @@ function runDepartmentNewsDocsGate() {
   const blocks=names.map(name=>{const text=fs.readFileSync(path.join(__dirname,'..',name),'utf8');return (text.match(/<!-- DEPARTMENT NEWS CANDIDATE START -->[\s\S]*?<!-- DEPARTMENT NEWS CANDIDATE END -->/)||[])[0]||'';});
   rec.ok('all eleven local-candidate notices match',blocks.every(Boolean)&&new Set(blocks).size===1);
   rec.ok('published baseline stays distinct',/published application below remains source 38fd296, cache v53/.test(blocks[0]));
-  return rec.failures.concat(runDepartmentNewsReleaseDocsGate());
+  return rec.failures.concat(runDepartmentNewsReleaseDocsGate(), runNewsOptionsDocsGate(), runNewsOptionsReleaseDocsGate());
+}
+
+function newsOptionsDocProblems(value) {
+  const text=String(value||'').replace(/`/g,'').replace(/\s+/g,' ');
+  const problems=[];
+  for(const [label,pattern] of [
+    ['local scope',/uncommitted, not deployed candidate/],
+    ['baseline',/ba7dd2c32f33541688a5b3e30d9564cd4e7dd955/],
+    ['required department',/Both existing write APIs require a valid department_code/],
+    ['seven choices',/exactly Graduate School, CEA, CCS, CHS, CTHBM, CTDE and CAS/],
+    ['categories',/General, Academic, Advisory, Maintenance and Emergency/],
+    ['cache',/Candidate service worker is v55; stylesheet remains v13/],
+    ['shared localhost',/This localhost app uses the shared Supabase connection/],
+    ['cleanup union',/equals university-wide OR whose category equals Facilities/],
+    ['dated counts',/8 affected articles \/ 11 affected events/],
+    ['separate cleanup',/No shared deletion is part of this implementation/],
+    ['unchanged migration',/Migration 0029 and database structures, defaults and permissions are unchanged/],
+    ['no QA overclaim',/No full npm test\/QA pass/],
+    ['legacy safety',/Nothing is silently deleted, reassigned or republished/]
+  ])if(!pattern.test(text))problems.push(label);
+  if(/This candidate is deployed|All affected shared posts were deleted|Full QA passed|Future cleanup is already authorized/.test(text))problems.push('unsupported claim');
+  return problems;
+}
+
+function runNewsOptionsDocsGate() {
+  const rec=makeRecorder('news-options-docs');
+  const text=fs.readFileSync(path.join(__dirname,'..','docs','news-department-options-2026-10-22.md'),'utf8');
+  const normalized=text.replace(/`/g,'').replace(/\s+/g,' ');
+  rec.ok('local option removal, exact cleanup scope and evidence limits agree',newsOptionsDocProblems(text).length===0);
+  for(const [from,to] of [
+    ['ba7dd2c32f33541688a5b3e30d9564cd4e7dd955','old-source'],
+    ['Both existing write APIs require a valid department_code','Department is optional'],
+    ['Candidate service worker is v55','Candidate service worker is v54'],
+    ['shared Supabase connection','isolated private database'],
+    ['equals university-wide OR whose category equals Facilities','matches both retired values'],
+    ['8 affected articles / 11 affected events','0 affected articles / 0 affected events'],
+    ['No shared deletion is part of this implementation','Shared deletion is included'],
+    ['Nothing is silently deleted, reassigned or republished','Posts are silently reassigned']
+  ])rec.ok('rejects missing policy '+from,normalized.includes(from)&&newsOptionsDocProblems(normalized.split(from).join(to)).length>0);
+  for(const claim of ['This candidate is deployed.','All affected shared posts were deleted.','Full QA passed.','Future cleanup is already authorized.'])rec.ok('rejects unsupported claim '+claim,newsOptionsDocProblems(text+' '+claim).length>0);
+  return rec.failures;
 }
 
 /** PURE: release evidence cannot inherit the earlier implementation authority. */
+function newsOptionsReleaseProblems(value) {
+  const text=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' ');
+  const problems=[];
+  for(const [label,pattern] of [
+    ['deferred cleanup',/Existing-post review and deletion are deferred/],
+    ['limited fixtures',/Only one uniquely labelled disposable draft article and one Administrator-only event/],
+    ['existing accounts',/create no accounts and change no credentials, roles or department assignments/],
+    ['runtime package',/205 files \/ 8,610,144 bytes[\s\S]*54bbdea1b34fbdf17e4c90d6d39ae2ee529d785acd80ba0e56d693fd5d5ece5c/],
+    ['cache',/Source cache v55; stylesheet v13; downloaded-guide format unchanged/],
+    ['staged gate',/Ready\/Staged before promotion/],
+    ['manual assignment',/automatic Production domain assignment is disabled before pushing/],
+    ['finite monitoring',/Monitor for ten minutes after final promotion/],
+    ['no existing edits',/Open older editors without saving/],
+    ['loading limitation',/original sign-in-tab loading issue is postponed and not claimed fixed/],
+    ['focused evidence',/not a full npm test\/QA pass/]
+  ])if(!pattern.test(text))problems.push(label);
+  if(/Existing posts were deleted|Cleanup is included in this release|Full QA passed|All future timeouts are prevented/.test(text))problems.push('unsupported claim');
+  return problems;
+}
+function runNewsOptionsReleaseDocsGate() {
+  const rec=makeRecorder('news-options-release-docs');
+  const text=fs.readFileSync(path.join(__dirname,'..','docs','news-options-release-2026-10-22.md'),'utf8');
+  const normalized=text.replace(/[`*]/g,'').replace(/\s+/g,' ');
+  rec.ok('code-only release and deferred existing-post cleanup are explicit',newsOptionsReleaseProblems(text).length===0);
+  for(const [from,to] of [
+    ['Existing-post review and deletion are deferred','Existing posts may be removed'],
+    ['Only one uniquely labelled disposable draft article and one Administrator-only event','Any posts may be used'],
+    ['54bbdea1b34fbdf17e4c90d6d39ae2ee529d785acd80ba0e56d693fd5d5ece5c','old-package'],
+    ['Source cache v55','Source cache v54'],
+    ['Ready/Staged before promotion','Publish before checking'],
+    ['Monitor for ten minutes after final promotion','No closing watch'],
+    ['Open older editors without saving','Save old posts during checks'],
+    ['original sign-in-tab loading issue is postponed and not claimed fixed','Loading issue is fixed']
+  ])rec.ok('rejects weakened release policy '+from,normalized.includes(from)&&newsOptionsReleaseProblems(normalized.split(from).join(to)).length>0);
+  for(const claim of ['Existing posts were deleted.','Cleanup is included in this release.','Full QA passed.','All future timeouts are prevented.'])rec.ok('rejects unsupported claim '+claim,newsOptionsReleaseProblems(text+' '+claim).length>0);
+  const names=['AGENTS.md','CODEX_HANDOFF.md','docs/current-authority.md','docs/department-news-admin.md','docs/new-session-grounding-prompts.md','docs/news-department-options-2026-10-22.md'];
+  const notices=names.map(name=>(fs.readFileSync(path.join(__dirname,'..',name),'utf8').match(/<!-- NEWS OPTIONS RELEASE START -->[\s\S]*?<!-- NEWS OPTIONS RELEASE END -->/)||[])[0]||'');
+  rec.ok('six current news-option release notices match',notices.every(Boolean)&&new Set(notices).size===1);
+  return rec.failures;
+}
+
 function departmentNewsReleaseProblems(value) {
   const t=String(value||'').replace(/`/g,'').replace(/\s+/g,' ');
   const checks=[

@@ -44,7 +44,7 @@ exports.index = async (req, res) => {
             id: r.id,
             title: r.title,
             category: r.category,
-            department_code: r.department_code || 'university-wide',
+            department_code: r.department_code || '',
             department_label: departmentLabel(r.department_code),
             dateObj: r.event_date,
             desc: r.description,

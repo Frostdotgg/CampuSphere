@@ -1609,8 +1609,8 @@
           id: n.id,
           title: n.title,
           category: n.category,
-          department_code: n.department_code || 'university-wide',
-          department_label: <%- safeJson((typeof departmentOptions !== 'undefined'?departmentOptions:[])) %>.find(d=>d.code===n.department_code)?.label || 'University-wide',
+          department_code: n.department_code || '',
+          department_label: <%- safeJson((typeof departmentOptions !== 'undefined'?departmentOptions:[])) %>.find(d=>d.code===n.department_code)?.label || '',
           date: new Date(n.published_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
           excerpt: n.excerpt
         }));

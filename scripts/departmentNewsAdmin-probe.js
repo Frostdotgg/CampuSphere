@@ -74,6 +74,8 @@ function fixture(mode='mysql'){
  return {app,state,store,auth,userRepo,contentRepo};
 }
 async function run(){
+ check('content choices contain exactly the seven departments',()=>assert.deepEqual(departments.CONTENT_DEPARTMENTS.map(d=>d.code),['graduate-school','cea','ccs','chs','cthbm','ctde','cas']));
+ for(const code of ['university-wide','',undefined,'invalid'])check('retired and missing department labels are not reassigned '+String(code),()=>{assert.equal(departments.departmentLabel(code),'');assert.equal(departments.isContentDepartment(code),false);});
  // Drive the real delegated browser script with card and table-row fixtures.
  // The legacy main-admin table must not throw or hide another panel's rows.
  let changeHandler;
@@ -148,8 +150,9 @@ async function run(){
      const removed=await request('/admin/api/'+type+'/'+id,{...jar,method:'DELETE'});check(mode+' delete '+type+' '+code,()=>assert.equal(removed.status,200));
     }
    }
-   for(const type of ['news','events'])for(const code of ['unknown',null,{},['ccs'],'CCS','university-wide<script>']){const r=await request('/admin/api/'+type,{...jar,method:'POST',body:{title:'Fixture',category:type==='news'?'General':'Academic',excerpt:'Text',event_date:'2026-11-01',department_code:code}});check(mode+' invalid department '+type,()=>assert.equal(r.status,400));}
-   for(const category of ['Event','Events']){const r=await request('/admin/api/news',{...jar,method:'POST',body:{title:'Old',category,excerpt:'Text'}});check(mode+' retired article category '+category,()=>assert.equal(r.status,400));}
+   for(const type of ['news','events'])for(const code of [undefined,'','university-wide','unknown',null,{},['ccs'],'CCS','university-wide<script>']){const before=f.state.writes;for(const method of ['POST','PUT']){const r=await request('/admin/api/'+type+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Fixture',category:type==='news'?'General':'Academic',excerpt:'Text',event_date:'2026-11-01',department_code:code}});check(mode+' invalid department '+type+'/'+method+'/'+String(code),()=>{assert.equal(r.status,400);assert.equal(f.state.writes,before);});}}
+   for(const category of ['Event','Events','Facilities'])for(const method of ['POST','PUT']){const before=f.state.writes;const r=await request('/admin/api/news'+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Old',category,excerpt:'Text',department_code:'ccs'}});check(mode+' retired article category '+category+'/'+method,()=>{assert.equal(r.status,400);assert.equal(f.state.writes,before);});}
+   for(const method of ['POST','PUT']){const r=await request('/admin/api/events'+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Old event',category:'Facilities',event_date:'2026-11-01',department_code:'ccs'}});check(mode+' retired event category/'+method,()=>assert.equal(r.status,400));}
    const escalation=await request('/admin/api/users',{...jar,method:'POST',body:{role:'admin'}});check(mode+' no account escalation',()=>assert.equal(escalation.status,403));
    f.state.fail=true;const failed=await request('/admin/api/events',{...jar,method:'POST',body:{title:'Failure',category:'Academic',event_date:'2026-11-01',department_code:'ccs'}});check(mode+' sanitized provider failure',()=>{assert.equal(failed.status,500);assert(!failed.text.includes('PRIVATE'));});f.state.fail=false;
    const {jar:admin}=await login(1);
@@ -159,8 +162,12 @@ async function run(){
    const legacy={id:9999,title:'Legacy preserved',category:'Events',department_code:'university-wide',audience:'all',excerpt:'Legacy',content:'Legacy text',author_id:2,published_date:'2026-10-20T00:00:00Z'};f.state.tables.news_announcements.push(legacy);
    const invalidLegacy=await request('/admin/api/news/9999',{...jar,method:'PUT',body:{title:legacy.title,category:'Events',excerpt:'Legacy'}});
    check(mode+' legacy Event category must be changed on edit',()=>assert.equal(invalidLegacy.status,400));
-   const savedLegacy=await request('/admin/api/news/9999',{...jar,method:'PUT',body:{title:legacy.title,category:'Academic',excerpt:'Legacy',content:'Legacy text',status:'published',department_code:'university-wide'}});
-   check(mode+' legacy edit retains content author and publication',()=>{assert.equal(savedLegacy.status,200);assert.equal(savedLegacy.body.article.author_id,2);assert.equal(new Date(savedLegacy.body.article.published_date).toISOString(),'2026-10-20T00:00:00.000Z');assert.equal(savedLegacy.body.article.content,'Legacy text');});
+   const legacyRead=await request('/admin/news',jar);check(mode+' legacy content readable without retired choices',()=>{assert(legacyRead.text.includes('Legacy preserved'));assert(!legacyRead.text.includes('<option value="university-wide">'));assert(!legacyRead.text.includes('<option value="Facilities">'));});
+   const savedLegacy=await request('/admin/api/news/9999',{...jar,method:'PUT',body:{title:legacy.title,category:'Academic',excerpt:'Legacy',content:'Legacy text',status:'published',department_code:'ccs'}});
+   check(mode+' legacy edit retains content author and publication',()=>{assert.equal(savedLegacy.status,200);assert.equal(savedLegacy.body.article.department_code,'ccs');assert.equal(savedLegacy.body.article.author_id,2);assert.equal(new Date(savedLegacy.body.article.published_date).toISOString(),'2026-10-20T00:00:00.000Z');assert.equal(savedLegacy.body.article.content,'Legacy text');});
+   const mainEditor=await request('/admin/news',admin);check(mode+' main admin explicitly selects department',()=>{assert(mainEditor.text.includes('"defaultCode":""'));assert(mainEditor.text.includes('value="">Select department...'));});
+   for(const name of ['createAnnouncement','createEvent'])for(const code of [undefined,'university-wide']){await assert.rejects(()=>f.contentRepo[name]({department_code:code}),/Invalid department/);check(mode+' repository prevents default department '+name+'/'+String(code),()=>{});}
+   for(const name of ['updateAnnouncement','updateEvent']){await assert.rejects(()=>f.contentRepo[name](9999,{department_code:'university-wide'}),/Invalid department/);check(mode+' repository rejects retired update department '+name,()=>{});const result=await f.contentRepo[name](-1,{department_code:'university-wide'});check(mode+' repository retains invalid-ID null result '+name,()=>assert.equal(result,null));}
    for(const code of departments.DEPARTMENTS.map(d=>d.code)){
     const payload={first_name:'Department',last_name:'Fixture',email:code+'@example.invalid',password:'Fixture-pass-7!',role:'department-admin',department_code:code};
     const created=await request('/admin/api/users',{...admin,method:'POST',body:payload});check(mode+' main admin creates '+code,()=>{assert.equal(created.status,201,created.text);assert.equal(created.body.user.department_code,code);assert(!('password'in created.body.user));});

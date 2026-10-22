@@ -9,7 +9,7 @@ const contentRepository = require('../repositories/contentRepository');
 const siteContentRepository = require('../repositories/siteContentRepository');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
-const { isContentDepartment, UNIVERSITY_WIDE } = require('../utils/departments');
+const { isContentDepartment } = require('../utils/departments');
 const {
   SCHOOL_DESCRIPTION_MAX_LENGTH,
   canonicalizeSchoolDescription,
@@ -18,7 +18,7 @@ const {
 // Standardized announcement category + audience values (Milestone 4).
 // Events belong in the separate Events tab. Legacy Event/Events articles stay
 // readable, but their next edit must choose one of the remaining categories.
-const ALLOWED_NEWS_CATEGORIES = ['General', 'Academic', 'Advisory', 'Maintenance', 'Emergency', 'Facilities'];
+const ALLOWED_NEWS_CATEGORIES = ['General', 'Academic', 'Advisory', 'Maintenance', 'Emergency'];
 const ALLOWED_AUDIENCES = ['all', 'student-cspc', 'instructor', 'guest', 'admin'];
 // R7: news status + event category allowlists (mirror the admin UI option sets
 // in views/admin/news.ejs). Field caps mirror the schema / spec.
@@ -44,7 +44,7 @@ function validateNewsPayload(body) {
   const shape = V.validateBody(body, NEWS_KEYS);
   if (!shape.ok) return shape;
 
-  const department = body.department_code === undefined ? UNIVERSITY_WIDE : body.department_code;
+  const department = body.department_code;
   if (!isContentDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
   const title = V.requiredString(body.title, 'Title', NEWS_MAX_TITLE);
   if (!title.ok) return title;
@@ -83,7 +83,7 @@ function validateEventPayload(body) {
   const shape = V.validateBody(body, EVENT_KEYS);
   if (!shape.ok) return shape;
 
-  const department = body.department_code === undefined ? UNIVERSITY_WIDE : body.department_code;
+  const department = body.department_code;
   if (!isContentDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
   const title = V.requiredString(body.title, 'Title', EVENT_MAX_TITLE);
   if (!title.ok) return title;

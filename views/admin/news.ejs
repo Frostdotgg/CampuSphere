@@ -173,7 +173,6 @@
                                     <button type="button" class="dropdown-menu-item" data-value="Advisory" role="menuitemradio" aria-checked="false">Advisory</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Maintenance" role="menuitemradio" aria-checked="false">Maintenance</button>
                                     <button type="button" class="dropdown-menu-item" data-value="Emergency" role="menuitemradio" aria-checked="false">Emergency</button>
-                                    <button type="button" class="dropdown-menu-item" data-value="Facilities" role="menuitemradio" aria-checked="false">Facilities</button>
                                 </div>
                             </div>
                             <button id="add-content-btn" class="ui-button ui-button-default ui-button-size-default">
@@ -235,7 +234,6 @@
                                 <option value="Advisory">Advisory</option>
                                 <option value="Maintenance">Maintenance</option>
                                 <option value="Emergency">Emergency</option>
-                                <option value="Facilities">Facilities</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -368,9 +366,9 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="department-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({options:typeof departmentOptions !== 'undefined'?departmentOptions:[],defaultCode:user && user.role==='department-admin'?user.department_code:'university-wide'}) %></script>
-    <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, department_code: a.department_code || 'university-wide', audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
-    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, department_code: e.department_code || 'university-wide', audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
+    <script id="department-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({options:typeof departmentOptions !== 'undefined'?departmentOptions:[],defaultCode:user && user.role==='department-admin'?user.department_code:''}) %></script>
+    <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, department_code: a.department_code || '', audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
+    <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, department_code: e.department_code || '', audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
 
     <!-- Dark Mode Toggle -->
     <button id="admin-theme-toggle" class="admin-theme-toggle" aria-label="Toggle dark mode">

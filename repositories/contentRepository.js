@@ -9,7 +9,7 @@
    Section 4.6; no controller consumes this module until 4.5/4.7.
 
    Boundary rules (see database/supabase/REPOSITORY_BOUNDARIES.md s7):
-   - Imports `config/supabase.js` ONLY. It does NOT import
+   - Imports `config/supabase.js` and the pure department validator. It does NOT import
      `config/db.js`, any controller, route, view, middleware, or
      public file.
    - Never reads req / res / sessions / res.locals / app.locals /
@@ -46,6 +46,7 @@
    ======================================== */
 
 const { getSupabaseClient } = require('../config/supabase');
+const { isContentDepartment } = require('../utils/departments');
 
 // Explicit column lists pin the MySQL-era row shape and avoid leaking
 // any column the controllers/views do not already expect.
@@ -296,10 +297,13 @@ async function countEvents() {
  * default. `author_id` is optional (nullable FK).
  */
 async function createAnnouncement(payload = {}) {
+  if (!isContentDepartment(payload.department_code)) {
+    throw new Error('contentRepository.createAnnouncement: Invalid department.');
+  }
   const row = {
     title: payload.title,
     category: payload.category,
-    department_code: payload.department_code === undefined ? 'university-wide' : payload.department_code,
+    department_code: payload.department_code,
     audience: payload.audience != null && payload.audience !== '' ? payload.audience : 'all',
     excerpt: payload.excerpt != null ? payload.excerpt : null,
     content: payload.content != null ? payload.content : null,
@@ -328,6 +332,9 @@ async function createAnnouncement(payload = {}) {
 async function updateAnnouncement(id, payload = {}) {
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId < 1) return null;
+  if ('department_code' in payload && !isContentDepartment(payload.department_code)) {
+    throw new Error('contentRepository.updateAnnouncement: Invalid department.');
+  }
 
   const patch = {};
   for (const key of ['title', 'category', 'audience', 'department_code', 'excerpt', 'content', 'author_id']) {
@@ -374,10 +381,13 @@ async function deleteAnnouncement(id) {
  * Audience defaults to Everyone for compatibility with older callers.
  */
 async function createEvent(payload = {}) {
+  if (!isContentDepartment(payload.department_code)) {
+    throw new Error('contentRepository.createEvent: Invalid department.');
+  }
   const row = {
     title: payload.title,
     category: payload.category,
-    department_code: payload.department_code === undefined ? 'university-wide' : payload.department_code,
+    department_code: payload.department_code,
     audience: payload.audience != null && payload.audience !== '' ? payload.audience : 'all',
     event_date: normalizeEventDate(payload.event_date),
     description: payload.description != null ? payload.description : null,
@@ -403,6 +413,9 @@ async function createEvent(payload = {}) {
 async function updateEvent(id, payload = {}) {
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId < 1) return null;
+  if ('department_code' in payload && !isContentDepartment(payload.department_code)) {
+    throw new Error('contentRepository.updateEvent: Invalid department.');
+  }
 
   const patch = {};
   for (const key of ['title', 'category', 'audience', 'department_code', 'description', 'location', 'event_time']) {
