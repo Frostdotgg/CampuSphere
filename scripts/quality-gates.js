@@ -11437,6 +11437,25 @@ function newsOptionsReleaseProblems(value) {
   if(/Existing posts were deleted|Cleanup is included in this release|Full QA passed|All future timeouts are prevented/.test(text))problems.push('unsupported claim');
   return problems;
 }
+function newsOptionsPublicationProblems(value) {
+  const text=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' ');
+  const problems=[];
+  for(const [label,pattern] of [
+    ['verified product',/Release status: completed product verification/],
+    ['product identity',/8176c9f1bec4d3b584fecbec4482c4be09f863ad/],
+    ['deployment identity',/dpl_CVsYatbsH43RvcG5r3hQTf1nF4KC/],
+    ['preserved content',/all original 9 articles and 12 events unchanged/],
+    ['fixture cleanup',/Only the two tracked disposable posts were deleted through the application/],
+    ['retained audits',/Their create\/update\/delete audits remain/],
+    ['interrupted watch',/initial staged watch was interrupted[\s\S]*no continuous monitoring across the pause is claimed/],
+    ['fresh watch',/fresh staged watch ran 2026-10-22T09:30:20\.235Z[\s\S]*624\.260 seconds/],
+    ['older guide',/guide downloaded from the still-serving v54 source before promotion remained usable after v55/],
+    ['finite log evidence',/0 Warning \/ 0 Error \/ 0 Fatal request rows[\s\S]*Finite watches do not promise permanent provider availability/],
+    ['final receipt',/self-referential source, deployment identity, exact fresh totals and final watch remain in the external receipt/]
+  ])if(!pattern.test(text))problems.push(label);
+  if(/All existing posts were reassigned|Every route was verified|Cleanup permission carries forward|Continuous monitoring across the pause was completed/.test(text))problems.push('unsupported publication claim');
+  return problems;
+}
 function runNewsOptionsReleaseDocsGate() {
   const rec=makeRecorder('news-options-release-docs');
   const text=fs.readFileSync(path.join(__dirname,'..','docs','news-options-release-2026-10-22.md'),'utf8');
@@ -11453,6 +11472,21 @@ function runNewsOptionsReleaseDocsGate() {
     ['original sign-in-tab loading issue is postponed and not claimed fixed','Loading issue is fixed']
   ])rec.ok('rejects weakened release policy '+from,normalized.includes(from)&&newsOptionsReleaseProblems(normalized.split(from).join(to)).length>0);
   for(const claim of ['Existing posts were deleted.','Cleanup is included in this release.','Full QA passed.','All future timeouts are prevented.'])rec.ok('rejects unsupported claim '+claim,newsOptionsReleaseProblems(text+' '+claim).length>0);
+  rec.ok('verified product publication preserves evidence boundaries',newsOptionsPublicationProblems(text).length===0);
+  for(const [from,to] of [
+    ['Release status: completed product verification','Release status: preparation'],
+    ['8176c9f1bec4d3b584fecbec4482c4be09f863ad','ba7dd2c32f33541688a5b3e30d9564cd4e7dd955'],
+    ['dpl_CVsYatbsH43RvcG5r3hQTf1nF4KC','dpl_9Q1aYoeWmCy4KxoL59sNq54uHzyD'],
+    ['all original 9 articles and 12 events unchanged','all current posts approved'],
+    ['Only the two tracked disposable posts were deleted through the application','Any affected content was deleted'],
+    ['Their create/update/delete audits remain','Their audits were removed'],
+    ['no continuous monitoring across the pause is claimed','no gap was recorded'],
+    ['624.260 seconds','4 hours'],
+    ['remained usable after v55','needed a new guide format'],
+    ['Finite watches do not promise permanent provider availability','All provider delays are solved'],
+    ['self-referential source, deployment identity, exact fresh totals and final watch remain in the external receipt','final identities are omitted']
+  ])rec.ok('rejects stale or unsupported publication evidence '+from,normalized.includes(from)&&newsOptionsPublicationProblems(normalized.split(from).join(to)).length>0);
+  for(const claim of ['All existing posts were reassigned.','Every route was verified.','Cleanup permission carries forward.','Continuous monitoring across the pause was completed.'])rec.ok('rejects unsupported publication claim '+claim,newsOptionsPublicationProblems(text+' '+claim).length>0);
   const names=['AGENTS.md','CODEX_HANDOFF.md','docs/current-authority.md','docs/department-news-admin.md','docs/new-session-grounding-prompts.md','docs/news-department-options-2026-10-22.md'];
   const notices=names.map(name=>(fs.readFileSync(path.join(__dirname,'..',name),'utf8').match(/<!-- NEWS OPTIONS RELEASE START -->[\s\S]*?<!-- NEWS OPTIONS RELEASE END -->/)||[])[0]||'');
   rec.ok('six current news-option release notices match',notices.every(Boolean)&&new Set(notices).size===1);

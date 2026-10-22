@@ -1,16 +1,22 @@
 <!-- NEWS OPTIONS RELEASE START -->
-## News options controlled release — October 22, 2026
+## News options product release — October 22, 2026 (verified)
 
-Read `docs/news-options-release-2026-10-22.md` first. The owner authorized
-this code-only controlled release from `codex/news-department-options`:
-review, focused tests, normal commit/push, staged Production checks and manual
-promotion. Publication is not yet claimed. Existing-post review/deletion is
-deferred; only the tracked disposable draft and Administrator-only event may
-be changed and removed for checks. No migration or shared maintenance runs.
-Candidate cache v55; downloaded-guide format and account access rules remain.
-Earlier local-only notices below are preserved as implementation history and
-are superseded only for this explicit release. Credentials/private artifacts
-remain outside Git. Recompute live source/deployment truth before later work.
+Read `docs/news-options-release-2026-10-22.md` first. Product source
+`8176c9f1bec4d3b584fecbec4482c4be09f863ad`, deployment
+`dpl_CVsYatbsH43RvcG5r3hQTf1nF4KC`, passed staged and normal-website
+verification. Seven departments and valid content categories are required;
+University-wide and Facilities are retired write choices. Existing posts stay
+readable; their edit forms require valid replacements without reassignment.
+The two tracked release posts were removed; their audit history remains.
+SELECT-only comparison preserved all original 9 articles and 12 events.
+Source cache v55; stylesheet v13; downloaded-guide format and access rules stay.
+No accounts, migration, shared cleanup, secrets or protection were changed.
+Existing-post review/deletion remains deferred. Earlier local notices are
+historical. The interrupted staged watch and fresh closing watch are recorded
+separately; the sign-in-tab loading issue remains postponed, not claimed fixed.
+The documentation successor has identical runtime; its final source/deployment
+and ten-minute closing watch belong in the external receipt. Recompute live
+truth before later work; this release grants no future cleanup permission.
 <!-- NEWS OPTIONS RELEASE END -->
 
 # News department and category options — local candidate, October 22
