@@ -9,7 +9,7 @@ const contentRepository = require('../repositories/contentRepository');
 const siteContentRepository = require('../repositories/siteContentRepository');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
-const { isContentDepartment } = require('../utils/departments');
+const { isContentDepartment, isEventDepartment } = require('../utils/departments');
 const {
   SCHOOL_DESCRIPTION_MAX_LENGTH,
   canonicalizeSchoolDescription,
@@ -84,7 +84,7 @@ function validateEventPayload(body) {
   if (!shape.ok) return shape;
 
   const department = body.department_code;
-  if (!isContentDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
+  if (!isEventDepartment(department)) return { ok: false, message: 'Invalid department specified.' };
   const title = V.requiredString(body.title, 'Title', EVENT_MAX_TITLE);
   if (!title.ok) return title;
   const category = V.allowedValue(body.category, 'category', EVENT_CATEGORIES);

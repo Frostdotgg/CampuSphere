@@ -1,3 +1,34 @@
+<!-- CAMPUS WIDE EVENTS RELEASE START -->
+## Campus-wide Events controlled release — October 23, 2026
+
+Read `docs/campus-wide-events-release-2026-10-23.md` first. The owner
+authorized review, focused checks, normal commit/push, staged Production
+verification and manual promotion. Prior local-only instructions below are
+implementation history. The normal website remains on its recorded release
+until staged checks pass. Only one tracked Administrator-only event may be
+created/edited/removed; existing posts, accounts, credentials and environment
+settings stay. No migration, shared cleanup or ICTU deployment is authorized.
+Campus-wide is event-only, stored as `university-wide`; source cache v56,
+stylesheet v13 and guide format unchanged. Record actual release results in
+the focused release note and final identities in the external receipt.
+<!-- CAMPUS WIDE EVENTS RELEASE END -->
+
+<!-- CAMPUS WIDE EVENTS LOCAL START -->
+## Campus-wide Events local candidate — October 23, 2026
+
+Read `docs/campus-wide-events-2026-10-23.md` first. This uncommitted,
+not deployed work on `codex/campus-wide-events` restores Campus-wide only
+for Events, using stored/API code `university-wide`. News and account
+assignments keep seven departments. Audience/privacy/access rules remain.
+Candidate cache v56; stylesheet v13 and downloaded-guide format stay.
+Cleanup policy v2 retains valid Campus-wide events; all earlier generated
+deletion plans are obsolete. Prepare fresh and obtain owner review later.
+Docker checks are read-only except normal sign-in/logout session activity;
+content writes and cleanup rehearsals use isolated fixtures only.
+No commit, push, deployment, shared cleanup, account or environment changes
+belong to this task. The dated October 22 release below remains history.
+<!-- CAMPUS WIDE EVENTS LOCAL END -->
+
 <!-- NEWS OPTIONS RELEASE START -->
 ## News options product release — October 22, 2026 (verified)
 

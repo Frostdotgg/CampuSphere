@@ -4,7 +4,7 @@
    ======================================== */
 
 const db = require('../config/db');
-const { departmentLabel } = require('../utils/departments');
+const { eventDepartmentLabel } = require('../utils/departments');
 const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
 const { logServerError } = require('../utils/serverLog');
@@ -45,7 +45,7 @@ exports.index = async (req, res) => {
             title: r.title,
             category: r.category,
             department_code: r.department_code || '',
-            department_label: departmentLabel(r.department_code),
+            department_label: eventDepartmentLabel(r.department_code),
             dateObj: r.event_date,
             desc: r.description,
             location: r.location,

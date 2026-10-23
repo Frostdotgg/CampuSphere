@@ -252,6 +252,8 @@ app.use((req, res, next) => {
   const departments = require('./utils/departments');
   res.locals.departmentOptions = departments.CONTENT_DEPARTMENTS;
   res.locals.departmentLabel = departments.departmentLabel;
+  res.locals.eventDepartmentOptions = departments.EVENT_DEPARTMENTS;
+  res.locals.eventDepartmentLabel = departments.eventDepartmentLabel;
   next();
 });
 

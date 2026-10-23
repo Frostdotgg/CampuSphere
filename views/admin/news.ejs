@@ -283,7 +283,7 @@
             <form id="event-form">
                 <div class="modal-body">
                     <div class="form-error"></div>
-                    <div class="form-group"><%- include('../partials/department-select', {selectId:'event-department',selectRequired:true,accountOnly:false,includeAll:false,selectAttributes:''}) %></div>
+                    <div class="form-group"><%- include('../partials/department-select', {selectId:'event-department',selectRequired:true,accountOnly:false,includeAll:false,selectAttributes:'',selectOptions:eventDepartmentOptions}) %></div>
                     <div class="form-group">
                         <label for="event-title">Title</label>
                         <input type="text" name="title_field" id="event-title" class="ui-input" placeholder="Event title..." required>
@@ -366,7 +366,7 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- Inject data as JSON -->
-    <script id="department-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({options:typeof departmentOptions !== 'undefined'?departmentOptions:[],defaultCode:user && user.role==='department-admin'?user.department_code:''}) %></script>
+    <script id="department-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson({options:typeof departmentOptions !== 'undefined'?departmentOptions:[],eventOptions:eventDepartmentOptions,defaultCode:user && user.role==='department-admin'?user.department_code:''}) %></script>
     <script id="articles-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(articles.map(a => ({ id: a.id, title: a.title, category: a.category, department_code: a.department_code || '', audience: a.audience, excerpt: a.excerpt, content: a.content, published_date: a.published_date, created_at: a.created_at, updated_at: a.updated_at }))) %></script>
     <script id="events-data-json" type="application/json" nonce="<%= cspNonce %>"><%- safeJson(events.map(e => ({ id: e.id, title: e.title, category: e.category, department_code: e.department_code || '', audience: e.audience || 'all', event_date: e.event_date, description: e.description, location: e.location, event_time: e.event_time, created_at: e.created_at, updated_at: e.updated_at }))) %></script>
 

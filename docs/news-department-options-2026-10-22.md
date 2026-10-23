@@ -77,6 +77,13 @@ an authenticated session. That postponed issue is not claimed fixed here.
 
 ## Prepared deletion and restoration — separate owner step
 
+**Historical policy v1 — obsolete for future cleanup.** All earlier generated
+deletion plans are obsolete. Read `docs/campus-wide-events-2026-10-23.md` for
+candidate policy v2: Events are selected only for Facilities, so valid
+Campus-wide events survive. Preserve old backups/evidence; prepare fresh and
+obtain owner review before any future cleanup. The counts and scope below
+describe the October 22 historical snapshot, not a current deletion list.
+
 The selected scope is the union of articles/events whose `department_code`
 equals `university-wide` OR whose `category` equals `Facilities`, including
 drafts and published articles. A record matching both is counted once.

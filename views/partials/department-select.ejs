@@ -2,7 +2,7 @@
 <select id="<%= selectId %>" name="department_code" class="ui-input" style="max-width:100%;height:auto;min-height:2.5rem;" <%= selectRequired ? 'required' : '' %> <%- selectAttributes || '' %>>
     <% if (includeAll) { %><option value="all">All departments</option><% } %>
     <% if (!includeAll) { %><option value="">Select department...</option><% } %>
-    <% for (const d of (typeof departmentOptions !== 'undefined' ? departmentOptions : [])) { %>
+    <% for (const d of (typeof selectOptions !== 'undefined' ? selectOptions : (typeof departmentOptions !== 'undefined' ? departmentOptions : []))) { %>
     <option value="<%= d.code %>"><%= d.label %></option>
     <% } %>
 </select>

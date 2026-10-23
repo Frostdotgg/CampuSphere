@@ -10,7 +10,8 @@ const COLUMNS = Object.freeze({
   events: ['id', 'title', 'category', 'department_code', 'audience', 'event_date', 'description', 'location', 'event_time', 'created_at', 'updated_at']
 });
 const TABLES = Object.keys(COLUMNS);
-const reasons = row => [row.department_code === 'university-wide' ? 'department' : '', row.category === 'Facilities' ? 'category' : ''].filter(Boolean);
+// Policy v2: Campus-wide events are valid. Only articles retire this department.
+const reasons = (table, row) => [table === 'news_announcements' && row.department_code === 'university-wide' ? 'department' : '', row.category === 'Facilities' ? 'category' : ''].filter(Boolean);
 const stable = value => JSON.stringify(value, (_, item) => item && !Array.isArray(item) && typeof item === 'object'
   ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
 const digest = value => crypto.createHash('sha256').update(stable(value)).digest('hex');
@@ -81,8 +82,8 @@ function sqlFor(backup, engine, restore) {
     guard(`(SELECT COUNT(*) FROM ${name(table)}) = ${rows.length}`),
     ...rows.map(row => guard(`(SELECT COUNT(*) FROM ${name(table)} WHERE ${matches(row)}) = 1`))
   ].join('\n');
-  const selected = Object.fromEntries(TABLES.map(table => [table, backup.tables[table].filter(row => reasons(row).length)]));
-  const retained = Object.fromEntries(TABLES.map(table => [table, backup.tables[table].filter(row => !reasons(row).length)]));
+  const selected = Object.fromEntries(TABLES.map(table => [table, backup.tables[table].filter(row => reasons(table, row).length)]));
+  const retained = Object.fromEntries(TABLES.map(table => [table, backup.tables[table].filter(row => !reasons(table, row).length)]));
   const statements = [];
   statements.push(guard(`current_database() = ${literal(backup.target.database, engine)}`));
   if (engine === 'mysql') statements[0] = guard(`DATABASE() = ${literal(backup.target.database, engine)}`);
@@ -97,7 +98,7 @@ function sqlFor(backup, engine, restore) {
     }
   }
   for (const table of TABLES) statements.push(assertTable(table, restore ? backup.tables[table] : retained[table]));
-  const header = `-- PRIVATE generated ${restore ? 'RESTORE' : 'DELETE'}; snapshot SHA-256 ${digest(backup)}\n-- OWNER ONLY: verify target, pause all content writers, retain backup outside Git.\n-- Review and set ${engine === 'postgres' ? 'campusphere.cleanup_target' : '@campusphere_cleanup_target'} to ${target} in this connection.\n`;
+  const header = `-- PRIVATE generated ${restore ? 'RESTORE' : 'DELETE'}; policy v2; snapshot SHA-256 ${digest(backup)}\n-- Earlier deletion plans are obsolete: prepare fresh and obtain owner review.\n-- OWNER ONLY: verify target, pause all content writers, retain backup outside Git.\n-- Review and set ${engine === 'postgres' ? 'campusphere.cleanup_target' : '@campusphere_cleanup_target'} to ${target} in this connection.\n`;
   if (engine === 'postgres') return header + `BEGIN;\nLOCK TABLE public.news_announcements, public.events IN SHARE ROW EXCLUSIVE MODE;\nDO $cleanup$ BEGIN\n${statements.join('\n')}\nEND $cleanup$;\nCOMMIT;\n`;
   const procedure = `cs_retired_content_${restore ? 'restore' : 'delete'}`;
   // No DROP IF EXISTS: a previous failed helper must be inspected before retry.
@@ -106,9 +107,9 @@ function sqlFor(backup, engine, restore) {
 
 function prepare(backup) {
   validateBackup(backup);
-  const affected = TABLES.flatMap(table => backup.tables[table].filter(row => reasons(row).length)
-    .map(row => ({table, id: row.id, title: row.title, reasons: reasons(row), rowSha256: digest(row)})));
-  return {manifest: {format: 'campusphere-retired-content-plan-v1', snapshotSha256: digest(backup), capturedAt: backup.capturedAt,
+  const affected = TABLES.flatMap(table => backup.tables[table].filter(row => reasons(table, row).length)
+    .map(row => ({table, id: row.id, title: row.title, reasons: reasons(table, row), rowSha256: digest(row)})));
+  return {manifest: {format: 'campusphere-retired-content-plan-v2', policyVersion: 2, snapshotSha256: digest(backup), capturedAt: backup.capturedAt,
     target: backup.target, counts: Object.fromEntries(TABLES.map(table => [table, {total: backup.tables[table].length, affected: affected.filter(row => row.table === table).length}])), affected},
     deleteSql: sqlFor(backup, backup.target.backend, false), restoreSql: sqlFor(backup, backup.target.backend, true)};
 }

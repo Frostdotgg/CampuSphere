@@ -11,6 +11,10 @@ const DEPARTMENTS = Object.freeze([
   { code: 'cas', label: 'College of Arts and Sciences (CAS)' }
 ].map(Object.freeze));
 const CONTENT_DEPARTMENTS = DEPARTMENTS;
+// Retain the existing storage code; Campus-wide is an event-only choice.
+const EVENT_DEPARTMENTS = Object.freeze([
+  Object.freeze({ code: 'university-wide', label: 'Campus-wide' }), ...DEPARTMENTS
+]);
 function isDepartment(code) {
   return typeof code === 'string' && DEPARTMENTS.some(d => d.code === code);
 }
@@ -25,5 +29,11 @@ function homeForUser(user) {
   return user && user.role === DEPARTMENT_ADMIN ? '/admin/news'
     : user && user.role === 'admin' ? '/admin' : '/dashboard';
 }
-module.exports = { DEPARTMENT_ADMIN, DEPARTMENTS, CONTENT_DEPARTMENTS,
-  isDepartment, isContentDepartment, departmentLabel, homeForUser };
+function isEventDepartment(code) {
+  return typeof code === 'string' && EVENT_DEPARTMENTS.some(d => d.code === code);
+}
+function eventDepartmentLabel(code) {
+  return EVENT_DEPARTMENTS.find(d => d.code === code)?.label || '';
+}
+module.exports = { DEPARTMENT_ADMIN, DEPARTMENTS, CONTENT_DEPARTMENTS, EVENT_DEPARTMENTS,
+  isDepartment, isContentDepartment, departmentLabel, isEventDepartment, eventDepartmentLabel, homeForUser };

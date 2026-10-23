@@ -949,7 +949,7 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advances to v55 for retired news options', SW.cacheVersion(swSource) === 55);
+  ok('cache version advances to v56 for Campus-wide events', SW.cacheVersion(swSource) === 56);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
@@ -1037,10 +1037,10 @@ function checkServiceWorkerFixtures(swSource) {
   ok('REJECTS a blanket cache cleanup that ignores the CampuSphere prefix',
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
-  // The preceding v54 shell must not mask the retired-option update.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v55'", "CACHE_VERSION = 'v54'");
-  ok('REJECTS an un-advanced (stale v54) cache version',
-    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 55);
+  // The preceding v55 shell must not mask the Campus-wide event update.
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v56'", "CACHE_VERSION = 'v55'");
+  ok('REJECTS an un-advanced (stale v55) cache version',
+    staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 56);
 
   /* Reintroducing ANY cross-origin cache path must FAIL. Three separate
      regressions are driven through the real analyzer: an OSM host allowlist,
@@ -1183,7 +1183,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v55');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v56');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1315,11 +1315,14 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-       // current v55 caches - shell and static ONLY. Any v55 API/external cache
+       // current v56 caches - shell and static ONLY. Any v56 API/external cache
        // name is adversarial and must still be pruned.
+       'campusphere-pwa-shell-v56', 'campusphere-pwa-static-v56',
+       'campusphere-pwa-api-v56', 'campusphere-pwa-external-v56',
+       // The preceding v55 department editor caches are stale too.
        'campusphere-pwa-shell-v55', 'campusphere-pwa-static-v55',
        'campusphere-pwa-api-v55', 'campusphere-pwa-external-v55',
-       // The preceding v54 department editor caches are stale too.
+       // Preserve the older department-editor generation as a stale fixture.
        'campusphere-pwa-shell-v54', 'campusphere-pwa-static-v54',
        'campusphere-pwa-api-v54', 'campusphere-pwa-external-v54',
        // the v53 set is stale and must be pruned too.
@@ -1367,15 +1370,15 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v55 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v56 caches (shell + static only)',
      settled.length === 1 && settled[0].status === 'fulfilled' &&
-     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v55`)));
+     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v56`)));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including the whole v53, v50, v49, v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v55-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including the whole v53, v50, v49, v48, v43, v42, v41, v40, v39, v38, and v37 sets, older API/external/page generations, and any v56-suffixed API or external cache',
      !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v55`)) &&
+       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v56`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&

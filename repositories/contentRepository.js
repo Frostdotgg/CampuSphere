@@ -46,7 +46,7 @@
    ======================================== */
 
 const { getSupabaseClient } = require('../config/supabase');
-const { isContentDepartment } = require('../utils/departments');
+const { isContentDepartment, isEventDepartment } = require('../utils/departments');
 
 // Explicit column lists pin the MySQL-era row shape and avoid leaking
 // any column the controllers/views do not already expect.
@@ -381,7 +381,7 @@ async function deleteAnnouncement(id) {
  * Audience defaults to Everyone for compatibility with older callers.
  */
 async function createEvent(payload = {}) {
-  if (!isContentDepartment(payload.department_code)) {
+  if (!isEventDepartment(payload.department_code)) {
     throw new Error('contentRepository.createEvent: Invalid department.');
   }
   const row = {
@@ -413,7 +413,7 @@ async function createEvent(payload = {}) {
 async function updateEvent(id, payload = {}) {
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId < 1) return null;
-  if ('department_code' in payload && !isContentDepartment(payload.department_code)) {
+  if ('department_code' in payload && !isEventDepartment(payload.department_code)) {
     throw new Error('contentRepository.updateEvent: Invalid department.');
   }
 

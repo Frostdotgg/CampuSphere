@@ -35,7 +35,7 @@ function backup(engine) {
   const event = {...shared,id:1,category:'Academic',event_date:'2026-11-01',description:'Fixture event',location:null,event_time:'10 AM'};
   return {format:'campusphere-retired-content-backup-v1',capturedAt:'2026-10-22T00:00:00Z',target:{backend:engine,database:engine==='mysql'?'campusphere_fixture':'postgres',projectRef:'fixture-project'},tables:{
     news_announcements:[article,{...article,id:2,department_code:'ccs',category:'Facilities'},{...article,id:3,department_code:'cas'},{...article,id:4,category:'Facilities'}],
-    events:[event,{...event,id:2,department_code:'ccs'},{...event,id:3,department_code:'cas',category:'Facilities'}]
+    events:[event,{...event,id:2,department_code:'ccs'},{...event,id:3,department_code:'cas',category:'Facilities'},{...event,id:4,category:'Facilities'}]
   }};
 }
 async function rehearse(engine) {
@@ -48,43 +48,49 @@ CREATE TABLE news_announcements(id integer primary key,title text,category varch
 CREATE TABLE events(id integer primary key,title text,category varchar(50),department_code varchar(30),audience varchar(30),event_date date,description text,location text,event_time varchar(100),created_at ${timestamp},updated_at ${timestamp});`);
   // Restore statements are generated with safe hex literals, including canaries.
   const allSelected = structuredClone(data);
-  for (const table of Object.values(allSelected.tables)) for (const row of table) row.department_code='university-wide';
+  for (const table of Object.values(allSelected.tables)) for (const row of table) row.category='Facilities';
   const allInserts = prepare(allSelected).restoreSql.split('\n').filter(line=>line.startsWith('INSERT INTO')).join('\n');
   q(allInserts);
-  for (const table of Object.keys(data.tables)) for (const row of data.tables[table]) q(`UPDATE ${table} SET department_code='${row.department_code}' WHERE id=${row.id};`);
+  for (const table of Object.keys(data.tables)) for (const row of data.tables[table]) q(`UPDATE ${table} SET category='${row.category}' WHERE id=${row.id};`);
   const count = () => q('SELECT COUNT(*) FROM news_announcements; SELECT COUNT(*) FROM events;');
-  const unrelated = () => q('SELECT * FROM users; SELECT * FROM audit_log; SELECT * FROM routes; SELECT id,content FROM news_announcements WHERE id=3; SELECT id,description FROM events WHERE id=2;');
+  const unrelated = () => q('SELECT * FROM users; SELECT * FROM audit_log; SELECT * FROM routes; SELECT id,content FROM news_announcements WHERE id=3; SELECT * FROM events WHERE id IN (1,2) ORDER BY id;');
   const before = unrelated();
   const gate = engine === 'postgres' ? "SET campusphere.cleanup_target='fixture-project';\n" : "SET @campusphere_cleanup_target='campusphere_fixture';\n";
   const run = (sql, confirmed=true) => {
     try { return q((confirmed?gate:'')+sql); }
     finally { if(engine==='mysql')q('DROP PROCEDURE IF EXISTS cs_retired_content_delete; DROP PROCEDURE IF EXISTS cs_retired_content_restore;'); }
   };
-  check(engine+' union counts overlap once',()=>assert.equal(plan.manifest.affected.length,5));
+  check(engine+' v2 policy excludes valid Campus-wide events and counts article overlap once',()=>{assert.equal(plan.manifest.format,'campusphere-retired-content-plan-v2');assert.equal(plan.manifest.policyVersion,2);assert.deepEqual(plan.manifest.affected.map(r=>[r.table,r.id]),[['news_announcements',1],['news_announcements',2],['news_announcements',4],['events',3],['events',4]]);assert.deepEqual(plan.manifest.affected.find(r=>r.table==='news_announcements'&&r.id===4).reasons,['department','category']);assert.deepEqual(plan.manifest.affected.find(r=>r.table==='events'&&r.id===4).reasons,['category']);});
   check(engine+' missing owner target fails closed',()=>assert.throws(()=>run(plan.deleteSql,false)));
-  check(engine+' target failure changes no rows',()=>assert.equal(count(),'4\n3'));
+  check(engine+' target failure changes no rows',()=>assert.equal(count(),'4\n4'));
   q("UPDATE news_announcements SET content='changed' WHERE id=1;");
   check(engine+' changed affected row blocks deletion',()=>assert.throws(()=>run(plan.deleteSql)));
   q("UPDATE news_announcements SET content='Original fixture content' WHERE id=1;");
   q("UPDATE news_announcements SET content='changed' WHERE id=3;");
   check(engine+' changed unrelated row blocks deletion',()=>assert.throws(()=>run(plan.deleteSql)));
   q("UPDATE news_announcements SET content='Original fixture content' WHERE id=3;");
+  q("UPDATE events SET description='changed' WHERE id=1;");
+  check(engine+' changed retained Campus-wide event blocks deletion',()=>assert.throws(()=>run(plan.deleteSql)));
+  q("UPDATE events SET description='Fixture event' WHERE id=1;");
   q("INSERT INTO events(id,title,department_code,category) VALUES(99,'unexpected','university-wide','Academic');");
   check(engine+' unexpected new row blocks deletion',()=>assert.throws(()=>run(plan.deleteSql)));
   q('DELETE FROM events WHERE id=99;');
   run(plan.deleteSql);
-  check(engine+' exact affected rows removed',()=>assert.equal(count(),'1\n1'));
+  check(engine+' exact affected rows removed and Campus-wide event retained',()=>assert.equal(count(),'1\n2'));
   check(engine+' accounts audits routes and retained posts unchanged',()=>assert.equal(unrelated(),before));
   check(engine+' second deletion refuses changed snapshot',()=>assert.throws(()=>run(plan.deleteSql)));
   q("UPDATE events SET description='changed' WHERE id=2;");
   check(engine+' restore refuses changed retained post',()=>assert.throws(()=>run(plan.restoreSql)));
   q("UPDATE events SET description='Fixture event' WHERE id=2;");
+  q("UPDATE events SET description='changed' WHERE id=1;");
+  check(engine+' restore refuses changed retained Campus-wide event',()=>assert.throws(()=>run(plan.restoreSql)));
+  q("UPDATE events SET description='Fixture event' WHERE id=1;");
   run(plan.restoreSql);
-  check(engine+' restore returns original row counts',()=>assert.equal(count(),'4\n3'));
+  check(engine+' restore returns original row counts',()=>assert.equal(count(),'4\n4'));
   check(engine+' restore preserves unrelated fixture state',()=>assert.equal(unrelated(),before));
   // Exact snapshot guards provide the independent equality assertion on restore.
   run(plan.deleteSql); run(plan.restoreSql);
-  check(engine+' restored rows pass every original column guard',()=>assert.equal(count(),'4\n3'));
+  check(engine+' restored rows pass every original column guard',()=>assert.equal(count(),'4\n4'));
   check(engine+' UTF8 SQL canary never executes',()=>assert.equal(q('SELECT COUNT(*) FROM users;'),'1'));
 }
 async function main() {

@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const departmentData = JSON.parse(document.getElementById('department-data-json').textContent);
   const departmentNames = Object.fromEntries(departmentData.options.map(d => [d.code, d.label]));
   const departmentLabel = code => departmentNames[code] || '';
+  const eventDepartmentNames = Object.fromEntries(departmentData.eventOptions.map(d => [d.code, d.label]));
+  const eventDepartmentLabel = code => eventDepartmentNames[code] || '';
   const departmentFilter = document.getElementById('department-filter');
   departmentFilter.addEventListener('change', () => { filter.department = departmentFilter.value; renderAll(); });
 
@@ -133,6 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Tabs ----
+  function rebuildDepartmentFilter(){
+    const options=currentTab==='events'?departmentData.eventOptions:departmentData.options;
+    if(filter.department!=='all' && !options.some(d=>d.code===filter.department)) filter.department='all';
+    departmentFilter.innerHTML='<option value="all">All departments</option>'+options.map(d=>
+      `<option value="${esc(d.code)}">${esc(d.label)}</option>`).join('');
+    departmentFilter.value=filter.department;
+  }
   function switchTab(tab){
     currentTab=tab;
     if(tab==='news'){
@@ -147,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
       addBtn.innerHTML='<i data-lucide="plus" class="mr-2 h-4 w-4"></i>New Event';
     }
     rebuildCategoryFilter();
+    rebuildDepartmentFilter();
     refreshIcons();
     renderAll();
   }
@@ -237,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     eventsTableBody.innerHTML=items.map(ev=>`<tr data-id="${ev.id}">
       <td class="text-sm font-medium">${esc(ev.title)}</td>
       <td>${catBadge(ev.category)}</td>
-      <td style="max-width:18rem;white-space:normal;overflow-wrap:anywhere;">${esc(departmentLabel(ev.department_code))}</td>
+      <td style="max-width:18rem;white-space:normal;overflow-wrap:anywhere;">${esc(eventDepartmentLabel(ev.department_code))}</td>
       <td><span class="ui-badge ui-badge-outline">${esc(audienceLabel(ev.audience))}</span></td>
       <td class="text-sm text-muted-foreground">${fmtDate(ev.event_date)}</td>
       <td class="text-sm text-muted-foreground">${esc(ev.event_time||'—')}</td>
@@ -383,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.dataset.editId=id;
     form.title_field.value=ev.title||'';
     form.category.value=EVENT_CATEGORIES.includes(ev.category)?ev.category:'';
-    form.department_code.value=departmentNames[ev.department_code]?ev.department_code:'';
+    form.department_code.value=eventDepartmentNames[ev.department_code]?ev.department_code:'';
     if(form.audience) form.audience.value=ev.audience||'all';
     form.event_date.value=ev.event_date?new Date(ev.event_date).toISOString().split('T')[0]:'';
     form.event_time.value=ev.event_time||'';

@@ -62,7 +62,7 @@ function fixture(mode='mysql'){
  const routeMocks={'../middleware/roleAuth':role,'../middleware/departmentAccess':access,'../middleware/csrfProtection':csrf,'../middleware/rateLimit':{adminMutationLimiter:(_q,_r,n)=>{state.rateChecks++;n();}},'../controllers/adminUsersController':users,'../controllers/adminContentController':content,'../controllers/adminController':new Proxy(admin,{get:(target,key)=>['news','users'].includes(key)?target[key]:stub[key]})};
  for(const name of ['adminBuildingsController','adminVrController','adminRouteController','presenceController','walkingRouteController'])routeMocks['../controllers/'+name]=stub;
  const app=express();app.set('view engine','ejs');app.set('views',path.join(ROOT,'views'));app.use(express.json());app.use(express.urlencoded({extended:false}));app.use(express.static(path.join(ROOT,'public')));app.use(session({name:'fixture.sid',secret:'synthetic-department-probe-only-secret',store,resave:false,saveUninitialized:false}));
- app.use(csrf.attachCsrfToken);app.use((req,res,next)=>{Object.assign(res.locals,{user:req.session.user||null,csrfToken:req.session.csrfToken,cspNonce:'fixture',activeTab:'',departmentOptions:departments.CONTENT_DEPARTMENTS,departmentLabel:departments.departmentLabel,safeJson:v=>JSON.stringify(v).replace(/</g,'\\u003c')});next();});
+ app.use(csrf.attachCsrfToken);app.use((req,res,next)=>{Object.assign(res.locals,{user:req.session.user||null,csrfToken:req.session.csrfToken,cspNonce:'fixture',activeTab:'',departmentOptions:departments.CONTENT_DEPARTMENTS,departmentLabel:departments.departmentLabel,eventDepartmentOptions:departments.EVENT_DEPARTMENTS,eventDepartmentLabel:departments.eventDepartmentLabel,safeJson:v=>JSON.stringify(v).replace(/</g,'\\u003c')});next();});
  // These fixture-only helpers precede the real access guard and bind loopback.
  app.get('/fixture/csrf',(req,res)=>res.json({token:csrf.ensureCsrfToken(req.session)}));
  app.get('/fixture/login/:id',(req,res)=>{const u=state.tables.users.find(u=>u.id===Number(req.params.id));req.session.user={id:u.id,role:u.role,department_code:u.department_code,first_name:u.first_name,last_name:u.last_name,email:u.email};res.redirect('/admin/news');});
@@ -74,6 +74,7 @@ function fixture(mode='mysql'){
  return {app,state,store,auth,userRepo,contentRepo};
 }
 async function run(){
+ check('event choices retain one compatible Campus-wide code first',()=>{assert.deepEqual(departments.EVENT_DEPARTMENTS.map(d=>d.code),['university-wide',...departments.DEPARTMENTS.map(d=>d.code)]);assert.equal(departments.eventDepartmentLabel('university-wide'),'Campus-wide');assert.equal(departments.isEventDepartment('campus-wide'),false);assert.equal(departments.isDepartment('university-wide'),false);});
  check('content choices contain exactly the seven departments',()=>assert.deepEqual(departments.CONTENT_DEPARTMENTS.map(d=>d.code),['graduate-school','cea','ccs','chs','cthbm','ctde','cas']));
  for(const code of ['university-wide','',undefined,'invalid'])check('retired and missing department labels are not reassigned '+String(code),()=>{assert.equal(departments.departmentLabel(code),'');assert.equal(departments.isContentDepartment(code),false);});
  // Drive the real delegated browser script with card and table-row fixtures.
@@ -150,7 +151,7 @@ async function run(){
      const removed=await request('/admin/api/'+type+'/'+id,{...jar,method:'DELETE'});check(mode+' delete '+type+' '+code,()=>assert.equal(removed.status,200));
     }
    }
-   for(const type of ['news','events'])for(const code of [undefined,'','university-wide','unknown',null,{},['ccs'],'CCS','university-wide<script>']){const before=f.state.writes;for(const method of ['POST','PUT']){const r=await request('/admin/api/'+type+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Fixture',category:type==='news'?'General':'Academic',excerpt:'Text',event_date:'2026-11-01',department_code:code}});check(mode+' invalid department '+type+'/'+method+'/'+String(code),()=>{assert.equal(r.status,400);assert.equal(f.state.writes,before);});}}
+   for(const type of ['news','events'])for(const code of [undefined,'',...(type==='news'?['university-wide']:[]),'campus-wide','unknown',null,{},['ccs'],'CCS','university-wide<script>']){const before=f.state.writes;for(const method of ['POST','PUT']){const r=await request('/admin/api/'+type+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Fixture',department_code:code,...(type==='news'?{category:'General',excerpt:'Text'}:{category:'Academic',event_date:'2026-11-01'})}});check(mode+' invalid department '+type+'/'+method+'/'+String(code),()=>{assert.equal(r.status,400);assert.equal(f.state.writes,before);});}}
    for(const category of ['Event','Events','Facilities'])for(const method of ['POST','PUT']){const before=f.state.writes;const r=await request('/admin/api/news'+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Old',category,excerpt:'Text',department_code:'ccs'}});check(mode+' retired article category '+category+'/'+method,()=>{assert.equal(r.status,400);assert.equal(f.state.writes,before);});}
    for(const method of ['POST','PUT']){const r=await request('/admin/api/events'+(method==='PUT'?'/1':''),{...jar,method,body:{title:'Old event',category:'Facilities',event_date:'2026-11-01',department_code:'ccs'}});check(mode+' retired event category/'+method,()=>assert.equal(r.status,400));}
    const escalation=await request('/admin/api/users',{...jar,method:'POST',body:{role:'admin'}});check(mode+' no account escalation',()=>assert.equal(escalation.status,403));
@@ -162,12 +163,48 @@ async function run(){
    const legacy={id:9999,title:'Legacy preserved',category:'Events',department_code:'university-wide',audience:'all',excerpt:'Legacy',content:'Legacy text',author_id:2,published_date:'2026-10-20T00:00:00Z'};f.state.tables.news_announcements.push(legacy);
    const invalidLegacy=await request('/admin/api/news/9999',{...jar,method:'PUT',body:{title:legacy.title,category:'Events',excerpt:'Legacy'}});
    check(mode+' legacy Event category must be changed on edit',()=>assert.equal(invalidLegacy.status,400));
-   const legacyRead=await request('/admin/news',jar);check(mode+' legacy content readable without retired choices',()=>{assert(legacyRead.text.includes('Legacy preserved'));assert(!legacyRead.text.includes('<option value="university-wide">'));assert(!legacyRead.text.includes('<option value="Facilities">'));});
+   const legacyRead=await request('/admin/news',jar);check(mode+' legacy content readable without retired choices',()=>{assert(legacyRead.text.includes('Legacy preserved'));assert(!legacyRead.text.match(/<select id="news-department"[\s\S]*?<\/select>/)[0].includes('university-wide'));assert(!legacyRead.text.includes('<option value="Facilities">'));});
    const savedLegacy=await request('/admin/api/news/9999',{...jar,method:'PUT',body:{title:legacy.title,category:'Academic',excerpt:'Legacy',content:'Legacy text',status:'published',department_code:'ccs'}});
    check(mode+' legacy edit retains content author and publication',()=>{assert.equal(savedLegacy.status,200);assert.equal(savedLegacy.body.article.department_code,'ccs');assert.equal(savedLegacy.body.article.author_id,2);assert.equal(new Date(savedLegacy.body.article.published_date).toISOString(),'2026-10-20T00:00:00.000Z');assert.equal(savedLegacy.body.article.content,'Legacy text');});
    const mainEditor=await request('/admin/news',admin);check(mode+' main admin explicitly selects department',()=>{assert(mainEditor.text.includes('"defaultCode":""'));assert(mainEditor.text.includes('value="">Select department...'));});
-   for(const name of ['createAnnouncement','createEvent'])for(const code of [undefined,'university-wide']){await assert.rejects(()=>f.contentRepo[name]({department_code:code}),/Invalid department/);check(mode+' repository prevents default department '+name+'/'+String(code),()=>{});}
-   for(const name of ['updateAnnouncement','updateEvent']){await assert.rejects(()=>f.contentRepo[name](9999,{department_code:'university-wide'}),/Invalid department/);check(mode+' repository rejects retired update department '+name,()=>{});const result=await f.contentRepo[name](-1,{department_code:'university-wide'});check(mode+' repository retains invalid-ID null result '+name,()=>assert.equal(result,null));}
+   const selectHtml=(html,id)=>html.match(new RegExp('<select id="'+id+'"[\\s\\S]*?</select>'))[0];
+   for(const [actor,actorName] of [[admin,'admin'],[jar,'department-admin']]){
+    const page=await request('/admin/news',actor);
+    check(mode+' event-only form choices '+actorName,()=>{
+     assert(selectHtml(page.text,'event-department').includes('<option value="university-wide">Campus-wide</option>'));
+     assert(!selectHtml(page.text,'news-department').includes('university-wide'));
+     assert(!selectHtml(page.text,'department-filter').includes('university-wide'));
+     assert(!page.text.includes('<option value="Facilities">'));
+    });
+    for(const code of departments.EVENT_DEPARTMENTS.map(d=>d.code)){
+     const payload={title:'CAMPUS-FIXTURE '+actorName+' '+code,category:'Academic',department_code:code,audience:'admin',event_date:'2026-11-01',description:'Private event canary'};
+     const made=await request('/admin/api/events',{...actor,method:'POST',body:payload}),id=made.body?.event?.id;
+     check(mode+' eight-choice event create '+actorName+'/'+code,()=>{assert.equal(made.status,201,made.text);assert.equal(made.body.event.department_code,code);assert.equal(made.body.event.audience,'admin');});
+     const before=JSON.stringify(f.state.tables.events.find(e=>e.id===id)),writeCount=f.state.writes;
+     const reloaded=await request('/admin/news',actor);
+     check(mode+' event reload never rewrites '+actorName+'/'+code,()=>{assert.equal(reloaded.status,200);assert(reloaded.text.includes(payload.title));assert.equal(f.state.writes,writeCount);assert.equal(JSON.stringify(f.state.tables.events.find(e=>e.id===id)),before);});
+     for(const readerId of [2,3,4]){
+      const {jar:reader}=await login(readerId),visible=await request('/events',reader);
+      check(mode+' Campus-wide does not widen private audience '+actorName+'/'+code+'/'+readerId,()=>assert(!visible.text.includes(payload.title)));
+     }
+     const changed=await request('/admin/api/events/'+id,{...actor,method:'PUT',body:{...payload,department_code:code==='university-wide'?'cas':'university-wide'}});
+     check(mode+' event department update '+actorName+'/'+code,()=>{assert.equal(changed.status,200,changed.text);assert.equal(changed.body.event.department_code,code==='university-wide'?'cas':'university-wide');assert.equal(changed.body.event.audience,'admin');});
+     const removed=await request('/admin/api/events/'+id,{...actor,method:'DELETE'});
+     check(mode+' event delete '+actorName+'/'+code,()=>{assert.equal(removed.status,200);assert(!f.state.tables.events.some(e=>e.id===id));});
+    }
+   }
+   const oldEvent={id:8888,title:'EXISTING-CAMPUS-EVENT',category:'Cultural',department_code:'university-wide',audience:'all',event_date:'2026-11-01',description:'Original event text'};
+   f.state.tables.events.push(oldEvent);
+   const oldBytes=JSON.stringify(oldEvent),beforeReads=f.state.writes;
+   for(const readerId of [1,2,3,4]){
+    const reader=readerId===1?admin:(await login(readerId)).jar,page=await request('/events',reader);
+    check(mode+' existing event Campus-wide label/filter '+readerId,()=>{const data=JSON.parse(page.text.match(/id="eventsData"[^>]*>([\s\S]*?)<\/script>/)[1]);assert.equal(data.find(e=>e.id===8888).department_label,'Campus-wide');assert(selectHtml(page.text,'events-department').includes('value="university-wide">Campus-wide'));assert(selectHtml(page.text,'events-department').includes('All departments'));});
+   }
+   check(mode+' old event read-only preservation',()=>{assert.equal(JSON.stringify(oldEvent),oldBytes);assert.equal(f.state.writes,beforeReads);});
+   const missingCsrf=await request('/admin/api/events',{...jar,method:'POST',token:'wrong',body:{title:'CSRF',category:'Academic',event_date:'2026-11-01',department_code:'university-wide'}});
+   check(mode+' Campus-wide CSRF unchanged',()=>{assert.equal(missingCsrf.status,403);assert.equal(f.state.writes,beforeReads);});
+   for(const name of ['createAnnouncement','createEvent'])for(const code of [undefined,...(name==='createAnnouncement'?['university-wide']:[]),'campus-wide']){await assert.rejects(()=>f.contentRepo[name]({department_code:code}),/Invalid department/);check(mode+' repository prevents default department '+name+'/'+String(code),()=>{});}
+   for(const name of ['updateAnnouncement','updateEvent']){await assert.rejects(()=>f.contentRepo[name](9999,{department_code:name==='updateEvent'?'campus-wide':'university-wide'}),/Invalid department/);check(mode+' repository rejects retired update department '+name,()=>{});const result=await f.contentRepo[name](-1,{department_code:'university-wide'});check(mode+' repository retains invalid-ID null result '+name,()=>assert.equal(result,null));}
    for(const code of departments.DEPARTMENTS.map(d=>d.code)){
     const payload={first_name:'Department',last_name:'Fixture',email:code+'@example.invalid',password:'Fixture-pass-7!',role:'department-admin',department_code:code};
     const created=await request('/admin/api/users',{...admin,method:'POST',body:payload});check(mode+' main admin creates '+code,()=>{assert.equal(created.status,201,created.text);assert.equal(created.body.user.department_code,code);assert(!('password'in created.body.user));});
@@ -175,10 +212,11 @@ async function run(){
     const changed=await request('/admin/api/users/'+id,{...admin,method:'PUT',body:{...payload,password:'',department_code:code==='cas'?'ccs':'cas'}});check(mode+' department change revokes '+code,()=>{assert.equal(changed.status,200,changed.text);assert(f.state.revocations.includes(id));});
     const stale=await request('/admin/news',signed.jar);check(mode+' stale session denied '+code,()=>assert.equal(stale.status,401));
    }
-   for(const payload of [{role:'department-admin'},{role:'department-admin',department_code:'university-wide'},{role:'admin',department_code:'ccs'}]){const r=await request('/admin/api/users',{...admin,method:'POST',body:{first_name:'Invalid',last_name:'Fixture',email:'bad@example.invalid',password:'Fixture-pass-7!',...payload}});check(mode+' rejects invalid role/department pair',()=>assert.equal(r.status,400));}
+   for(const payload of [{role:'department-admin'},{role:'department-admin',department_code:'university-wide'},{role:'department-admin',department_code:'campus-wide'},{role:'admin',department_code:'ccs'}]){const r=await request('/admin/api/users',{...admin,method:'POST',body:{first_name:'Invalid',last_name:'Fixture',email:'bad@example.invalid',password:'Fixture-pass-7!',...payload}});check(mode+' rejects invalid role/department pair',()=>assert.equal(r.status,400));}
    const account=f.state.tables.users.find(u=>u.email==='ccs@example.invalid');
    const passwordSession=await login(account.id,true);
    const userFields={first_name:account.first_name,last_name:account.last_name,email:account.email,role:account.role,department_code:account.department_code};
+   for(const code of ['university-wide','campus-wide']){const changed=await request('/admin/api/users/'+account.id,{...admin,method:'PUT',body:{...userFields,department_code:code,password:''}});check(mode+' forged Campus-wide account update rejected '+code,()=>assert.equal(changed.status,400));}
    const passwordUpdate=await request('/admin/api/users/'+account.id,{...admin,method:'PUT',body:{...userFields,password:'Changed-fixture-pass-8!'}});
    check(mode+' password change revokes department session',()=>{assert.equal(passwordUpdate.status,200);assert(f.state.revocations.includes(account.id));});
    const oldPasswordSession=await request('/admin/news',passwordSession.jar);
@@ -189,7 +227,7 @@ async function run(){
    const oldRoleSession=await request('/admin/news',roleSession.jar);
    check(mode+' old role session cannot reach editor',()=>assert.equal(oldRoleSession.status,401));
    const deniedPages=['/admin/users','/admin/faqs','/admin/logs','/admin/settings','/admin/vr','/admin/campus-map'];for(const p of deniedPages){const response=await request(p,admin);check(mode+' full admin retains '+p,()=>assert.equal(response.status,200));}
-   check(mode+' fixed mutation audit/privacy',()=>{assert(f.state.audits.some(a=>a.actor_role==='department-admin'&&a.action==='admin.news.create'));assert(f.state.audits.filter(a=>a.event_type==='admin_mutation').every(a=>!JSON.stringify(a).includes('Fixture text')));});
+   check(mode+' fixed mutation audit/privacy',()=>{assert(f.state.audits.some(a=>a.actor_role==='department-admin'&&a.action==='admin.news.create'));assert(f.state.audits.filter(a=>a.event_type==='admin_mutation').every(a=>!['Fixture text','Private event canary','CAMPUS-FIXTURE'].some(canary=>JSON.stringify(a).includes(canary))));});
   }finally{await new Promise(r=>storeClear(f.store,r));await new Promise(r=>server.close(r));}
  }
  console.log('DEPARTMENT-NEWS-ADMIN OK: '+checks+'/'+checks);

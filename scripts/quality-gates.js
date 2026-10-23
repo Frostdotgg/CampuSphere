@@ -11373,7 +11373,82 @@ function runDepartmentNewsDocsGate() {
   const blocks=names.map(name=>{const text=fs.readFileSync(path.join(__dirname,'..',name),'utf8');return (text.match(/<!-- DEPARTMENT NEWS CANDIDATE START -->[\s\S]*?<!-- DEPARTMENT NEWS CANDIDATE END -->/)||[])[0]||'';});
   rec.ok('all eleven local-candidate notices match',blocks.every(Boolean)&&new Set(blocks).size===1);
   rec.ok('published baseline stays distinct',/published application below remains source 38fd296, cache v53/.test(blocks[0]));
-  return rec.failures.concat(runDepartmentNewsReleaseDocsGate(), runNewsOptionsDocsGate(), runNewsOptionsReleaseDocsGate());
+  return rec.failures.concat(runDepartmentNewsReleaseDocsGate(), runNewsOptionsDocsGate(), runNewsOptionsReleaseDocsGate(), runCampusWideEventsDocsGate());
+}
+
+function campusWideEventsDocProblems(value) {
+  const text=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' ');
+  const problems=[];
+  for(const [label,pattern] of [
+    ['local scope',/local, uncommitted and not deployed candidate/],
+    ['baseline',/da29b4fdc995f33c103e6bdda288565a3f9c6756/],
+    ['event ordering',/Events offer Campus-wide first/],
+    ['storage compatibility',/stored\/API value is university-wide/],
+    ['no alias',/literal campus-wide is not an accepted API value/],
+    ['news and accounts',/Campus-wide is rejected for articles and account assignments/],
+    ['required selection',/main Administrators must select explicitly/],
+    ['privacy',/Campus-wide does not grant reading access/],
+    ['read-only legacy',/Merely opening an event does not rewrite saved records/],
+    ['no migration',/No schema migration or saved-record rewrite is required/],
+    ['cache',/Candidate service worker is v56; stylesheet remains v13/],
+    ['obsolete plans',/All earlier generated deletion plans are obsolete/],
+    ['v2 manifest',/campusphere-retired-content-plan-v2, policyVersion 2/],
+    ['article cleanup',/Articles: University-wide department OR Facilities category/],
+    ['event cleanup',/Events: Facilities category only. Valid Campus-wide events are retained/],
+    ['fresh authorization',/obtain fresh owner review before any future shared cleanup/],
+    ['package',/205 files \/ 8,611,691 bytes; SHA-256 12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6/],
+    ['limitations',/No full npm test\/QA pass, live MySQL parity/],
+    ['shared localhost',/Docker localhost uses shared Supabase/],
+    ['browser honesty',/missing automated submission is inconclusive/],
+    ['separate release',/Commit, push, deployment and shared cleanup remain separate owner tasks/]
+  ])if(!pattern.test(text))problems.push(label);
+  if(/This candidate is deployed|Full QA passed|Campus-wide grants reading access|Shared cleanup is authorized|Events may omit department|Use campus-wide as the API code/.test(text))problems.push('unsupported claim');
+  return problems;
+}
+function runCampusWideEventsDocsGate() {
+  const rec=makeRecorder('campus-wide-events-docs');
+  const note=fs.readFileSync(path.join(__dirname,'..','docs/campus-wide-events-2026-10-23.md'),'utf8');
+  const normalized=note.replace(/[`*]/g,'').replace(/\s+/g,' ');
+  rec.ok('local event-only policy, cleanup v2 and limitations agree',campusWideEventsDocProblems(note).length===0);
+  for(const from of ['local, uncommitted and not deployed candidate','da29b4fdc995f33c103e6bdda288565a3f9c6756','Events offer Campus-wide first','stored/API value is university-wide','literal campus-wide is not an accepted API value','Campus-wide is rejected for articles and account assignments','main Administrators must select explicitly','Campus-wide does not grant reading access','Merely opening an event does not rewrite saved records','No schema migration or saved-record rewrite is required','Candidate service worker is v56','All earlier generated deletion plans are obsolete','campusphere-retired-content-plan-v2, policyVersion 2','Articles: University-wide department OR Facilities category','Events: Facilities category only. Valid Campus-wide events are retained','obtain fresh owner review before any future shared cleanup','12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6','No full npm test/QA pass, live MySQL parity','Docker localhost uses shared Supabase','missing automated submission is inconclusive','Commit, push, deployment and shared cleanup remain separate owner tasks'])
+    rec.ok('independent rejection '+from,normalized.includes(from)&&campusWideEventsDocProblems(normalized.split(from).join('OMITTED')).length>0);
+  for(const claim of ['This candidate is deployed.','Full QA passed.','Campus-wide grants reading access.','Shared cleanup is authorized.','Events may omit department.','Use campus-wide as the API code.'])rec.ok('rejects '+claim,campusWideEventsDocProblems(note+' '+claim).length>0);
+  const notices=['AGENTS.md','docs/current-authority.md'].map(file=>(fs.readFileSync(path.join(__dirname,'..',file),'utf8').match(/<!-- CAMPUS WIDE EVENTS LOCAL START -->[\s\S]*?<!-- CAMPUS WIDE EVENTS LOCAL END -->/)||[])[0]||'');
+  rec.ok('current entrypoints share the event-only local notice',notices.every(Boolean)&&new Set(notices).size===1);
+  return rec.failures.concat(runCampusWideEventsReleaseDocsGate());
+}
+
+function campusWideEventsReleaseProblems(value) {
+  const text=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' '),problems=[];
+  for(const [name,pattern] of [
+    ['baseline',/da29b4fdc995f33c103e6bdda288565a3f9c6756/],
+    ['staged release',/staged Production builds and manual promotion/],
+    ['one private event',/one uniquely labelled, future-dated Academic event with Administrator-only audience/],
+    ['account safety',/account creation, password\/role\/department changes and session-row inspection are excluded/],
+    ['cleanup deferred',/Existing-post deletion, migrations, shared cleanup, schedule cleanup and ICTU deployment remain excluded/],
+    ['obsolete cleanup',/all earlier generated deletion plans are obsolete/],
+    ['compatible code',/stored\/API code is university-wide; the literal campus-wide is rejected/],
+    ['news boundary',/News and account assignments retain only seven departments/],
+    ['source cache',/Source cache v56; stylesheet v13; downloaded-guide format unchanged/],
+    ['runtime',/205 files \/ 8,611,691 bytes, SHA-256 12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6/],
+    ['manual routing',/automatic Production domain assignment is disabled/],
+    ['rollback source',/dpl_G7Po4YVSvuAzp2Z9zgRWTfcT5NVc/],
+    ['Hobby limitation',/Hobby plan restricts Instant Rollback to the immediately previous Production deployment/],
+    ['browser honesty',/missing action\/submission is inconclusive/],
+    ['monitoring',/ten minutes after staged checks, and after each live promotion/],
+    ['retained content',/compare every original content row with the baseline/],
+    ['limited evidence',/No full npm test\/QA pass, live MySQL parity/]
+  ])if(!pattern.test(text))problems.push(name);
+  if(/Full QA passed|All existing posts were deleted|This release authorizes future cleanup|Passwords may be committed|Campus-wide overrides audience/.test(text))problems.push('unsupported claim');
+  return problems;
+}
+function runCampusWideEventsReleaseDocsGate() {
+  const rec=makeRecorder('campus-wide-events-release-docs'),note=fs.readFileSync(path.join(__dirname,'..','docs/campus-wide-events-release-2026-10-23.md'),'utf8');
+  const normalized=note.replace(/[`*]/g,'').replace(/\s+/g,' ');
+  rec.ok('controlled release boundaries and verified preflight are recorded',campusWideEventsReleaseProblems(note).length===0);
+  for(const from of ['da29b4fdc995f33c103e6bdda288565a3f9c6756','staged Production builds and manual promotion','one uniquely labelled, future-dated Academic event with Administrator-only audience','account creation, password/role/department changes and session-row inspection are excluded','Existing-post deletion, migrations, shared cleanup, schedule cleanup and ICTU deployment remain excluded','all earlier generated deletion plans are obsolete','stored/API code is university-wide; the literal campus-wide is rejected','News and account assignments retain only seven departments','Source cache v56','12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6','automatic Production domain assignment is disabled','dpl_G7Po4YVSvuAzp2Z9zgRWTfcT5NVc','Hobby plan restricts Instant Rollback to the immediately previous Production deployment','missing action/submission is inconclusive','ten minutes after staged checks, and after each live promotion','compare every original content row with the baseline','No full npm test/QA pass, live MySQL parity'])rec.ok('independent release rejection '+from,normalized.includes(from)&&campusWideEventsReleaseProblems(normalized.split(from).join('OMITTED')).length>0);
+  for(const claim of ['Full QA passed.','All existing posts were deleted.','This release authorizes future cleanup.','Passwords may be committed.','Campus-wide overrides audience.'])rec.ok('rejects unsupported release claim '+claim,campusWideEventsReleaseProblems(note+' '+claim).length>0);
+  return rec.failures;
 }
 
 function newsOptionsDocProblems(value) {
@@ -15626,6 +15701,7 @@ const ADMIN_MAP_BASEMAP_PROBES = [
 // In-memory providers and synthetic sessions only; SQL rehearsals stay opt-in.
 const DEPARTMENT_NEWS_PROBES = [
   ['department news role, CRUD, privacy and session fixtures', 'departmentNewsAdmin-probe.js'],
+  ['Campus-wide event tab, filters and form fixtures', 'campusWideEventsUi-probe.js'],
 ];
 
 // M12.P1-D5: friendly building additional-details editor — structured
