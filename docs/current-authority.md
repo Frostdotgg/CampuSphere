@@ -1,16 +1,20 @@
 <!-- CAMPUS WIDE EVENTS RELEASE START -->
-## Campus-wide Events controlled release — October 23, 2026
+## Campus-wide Events product release — October 23, 2026 (verified)
 
-Read `docs/campus-wide-events-release-2026-10-23.md` first. The owner
-authorized review, focused checks, normal commit/push, staged Production
-verification and manual promotion. Prior local-only instructions below are
-implementation history. The normal website remains on its recorded release
-until staged checks pass. Only one tracked Administrator-only event may be
-created/edited/removed; existing posts, accounts, credentials and environment
-settings stay. No migration, shared cleanup or ICTU deployment is authorized.
-Campus-wide is event-only, stored as `university-wide`; source cache v56,
-stylesheet v13 and guide format unchanged. Record actual release results in
-the focused release note and final identities in the external receipt.
+Read `docs/campus-wide-events-release-2026-10-23.md` first. Product source
+`509518f9fbbbd89edc49e98feb3582e635135c0f`, deployment
+`dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda`, passed staged and normal-website checks.
+Campus-wide is event-only, stored as `university-wide`; News and account
+assignments keep seven departments. Source cache v56, stylesheet v13 and guide
+format are unchanged by the documentation successor. Five existing roles were
+checked. Only temporary event 26 was removed; its audit history remains.
+SELECT-only comparison preserved all original 9 articles and 12 events.
+No account changes, migration, shared cleanup or ICTU deployment ran. Older
+local-only notices below are history. Chrome missed actions remain inconclusive;
+fresh-tab retests passed without an application login change. Dated watches and
+limits belong in the focused note. The identical-runtime documentation
+successor's final identity and closing watch belong in the external receipt.
+Recompute live truth before later work; no future cleanup permission is granted.
 <!-- CAMPUS WIDE EVENTS RELEASE END -->
 
 <!-- CAMPUS WIDE EVENTS LOCAL START -->

@@ -11442,12 +11442,40 @@ function campusWideEventsReleaseProblems(value) {
   if(/Full QA passed|All existing posts were deleted|This release authorizes future cleanup|Passwords may be committed|Campus-wide overrides audience/.test(text))problems.push('unsupported claim');
   return problems;
 }
+function campusWideEventsCompletedReleaseProblems(value) {
+  const text=String(value||'').replace(/[`*]/g,'').replace(/\s+/g,' '),problems=[];
+  for(const required of [
+    'Release status: product verified on the normal website',
+    '509518f9fbbbd89edc49e98feb3582e635135c0f',
+    'dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda',
+    'Temporary event 26 alone was created, edited across CAS and Campus-wide, reloaded and deleted through the application',
+    'SELECT-only comparison preserved all original 9 articles and 12 events',
+    'Test-event audit checks passed 3/3',
+    'Public live smoke passed 22/22',
+    '614.7 seconds',
+    '612.168 seconds',
+    '0 Warning / 0 Error / 0 Fatal',
+    'readiness-aware or fresh-tab retests passed',
+    'No application login patch',
+    'a new full download completed on v56',
+    'These finite watches do not promise zero future timeouts or provider outages',
+    'The final successor watch is recorded separately in its external receipt'
+  ])if(!text.includes(required))problems.push(required);
+  if(/All future retries will succeed|Chrome sign-in was fixed by this release|Campus-wide is selectable for News|All existing University-wide events were deleted/.test(text))problems.push('unsupported completion claim');
+  return problems;
+}
 function runCampusWideEventsReleaseDocsGate() {
   const rec=makeRecorder('campus-wide-events-release-docs'),note=fs.readFileSync(path.join(__dirname,'..','docs/campus-wide-events-release-2026-10-23.md'),'utf8');
   const normalized=note.replace(/[`*]/g,'').replace(/\s+/g,' ');
   rec.ok('controlled release boundaries and verified preflight are recorded',campusWideEventsReleaseProblems(note).length===0);
   for(const from of ['da29b4fdc995f33c103e6bdda288565a3f9c6756','staged Production builds and manual promotion','one uniquely labelled, future-dated Academic event with Administrator-only audience','account creation, password/role/department changes and session-row inspection are excluded','Existing-post deletion, migrations, shared cleanup, schedule cleanup and ICTU deployment remain excluded','all earlier generated deletion plans are obsolete','stored/API code is university-wide; the literal campus-wide is rejected','News and account assignments retain only seven departments','Source cache v56','12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6','automatic Production domain assignment is disabled','dpl_G7Po4YVSvuAzp2Z9zgRWTfcT5NVc','Hobby plan restricts Instant Rollback to the immediately previous Production deployment','missing action/submission is inconclusive','ten minutes after staged checks, and after each live promotion','compare every original content row with the baseline','No full npm test/QA pass, live MySQL parity'])rec.ok('independent release rejection '+from,normalized.includes(from)&&campusWideEventsReleaseProblems(normalized.split(from).join('OMITTED')).length>0);
   for(const claim of ['Full QA passed.','All existing posts were deleted.','This release authorizes future cleanup.','Passwords may be committed.','Campus-wide overrides audience.'])rec.ok('rejects unsupported release claim '+claim,campusWideEventsReleaseProblems(note+' '+claim).length>0);
+  rec.ok('verified product release evidence is complete',campusWideEventsCompletedReleaseProblems(note).length===0);
+  for(const required of ['Release status: product verified on the normal website','509518f9fbbbd89edc49e98feb3582e635135c0f','dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda','Temporary event 26 alone was created, edited across CAS and Campus-wide, reloaded and deleted through the application','SELECT-only comparison preserved all original 9 articles and 12 events','Test-event audit checks passed 3/3','Public live smoke passed 22/22','614.7 seconds','612.168 seconds','0 Warning / 0 Error / 0 Fatal','readiness-aware or fresh-tab retests passed','No application login patch','a new full download completed on v56','These finite watches do not promise zero future timeouts or provider outages','The final successor watch is recorded separately in its external receipt'])rec.ok('independent completed-release rejection '+required,normalized.includes(required)&&campusWideEventsCompletedReleaseProblems(normalized.split(required).join('OMITTED')).length>0);
+  for(const claim of ['All future retries will succeed.','Chrome sign-in was fixed by this release.','Campus-wide is selectable for News.','All existing University-wide events were deleted.'])rec.ok('rejects unsupported completion '+claim,campusWideEventsCompletedReleaseProblems(note+' '+claim).length>0);
+  const notices=['AGENTS.md','docs/current-authority.md'].map(rel=>fs.readFileSync(path.join(__dirname,'..',rel),'utf8').split('<!-- CAMPUS WIDE EVENTS RELEASE START -->')[1].split('<!-- CAMPUS WIDE EVENTS RELEASE END -->')[0]);
+  rec.ok('release entrypoints have identical current notices',notices[0]===notices[1]);
+  for(let i=0;i<notices.length;i++)rec.ok('release entrypoint '+i+' pins verified product and preserved content',notices[i].includes('509518f9fbbbd89edc49e98feb3582e635135c0f')&&notices[i].includes('dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda')&&notices[i].includes('original 9 articles and 12 events')&&notices[i].includes('no future cleanup permission'));
   return rec.failures;
 }
 
