@@ -101,6 +101,7 @@ const ACTIONS = Object.freeze([
   'admin.route.update',
   'admin.route.delete',
   'admin.route.steps.update',
+  'admin.route.instructions.update',
   'admin.route_node.create',
   'admin.route_node.update',
   'admin.route_node.delete',

@@ -73,15 +73,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the local department-news candidate.
+/* Independent exact-byte authority for the local editable-instructions candidate.
    The October 20 published fingerprints remain dated release evidence in
    docs/session-retry-log-pairing-release-2026-10-20.md and the room release note.
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 205,
-  bytes: 8611691,
-  sha256: '12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6',
+  files: 210,
+  bytes: 8634838,
+  sha256: '845993972b005b3fee0f5c30ee8af32925dcded05134f165984ddf459c0d0ba1',
 });
 
 /* M12.P1-R8 label correction.
@@ -1091,6 +1091,11 @@ async function main() {
     ['controllers/walkingRouteController.js', 'services/walkingRouteService.js',
       'repositories/walkingRouteRepository.js', 'public/js/admin/admin-walking-routes.js']
       .every((rel) => manifest.files.some((file) => file.path === rel)));
+  check('package', 'editable instruction controller, resolver, repository, contract and editor are included',
+    ['controllers/routeInstructionController.js', 'services/routeInstructionService.js',
+      'repositories/routeInstructionRepository.js', 'utils/routeInstructions.js',
+      'public/js/admin/route-instructions-editor.js']
+      .every(rel => manifest.files.some(file => file.path === rel)));
   const packageProblems = evaluatePackageContract(manifest.files.map((f) => f.path));
   check('package', 'the enumerated package satisfies the independently pinned contract',
     packageProblems.length === 0);

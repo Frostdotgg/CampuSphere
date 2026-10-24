@@ -243,6 +243,19 @@
       throw new Error('The offline guide is incomplete.');
     }
     var guide = payload.guide;
+    if (guide.instructionFormat !== undefined && guide.instructionFormat !== 1) throw new Error('The offline instruction format is unsupported.');
+    if (guide.instructionFormat === 1) {
+      var validInstructions = function (steps) {
+        return Array.isArray(steps) && steps.length <= 200 && steps.every(function (step, index) {
+          return step && step.order === index + 1 && typeof step.instruction === 'string' &&
+            step.instruction.trim().length > 0 && step.instruction.length <= 5000;
+        });
+      };
+      [guide.routes, guide.exitRoutes, guide.walkingRoutes].forEach(function (routes) {
+        if (!Array.isArray(routes) || routes.some(function (route) { return !route || !validInstructions(route.steps); })) throw new Error('The offline instructions are invalid.');
+      });
+      if (guide.walkingRoutes.some(function (route) { return !validInstructions(route.returnSteps); })) throw new Error('The offline return instructions are invalid.');
+    }
     if (!guide.origin || guide.origin.key !== 'main-gate') throw new Error('The Main Gate origin is missing.');
     if (!Array.isArray(guide.buildings) || !Array.isArray(guide.routes) || !guide.basemap) {
       throw new Error('The offline guide is incomplete.');
@@ -326,6 +339,7 @@
     var walks = record.guide && Array.isArray(record.guide.walkingRoutes) ? record.guide.walkingRoutes.length : 0;
     summary.textContent = buildings + ' buildings · ' + routes + ' entry routes · ' + exits + ' exit routes · ' + walks + ' walking routes · downloaded ' +
       new Date(record.downloadedAt).toLocaleString() + mapSnapshotLabel(record);
+    if (!record.guide || record.guide.instructionFormat !== 1) summary.textContent += ' · Update Offline Map while connected to include editable instructions.';
   }
 
   function downloadGuide() {
@@ -495,7 +509,7 @@
     return Object.assign({}, route, {
       geometry: route.geometry.slice().reverse(),
       destinationName: 'Walking Guard House',
-      steps: [{ instruction: 'Follow the pedestrian path back to the Walking Guard House.' }]
+      steps: activeRecord.guide.instructionFormat === 1 ? route.returnSteps : [{ instruction: 'Follow the pedestrian path back to the Walking Guard House.' }]
     });
   }
 
@@ -817,6 +831,11 @@
     (Array.isArray(route.steps) ? route.steps : []).forEach(function (step) {
       appendText(steps, 'li', step.instruction);
     });
+    var instructionMessage = byId('offlineRouteInstructionMessage');
+    if (instructionMessage) {
+      instructionMessage.hidden = !(activeRecord.guide.instructionFormat === 1 && route.steps.length === 0);
+      instructionMessage.textContent = instructionMessage.hidden ? '' : 'No instructions have been added for this route yet.';
+    }
     summary.hidden = false;
     summary.setAttribute('aria-hidden', 'false');
     summary.classList.add('open');

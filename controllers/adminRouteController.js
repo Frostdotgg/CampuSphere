@@ -25,6 +25,7 @@
 const db = require('../config/db');
 const mapRuntime = require('../config/mapRuntime');
 const routeRepository = require('../repositories/routeRepository');
+const instructionRules = require('../utils/routeInstructions');
 const routeAvailability = require('../services/routeAvailability');
 const auditService = require('../services/auditService');
 const {
@@ -39,9 +40,6 @@ const {
 const ROUTE_TITLE_MAX = 150;
 const ROUTE_START_MAX = 100;
 const ROUTE_WALKTIME_MAX = 50;
-const STEP_INSTRUCTION_MAX = 5000;
-const STEP_LANDMARK_MAX = 255;
-const STEP_MAX_COUNT = 200;
 const NODE_KEY_MAX = 60;
 const NODE_LABEL_MAX = 150;
 const EDGE_PATHLABEL_MAX = 150;
@@ -272,30 +270,7 @@ function validateRoute(body) {
 }
 
 function validateSteps(body) {
-  if (!isPlainObject(body)) return { ok: false, message: 'Request body must be a JSON object.' };
-  const steps = body.steps;
-  if (!Array.isArray(steps) || steps.length === 0) return { ok: false, message: 'At least one ordered step is required.' };
-  if (steps.length > STEP_MAX_COUNT) return { ok: false, message: 'A route can have at most ' + STEP_MAX_COUNT + ' steps.' };
-  const out = [];
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i];
-    if (!isPlainObject(s)) return { ok: false, message: 'Each step must be a JSON object.' };
-    const instruction = reqStr(s.instruction, STEP_INSTRUCTION_MAX);
-    if (!instruction.ok) return { ok: false, message: 'Step ' + (i + 1) + ': instruction is required and must be ' + STEP_INSTRUCTION_MAX + ' characters or fewer.' };
-    const landmark = optStr(s.landmark, STEP_LANDMARK_MAX);
-    if (!landmark.ok) return { ok: false, message: 'Step ' + (i + 1) + ': landmark must be ' + STEP_LANDMARK_MAX + ' characters or fewer.' };
-    const lat = parseDecimal(s.lat, LAT_MIN, LAT_MAX);
-    if (!lat.ok) return { ok: false, message: 'Step ' + (i + 1) + ': latitude must be a number between ' + LAT_MIN + ' and ' + LAT_MAX + '.' };
-    const lng = parseDecimal(s.lng, LNG_MIN, LNG_MAX);
-    if (!lng.ok) return { ok: false, message: 'Step ' + (i + 1) + ': longitude must be a number between ' + LNG_MIN + ' and ' + LNG_MAX + '.' };
-    // step_order, if supplied, must match the 1-based position (sequential, unique).
-    if (Object.prototype.hasOwnProperty.call(s, 'step_order') && s.step_order !== undefined && s.step_order !== null && s.step_order !== '') {
-      const so = parseId(s.step_order);
-      if (so === null || so !== i + 1) return { ok: false, message: 'Step order must be sequential (1..N) and match each step\'s position.' };
-    }
-    out.push({ step_order: i + 1, instruction: instruction.value, landmark: landmark.value, lat: lat.value, lng: lng.value });
-  }
-  return { ok: true, value: out };
+  return instructionRules.validateSteps(body);
 }
 
 function validateNode(body) {

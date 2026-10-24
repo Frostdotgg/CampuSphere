@@ -137,7 +137,7 @@ function pureChecks() {
   });
   check('migration sources are contiguous and both schemas have a separate walking table', () => {
     const files = fs.readdirSync(path.join(ROOT, 'database/supabase')).filter(f => f.endsWith('.sql')).sort();
-    assert.equal(files.length, 29); files.forEach((file, index) => assert.equal(Number(file.slice(0, 4)), index + 1));
+    assert.equal(files.length, 30); files.forEach((file, index) => assert.equal(Number(file.slice(0, 4)), index + 1));
     const pg = fs.readFileSync(path.join(ROOT, 'database/supabase/0028_walking_2d_routes.sql'), 'utf8');
     assert.match(pg, /REVOKE ALL ON public\.walking_routes FROM PUBLIC, anon, authenticated/);
     assert.match(pg, /GRANT SELECT, INSERT, UPDATE, DELETE ON public\.walking_routes TO service_role/);
@@ -190,6 +190,7 @@ function fixtures(mode) {
   const audit = { async record(value) { state.audits.push(clone(value)); } };
   const canonicalKey = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const controller = load('controllers/walkingRouteController.js', {
+    '../services/routeInstructionService': { async readForDestination() { return { instructions: [], instructionStatus: 'empty' }; } },
     '../services/walkingRouteService': service, '../services/auditService': audit,
     '../services/routeAvailability': { canonicalKey, async buildAvailabilityIndex() { return { ok: state.availability,
       byName: new Map([[canonicalKey(destination.name), { route_available: state.ready, route_destination_id: 42 }]]) }; } }
@@ -197,6 +198,7 @@ function fixtures(mode) {
   const mocks = { '../controllers/walkingRouteController': controller,
     '../middleware/roleAuth': load('middleware/roleAuth.js', { '../services/auditService': audit }),
     '../middleware/rateLimit': { adminMutationLimiter: (req, res, next) => next() } };
+  mocks['../middleware/departmentAccess'] = load('middleware/departmentAccess.js', { './roleAuth': mocks['../middleware/roleAuth'] });
   const stub = new Proxy({}, { get: () => (req, res) => res.status(501).end() });
   for (const c of ['adminController', 'adminUsersController', 'adminContentController', 'adminBuildingsController', 'adminVrController', 'adminRouteController', 'adminScheduleController', 'adminRoomScheduleDocumentController', 'presenceController', 'mapController', 'offlineGuideController']) mocks['../controllers/' + c] = stub;
   return { state, service, admin: load('routes/admin.js', mocks), map: load('routes/map.js', mocks) };

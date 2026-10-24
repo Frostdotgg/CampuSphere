@@ -52,6 +52,7 @@
     <% } %>
 
     <style nonce="<%= cspNonce %>">
+        .route-step__text { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
         /* Free Roam 360 entry (Milestone 11, Section 11.8C). Scoped here to
            avoid touching the shared stylesheet (cache-busted at ?v=5). */
         .map-free-roam { display: flex; align-items: center; gap: 10px;
@@ -1366,6 +1367,10 @@
             // BE.5: the canonical public start label is the single authoritative
             // fallback — never the stale short "Main Gate" literal.
             const start = (routeStartInput.value || COMPUTED_START_LABEL).trim() || COMPUTED_START_LABEL;
+            // The fixed-gate planner is the same trip as pin navigation. Use
+            // the validated route-source identity, geometry and instruction
+            // resolver for both, rather than a first predefined-route match.
+            if (start === COMPUTED_START_LABEL) return findComputedRoute(destinationBuilding);
             // RF.5: begin a new lookup generation (clears any prior line + stale
             // panel content) and keep matching this token after every await.
             const token = beginRouteLookup();
@@ -1390,6 +1395,7 @@
                     // sharing THIS lookup's token so both stages stay one
                     // generation (no second line-clear / no token bump).
                     await findComputedRoute({
+                        ...destinationBuilding,
                         id: destinationBuilding.id,
                         name: destinationBuilding.name,
                         route_destination_id: destinationBuilding.route_destination_id
@@ -1551,6 +1557,21 @@
             }
         }
 
+        function renderSavedRouteInstructions(instructions, status) {
+            routePanelSteps.replaceChildren();
+            const saved = status === 'saved' && Array.isArray(instructions) && instructions.length > 0;
+            if (saved) instructions.forEach((step, index) => {
+                const row = document.createElement('li'); row.className = 'route-step';
+                const number = document.createElement('span'); number.className = 'route-step__num'; number.textContent = String(index + 1);
+                const text = document.createElement('span'); text.className = 'route-step__text'; text.textContent = step.instruction;
+                row.append(number, text); routePanelSteps.appendChild(row);
+            });
+            routePanelStepsWrap.hidden = !saved;
+            routePanelEmpty.hidden = saved;
+            routePanelEmpty.textContent = saved ? '' : status === 'empty'
+                ? 'No instructions have been added for this route yet.' : 'Instructions are temporarily unavailable.';
+        }
+
         function openRoutePanel(route, fallback = null) {
             if (route) {
                 const destName = (route.destination && route.destination.name) || '';
@@ -1564,17 +1585,7 @@
                 }
 
                 const steps = Array.isArray(route.steps) ? route.steps : [];
-                if (steps.length) {
-                    routePanelSteps.innerHTML = steps.map((s, i) => `
-                        <li class="route-step">
-                            <span class="route-step__num">${escapeHtml(s.step_order || (i + 1))}</span>
-                            <span class="route-step__text">${escapeHtml(s.instruction || '')}</span>
-                        </li>`).join('');
-                    routePanelStepsWrap.hidden = false;
-                } else {
-                    routePanelSteps.innerHTML = '';
-                    routePanelStepsWrap.hidden = true;
-                }
+                renderSavedRouteInstructions(steps, steps.length ? 'saved' : 'empty');
 
                 const landmarks = Array.isArray(route.landmarks) ? route.landmarks : [];
                 if (landmarks.length) {
@@ -1583,7 +1594,6 @@
                 } else {
                     routePanelLandmarkWrap.hidden = true;
                 }
-                routePanelEmpty.hidden = true;
             } else if (fallback) {
                 routePanelTitle.textContent = fallback.title;
                 routePanelSubtitle.textContent = `${fallback.start} to ${fallback.destinationName}`;
@@ -1820,20 +1830,8 @@
             routePanelLandmarks.innerHTML = '';
             routePanelLandmarkWrap.hidden = true;
 
-            const segments = route && Array.isArray(route.segments) ? route.segments : [];
-            if (segments.length) {
-                const labelByKey = new Map((route.nodes || []).map(n => [n.key, n.label || n.key]));
-                routePanelSteps.innerHTML = segments.map((s, i) => `
-                    <li class="route-step">
-                        <span class="route-step__num">${i + 1}</span>
-                        <span class="route-step__text">${escapeHtml(
-                            (labelByKey.get(s.from) || s.from) + ' to ' + (labelByKey.get(s.to) || s.to) +
-                            (s.path_label ? ' via ' + s.path_label : '') +
-                            (s.distance_meters ? ' (' + s.distance_meters + ' m)' : '')
-                        )}</span>
-                    </li>`).join('');
-                routePanelStepsWrap.hidden = false;
-                routePanelEmpty.hidden = true;
+            if (route) {
+                renderSavedRouteInstructions(route.instructions, route.instructionStatus);
             } else {
                 routePanelSteps.innerHTML = '';
                 routePanelStepsWrap.hidden = true;

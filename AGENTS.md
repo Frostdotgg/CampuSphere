@@ -1,3 +1,19 @@
+<!-- EDITABLE ROUTE INSTRUCTIONS CANDIDATE START -->
+## Authorized staged release — editable route instructions (October 24)
+
+Read `docs/current-authority.md` and
+`docs/editable-route-instructions-2026-10-24.md` for the explicitly approved
+implementation, reviewed Docker candidate and separately authorized staged
+release. Candidate cache v57; additive migration 0030 requires a validated
+external route backup and owner-run SQL. One scoped commit and normal main
+push may create an unpromoted staged build after all release checks pass.
+Actual migration, commit, build and restoration results belong in the external
+release receipt; this text does not establish their completion. Production
+promotion is excluded. The released runtime remains `2c0a1bf`, cache v56 until
+a separately authorized promotion is verified. Older unapproved-Walking-Steps
+statements below predate this task. New sessions ground, report and wait.
+<!-- EDITABLE ROUTE INSTRUCTIONS CANDIDATE END -->
+
 <!-- OCTOBER 24 AUTHORITY START -->
 ## Current handoff authority — October 24, 2026
 

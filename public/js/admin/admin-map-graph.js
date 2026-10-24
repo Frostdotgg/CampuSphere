@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     busy: false, pendingDelete: null, lastFocused: null,
     routeMode: 'create', routeEditId: null,
     nodeMode: 'create', nodeEditId: null,
-    edgeMode: 'create', edgeEditId: null,
-    stepsRouteId: null
+    edgeMode: 'create', edgeEditId: null
   };
 
   /* ---------- helpers ---------- */
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showErr(m, msg) { const e = m ? m.querySelector('.form-error') : null; if (e) { e.textContent = msg; e.style.display = 'block'; } }
   function clearErr(m) { const e = m ? m.querySelector('.form-error') : null; if (e) { e.textContent = ''; e.style.display = 'none'; } }
 
-  const MODALS = ['route-modal', 'steps-modal', 'node-modal', 'edge-modal', 'graph-delete-modal'].map($);
+  const MODALS = ['route-modal', 'node-modal', 'edge-modal', 'graph-delete-modal'].map($);
   MODALS.forEach((m) => {
     if (!m) return;
     m.addEventListener('click', (e) => { if (e.target === m && !state.busy) { if (m === $('graph-delete-modal')) state.pendingDelete = null; closeModal(m); } });
@@ -203,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const title = document.createElement('span'); title.className = 'vr-scene-title'; title.textContent = str(route.title); tw.appendChild(title);
     const sub = document.createElement('span'); sub.className = 'vr-scene-key'; sub.textContent = str(route.start_label) + ' → ' + str(route.destination_name || ('building #' + num(route.destination_building_id))); tw.appendChild(sub);
     const actions = document.createElement('div'); actions.className = 'vr-scene-actions';
-    const stepsBtn = mkBtn('Steps', () => { if (id !== null) openStepsModal(route); });
+    const stepsBtn = mkBtn('Vehicle Steps', () => { if (id !== null) openStepsModal(route); });
     const editBtn = mkBtn('Edit', () => { if (id !== null) openRouteModal('edit', route); });
     const delBtn = mkBtn('Delete', () => { if (id !== null) openDelete('route', id, 'Delete the route "' + str(route.title) + '"? Its steps are removed too.'); }, true);
     actions.appendChild(stepsBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
@@ -325,57 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
     await submitForm(m, url, method, payload, 'route', () => { closeModal(m); showToast(state.routeMode === 'edit' ? 'Route updated.' : 'Route created.'); loadRoutes(); });
   });
 
-  /* ---- steps editor ---- */
-  function stepRow(step) {
-    const row = document.createElement('div'); row.className = 'steps-row';
-    const ins = document.createElement('input'); ins.type = 'text'; ins.className = 'ui-input steps-instruction'; ins.placeholder = 'Instruction'; ins.maxLength = 5000; ins.value = step ? str(step.instruction) : '';
-    const lm = document.createElement('input'); lm.type = 'text'; lm.className = 'ui-input steps-landmark'; lm.placeholder = 'Landmark (optional)'; lm.maxLength = 255; lm.value = step ? str(step.landmark) : '';
-    const lat = document.createElement('input'); lat.type = 'number'; lat.className = 'ui-input steps-lat'; lat.placeholder = 'lat'; lat.step = 'any'; lat.value = step && step.lat != null ? String(num(step.lat)) : '';
-    const lng = document.createElement('input'); lng.type = 'number'; lng.className = 'ui-input steps-lng'; lng.placeholder = 'lng'; lng.step = 'any'; lng.value = step && step.lng != null ? String(num(step.lng)) : '';
-    const up = mkMini('↑', () => { const p = row.previousElementSibling; if (p) row.parentNode.insertBefore(row, p); });
-    const down = mkMini('↓', () => { const n = row.nextElementSibling; if (n) row.parentNode.insertBefore(n, row); });
-    const rm = mkMini('✕', () => { row.remove(); }, true);
-    row.appendChild(ins); row.appendChild(lm); row.appendChild(lat); row.appendChild(lng); row.appendChild(up); row.appendChild(down); row.appendChild(rm);
-    return row;
+  /* Vehicle entry steps keep the existing route id and legacy API. */
+  function openStepsModal(route) {
+    if (window.CampuSphereRouteInstructionsEditor) window.CampuSphereRouteInstructionsEditor.openVehicle(route);
   }
-  function mkMini(label, fn, danger) { const b = document.createElement('button'); b.type = 'button'; b.className = 'ui-button ui-button-outline ui-button-size-sm steps-mini' + (danger ? ' text-destructive' : ''); b.textContent = label; b.addEventListener('click', fn); return b; }
-  async function openStepsModal(route) {
-    const m = $('steps-modal'); const editor = $('steps-editor'); state.stepsRouteId = toId(route.id);
-    clearErr(m); editor.textContent = '';
-    $('steps-route-label').textContent = 'Route: ' + str(route.title);
-    const loading = document.createElement('p'); loading.className = 'vr-hotspots-note'; loading.textContent = 'Loading steps…'; editor.appendChild(loading);
-    openModal(m, $('add-step-btn'));
-    try {
-      const r = await apiRequest('/admin/api/routes/' + state.stepsRouteId + '/steps');
-      editor.textContent = '';
-      const steps = (r.json && Array.isArray(r.json.steps)) ? r.json.steps : [];
-      if (!steps.length) editor.appendChild(stepRow(null));
-      else steps.forEach((s) => editor.appendChild(stepRow(s)));
-    } catch (e) { editor.textContent = ''; editor.appendChild(stepRow(null)); }
-  }
-  $('add-step-btn') && $('add-step-btn').addEventListener('click', () => { $('steps-editor').appendChild(stepRow(null)); });
-  $('steps-save') && $('steps-save').addEventListener('click', async () => {
-    if (state.busy) return; const m = $('steps-modal'); clearErr(m);
-    const rows = Array.from($('steps-editor').querySelectorAll('.steps-row'));
-    const steps = rows.map((row) => ({
-      instruction: row.querySelector('.steps-instruction').value.trim(),
-      landmark: row.querySelector('.steps-landmark').value.trim(),
-      lat: row.querySelector('.steps-lat').value.trim(),
-      lng: row.querySelector('.steps-lng').value.trim()
-    }));
-    if (!steps.length) return showErr(m, 'At least one step is required.');
-    if (steps.some((s) => !s.instruction)) return showErr(m, 'Every step needs an instruction.');
-    state.busy = true; $('steps-save').disabled = true;
-    try {
-      const r = await apiRequest('/admin/api/routes/' + state.stepsRouteId + '/steps', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ steps }) });
-      if (r.redirected) return;
-      if (r.json && r.json.success) { closeModal(m); showToast('Route steps updated.'); }
-      else if (r.status === 403) showErr(m, 'You do not have permission to perform this action.');
-      else if (r.json && typeof r.json.message === 'string') showErr(m, r.json.message);
-      else showErr(m, 'Something went wrong. Please try again.');
-    } catch (e) { showErr(m, 'Network error. Please try again.'); }
-    finally { state.busy = false; $('steps-save').disabled = false; }
-  });
 
   /* ============================================================ NODES */
   async function loadNodes() {

@@ -147,6 +147,9 @@
           const row = document.createElement('div'); row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-radius:0.5rem;padding:0.7rem;';
           const label = document.createElement('span'); label.textContent = building.name + ' · ' + (building.walkingReady ? 'Walking route ready' : building.pinMismatch ? 'Check building map coordinates' : 'Walking route needed'); row.appendChild(label);
           const actions = document.createElement('span'); actions.style.cssText = 'display:flex;gap:0.35rem;';
+          actions.appendChild(button('Walking Steps', () => {
+            if (window.CampuSphereRouteInstructionsEditor) window.CampuSphereRouteInstructionsEditor.openWalking(building);
+          }));
           actions.appendChild(button(building.walkingReady ? 'Edit path' : 'Draw path', () => open(building.id)));
           if (building.walkingReady) actions.appendChild(button('Remove', async () => {
             if (!window.confirm('Remove the walking route to ' + building.name + '?')) return;

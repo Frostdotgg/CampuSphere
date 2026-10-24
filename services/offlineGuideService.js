@@ -17,6 +17,8 @@ const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const routeAvailability = require('./routeAvailability');
 const walkingRoutes = require('./walkingRouteService');
+const routeInstructionService = require('./routeInstructionService');
+const instructionRules = require('../utils/routeInstructions');
 const { normalizeBuildingRows } = require('../utils/buildingData');
 const basemapManifest = require('../public/maps/manifest.json');
 const {
@@ -287,7 +289,7 @@ function makeRoutePair(building, graph) {
 }
 
 /* Pure package builder used by the focused OFF.3-OFF.5 probe. */
-function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], walkingBuildings = [] } = {}) {
+function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], walkingBuildings = [], instructionSnapshot = null } = {}) {
   const graph = normalizeGraph(nodeRows, edgeRows);
   const origin = graph.nodes.find((node) => node.key === routeAvailability.START_NODE_KEY);
   if (!origin || origin.lat == null || origin.lng == null) {
@@ -309,11 +311,20 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], 
     const pair = makeRoutePair(building, graph);
     const route = pair.entry;
     const exitRoute = pair.exit;
+    const instructionFor = (mode, direction) => instructionRules.resolveSnapshot(instructionSnapshot || { routes: [], steps: [], lists: [] }, building.route_destination_id, mode, direction);
+    if (instructionSnapshot) {
+      for (const [target, direction] of [[route, 'entry'], [exitRoute, 'exit']]) {
+        if (!target) continue;
+        const resolved = instructionFor('vehicle', direction);
+        if (resolved.instructionStatus === 'unavailable') throw new Error('Offline guide instructions are unavailable.');
+        target.steps = resolved.instructions;
+      }
+    }
     const walkingId = Number(building.route_destination_id);
     const walkingDestination = walkingDestinations.get(walkingId);
     const samePin = walkingDestination && Math.abs(Number(building.lat) - Number(walkingDestination.lat)) <= 1e-6 && Math.abs(Number(building.lng) - Number(walkingDestination.lng)) <= 1e-6;
     const walkingPath = route && samePin ? walkingRoutes.shape(walkingById.get(walkingId), walkingDestination) : null;
-    if (walkingPath) walkingPaths.push({
+    const walkingRecord = walkingPath ? {
       destinationKey: key,
       destinationName: safeText(building.name, 300),
       distanceMeters: walkingPath.distance_meters,
@@ -321,7 +332,16 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], 
       estimatedWalkTime: formatWalkTime(walkingPath.walk_time_seconds),
       geometry: walkingPath.geometry.map(point => [point.lng, point.lat]),
       steps: [{ order: 1, instruction: 'Follow the pedestrian path to ' + safeText(building.name, 300) + '.', distanceMeters: walkingPath.distance_meters }]
-    });
+    } : null;
+    if (walkingRecord) {
+      if (instructionSnapshot) {
+        const entryInstructions = instructionFor('walking', 'entry'), exitInstructions = instructionFor('walking', 'exit');
+        if ([entryInstructions, exitInstructions].some(value => value.instructionStatus === 'unavailable')) throw new Error('Offline guide instructions are unavailable.');
+        walkingRecord.steps = entryInstructions.instructions;
+        walkingRecord.returnSteps = exitInstructions.instructions;
+      }
+      walkingPaths.push(walkingRecord);
+    }
     safeBuildings.push({
       key,
       name: safeText(building.name, 300) || 'Unnamed building',
@@ -364,6 +384,7 @@ function buildGuide({ buildings, nodeRows, edgeRows, basemap, walkingRows = [], 
   };
 
   return {
+    ...(instructionSnapshot ? { instructionFormat: 1 } : {}),
     origin: {
       key: routeAvailability.START_NODE_KEY,
       label: origin.label || 'Guard House / Main Gate',
@@ -422,8 +443,8 @@ async function loadGuideSnapshot() {
 
 async function createOfflineGuidePackage() {
   const snapshot = await loadGuideSnapshot();
-  const [release, walkingRows, walkingBuildings] = await Promise.all([
-    getCurrentRelease(), walkingRoutes.listRows(), walkingRoutes.listBuildings()
+  const [release, walkingRows, walkingBuildings, instructionSnapshot] = await Promise.all([
+    getCurrentRelease(), walkingRoutes.listRows(), walkingRoutes.listBuildings(), routeInstructionService.loadSnapshot()
   ]);
 
   const index = await routeAvailability.buildAvailabilityIndex({
@@ -444,7 +465,7 @@ async function createOfflineGuidePackage() {
     buildings: decorated.buildings,
     nodeRows: snapshot.routeSource.nodes,
     edgeRows: snapshot.routeSource.edges,
-    walkingRows, walkingBuildings,
+    walkingRows, walkingBuildings, instructionSnapshot,
     basemap: guideBasemapFromRelease(release)
   });
   const fingerprint = sha256Json(guide);

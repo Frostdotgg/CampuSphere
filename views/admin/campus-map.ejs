@@ -35,6 +35,7 @@
     <script src="/js/media-url.js" defer></script>
     <script src="/js/admin/admin-campus-map.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
+    <script src="/js/admin/route-instructions-editor.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
     <script src="/js/admin/admin-walking-routes.js" defer></script>
     <style nonce="<%= cspNonce %>">
@@ -389,10 +390,15 @@
     <!-- ======== STEPS MODAL (ordered steps editor) ======== -->
     <div id="steps-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="steps-modal-title">
         <div class="modal-box" style="max-width:640px;">
-            <div class="modal-header"><h3 id="steps-modal-title">Edit Steps</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <div class="modal-header"><h3 id="steps-modal-title">Vehicle Steps</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
             <div class="modal-body">
                 <div class="form-error"></div>
                 <p class="form-hint" id="steps-route-label" style="font-size:0.75rem;color:var(--muted-foreground);margin-bottom:0.75rem;"></p>
+                <div role="tablist" aria-label="Instruction direction" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                    <button type="button" id="steps-entry-tab" role="tab" aria-selected="true" class="ui-button ui-button-outline ui-button-size-sm">To building</button>
+                    <button type="button" id="steps-exit-tab" role="tab" aria-selected="false" class="ui-button ui-button-outline ui-button-size-sm">Back to gate</button>
+                </div>
+                <p id="steps-list-status" class="form-hint" role="status" aria-live="polite"></p>
                 <div id="steps-editor"></div>
                 <button type="button" id="add-step-btn" class="ui-button ui-button-outline ui-button-size-sm" style="margin-top:0.5rem;"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Step</button>
             </div>

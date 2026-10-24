@@ -13,6 +13,7 @@ const adminVrController = require('../controllers/adminVrController');
 const adminRouteController = require('../controllers/adminRouteController');
 const presenceController = require('../controllers/presenceController');
 const walkingRouteController = require('../controllers/walkingRouteController');
+const routeInstructionController = require('../controllers/routeInstructionController');
 const { requireAdminArea } = require('../middleware/departmentAccess');
 const { verifyCsrf } = require('../middleware/csrfProtection');
 const { adminMutationLimiter } = require('../middleware/rateLimit');
@@ -20,6 +21,7 @@ const { adminMutationLimiter } = require('../middleware/rateLimit');
 // Only the news editor and its exact CRUD routes admit Department Administrators.
 // Every other route still requires the full 'admin' role.
 router.use('/api/walking-routes', walkingRouteController.noStore);
+router.use('/api/route-instructions', walkingRouteController.noStore);
 router.use(requireAdminArea);
 
 // CSRF guard for admin mutations (Milestone 8, Section 8.2). Placed AFTER
@@ -113,6 +115,8 @@ router.put('/api/walking-routes/:destinationBuildingId', walkingRouteController.
 router.delete('/api/walking-routes/:destinationBuildingId', walkingRouteController.adminDelete);
 
 // Route / Step / Node / Edge Administration (Milestone 7, Section 7.9)
+router.get('/api/route-instructions/:destinationBuildingId', routeInstructionController.get);
+router.put('/api/route-instructions/:destinationBuildingId', routeInstructionController.put);
 router.get('/api/routes', adminRouteController.listRoutes);
 router.post('/api/routes', adminRouteController.createRoute);
 router.get('/api/routes/:id', adminRouteController.getRoute);

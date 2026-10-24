@@ -211,6 +211,7 @@ a:focus-visible,
 }
 
 .offline-building-list { scrollbar-gutter: stable; }
+#offlineRouteSteps li { overflow-wrap: anywhere; white-space: pre-wrap; }
 
 .offline-page .offline-building {
   flex: 0 0 auto;

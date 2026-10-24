@@ -13,6 +13,7 @@ const { logServerError } = require('../utils/serverLog');
 const { assembleRouteGeometry } = require('../utils/routeGeometry');
 const routeAvailability = require('../services/routeAvailability');
 const walkingRoutes = require('../services/walkingRouteService');
+const routeInstructions = require('../services/routeInstructionService');
 const basemapManifest = require('../public/maps/manifest.json');
 
 const MAX_QUERY_LEN = 100;
@@ -826,6 +827,10 @@ exports.apiPathfind = async (req, res) => {
       geometry: routeGeometry
     };
 
+    const instructionBuildingId = enforceExitPolicy ? startNode.building_id : destNode.building_id;
+    Object.assign(route, startNode.key === routeAvailability.START_NODE_KEY || enforceExitPolicy
+      ? await routeInstructions.readForDestination(instructionBuildingId, 'vehicle', enforceExitPolicy ? 'exit' : 'entry')
+      : { instructions: [], instructionStatus: 'empty' });
     res.json({ success: true, route });
   } catch (err) {
     logServerError('map.pathfind', req);

@@ -1,6 +1,7 @@
 'use strict';
 
 const walking = require('../services/walkingRouteService');
+const routeInstructions = require('../services/routeInstructionService');
 const routeAvailability = require('../services/routeAvailability');
 const auditService = require('../services/auditService');
 const { validatePathGeometry, calculateRouteMetrics } = require('../utils/routeGeometry');
@@ -33,7 +34,9 @@ exports.publicRoute = async (req, res) => {
     if (!status || !status.route_available || status.route_destination_id !== id) {
       return res.json({ success: true, route: null, message: 'Walking route is unavailable for this building.' });
     }
-    return res.json({ success: true, route: walking.forDirection(path, destination, direction) });
+    const route = walking.forDirection(path, destination, direction);
+    Object.assign(route, await routeInstructions.readForDestination(id, 'walking', direction));
+    return res.json({ success: true, route });
   } catch (_) {
     return res.status(503).json({ success: false, message: 'Walking routes are temporarily unavailable.' });
   }
