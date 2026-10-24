@@ -39,6 +39,43 @@ check('sidebar owns scrolling and phone height uses the complete workspace',()=>
 check('phone route actions hide the list and focus fallbacks use existing controls',()=>{assert.doesNotMatch(source,/mapSidebar\.classList\.add\('open'\)/);assert.match(source,/selectRoutePanelReturnTarget\(invoker, \[\s*mapClearRoute/);assert.match(manager,/setMobileSidebar\(false, \{ restoreFocus: false \}\)/);assert.match(manager,/byId\('offlineClearMapRoute'\)/);});
 check('layout resize keeps both renderer cameras and reduced motion is honored',()=>{assert.match(source,/maplibreMap\.resize\(\)/);assert.match(source,/leafletMap\.invalidateSize\(\{ pan: false \}\)/);assert.match(manager,/campusphere:map-layout[\s\S]*?map\.resize\(\)/);assert.match(css,/prefers-reduced-motion: reduce/);});
 
+// A fixed workspace creates a stacking context below the navigation. A larger
+// child z-index cannot escape it; require the dialog to be a body-level sibling.
+function assertOfflineDialogLayer(html) {
+  const stack = [];
+  const voidTags = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const markup = html.replace(/<!--[\s\S]*?-->/g, '').replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, '$1$2');
+  let dialogs = 0;
+  for (const token of markup.matchAll(/<(\/?)([a-z][\w:-]*)\b([^>]*)>/gi)) {
+    const [,closing,name,attributes] = token, tag = name.toLowerCase();
+    if (closing) {
+      assert.equal(stack.pop(), tag, 'Unexpected offline HTML closing tag');
+      continue;
+    }
+    if (/\bid\s*=\s*["']offlineRouteSummary["']/.test(attributes)) {
+      dialogs++;
+      assert.deepEqual(stack, ['html','body'], 'Offline route dialog must be a direct body child above the workspace');
+      assert.match(attributes, /\brole="dialog"/);
+      assert.match(attributes, /\baria-modal="true"/);
+      assert.match(attributes, /\baria-labelledby="offlineRouteTitle"/);
+      assert.match(attributes, /\baria-hidden="true"/);
+      assert.match(attributes, /\bhidden(?:\s|$)/);
+    }
+    if (!voidTags.has(tag) && !/\/\s*$/.test(attributes)) stack.push(tag);
+  }
+  assert.equal(stack.length, 0, 'Unclosed offline HTML element');
+  assert.equal(dialogs, 1, 'Exactly one offline route dialog is required');
+}
+check('offline route dialog is a body-level sibling above fixed map navigation',()=>assertOfflineDialogLayer(offline));
+check('dialog-layer regression rejects moving the popup back into the workspace',()=>{
+  const dialog = offline.match(/<section\b[^>]*id="offlineRouteSummary"[\s\S]*?<\/section>/);
+  assert.ok(dialog, 'Missing route dialog fixture');
+  const withoutDialog = offline.replace(dialog[0], '');
+  const nested = withoutDialog.replace('</main>', dialog[0] + '\n</main>');
+  assert.notEqual(nested, withoutDialog);
+  assert.throws(()=>assertOfflineDialogLayer(nested), /direct body child/);
+});
+
 // Exercise the full successful handler, not only rendering and cancellation in isolation.
 function clientFunction(text, name) {
   const start = text.indexOf('function ' + name + '(');

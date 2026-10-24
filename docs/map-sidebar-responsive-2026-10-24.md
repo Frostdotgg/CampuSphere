@@ -1,6 +1,33 @@
 # Responsive campus-map sidebar — October 24 staged release
 
-## Authorized corrective staged release
+## Authorized offline popup-layer corrective staged release
+
+The owner authorized a focused correction based on
+`04ecee1e80f3d4c71553dcc731b3b09c9cb3b25a`: move the existing offline
+route dialog outside the fixed map workspace so it layers above navigation,
+matching the online popup. Keep the existing backdrop, accessible title, IDs,
+hidden state, keyboard focus, Close and Clear Route behavior. Cache v60 retains
+the exact 21 shell assets and the unchanged downloaded-guide format.
+
+The earlier correction's search and protected-download fixes passed their
+focused tests, but full staged acceptance remained blocked: final actual-200%
+screenshot review found the offline title underneath navigation. The earlier
+bounds-only assertion missed that occlusion. Preserve the external
+`fix-map-sidebar-20261024` receipt and failed screenshots as dated evidence.
+
+This task includes a body-level structural regression, rejection coverage,
+browser title/control hit-testing, disposable Docker checks, one scoped commit,
+normal main push and acceptance of the exact Ready / Staged build. No routing
+logic, API, schema, dependencies, shared content, CSP or protection changes are
+included. Production promotion remains excluded. Recheck Git, branch rules and
+disabled automatic custom Production domain assignment before publication.
+
+Actual source/deployment identities, runtime fingerprint, fresh results,
+screenshots, preservation evidence and limitations belong in the external
+`offline-popup-layer-20261024` receipt. Authorization establishes none of those
+results. New sessions ground, report and wait for a focused owner task.
+
+## Historical authorization — v59 search/download correction
 
 The owner authorized two bounded corrections based on `441e0fe71d88cde502949459110da3610bbbb210`:
 preserve predefined Vehicle search instructions by removing the obsolete planner
