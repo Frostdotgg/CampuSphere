@@ -115,13 +115,13 @@ function offlineInteractionLifecycleProblems(source, shell) {
   if (!/rememberRouteSummaryInvoker\(\);[\s\S]*destinationKey = key/.test(setDestinationBody)) {
     problems.push('Set as Destination does not capture before closing details');
   }
-  if (!/findRoute\.addEventListener\('click'[\s\S]*rememberRouteSummaryInvoker\(\);[\s\S]*showRoute\(destinationKey\)/.test(source)) {
-    problems.push('Find Route does not capture its invoker');
+  if (/offlineRouteFind|offlineRoutePlanner/.test(source) || !/setMobileSidebar\(false, \{ restoreFocus: false \}\)/.test(source)) {
+    problems.push('retired planner remains or route popup leaves the full-height list open');
   }
   if (!/var invoker = lastInvoker;[\s\S]*lastInvoker = null;[\s\S]*selectFocusReturnTarget\(invoker, \[[\s\S]*buildingListButtonForKey\(selectedKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle[\s\S]*offlineRecenterMap/.test(detailsCloseBody)) {
     problems.push('details close does not restore by the required visible fallback order');
   }
-  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*returnKey = routeSummaryKey \|\| destinationKey;[\s\S]*selectFocusReturnTarget\(invoker, \s*\[[\s\S]*offlineRouteFind[\s\S]*buildingListButtonForKey\(returnKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
+  if (!/var wasOpen =[\s\S]*routeSummaryInvoker = null;[\s\S]*returnKey = routeSummaryKey \|\| destinationKey;[\s\S]*selectFocusReturnTarget\(invoker, \s*\[[\s\S]*offlineClearMapRoute[\s\S]*buildingListButtonForKey\(returnKey\)[\s\S]*offlineBuildingSearch[\s\S]*offlineMobileListToggle/.test(closeBody)) {
     problems.push('close does not restore by the required fallback order');
   }
   if (/setData\(|drawFallbackRoute\(/.test(closeBody)) problems.push('close clears the rendered route');
@@ -475,10 +475,10 @@ function runStaticBoundaryChecks() {
     /routeClear\.addEventListener\('click', clearRoute\)/.test(manager) &&
     /mapClear\.addEventListener\('click', clearRoute\)/.test(manager);
   })());
-  ok('offline shell loads only the three reviewed same-origin scripts', (() => {
+  ok('offline shell loads only the four reviewed same-origin scripts', (() => {
     const scripts = [...shell.matchAll(/<script\s+src="([^"]+)"\s+defer><\/script>/g)].map((match) => match[1]);
     return JSON.stringify(scripts) === JSON.stringify([
-      '/vendor/maplibre/maplibre-gl.js', '/vendor/pmtiles/pmtiles.js', '/js/offline-guide-manager.js'
+      '/vendor/maplibre/maplibre-gl.js', '/vendor/pmtiles/pmtiles.js', '/js/offline-guide-manager.js', '/js/map-sidebar-layout.js'
     ]) && !/\son[a-z]+\s*=|javascript:/i.test(shell);
   })());
   ok('offline shell excludes 360, Guided VR, Free Roam, schedules, and photos',

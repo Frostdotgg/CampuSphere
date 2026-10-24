@@ -45,7 +45,7 @@
         mocked viewport/getComputedStyle — closed-.map-panel rejection even
         mid-transition, off-screen / zero-sized / no-rect rejection, disabled /
         aria-disabled / tabindex=-1 / hidden / aria-hidden / inert /
-        display:none / visibility rejection, the exact invoker -> routeFindBtn
+        display:none / visibility rejection, the exact invoker -> mapClearRoute
         -> result card -> search -> mobile-toggle fallback order, and a
         null-safe no-candidate result.
 
@@ -240,14 +240,9 @@ function runStaticSourceGate(src) {
     countOccurrences(src, 'let routeRequestToken = 0;') === 1);
   check(scope, 'beginRouteLookup clears the line + resets stale panel content',
     /function beginRouteLookup\(\)\s*{[\s\S]*?clearComputedPath\(\);[\s\S]*?resetRoutePanelTransient\(\);[\s\S]*?return routeRequestToken;/.test(src));
-  // The invariant is that findRoute threads ITS OWN live token into the computed
-  // fallback (one generation, no second line-clear). Asserted structurally rather
-  // than as an exact source string: BE.3 additionally passes route_destination_id
-  // in that object literal, and a formatting-sensitive check would flag a
-  // behaviour-preserving edit. Dropping the token still fails this.
-  check(scope, 'findRoute begins a lookup and passes its token to the computed fallback',
-    /async function findRoute\(\)[\s\S]*?const token = beginRouteLookup\(\);/.test(src)
-    && /await findComputedRoute\(\s*\{[\s\S]*?destinationBuilding\.name[\s\S]*?\}\s*,\s*token\s*\)/.test(src));
+  check(scope, 'pin navigation uses one cancellable computed lookup without a planner',
+    !src.includes('id="routeFindBtn"') && src.includes('routeAbortController = new AbortController()')
+    && src.includes('signal: routeAbortController.signal'));
   check(scope, 'findComputedRoute accepts an inherited token and optional exit direction',
     /async function findComputedRoute\(b, inheritedToken(?:, options)?\)/.test(src)
     && src.includes("(typeof inheritedToken === 'number') ? inheritedToken : beginRouteLookup()"));
@@ -255,11 +250,11 @@ function runStaticSourceGate(src) {
     countOccurrences(src, 'if (!isCurrentRouteLookup(token)) return;') >= 4);
   check(scope, 'clearing the destination invalidates pending requests (cancelRouteLookup)',
     /function cancelRouteLookup\(\)\s*{[\s\S]*?routeRequestToken \+= 1;[\s\S]*?clearComputedPath\(\);/.test(src)
-    && /setHint\(PLANNER_HINT_EMPTY\);[\s\S]*?cancelRouteLookup\(\);/.test(src));
+    && /if \(!destinationBuilding\) cancelRouteLookup\(\);/.test(src));
 
   // Sanitized logging: no raw error object logged from the route paths.
   check(scope, 'route lookups log fixed labels only (no raw error / body / geometry)',
-    src.includes("console.error('findRoute failed')")
+    src.includes("console.error('openRouteById failed')")
     && src.includes("console.error('findComputedRoute failed')")
     && !src.includes("console.error('findRoute failed', err)")
     && !src.includes("console.error('findComputedRoute failed', err)"));
@@ -269,8 +264,8 @@ function runStaticSourceGate(src) {
     !/googleapis|google\.com\/maps|maps\.google|mapbox\.com\/directions|api\.mapbox\.com\/directions|project-osrm|router\.project|graphhopper|strava|earthengine/i.test(src));
 
   // Unchanged API endpoints.
-  check(scope, 'unchanged API: /api/pathfind + /api/routes still queried',
-    src.includes('/api/pathfind?start=') && src.includes('/api/routes?start='));
+  check(scope, 'computed pin routes and predefined route search retain their API endpoints',
+    src.includes('/api/pathfind?start=') && src.includes('/api/routes/${routeId}'));
   check(scope, 'directional exit action uses startBuildingId and exposes Exit VR',
     src.includes('id="panelExitBtn"') && src.includes('startBuildingId=') &&
     src.includes("if (isExit && destId !== null)") &&
@@ -477,13 +472,9 @@ function runKeyboardAccessGate(src, css) {
     && trap.includes('closeRoutePanel()')
     && countOccurrences(src, 'function closeRoutePanel(') === 1);
 
-  // Canonical start label over the stable main-gate key.
-  check(scope, 'readonly start input visibly shows the canonical label before JS runs',
-    src.includes('value="Guard House / Main Gate" readonly'));
-  const findFn = sliceFn(src, 'async function findRoute(', 'async function openRouteById(');
-  check(scope, 'findRoute falls back to COMPUTED_START_LABEL (stale Main Gate literal gone)',
-    findFn.includes('(routeStartInput.value || COMPUTED_START_LABEL)')
-    && !/\|\|\s*'Main Gate'/.test(src));
+  check(scope, 'retired planner form is absent and origin remains explicit on the map',
+    !src.includes('id="routeStartInput"') && !src.includes('id="routeFindBtn"')
+    && src.includes("const COMPUTED_START_LABEL = 'Guard House / Main Gate';"));
   check(scope, 'main-gate stays the stable pathfinding key behind the canonical public label',
     src.includes("const COMPUTED_START_KEY = 'main-gate';")
     && src.includes("const COMPUTED_START_LABEL = 'Guard House / Main Gate';")
@@ -569,15 +560,15 @@ function runFocusReturnGate(src) {
 
   // Priority 1: a connected, visible original invoker wins.
   const invoker = makeEl();
-  const findBtn = makeEl();
-  check(scope, 'connected visible original invoker wins', select(invoker, [findBtn]) === invoker);
+  const clearBtn = makeEl();
+  check(scope, 'connected visible original invoker wins', select(invoker, [clearBtn]) === invoker);
 
   // Mobile Set-as-Destination: the saved panelSetDestBtn sits inside
   // .map-panel:not(.visible) after the flow hides the info panel. Its
   // rectangle still intersects the viewport mid-transition — reject anyway.
   const setDestBtn = makeEl({ inClosedMapPanel: true });
   check(scope, 'invoker inside .map-panel:not(.visible) is rejected even while its rect still intersects',
-    usable(setDestBtn) === false && select(setDestBtn, [findBtn]) === findBtn);
+    usable(setDestBtn) === false && select(setDestBtn, [clearBtn]) === clearBtn);
 
   // Entirely outside the current viewport -> rejected.
   check(scope, 'completely off-screen invoker is rejected',
@@ -585,27 +576,27 @@ function runFocusReturnGate(src) {
     && usable(makeEl({ rect: { left: -160, top: 300, right: 0, bottom: 344, width: 160, height: 44 } })) === false);
 
   // A result button removed by an innerHTML re-render is disconnected ->
-  // rejected, and the SAME fallback chain takes over (routeFindBtn next).
+  // rejected, and the SAME fallback chain takes over (mapClearRoute next).
   const staleResult = makeEl({ isConnected: false });
-  check(scope, 'disconnected re-rendered result invoker falls back to routeFindBtn',
-    usable(staleResult) === false && select(staleResult, [findBtn]) === findBtn);
+  check(scope, 'disconnected re-rendered result invoker falls back to mapClearRoute',
+    usable(staleResult) === false && select(staleResult, [clearBtn]) === clearBtn);
 
   // Exact fallback order behind the invoker.
   const resultCard = makeEl();
   const searchBox = makeEl();
   const listToggle = makeEl();
   const deadInvoker = makeEl({ isConnected: false });
-  const deadFind = makeEl({ disabled: true });
+  const deadClear = makeEl({ disabled: true });
   const deadCard = makeEl({ rectCount: 0 });
   const deadSearch = makeEl({ display: 'none' });
-  check(scope, 'fallback order: routeFindBtn before the selected result card',
-    select(deadInvoker, [findBtn, resultCard, searchBox, listToggle]) === findBtn);
+  check(scope, 'fallback order: mapClearRoute before the selected result card',
+    select(deadInvoker, [clearBtn, resultCard, searchBox, listToggle]) === clearBtn);
   check(scope, 'fallback order: selected result card before searchInput',
-    select(deadInvoker, [deadFind, resultCard, searchBox, listToggle]) === resultCard);
+    select(deadInvoker, [deadClear, resultCard, searchBox, listToggle]) === resultCard);
   check(scope, 'fallback order: searchInput before mobileListToggle',
-    select(deadInvoker, [deadFind, deadCard, searchBox, listToggle]) === searchBox);
+    select(deadInvoker, [deadClear, deadCard, searchBox, listToggle]) === searchBox);
   check(scope, 'fallback order: mobileListToggle is the last resort',
-    select(deadInvoker, [deadFind, deadCard, deadSearch, listToggle]) === listToggle);
+    select(deadInvoker, [deadClear, deadCard, deadSearch, listToggle]) === listToggle);
 
   // Rejection matrix.
   check(scope, 'rejects disabled', usable(makeEl({ disabled: true })) === false);
@@ -627,7 +618,7 @@ function runFocusReturnGate(src) {
   let out = 'unset';
   let threw = false;
   try {
-    out = select(deadInvoker, [deadFind, deadCard, deadSearch, null]);
+    out = select(deadInvoker, [deadClear, deadCard, deadSearch, null]);
   } catch (e) {
     threw = true;
   }
@@ -636,13 +627,13 @@ function runFocusReturnGate(src) {
   // Selection itself never focused anything; rejected mocks were untouched.
   check(scope, 'rejected candidates are never focus targets',
     setDestBtn.focusCalls === 0 && staleResult.focusCalls === 0 && deadInvoker.focusCalls === 0
-    && deadFind.focusCalls === 0 && deadCard.focusCalls === 0 && deadSearch.focusCalls === 0);
+    && deadClear.focusCalls === 0 && deadCard.focusCalls === 0 && deadSearch.focusCalls === 0);
 
   // Static wiring: closeRoutePanel selects through the shared helper in the
   // exact required order and never focuses the raw invoker directly.
   const closeFn = sliceFn(src, 'function closeRoutePanel(', 'const COMPUTED_START_KEY');
   check(scope, 'closeRoutePanel selects via the shared helper in the exact fallback order',
-    /selectRoutePanelReturnTarget\(invoker, \[\s*routeFindBtn,[\s\S]*?\.map-bldg-item\[data-id[\s\S]*?searchInput,\s*mobileListToggle\s*\]\s*\)/.test(closeFn));
+    /selectRoutePanelReturnTarget\(invoker, \[\s*mapClearRoute,[\s\S]*?\.map-bldg-item\[data-id[\s\S]*?searchInput,\s*mobileListToggle\s*\]\s*\)/.test(closeFn));
   check(scope, 'closeRoutePanel clears the invoker exactly once and focuses only the validated target',
     countOccurrences(closeFn, 'routePanelInvoker = null') === 1
     && closeFn.includes('if (target) target.focus();')

@@ -716,7 +716,7 @@
     var returnKey = routeSummaryKey || destinationKey;
     routeSummaryKey = null;
     var target = selectFocusReturnTarget(invoker, [
-      byId('offlineRouteFind'),
+      byId('offlineClearMapRoute'),
       buildingListButtonForKey(returnKey),
       byId('offlineBuildingSearch'),
       byId('offlineMobileListToggle')
@@ -725,29 +725,22 @@
   }
 
   function clearRoute() {
+    destinationKey = null;
+    var clear = byId('offlineClearMapRoute');
+    if (clear) clear.hidden = true;
     if (map && map.getSource('offline-route')) {
       map.getSource('offline-route').setData({ type: 'FeatureCollection', features: [] });
     }
     closeRouteSummary();
     drawFallbackRoute(null);
     resetOfflineRouteLabels();
-  }
-
-  function updateRoutePlanner() {
-    var building = destinationKey ? buildingFor(destinationKey) : null;
-    var text = byId('offlineRouteDestText');
-    var clear = byId('offlineRouteDestClear');
-    var find = byId('offlineRouteFind');
-    var hint = byId('offlineRouteHint');
-    var compact = byId('offlineRouteToggleStatus');
-    if (text) {
-      text.textContent = building ? building.name : 'Pick a building';
-      text.classList.toggle('map-route-planner__dest-text--empty', !building);
+    var steps = byId('offlineRouteSteps');
+    if (steps) clearNode(steps);
+    routeSummaryKey = null;
+    if (document.activeElement === clear) {
+      var target = selectFocusReturnTarget(byId('offlineBuildingSearch'), [byId('offlineMobileListToggle')]);
+      if (target) target.focus({ preventScroll: true });
     }
-    if (clear) clear.hidden = !building;
-    if (find) find.disabled = !building || (routeMode === 'walking' ? !building.walkingRouteAvailable || !walkingRouteFor(destinationKey, false) : !building.routeAvailable || !routeFor(destinationKey));
-    if (compact) compact.textContent = building ? building.name : 'Pick a destination';
-    if (hint) hint.textContent = routeMode === 'walking' && !(activeRecord && activeRecord.guide && activeRecord.guide.walkingRoutes) ? walkingUnavailableMessage() : building ? 'Ready to draw the saved ' + (routeMode === 'walking' ? 'walking' : 'Main Gate') + ' route.' : 'Select a building, then choose Set as Destination.';
   }
 
   function setDestination(key) {
@@ -755,16 +748,13 @@
     if (!building || (routeMode === 'walking' ? !building.walkingRouteAvailable || !walkingRouteFor(key, false) : !building.routeAvailable || !routeFor(key))) return;
     rememberRouteSummaryInvoker();
     destinationKey = key;
-    updateRoutePlanner();
     closeDetails();
     // Match the online map: Set as Destination immediately draws the route.
-    // The planner's Find Route button remains available for an explicit redraw.
     showRoute(key);
   }
 
   function clearDestination() {
     destinationKey = null;
-    updateRoutePlanner();
     clearRoute();
   }
 
@@ -802,7 +792,8 @@
       summary.setAttribute('aria-hidden', 'true');
       summary.hidden = true;
     }
-    updateRoutePlanner();
+    var clear = byId('offlineClearMapRoute');
+    if (clear) clear.hidden = true;
   }
 
   function showRoute(key, options) {
@@ -816,6 +807,9 @@
       routeSummaryKey = null;
       return;
     }
+    setMobileSidebar(false, { restoreFocus: false });
+    var clear = byId('offlineClearMapRoute');
+    if (clear) clear.hidden = false;
     setOfflineRouteLabels(isExit, key);
     routeSummaryKey = key;
     if (isExit) {
@@ -1128,6 +1122,8 @@
   }
 
   function filterBuildings(value) {
+    var sidebar = byId('offlineMapSidebar');
+    if (sidebar) sidebar.scrollTop = 0;
     var needle = String(value || '').trim().toLowerCase();
     document.querySelectorAll('#offlineBuildingList .offline-building').forEach(function (button) {
       var matchesText = !needle || button.textContent.toLowerCase().indexOf(needle) !== -1;
@@ -1158,8 +1154,8 @@
   function focusMobileSidebarSearch() {
     var search = byId('offlineBuildingSearch');
     var close = byId('offlineSidebarClose');
-    var target = search && !search.disabled ? search : close;
-    // The sheet is still sliding into view; focusing it must not scroll the page.
+    var target = close || (search && !search.disabled ? search : null);
+    // Opening the list must not summon the software keyboard before a search.
     if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
   }
 
@@ -1257,8 +1253,6 @@
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     clearDestination();
-    var start = byId('offlineRouteStart');
-    if (start) start.value = routeMode === 'walking' ? 'Walking Guard House' : 'Guard House / Main Gate';
     if (activeRecord && activeRecord.guide) {
       var origin = selectedOrigin();
       if (map && markers[0]) markers[0].setLngLat([origin.lng, origin.lat]);
@@ -1272,7 +1266,6 @@
       }
       renderBuildingList(activeRecord);
       if (selectedKey) openDetails(selectedKey, byId('offlineBuildingSearch'));
-      updateRoutePlanner();
     }
   }
 
@@ -1359,14 +1352,6 @@
       rememberRouteSummaryInvoker();
       showRoute(selectedKey, { isExit: true });
     });
-    var clearDest = byId('offlineRouteDestClear');
-    if (clearDest) clearDest.addEventListener('click', clearDestination);
-    var findRoute = byId('offlineRouteFind');
-    if (findRoute) findRoute.addEventListener('click', function () {
-      if (!destinationKey) return;
-      rememberRouteSummaryInvoker();
-      showRoute(destinationKey);
-    });
     var routeClose = byId('offlineRouteClose');
     if (routeClose) routeClose.addEventListener('click', closeRouteSummary);
     var routeSummary = byId('offlineRouteSummary');
@@ -1397,19 +1382,13 @@
         }
       });
     }
+    window.addEventListener('campusphere:map-layout', function () { if (map) map.resize(); });
     var routeClear = byId('offlineRouteClear');
     if (routeClear) routeClear.addEventListener('click', clearRoute);
     var mapClear = byId('offlineClearMapRoute');
     if (mapClear) mapClear.addEventListener('click', clearRoute);
     var recenter = byId('offlineRecenterMap');
     if (recenter) recenter.addEventListener('click', recenterMap);
-
-    var plannerToggle = byId('offlineRoutePlannerToggle');
-    var planner = byId('offlineRoutePlanner');
-    if (plannerToggle && planner) plannerToggle.addEventListener('click', function () {
-      var collapsed = planner.classList.toggle('is-collapsed');
-      plannerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    });
 
     mobileSidebarMedia = typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_MAP_MEDIA) : null;
     syncMobileSidebarViewport(mobileSidebarMedia);
@@ -1469,7 +1448,6 @@
     bindUi();
     bindLogoutSignal();
     setFilter('all');
-    updateRoutePlanner();
     setDownloadBusy(false);
     var startedAtLogoutVersion = logoutVersion;
     readActive().then(function (record) {

@@ -129,7 +129,7 @@ function pureChecks() {
   }
   check('new lookups and cancellations clear old lines and reject late responses', () => {
     let cleared = 0;
-    const frame = { routeRequestToken: 0, clearComputedPath() { cleared++; }, resetRoutePanelTransient() {}, rememberRoutePanelInvoker() {} };
+    const frame = { routeRequestToken: 0, routeAbortController: null, AbortController, mapClearRoute: { hidden: true }, clearComputedPath() { cleared++; }, resetRoutePanelTransient() {}, rememberRoutePanelInvoker() {} };
     for (const name of ['beginRouteLookup', 'isCurrentRouteLookup', 'cancelRouteLookup']) vm.runInNewContext(extractFunction(source, name), frame, { timeout: 1000 });
     const first = frame.beginRouteLookup(), second = frame.beginRouteLookup();
     assert.equal(frame.isCurrentRouteLookup(first), false); assert.equal(frame.isCurrentRouteLookup(second), true);

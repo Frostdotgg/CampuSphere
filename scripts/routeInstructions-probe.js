@@ -161,7 +161,7 @@ function rendering() {
     check('clear stale numbered content on ' + status, () => { frame.renderSavedRouteInstructions([], status); assert.equal(frame.routePanelSteps.children.length, 0); assert.equal(frame.routePanelEmpty.textContent, message); assert.equal(frame.routePanelEmpty.hidden, false); });
   }
   check('shared popup uses computed saved list', () => assert.match(extractFunction(source, 'openComputedRoutePanel'), /renderSavedRouteInstructions\(route\.instructions, route\.instructionStatus\)/));
-  check('fixed-gate Find Route uses the same validated computed trip', () => assert.match(extractFunction(source, 'findRoute'), /start === COMPUTED_START_LABEL\) return findComputedRoute\(destinationBuilding\)/));
+  check('pin navigation keeps validated computed trips after removing the planner', () => { assert.doesNotMatch(source, /id="routeFindBtn"/); assert.match(source, /findComputedRoute\(\{[\s\S]*route_destination_id: b.route_destination_id/); });
 }
 async function offlineChecks() {
   const { buildGuide } = require('../services/offlineGuideService');

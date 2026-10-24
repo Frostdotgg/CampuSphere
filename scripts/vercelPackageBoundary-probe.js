@@ -73,15 +73,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the local editable-instructions candidate.
+/* Independent exact-byte authority for the local responsive-sidebar candidate.
    The October 20 published fingerprints remain dated release evidence in
    docs/session-retry-log-pairing-release-2026-10-20.md and the room release note.
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 210,
-  bytes: 8634838,
-  sha256: '845993972b005b3fee0f5c30ee8af32925dcded05134f165984ddf459c0d0ba1',
+  files: 212,
+  bytes: 8632417,
+  sha256: '675ea8227352def3965fb2d296053b681aa21aab5d6bd9e11b49abe5fbad9846',
 });
 
 /* M12.P1-R8 label correction.
@@ -232,6 +232,8 @@ const EXPECTED_OFFLINE_MAP_RUNTIME_FILES = Object.freeze([
 /** Representative non-vendor assets the static boundary must serve byte-exact. */
 const REPRESENTATIVE_STATIC_ASSETS = Object.freeze([
   ['stylesheet', 'public/css/styles.css'],
+  ['map sidebar stylesheet', 'public/css/map-sidebar.css'],
+  ['map viewport helper', 'public/js/map-sidebar-layout.js'],
   ['client script', 'public/js/pwa.js'],
   ['PWA icon', 'public/img/icons/campussphere-192.png'],
   ['web app manifest', 'public/manifest.webmanifest'],

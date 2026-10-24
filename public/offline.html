@@ -12,9 +12,11 @@
   <link rel="stylesheet" href="/css/styles.css?v=13">
   <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="/css/offline.css">
+  <link rel="stylesheet" href="/css/map-sidebar.css">
   <script src="/vendor/maplibre/maplibre-gl.js" defer></script>
   <script src="/vendor/pmtiles/pmtiles.js" defer></script>
   <script src="/js/offline-guide-manager.js" defer></script>
+  <script src="/js/map-sidebar-layout.js" defer></script>
 </head>
 
 <body class="offline-page">
@@ -126,6 +128,10 @@
             <button class="map-filter-btn" data-offline-filter="Administrative" type="button">Admin</button>
             <button class="map-filter-btn" data-offline-filter="Facilities" type="button">Facilities</button>
           </div>
+          <div class="map-route-mode" role="group" aria-label="Offline route mode">
+            <button type="button" class="map-route-mode__button is-active" data-offline-route-mode="vehicle" aria-pressed="true">Vehicle</button>
+            <button type="button" class="map-route-mode__button" data-offline-route-mode="walking" aria-pressed="false">Walking</button>
+          </div>
         </div>
 
         <button class="map-free-roam offline-online-only" type="button" disabled aria-disabled="true">
@@ -139,34 +145,6 @@
             <span class="map-free-roam__hint">Online only - not included in the downloaded guide</span>
           </span>
         </button>
-
-        <div class="map-route-planner" id="offlineRoutePlanner" aria-label="Plan an offline campus route">
-          <button class="map-route-planner__toggle" type="button" id="offlineRoutePlannerToggle" aria-expanded="true" aria-controls="offlineRoutePlanner">
-            <span class="map-route-planner__toggle-label">Plan Route</span>
-            <span class="map-route-planner__toggle-status" id="offlineRouteToggleStatus">Pick a destination</span>
-            <svg class="map-route-planner__toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <p class="map-route-planner__heading">Plan a Route</p>
-          <div class="map-route-mode" role="group" aria-label="Offline route mode">
-            <button type="button" class="map-route-mode__button is-active" data-offline-route-mode="vehicle" aria-pressed="true">Vehicle</button>
-            <button type="button" class="map-route-mode__button" data-offline-route-mode="walking" aria-pressed="false">Walking</button>
-          </div>
-          <div class="map-route-planner__row">
-            <label class="map-route-planner__label" for="offlineRouteStart">Start</label>
-            <input type="text" id="offlineRouteStart" class="map-route-planner__input map-route-planner__input--readonly" value="Guard House / Main Gate" readonly aria-readonly="true">
-          </div>
-          <div class="map-route-planner__row">
-            <span class="map-route-planner__label">Destination</span>
-            <div class="map-route-planner__dest">
-              <span class="map-route-planner__dest-text map-route-planner__dest-text--empty" id="offlineRouteDestText">Pick a building</span>
-              <button type="button" class="map-route-planner__dest-clear" id="offlineRouteDestClear" aria-label="Clear destination" hidden>X</button>
-            </div>
-          </div>
-          <button type="button" class="btn btn--primary btn--sm map-route-planner__find" id="offlineRouteFind" disabled>Find Route</button>
-          <p class="map-route-planner__hint" id="offlineRouteHint" aria-live="polite">Select a building, then choose Set as Destination.</p>
-        </div>
 
         <nav class="map-sidebar__list offline-building-list" id="offlineBuildingList" aria-label="Downloaded buildings"></nav>
       </aside>
@@ -182,7 +160,7 @@
               <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
             </svg>
           </button>
-          <button class="map-ctrl-btn" id="offlineClearMapRoute" title="Clear route" type="button" aria-label="Clear route">
+          <button class="map-ctrl-btn" id="offlineClearMapRoute" hidden title="Clear route" type="button" aria-label="Clear route">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path>
             </svg>
