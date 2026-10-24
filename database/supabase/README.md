@@ -1,5 +1,20 @@
+<!-- OCTOBER 24 AUTHORITY START -->
+## Current handoff authority — October 24, 2026
+
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-24.md`
+first; copy the current role prompt from `docs/new-session-grounding-prompts.md`.
+Reviewed documentation publication: one scoped commit and normal push to main.
+Automatic unpromoted builds are allowed; Production promotion is not authorized.
+Released runtime source is `2c0a1bf`; final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4` is dated October 23 evidence.
+Campus-wide is Events-only; cache v56, stylesheet v13, migration sources through
+0029. Older releases, candidates and instructions below are historical when
+they conflict with current authority. A new session grounds read-only, reports
+and stops; editable Walking Steps is discussed, not approved.
+<!-- OCTOBER 24 AUTHORITY END -->
+
 <!-- DEPARTMENT NEWS RELEASE START -->
-## Department News product release (October 21, 2026; verified)
+## Historical Department News product release (October 21, 2026; verified)
 
 Read `docs/department-news-release-2026-10-21.md` first. Product source
 `0968b5d107b69166301e9c80350d3f7c6a7ffcbb`, deployment
@@ -26,7 +41,7 @@ This completed release grants no future data, account or deployment permission.
 # database/supabase
 
 <!-- DEPARTMENT NEWS CANDIDATE START -->
-## Local Department News candidate (2026-10-21; not deployed)
+## Historical Local Department News candidate (2026-10-21; not deployed) — superseded; do not execute
 
 Read `docs/department-news-admin.md` first for the current local work on
 `codex/department-news-admin`, based on `71946ab`. Department Administrators
@@ -41,16 +56,16 @@ or live account creation. Preserve protected files and dated release evidence.
 
 Supabase / PostgreSQL / PostGIS migration baseline for CampuSphere.
 
-## Current released retirement (2026-10-21 handoff)
+## Current source and handoff (2026-10-24)
 
-Room scheduling removal is released. Read `docs/current-authority.md` and
-`docs/session-handoff-2026-10-21.md` for the latest application baseline;
-`docs/room-scheduling-removal.md` preserves owner-controlled cleanup/restore steps.
-No migration is changed or applied by this handoff. Empty tables/fields and the
-legacy-reference building-deletion guard remain. Floor/room descriptions and
-73 private Info markers are retained; the recorded 69 image entries and two
-legacy entries were not deleted. The app no longer consumes SCHEDULE_DATA_SOURCE.
-Historical schedule verification steps must not be executed automatically.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
 
 ## Historical Walking migration and release note (2026-10-19)
 
@@ -184,8 +199,9 @@ project that already has PostGIS installed in `extensions` is a no-op.
 
 ## 4. How to apply later
 
-Migrations `0001` through `0006` have already been applied to the team's
-working Supabase project. The instructions below are for bringing a **fresh**
+Migration sources are contiguous through `0029`. Owner application through
+0029 is dated release evidence, not a new database query. Do not reapply them
+without a focused database-owner task. The instructions below are for bringing a **fresh**
 or disposable Supabase project up to the current schema (for example, a clean
 demo project or a new developer environment).
 
@@ -250,6 +266,11 @@ Apply order (each file once, in sequence, against the target project):
 
 16. `0028_walking_2d_routes.sql` (owner-applied on the selected project; for a
     new project, apply once after 0027 only under database-owner authorization).
+
+17. `0029_department_news_admin.sql` (owner-applied during the October 21
+    release after backup; adds the fifth role, department constraints/defaults
+    and server-only account-management functions. Preserve existing history;
+    do not apply or reapply during grounding).
 
 ## 5. Auth decision
 

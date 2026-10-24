@@ -1,5 +1,20 @@
+<!-- OCTOBER 24 AUTHORITY START -->
+## Current handoff authority — October 24, 2026
+
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-24.md`
+first; copy the current role prompt from `docs/new-session-grounding-prompts.md`.
+Reviewed documentation publication: one scoped commit and normal push to main.
+Automatic unpromoted builds are allowed; Production promotion is not authorized.
+Released runtime source is `2c0a1bf`; final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4` is dated October 23 evidence.
+Campus-wide is Events-only; cache v56, stylesheet v13, migration sources through
+0029. Older releases, candidates and instructions below are historical when
+they conflict with current authority. A new session grounds read-only, reports
+and stops; editable Walking Steps is discussed, not approved.
+<!-- OCTOBER 24 AUTHORITY END -->
+
 <!-- DEPARTMENT NEWS RELEASE START -->
-## Department News product release (October 21, 2026; verified)
+## Historical Department News product release (October 21, 2026; verified)
 
 Read `docs/department-news-release-2026-10-21.md` first. Product source
 `0968b5d107b69166301e9c80350d3f7c6a7ffcbb`, deployment
@@ -26,7 +41,7 @@ This completed release grants no future data, account or deployment permission.
 # CampuSphere
 
 <!-- DEPARTMENT NEWS CANDIDATE START -->
-## Local Department News candidate (2026-10-21; not deployed)
+## Historical Local Department News candidate (2026-10-21; not deployed) — superseded; do not execute
 
 Read `docs/department-news-admin.md` first for the current local work on
 `codex/department-news-admin`, based on `71946ab`. Department Administrators
@@ -52,6 +67,10 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
 - Session-based authentication (`express-session` + `bcrypt`) with Google OAuth as a second sign-in path.
 - Role-based access control (`student-cspc`, `instructor`, `admin`, `department-admin`, `guest`) via `middleware/roleAuth.js`.
 - Signed-in guests can browse every building and 360 scene; VR information hotspots require explicit guest approval. Room scheduling is retired in the published release.
+- Department Administrators use only `/admin/news` and required operations;
+  the main Administrator manages these accounts through User Management.
+- News offers seven departments; Events also offers Campus-wide (stored as
+  `university-wide`). Content labels never override audience or draft privacy.
 - Events are filtered server-side by the administrator-selected audience:
   everyone, guest, CSPC student, instructor, or admin.
 - Domain-to-role mapping at OAuth registration (`@my.cspc.edu.ph` → student, `@cspc.edu.ph` → instructor, `@gmail.com` → guest).
@@ -69,14 +88,16 @@ CampuSphere is an Express 5 + EJS server-rendered web app that delivers a virtua
   shared `mysql2/promise` pool (`config/db.js`) for local/fallback work.
 - Idempotent seed script that creates the database, applies the schema, and inserts default content.
 
-## Current source and handoff (2026-10-21)
+## Current source and handoff (2026-10-24)
 
-Read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
-Room Scheduling / Room Plotting removal and the later session fixes are released.
-The last verified application baseline is 38fd296, deployment
-dpl_86Lge98zAWnSKYbG7b14ef4uMpfF. These are dated release observations;
-recompute live Git truth. Room descriptions and 73 private Info markers remain.
-Cleanup, new features and deployment require their own focused owner task.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
 
 ## Tech Stack
 
@@ -160,7 +181,7 @@ backfill and server-only RPCs. The owner has applied it; Codex did not apply or
 reapply it. This auth/profile change does not alter campus, route, VR, event, or
 selected-freeze data.
 
-The selected Supabase project has owner-applied migrations `0001`-`0028`.
+The selected Supabase project has owner-applied migrations `0001`-`0029` (dated owner-applied evidence).
 Codex did not apply or reapply them. Do not reapply an owner-applied migration
 without fresh explicit database authorization.
 
@@ -230,7 +251,7 @@ Rules:
 
 ### Database Setup
 
-The seed script creates `campusphere_db`, applies `database/schema.sql`, and inserts default users and content. It is safe to re-run.
+The seed script creates `campusphere_db`, applies `database/schema.sql`, and inserts default users and content. Run only in an explicitly approved disposable/local database after verifying the target; never run it automatically against shared data.
 
 ```bash
 node database/seed.js
@@ -319,7 +340,7 @@ production data.
 
 Sign-in and registration live on a single combined page at `/auth`. The standalone `/login` and `/register` URLs are legacy and `302` redirect to `/auth` (and `/auth#register`).
 
-Admin accounts cannot be created through OAuth — they must be inserted via the seed script or directly in the database.
+Administrator and Department Administrator accounts cannot be created through public registration or OAuth. The main Administrator creates and manages department accounts through User Management. Seeds are disposable/local setup tools; do not insert live accounts directly as a routine setup step.
 
 ### Registration trust policy (Milestone 8, Section 8.6)
 
@@ -371,7 +392,7 @@ See `.env.example` and `docs/deployment.md` for every variable and the apply ord
 
 ## Admin
 
-The `/admin` namespace is gated by `requireRole('admin')`. Page renders live alongside JSON CRUD endpoints under `/admin/api/*`, which return clean `401`/`403` JSON responses to unauthenticated fetches (HTML routes redirect to `/auth` instead).
+Full Administrator access uses the admin role. Department Administrators can access only `/admin/news` and its required news/event operations, enforced by `middleware/departmentAccess.js` and role checks. Other application pages and unrelated APIs are denied before protected reads. JSON endpoints retain authentication/role/CSRF checks; HTML authentication redirects to `/auth`.
 
 ## License
 

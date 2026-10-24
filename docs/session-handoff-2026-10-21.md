@@ -1,8 +1,13 @@
+# Historical checkpoint, superseded by `docs/session-handoff-2026-10-24.md`
+
+The October 21 record below is preserved as dated release evidence. Its then-current
+baseline, caches, migration range, permissions and next-work statements are history.
+
 # CampuSphere Session Handoff — 2026-10-21
 
 Last updated: 2026-10-21 (Asia/Manila)
 
-## Current Release Continuity (2026-10-21 completed removal and session releases)
+## Historical Release Continuity (2026-10-21 completed removal and session releases; superseded by October 24 handoff)
 
 Read `docs/current-authority.md` and `docs/session-handoff-2026-10-21.md`
 first, then the dated room-removal and session-release notes. Room Scheduling /

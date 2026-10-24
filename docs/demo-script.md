@@ -1,5 +1,20 @@
+<!-- OCTOBER 24 AUTHORITY START -->
+## Current handoff authority — October 24, 2026
+
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-24.md`
+first; copy the current role prompt from `docs/new-session-grounding-prompts.md`.
+Reviewed documentation publication: one scoped commit and normal push to main.
+Automatic unpromoted builds are allowed; Production promotion is not authorized.
+Released runtime source is `2c0a1bf`; final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4` is dated October 23 evidence.
+Campus-wide is Events-only; cache v56, stylesheet v13, migration sources through
+0029. Older releases, candidates and instructions below are historical when
+they conflict with current authority. A new session grounds read-only, reports
+and stops; editable Walking Steps is discussed, not approved.
+<!-- OCTOBER 24 AUTHORITY END -->
+
 <!-- DEPARTMENT NEWS RELEASE START -->
-## Department News product release (October 21, 2026; verified)
+## Historical Department News product release (October 21, 2026; verified)
 
 Read `docs/department-news-release-2026-10-21.md` first. Product source
 `0968b5d107b69166301e9c80350d3f7c6a7ffcbb`, deployment
@@ -26,7 +41,7 @@ This completed release grants no future data, account or deployment permission.
 # CampuSphere Defense Demo Script
 
 <!-- DEPARTMENT NEWS CANDIDATE START -->
-## Local Department News candidate (2026-10-21; not deployed)
+## Historical Local Department News candidate (2026-10-21; not deployed) — superseded; do not execute
 
 Read `docs/department-news-admin.md` first for the current local work on
 `codex/department-news-admin`, based on `71946ab`. Department Administrators
@@ -42,14 +57,16 @@ or live account creation. Preserve protected files and dated release evidence.
 Milestone 8, Section 8.10. This script is for a controlled defense/demo using
 seeded data. Do not use real secrets or private production data on screen.
 
-## Current handoff (2026-10-21)
+## Current handoff (2026-10-24)
 
-Read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
-Room Scheduling / Room Plotting removal and the later session fixes are released.
-The last verified application baseline is 38fd296, deployment
-dpl_86Lge98zAWnSKYbG7b14ef4uMpfF. These are dated release observations;
-recompute live Git truth. Room descriptions and 73 private Info markers remain.
-Cleanup, new features and deployment require their own focused owner task.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
 
 ## Historical route/media demonstration note (2026-09-22; superseded checkpoint)
 
@@ -112,7 +129,319 @@ confirms a Supabase `401` on the readiness request, while the provider's reason
 for issuing that temporary `401` is not present in the retained row.
 
 <!-- M12 RELEASE CONTINUITY START -->
-## Current Release Continuity (2026-10-21 completed removal and session releases)
+## Current Release Continuity (2026-10-24 documentation publication)
+
+Read `docs/current-authority.md`, then `docs/session-handoff-2026-10-24.md`
+and the current role prompt in `docs/new-session-grounding-prompts.md` first.
+The owner authorized one reviewed documentation/static-check commit and a
+normal push to main for this 19-file handoff. An automatic unpromoted staged
+build is allowed; Production promotion is not authorized. No deployment
+settings may be changed. This authorization is limited to this publication
+task and does not carry forward to new sessions.
+The preparation baseline is `2c0a1bfca4090aedbba38aa77a8d287aaa2bdeb8`:
+local main, origin/main and remote main matched; the 19 reviewed paths were
+pending, the real index was empty, stashes were zero and ahead/behind was 0/0.
+The resulting documentation SHA and actual push/build outcome are recorded
+afterward in the external publication receipt. Do not invent that SHA or
+assume publication succeeded from this text. Recompute live Git truth.
+The released runtime baseline remains 2c0a1bf; a documentation-only commit
+does not change the live deployment or establish fresh application acceptance.
+
+The Campus-wide Events product is
+`509518f9fbbbd89edc49e98feb3582e635135c0f`, deployment
+`dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda`. Its identical-runtime documentation
+successor is `2c0a1bfca4090aedbba38aa77a8d287aaa2bdeb8`, final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4`, observed Ready / Production / Current
+at https://campusphere-cspc.vercel.app on October 23. These are dated October
+23 Production observations from the sanitized final receipt, not a fresh
+October 24 vendor check. See `docs/campus-wide-events-release-2026-10-23.md`.
+The release used normal pushes and staged Production promotion. Automatic
+Production domain assignment was disabled; protection and secrets were
+unchanged. Reverify settings and rollback eligibility for any future release.
+
+Campus-wide is Events-only, displayed as Campus-wide and stored/API-coded
+`university-wide`; the literal `campus-wide` API value is rejected. Existing
+events display/edit with that label without rewriting records on read. News
+and account assignments use seven departments only. The departments are
+Graduate School, CEA, CCS, CHS, CTHBM, CTDE and CAS; full names and codes are in
+`utils/departments.js`. Main Administrators explicitly select a department;
+Department Administrators default to their assigned department and can edit
+across departments. Events offer Campus-wide first. All departments remains
+a filter; switching Campus-wide Events filtering to News resets it to All
+departments. Article categories are General, Academic, Advisory, Maintenance
+and Emergency; Events retain Academic, Sports and Cultural. Event/Events
+article choices and Facilities content choices remain retired; building-map
+Facilities remains available. Audience restrictions and draft privacy remain.
+
+Department Administrator access is restricted to `/admin/news` and required
+authentication, CSRF, heartbeat, assets and news/event operations. Other
+application pages and unrelated APIs are denied server-side. Only the main
+Administrator manages accounts, department assignments and credentials;
+role/department/password changes revoke old sessions. Public registration
+cannot create department admins. Do not claim seven permanent accounts were
+created: the owner reported one, and no fresh account count was queried.
+
+Walking 2D is released, using independently saved pedestrian paths. Its return
+reverses the same path; Vehicle return geometry remains independently authored.
+Walking 2D, Vehicle routing and Walking VR are separate. The dated 26/26 saved
+paths, zero missing observation does not establish visual approval of every
+walkway or exhaustive traversal. Walking Steps are generated automatically;
+there is no editable ordered-instructions field. Custom instructions and the
+displayed "1 minutes" wording were discussed only; no change was implemented
+or approved. The next product task has not been selected. Ground and wait.
+
+Room Scheduling / Room Plotting removal is released. Authorized retired APIs
+return standard JSON 404 with authentication, role and CSRF checks retained.
+Schedule types/metadata are omitted from VR responses and rejected on writes.
+Floor/room descriptions remain. The dated conversion retained 73 private Info
+markers across 65 scenes with names/positions preserved. Scene/exit hotspots
+remain Guest-visible; Info requires explicit Administrator approval for Guests.
+The recorded 69 schedule-image entries, two legacy entries and metadata were
+retained, not deleted; this is not a fresh database count. Preserve audit history,
+empty-compatible tables/fields, external hosted images and the legacy-reference
+building-deletion guard. Schedule cleanup needs a separate focused owner task.
+
+Retry-log pairing and request-lifetime fixes remain released. Preserve 2,000 ms
+per attempt, two attempts and 200 ms retry delay. Each admitted retry warning
+reserves its own recovered/failed outcome and opaque operation_id; admission
+is one pair per operation, initial failure category and status per 60 seconds.
+Standalone failures keep their limiter. Logger failure, termination or retention
+can hide outcomes. `@vercel/functions` 3.10.1 waitUntil retains expiry refresh
+through retry/callback settlement. Synchronous changed-session persistence,
+expiry, scoped logout, cookies, privacy and completed-response protection stay;
+expiry-only refresh is not a full-session save. Docker/MySQL work without a
+Vercel request context. The local lifetime model does not prove every historical
+provider/network cause or actual cloud freezing behavior.
+
+The sign-in investigation reproduced browser/automation problems; a general
+application login failure or Chrome-engine defect was not established. No
+application login patch was made. Register observation before one submission;
+wait for the original tab's role URL, ready DOM and visible heading under one
+30-second deadline. Do not use global network idleness or automatically
+resubmit. Missing POST/input delivery is inconclusive. A fresh-tab diagnostic
+does not prove original-tab navigation. Unresolved input-dispatch cases,
+cancelled-navigation spinner and the early fixture-cookie limitation remain
+recorded in the October 24 handoff; do not claim complete browser-profile or
+downloaded-guide preservation. Loading-state hardening remains separate.
+
+Only temporary event 26 was removed in the October 23 release; its six audit
+records remain. SELECT-only comparison preserved all original 9 articles and
+12 events (5/5), with audit checks 3/3. Those are dated observations, not fresh
+database counts. No account changes, migration, existing-post cleanup, schedule
+cleanup or ICTU deployment ran. Normal authentication/session/presence writes
+were permitted. Existing-post cleanup policy v2 selects articles with department
+university-wide OR category Facilities, and events with category Facilities
+only. Valid Campus-wide events survive. Older generated deletion plans are
+obsolete; fresh preparation, external backup and owner review are required.
+
+October 23 focused results: content/access/privacy 1,137/1,137; editor 32/32;
+disposable PostgreSQL/MySQL cleanup/restore 35/35; session bootstrap/resilience/
+lifetime 160/160, 73/73, 72/72; startup 116/116; rate limits 180/180;
+notifications 26/26; audiences 13/13; offline 49/49; PWA 148/148; Walking
+118/118; scheduling retirement 401/401; analytics 113/113; login timing 8/8;
+package 76/76; documentation 942/942 (predecessor evidence); isolated cache
+upgrade/reverse activation 6/6; product and final public smoke 22/22 each.
+The browser record has 72 successful observations and four earlier inconclusive
+attempts, not a combined QA total. Earlier missed actions, premature captures
+and the audit checker's event_type/action mistake remain preserved.
+
+October 23 UTC watches: staged 04:52:32.889–05:02:47.615 (614.726 seconds),
+product live 05:03:26.882–05:13:39.050 (612.168 seconds), final live
+05:18:54.232–05:29:32.612 (638.38 seconds). Loaded closing Runtime Logs views
+showed 0 Warning / 0 Error / 0 Fatal; exact-deployment heartbeat messages were
+expanded. No natural retry was observed to correlate and no failures were
+manufactured. These finite windows do not promise future provider availability.
+Keep earlier warnings, corrected counts, monitoring gaps, laptop interruption
+and fresh October 21 closing watch as separate history. HTTP 200/204 does not
+prove every refresh succeeded. No full npm test/QA pass, live MySQL parity,
+physical-device acceptance, exhaustive route/VR traversal or complete immutable
+deployed-byte equality is claimed.
+
+Current runtime identity: 205 files / 8,611,691 bytes, SHA-256
+`12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6`.
+Compare canonical Git bytes, not Windows checkout line endings. Cache v56;
+stylesheet v13; migration sources through 0029. The owner applied additive
+0029 during Department News release after backup; this handoff applies none.
+Production data and Express sessions use Supabase/PostgreSQL; MySQL is
+local/fallback/rehearsal. Authentication is Express sessions with bcrypt local
+login and Google OAuth; Supabase Auth is not used. Docker localhost's selected
+Supabase connection is shared, so localhost does not isolate saved data.
+The ordinary checkout lacks ignored node_modules/@vercel/functions; do not
+repair dependencies automatically. Prior focused checks used complete source
+and matching locked external dependencies, fake providers and isolation.
+
+IndexedDB stores the explicit user-downloaded guide and PMTiles; Cache Storage
+is shell/static-only. Download/update needs a connected signed-in action on
+each device. News/events, schedules, private/session data and VR/panoramas are
+excluded from guides. The guide format is unchanged; ordinary logout removes
+the owned guide under existing privacy behavior. ICTU source readiness is not
+an actual ICTU deployment; saved paths reside in Supabase, not Git.
+
+Preserve protected local documents, ignored output, .git/info/exclude and
+external evidence. Credentials and private database snapshots never belong in
+handoffs or prompts. Prior permissions do not carry forward; one writer owns
+a scope. Inventory available MCP tools and skills without accessing services;
+read applicable skill instructions, and do not assume identical integrations.
+A new session's initial grounding turn is read-only and context-only: local
+source and read-only Git including remote main, report and stop after grounding.
+No automatic tests, servers, containers, browser/database/vendor access,
+dependency repair, feature work, delegation, commit, push or deployment.
+Availability does not expand authority. Wait for one focused owner request.
+
+## Historical Release Continuity (2026-10-24 local authority synchronization; superseded by documentation publication)
+
+Read `docs/current-authority.md`, then `docs/session-handoff-2026-10-24.md`
+and the current role prompt in `docs/new-session-grounding-prompts.md` first.
+The October 24 task updates documentation and documentation assertions locally
+only. No commit, push or deployment is authorized. The preparation baseline is
+`2c0a1bfca4090aedbba38aa77a8d287aaa2bdeb8`: local main, origin/main and remote
+main matched with clean worktree, empty index, zero stashes and ahead/behind
+0/0. After this update the documentation is intentionally uncommitted; do not
+claim the entire working tree matches GitHub or deployed source. Recompute live
+Git truth before later work. No new documentation commit identity exists yet.
+
+The Campus-wide Events product is
+`509518f9fbbbd89edc49e98feb3582e635135c0f`, deployment
+`dpl_HzhVWaEXzmDkdAWFTQrqWfykZxda`. Its identical-runtime documentation
+successor is `2c0a1bfca4090aedbba38aa77a8d287aaa2bdeb8`, final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4`, observed Ready / Production / Current
+at https://campusphere-cspc.vercel.app on October 23. These are dated October
+23 Production observations from the sanitized final receipt, not a fresh
+October 24 vendor check. See `docs/campus-wide-events-release-2026-10-23.md`.
+The release used normal pushes and staged Production promotion. Automatic
+Production domain assignment was disabled; protection and secrets were
+unchanged. Reverify settings and rollback eligibility for any future release.
+
+Campus-wide is Events-only, displayed as Campus-wide and stored/API-coded
+`university-wide`; the literal `campus-wide` API value is rejected. Existing
+events display/edit with that label without rewriting records on read. News
+and account assignments use seven departments only. The departments are
+Graduate School, CEA, CCS, CHS, CTHBM, CTDE and CAS; full names and codes are in
+`utils/departments.js`. Main Administrators explicitly select a department;
+Department Administrators default to their assigned department and can edit
+across departments. Events offer Campus-wide first. All departments remains
+a filter; switching Campus-wide Events filtering to News resets it to All
+departments. Article categories are General, Academic, Advisory, Maintenance
+and Emergency; Events retain Academic, Sports and Cultural. Event/Events
+article choices and Facilities content choices remain retired; building-map
+Facilities remains available. Audience restrictions and draft privacy remain.
+
+Department Administrator access is restricted to `/admin/news` and required
+authentication, CSRF, heartbeat, assets and news/event operations. Other
+application pages and unrelated APIs are denied server-side. Only the main
+Administrator manages accounts, department assignments and credentials;
+role/department/password changes revoke old sessions. Public registration
+cannot create department admins. Do not claim seven permanent accounts were
+created: the owner reported one, and no fresh account count was queried.
+
+Walking 2D is released, using independently saved pedestrian paths. Its return
+reverses the same path; Vehicle return geometry remains independently authored.
+Walking 2D, Vehicle routing and Walking VR are separate. The dated 26/26 saved
+paths, zero missing observation does not establish visual approval of every
+walkway or exhaustive traversal. Walking Steps are generated automatically;
+there is no editable ordered-instructions field. Custom instructions and the
+displayed "1 minutes" wording were discussed only; no change was implemented
+or approved. The next product task has not been selected. Ground and wait.
+
+Room Scheduling / Room Plotting removal is released. Authorized retired APIs
+return standard JSON 404 with authentication, role and CSRF checks retained.
+Schedule types/metadata are omitted from VR responses and rejected on writes.
+Floor/room descriptions remain. The dated conversion retained 73 private Info
+markers across 65 scenes with names/positions preserved. Scene/exit hotspots
+remain Guest-visible; Info requires explicit Administrator approval for Guests.
+The recorded 69 schedule-image entries, two legacy entries and metadata were
+retained, not deleted; this is not a fresh database count. Preserve audit history,
+empty-compatible tables/fields, external hosted images and the legacy-reference
+building-deletion guard. Schedule cleanup needs a separate focused owner task.
+
+Retry-log pairing and request-lifetime fixes remain released. Preserve 2,000 ms
+per attempt, two attempts and 200 ms retry delay. Each admitted retry warning
+reserves its own recovered/failed outcome and opaque operation_id; admission
+is one pair per operation, initial failure category and status per 60 seconds.
+Standalone failures keep their limiter. Logger failure, termination or retention
+can hide outcomes. `@vercel/functions` 3.10.1 waitUntil retains expiry refresh
+through retry/callback settlement. Synchronous changed-session persistence,
+expiry, scoped logout, cookies, privacy and completed-response protection stay;
+expiry-only refresh is not a full-session save. Docker/MySQL work without a
+Vercel request context. The local lifetime model does not prove every historical
+provider/network cause or actual cloud freezing behavior.
+
+The sign-in investigation reproduced browser/automation problems; a general
+application login failure or Chrome-engine defect was not established. No
+application login patch was made. Register observation before one submission;
+wait for the original tab's role URL, ready DOM and visible heading under one
+30-second deadline. Do not use global network idleness or automatically
+resubmit. Missing POST/input delivery is inconclusive. A fresh-tab diagnostic
+does not prove original-tab navigation. Unresolved input-dispatch cases,
+cancelled-navigation spinner and the early fixture-cookie limitation remain
+recorded in the October 24 handoff; do not claim complete browser-profile or
+downloaded-guide preservation. Loading-state hardening remains separate.
+
+Only temporary event 26 was removed in the October 23 release; its six audit
+records remain. SELECT-only comparison preserved all original 9 articles and
+12 events (5/5), with audit checks 3/3. Those are dated observations, not fresh
+database counts. No account changes, migration, existing-post cleanup, schedule
+cleanup or ICTU deployment ran. Normal authentication/session/presence writes
+were permitted. Existing-post cleanup policy v2 selects articles with department
+university-wide OR category Facilities, and events with category Facilities
+only. Valid Campus-wide events survive. Older generated deletion plans are
+obsolete; fresh preparation, external backup and owner review are required.
+
+October 23 focused results: content/access/privacy 1,137/1,137; editor 32/32;
+disposable PostgreSQL/MySQL cleanup/restore 35/35; session bootstrap/resilience/
+lifetime 160/160, 73/73, 72/72; startup 116/116; rate limits 180/180;
+notifications 26/26; audiences 13/13; offline 49/49; PWA 148/148; Walking
+118/118; scheduling retirement 401/401; analytics 113/113; login timing 8/8;
+package 76/76; documentation 942/942 (predecessor evidence); isolated cache
+upgrade/reverse activation 6/6; product and final public smoke 22/22 each.
+The browser record has 72 successful observations and four earlier inconclusive
+attempts, not a combined QA total. Earlier missed actions, premature captures
+and the audit checker's event_type/action mistake remain preserved.
+
+October 23 UTC watches: staged 04:52:32.889–05:02:47.615 (614.726 seconds),
+product live 05:03:26.882–05:13:39.050 (612.168 seconds), final live
+05:18:54.232–05:29:32.612 (638.38 seconds). Loaded closing Runtime Logs views
+showed 0 Warning / 0 Error / 0 Fatal; exact-deployment heartbeat messages were
+expanded. No natural retry was observed to correlate and no failures were
+manufactured. These finite windows do not promise future provider availability.
+Keep earlier warnings, corrected counts, monitoring gaps, laptop interruption
+and fresh October 21 closing watch as separate history. HTTP 200/204 does not
+prove every refresh succeeded. No full npm test/QA pass, live MySQL parity,
+physical-device acceptance, exhaustive route/VR traversal or complete immutable
+deployed-byte equality is claimed.
+
+Current runtime identity: 205 files / 8,611,691 bytes, SHA-256
+`12fb08e21976a482a0a52a61ea4495287e1d50724fa7c3366f27ba52477a5eb6`.
+Compare canonical Git bytes, not Windows checkout line endings. Cache v56;
+stylesheet v13; migration sources through 0029. The owner applied additive
+0029 during Department News release after backup; this handoff applies none.
+Production data and Express sessions use Supabase/PostgreSQL; MySQL is
+local/fallback/rehearsal. Authentication is Express sessions with bcrypt local
+login and Google OAuth; Supabase Auth is not used. Docker localhost's selected
+Supabase connection is shared, so localhost does not isolate saved data.
+The ordinary checkout lacks ignored node_modules/@vercel/functions; do not
+repair dependencies automatically. Prior focused checks used complete source
+and matching locked external dependencies, fake providers and isolation.
+
+IndexedDB stores the explicit user-downloaded guide and PMTiles; Cache Storage
+is shell/static-only. Download/update needs a connected signed-in action on
+each device. News/events, schedules, private/session data and VR/panoramas are
+excluded from guides. The guide format is unchanged; ordinary logout removes
+the owned guide under existing privacy behavior. ICTU source readiness is not
+an actual ICTU deployment; saved paths reside in Supabase, not Git.
+
+Preserve protected local documents, ignored output, .git/info/exclude and
+external evidence. Credentials and private database snapshots never belong in
+handoffs or prompts. Prior permissions do not carry forward; one writer owns
+a scope. Inventory available MCP tools and skills without accessing services;
+read applicable skill instructions, and do not assume identical integrations.
+A new session's initial grounding turn is read-only and context-only: local
+source and read-only Git including remote main, report and stop after grounding.
+No automatic tests, servers, containers, browser/database/vendor access,
+dependency repair, feature work, delegation, commit, push or deployment.
+Availability does not expand authority. Wait for one focused owner request.
+
+## Historical Release Continuity (2026-10-21 completed removal and session releases; superseded by October 24 handoff)
 
 Read `docs/current-authority.md` and `docs/session-handoff-2026-10-21.md`
 first, then the dated room-removal and session-release notes. Room Scheduling /

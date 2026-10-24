@@ -1,5 +1,20 @@
+<!-- OCTOBER 24 AUTHORITY START -->
+## Current handoff authority — October 24, 2026
+
+Read `docs/current-authority.md` and `docs/session-handoff-2026-10-24.md`
+first; copy the current role prompt from `docs/new-session-grounding-prompts.md`.
+Reviewed documentation publication: one scoped commit and normal push to main.
+Automatic unpromoted builds are allowed; Production promotion is not authorized.
+Released runtime source is `2c0a1bf`; final deployment
+`dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4` is dated October 23 evidence.
+Campus-wide is Events-only; cache v56, stylesheet v13, migration sources through
+0029. Older releases, candidates and instructions below are historical when
+they conflict with current authority. A new session grounds read-only, reports
+and stops; editable Walking Steps is discussed, not approved.
+<!-- OCTOBER 24 AUTHORITY END -->
+
 <!-- DEPARTMENT NEWS RELEASE START -->
-## Department News product release (October 21, 2026; verified)
+## Historical Department News product release (October 21, 2026; verified)
 
 Read `docs/department-news-release-2026-10-21.md` first. Product source
 `0968b5d107b69166301e9c80350d3f7c6a7ffcbb`, deployment
@@ -26,7 +41,7 @@ This completed release grants no future data, account or deployment permission.
 # CampuSphere Thesis Teammate Handoff
 
 <!-- DEPARTMENT NEWS CANDIDATE START -->
-## Local Department News candidate (2026-10-21; not deployed)
+## Historical Local Department News candidate (2026-10-21; not deployed) — superseded; do not execute
 
 Read `docs/department-news-admin.md` first for the current local work on
 `codex/department-news-admin`, based on `71946ab`. Department Administrators
@@ -45,21 +60,23 @@ specific questions. Start with `docs/current-authority.md`; it is the canonical
 current-state summary. Older handoff and release blocks are retained for audit
 history and may describe superseded states.
 
-## Current source and handoff (2026-10-21)
+## Current source and handoff (2026-10-24)
 
-Read docs/current-authority.md and docs/session-handoff-2026-10-21.md first.
-Room Scheduling / Room Plotting removal and the later session fixes are released.
-The last verified application baseline is 38fd296, deployment
-dpl_86Lge98zAWnSKYbG7b14ef4uMpfF. These are dated release observations;
-recompute live Git truth. Room descriptions and 73 private Info markers remain.
-Cleanup, new features and deployment require their own focused owner task.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
 
 ## What CampuSphere Is
 
 CampuSphere is a CSPC virtual-campus web application built with Node.js,
 Express 5, EJS, HTML, CSS, and browser JavaScript. Its main capabilities are:
 
-- local and Google OAuth sign-in with four application roles;
+- local and Google OAuth sign-in with five application roles, including editor-only Department Administrators;
 - role-aware dashboards, profiles, announcements, and events;
 - building discovery, room/facility information, and floor/room descriptions;
 - administrator-authored 2D campus graph routing with distinct entry and exit
@@ -70,7 +87,7 @@ Express 5, EJS, HTML, CSS, and browser JavaScript. Its main capabilities are:
 - administrative content, user, building, route, and VR management.
 
 Routes are selected from CampuSphere's stored graph and drawn from
-administrator-authored `route_edges.path_geometry`. Google Maps, Google Earth,
+administrator-authored `route_edges.path_geometry`; Walking 2D instead uses independently saved pedestrian paths. Google Maps, Google Earth,
 Strava, SIS, and external routing engines are not integrated.
 
 ## Technology and Security Model
@@ -189,19 +206,18 @@ application code. It does not reproduce the current live Production dataset.
 
 ## Current Work to Understand First
 
-- `utils/routeGeometry.js`, `controllers/adminRouteController.js`, and
-  `database/supabase/0027_route_edge_geometry_metrics.sql` implement automatic
-  route distance/walk-time calculation and atomic directed-edge writes.
-- `utils/mediaUrl.js`, `controllers/mediaController.js`, and `server.js`
-  implement the validated Google Drive reference and authenticated proxy.
-- `middleware/securityHeaders.js`, `middleware/roleAuth.js`, and
-  `config/sessionConfig.js` show the browser, authorization, and session
-  controls.
-- `services/supabaseSessionStore.js`, `middleware/errorHandler.js`, and
-  `scripts/vercelRuntimeSessionBootstrap-probe.js` show bounded session-touch
-  retries and the completed-response guard.
-- `services/offlineGuideService.js`, `public/js/offline-guide-manager.js`, and
-  `public/sw.js` show offline package and PWA behavior.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
+
+Use the October 24 source map and dated release notes. The released session,
+content, routing and privacy guarantees remain; no panelist feature is currently
+approved. Walking Steps customization is a discussion only.
 
 ## Asking Codex or Claude Code
 
@@ -229,21 +245,20 @@ evidence. Tool availability never grants permission to access external systems.
 
 ## Handoff and Product Next Moves
 
-Read `docs/current-authority.md`, `docs/session-handoff-2026-10-19.md`, and
-`docs/walking-2d-release-2026-10-18.md` for the completed Walking 2D release.
-Application baseline c533719 is on GitHub; the documentation commit advances
-main separately. October 19 coverage is 26/26 saved paths, zero missing, without
-claiming visual approval of every walkway. Editing/review instructions are in
-`docs/walking-2d-team-guide.md`. Every device needs a connected guide refresh.
+Read docs/current-authority.md and docs/session-handoff-2026-10-24.md first.
+The released runtime baseline is 2c0a1bf; final October 23 deployment is
+dpl_Dkjck5qX73P1jpZryiP7iT3hGkk4. The owner authorized this documentation
+publication as one reviewed commit and normal push; the resulting SHA and
+push/build outcome belong in the external publication receipt. Recompute live
+Git truth. Automatic unpromoted builds are allowed; Production promotion and
+cleanup are not authorized. Campus-wide is Events-only; News/accounts retain
+seven departments. New sessions ground, report and wait for a focused task.
 
-ICTU's Docker source includes the feature; its saved paths live in Supabase.
-Using the same project reads those paths. A separate database needs an approved
-schema/data transfer. No actual ICTU deployment is established by this handoff.
-Keep source readiness, local tests, Production observations and client acceptance
-separate. A fresh AI session uses the current role prompt, grounds read-only,
-reports and waits for one owner-selected task. New panelist details are not yet
-specified. Preserve local documents and never package credentials or live data.
+Existing-post deletion, schedule cleanup, remaining account setup and ICTU
+deployment require separate focused tasks. Cleanup policy v2 protects Campus-wide
+events; earlier generated plans are obsolete. Saved routes live in Supabase,
+not Git. Each device refreshes its downloaded guide while signed in and connected.
 
 Create a portable archive only from an approved committed SHA. `git archive`
-excludes local output documents and checkout-local ignore rules. It cannot
-verify live database, vendor, deployment or acceptance state.
+excludes this uncommitted handoff, ignored output and checkout-local exclusions.
+A clone cannot prove live database, deployment or institutional acceptance.
