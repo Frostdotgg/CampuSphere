@@ -341,8 +341,9 @@ function runPredefinedRouteGate(src) {
     countOccurrences(fn, 'if (!isCurrentRouteLookup(token)) return;') >= 2);
   check(scope, 'ignores stale failures in catch BEFORE the sanitized hint',
     /catch \(err\) \{\s*if \(!isCurrentRouteLookup\(token\)\) return;[\s\S]*?setHint\(/.test(fn));
-  check(scope, 'preserves openRoutePanel + setDestination on a current success',
-    fn.includes('openRoutePanel(data.route)') && fn.includes('setDestination(data.route.destination)'));
+  check(scope, 'renders the current predefined route once without the obsolete planner handoff',
+    countOccurrences(code, 'openRoutePanel(data.route)') === 1
+    && !code.includes('setDestination(data.route.destination)'));
   check(scope, 'logs the fixed label only (no raw error / response / body / URL)',
     code.includes("console.error('openRouteById failed')")
     && !code.includes("console.error('openRouteById failed', err)")

@@ -1310,9 +1310,9 @@
                 if (!isCurrentRouteLookup(token)) return;
                 if (data.route) {
                     openRoutePanel(data.route);
-                    if (data.route.destination) {
-                        setDestination(data.route.destination);
-                    }
+                    // The removed planner no longer needs a destination handoff.
+                    // Keep this successful predefined lookup selected until cleared
+                    // or superseded; its basic destination has no availability flags.
                     setHint('');
                 } else {
                     // No such route: the computed line was already removed when

@@ -38,4 +38,118 @@ check('guide disclosure is collapsed by default and downloads remain explicit',(
 check('sidebar owns scrolling and phone height uses the complete workspace',()=>{assert.match(css,/\.map-sidebar\s*\{[\s\S]*?overflow: auto/);assert.match(css,/\.map-sidebar__list\s*\{[^}]*overflow: visible/);assert.match(css,/@media \(max-width: 768px\)[\s\S]*?height: 100%/);assert.match(css,/is-short-viewport \.map-sidebar__header \{ position: relative/);});
 check('phone route actions hide the list and focus fallbacks use existing controls',()=>{assert.doesNotMatch(source,/mapSidebar\.classList\.add\('open'\)/);assert.match(source,/selectRoutePanelReturnTarget\(invoker, \[\s*mapClearRoute/);assert.match(manager,/setMobileSidebar\(false, \{ restoreFocus: false \}\)/);assert.match(manager,/byId\('offlineClearMapRoute'\)/);});
 check('layout resize keeps both renderer cameras and reduced motion is honored',()=>{assert.match(source,/maplibreMap\.resize\(\)/);assert.match(source,/leafletMap\.invalidateSize\(\{ pan: false \}\)/);assert.match(manager,/campusphere:map-layout[\s\S]*?map\.resize\(\)/);assert.match(css,/prefers-reduced-motion: reduce/);});
-console.log(`MAP-SIDEBAR-LAYOUT OK: ${checks}/${checks} checks passed (isolated fixtures).`);
+
+// Exercise the full successful handler, not only rendering and cancellation in isolation.
+function clientFunction(text, name) {
+  const start = text.indexOf('function ' + name + '(');
+  const end = text.indexOf('\n        }', start);
+  assert.ok(start >= 0 && end > start, 'Missing client function: ' + name);
+  return text.slice(text.slice(start - 6, start) === 'async ' ? start - 6 : start, end + 10);
+}
+function predefinedFixture(text = source, fetchImpl) {
+  let frame;
+  function node() {
+    const attributes = {}, classes = new Set();
+    return {
+      children: [], hidden: true, textContent: '',
+      append(...items) { this.children.push(...items); },
+      appendChild(item) { this.children.push(item); },
+      replaceChildren(...items) { this.children = items; },
+      set innerHTML(value) { this.children = []; },
+      setAttribute(key, value) { attributes[key] = value; },
+      removeAttribute(key) { delete attributes[key]; },
+      getAttribute(key) { return attributes[key] ?? null; },
+      classList: { add(key) { classes.add(key); }, remove(key) { classes.delete(key); } },
+      focus() { frame.document.activeElement = this; }
+    };
+  }
+  frame = {
+    AbortController, routeMode: 'vehicle', routeRequestToken: 0, routeAbortController: null,
+    destinationBuilding: null, currentBuildingId: null, routePanelInvoker: null,
+    hints: [], requests: [], cleared: 0, navigator: { onLine: true },
+    console: { error() {} },
+    document: { activeElement: null, createElement: node, querySelectorAll() { return []; } },
+    clearComputedPath() { frame.cleared++; },
+    rememberRoutePanelInvoker() { frame.routePanelInvoker = frame.invoker; },
+    selectRoutePanelReturnTarget(invoker) { return invoker; },
+    setHint(message) { frame.hints.push(message); },
+    selectedUnavailableLabel() { return 'Vehicle route unavailable'; },
+    escapeHtml(value) { return String(value).replaceAll('<', '&lt;'); },
+    bldgList: { querySelector() { return null; } },
+    WALKING_ORIGIN: { lat: 13.405710, lng: 123.374181 }, MAP_START_NODE: null,
+    mapStartMarker: null, mapStartMarkerElement: null, searchQuery: '', renderLocalList() {},
+    fetch(url, options) {
+      frame.requests.push({ url, options });
+      return fetchImpl ? fetchImpl(url, options) : Promise.resolve({ ok: true, json: async () => ({ route: fixtureRoute() }) });
+    }
+  };
+  for (const key of ['mapClearRoute', 'routePanelOverlay', 'routePanelClose', 'routePanelSteps',
+    'routePanelStepsWrap', 'routePanelLandmarks', 'routePanelLandmarkWrap', 'routePanelTime',
+    'routePanelEmpty', 'routePanelTitle', 'routePanelSubtitle', 'routePanelVrBtn', 'searchInput',
+    'mobileListToggle', 'invoker']) frame[key] = node();
+  for (const name of ['isRouteAvailable', 'isSelectedRouteAvailable', 'routeDestinationId', 'setDestination',
+    'beginRouteLookup', 'isCurrentRouteLookup', 'cancelRouteLookup', 'resetRoutePanelTransient',
+    'renderSavedRouteInstructions', 'showRoutePanelDialog', 'openRoutePanel', 'closeRoutePanel',
+    'setRouteMode', 'openRouteById']) vm.runInNewContext(clientFunction(text, name), frame);
+  frame.stepTexts = () => frame.routePanelSteps.children.map(row => row.children[1].textContent);
+  return frame;
+}
+function fixtureRoute(name = 'Fixture Building I', steps = ['First fixture step', 'Second fixture step']) {
+  return { id: 7, title: 'Guard House to ' + name, start_label: 'Guard House',
+    estimated_walk_time: '2-3 minutes', destination: { id: 900, name },
+    steps: steps.map((instruction, index) => ({ step_order: index + 1, instruction })), landmarks: [] };
+}
+async function checkAsync(name, run) { await run(); checks++; console.log('[PASS] ' + name); }
+async function predefinedRegressions() {
+  await checkAsync('complete predefined lookup retains steps for a basic destination without availability metadata', async () => {
+    const f = predefinedFixture(); await f.openRouteById(7);
+    assert.equal(f.stepTexts().join('|'), 'First fixture step|Second fixture step');
+    assert.equal(f.routePanelOverlay.hidden, false); assert.equal(f.mapClearRoute.hidden, false);
+    assert.equal(f.routePanelVrBtn.href, '/vr/routes/7');
+    assert.equal(f.routePanelTime.textContent, 'Walk time: 2-3 minutes');
+    assert.equal(f.document.activeElement, f.routePanelClose);
+    assert.equal(f.requests.length, 1); assert.equal(f.requests[0].url, '/api/routes/7');
+    f.closeRoutePanel(); assert.equal(f.document.activeElement, f.invoker);
+    f.cancelRouteLookup(); assert.equal(f.stepTexts().length, 0); assert.equal(f.mapClearRoute.hidden, true);
+  });
+  await checkAsync('rejects restoration of the obsolete planner handoff after predefined rendering', async () => {
+    const broken = source.replace('openRoutePanel(data.route);', 'openRoutePanel(data.route);\n                    setDestination(data.route.destination);');
+    assert.notEqual(broken, source);
+    await assert.rejects(async () => {
+      const f = predefinedFixture(broken); await f.openRouteById(7);
+      assert.equal(f.stepTexts().length, 2);
+    });
+  });
+  await checkAsync('empty predefined instructions retain the honest empty state and clear action', async () => {
+    const f = predefinedFixture(source, async () => ({ ok: true, json: async () => ({ route: fixtureRoute('Empty', []) }) }));
+    await f.openRouteById(7); assert.equal(f.stepTexts().length, 0);
+    assert.equal(f.routePanelEmpty.textContent, 'No instructions have been added for this route yet.');
+    assert.equal(f.mapClearRoute.hidden, false);
+  });
+  await checkAsync('unavailable predefined response never restores prior instructions', async () => {
+    const f = predefinedFixture(source, async () => ({ ok: false, status: 503 }));
+    f.openRoutePanel(fixtureRoute()); f.closeRoutePanel(); await f.openRouteById(7);
+    assert.equal(f.stepTexts().length, 0); assert.equal(f.routePanelOverlay.hidden, true);
+    assert.ok(f.hints.includes('Connect to refresh route data.'));
+  });
+  await checkAsync('late predefined response cannot replace the newer destination', async () => {
+    const pending = [], f = predefinedFixture(source, () => new Promise(resolve => pending.push(resolve)));
+    const old = f.openRouteById(7), latest = f.openRouteById(8);
+    assert.equal(f.requests[0].options.signal.aborted, true);
+    pending[1]({ ok: true, json: async () => ({ route: fixtureRoute('Fixture Building II', ['Only II']) }) }); await latest;
+    pending[0]({ ok: true, json: async () => ({ route: fixtureRoute() }) }); await old;
+    assert.equal(f.stepTexts().join('|'), 'Only II'); assert.ok(f.routePanelTitle.textContent.endsWith('Fixture Building II'));
+  });
+  for (const action of ['clear', 'mode']) await checkAsync(action + ' during a pending predefined request prevents stale popup content', async () => {
+    let resolve; const f = predefinedFixture(source, () => new Promise(done => { resolve = done; }));
+    const request = f.openRouteById(7);
+    if (action === 'mode') f.setRouteMode('walking'); else f.cancelRouteLookup();
+    assert.equal(f.requests[0].options.signal.aborted, true);
+    resolve({ ok: true, json: async () => ({ route: fixtureRoute() }) }); await request;
+    assert.equal(f.stepTexts().length, 0); assert.equal(f.routePanelOverlay.hidden, true);
+    assert.equal(f.mapClearRoute.hidden, true);
+  });
+}
+predefinedRegressions().then(() => {
+  console.log(`MAP-SIDEBAR-LAYOUT OK: ${checks}/${checks} checks passed (isolated fixtures).`);
+}).catch(error => { console.error('MAP-SIDEBAR-LAYOUT FAILED: ' + error.message); process.exitCode = 1; });

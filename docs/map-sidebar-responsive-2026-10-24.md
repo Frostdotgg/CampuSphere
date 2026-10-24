@@ -1,6 +1,29 @@
 # Responsive campus-map sidebar — October 24 staged release
 
-## Authorized staged release
+## Authorized corrective staged release
+
+The owner authorized two bounded corrections based on `441e0fe71d88cde502949459110da3610bbbb210`:
+preserve predefined Vehicle search instructions by removing the obsolete planner
+handoff, and permit protected same-origin basemap downloads using the browser's
+existing sign-in with redirects rejected. Destination validation, request abortion,
+generation guards, public basemap delivery before session middleware, integrity
+checks and atomic guide replacement remain. Cache v59 retains the exact 21 shell
+assets and the existing guide format. No credentials are read or embedded.
+
+The failed v58 staged acceptance and its reproduction remain dated evidence in
+the external `release-map-sidebar-20261024` receipt. The current task includes
+disposable Docker and isolated regression checks, one scoped corrective commit,
+a normal main push, and acceptance of the exact Ready / Staged build. Production
+promotion, shared campus-content writes, database/schema changes, dependencies,
+CSP and deployment-protection changes are excluded. No bypass token is created.
+
+Actual checks, canonical runtime identity, source/deployment identities, screenshots,
+guide-preservation evidence and limitations belong in the external
+`fix-map-sidebar-20261024` receipt. Authorization alone establishes none of those
+results. Preserve older records below as history. New sessions ground, report and
+wait for a focused owner task; normal-domain guide upgrades remain post-promotion.
+
+## Historical authorization — first v58 staged release
 
 The owner separately authorized publication of these 15 reviewed files through
 one scoped commit and a normal main push, followed by testing of the exact Ready,

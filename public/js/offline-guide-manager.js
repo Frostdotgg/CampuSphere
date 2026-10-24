@@ -375,7 +375,7 @@
           activeRecord.guide.basemap.sha256 === guide.basemap.sha256 &&
           activeRecord.basemap instanceof Blob ? activeRecord.basemap : null;
         var mapPromise = reusableMap ? Promise.resolve(reusableMap) :
-          fetch(guide.basemap.asset, { cache: 'no-store', credentials: 'omit', signal: signal }).then(function (response) {
+          fetch(guide.basemap.asset, { cache: 'no-store', credentials: 'same-origin', redirect: 'error', signal: signal }).then(function (response) {
             if (!response.ok || response.redirected) throw new Error('The campus map could not be downloaded.');
             return response.arrayBuffer();
           }).then(function (mapBytes) {

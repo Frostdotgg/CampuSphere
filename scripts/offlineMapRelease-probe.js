@@ -6,6 +6,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const service = require(path.join(ROOT, 'services', 'offlineMapReleaseService'));
@@ -66,6 +67,119 @@ function validManifest(keyPair) {
   };
   const signature = crypto.sign(null, Buffer.from(service.canonicalSigningPayload(unsigned), 'utf8'), keyPair.privateKey).toString('base64');
   return Object.assign(unsigned, { signature: { algorithm: 'Ed25519', value: signature } });
+}
+
+function clientFunction(source, name) {
+  const start = source.indexOf('function ' + name + '(');
+  const end = source.indexOf('\n  }', start);
+  assert.ok(start >= 0 && end > start, 'Missing offline client function: ' + name);
+  return source.slice(start, end + 4);
+}
+
+// Run the real download promise chain, validation and hashes. Only transport,
+// presentation and the atomic IndexedDB transaction boundary are disposable fakes.
+function downloadFixture(source, scenario = {}) {
+  const bytes = Buffer.from('PMTiles disposable download fixture');
+  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  const guide = {
+    instructionFormat: 1, origin: { key: 'main-gate' }, buildings: [], routes: [], exitRoutes: [],
+    walkingRoutes: [], walkingOrigin: { key: 'walking-guard-house', lat: 13.405710, lng: 123.374181 },
+    basemap: { asset: scenario.asset || '/maps/cspc-campus-' + sha256 + '.pmtiles', bytes: bytes.length, sha256 }
+  };
+  const payload = { success: true, schema: 'campusphere.offline-guide/1', generatedAt: '2026-10-24T00:00:00Z',
+    guide, fingerprint: crypto.createHash('sha256').update(JSON.stringify(guide)).digest('hex') };
+  if (scenario.badFingerprint) payload.fingerprint = '0'.repeat(64);
+  const previous = { key: 'active', fingerprint: 'f'.repeat(64), guide: { origin: { key: 'main-gate' },
+    buildings: [], routes: [], basemap: { sha256: 'e'.repeat(64) } }, basemap: new Blob(['previous guide map']) };
+  const frame = {
+    Blob, AbortController, TextEncoder, Uint8Array, GUIDE_SCHEMA: payload.schema,
+    MAX_BASEMAP_BYTES: 5 * 1024 * 1024, ACTIVE_KEY: 'active', logoutVersion: 0,
+    activeRecord: previous, downloadController: null, navigator: { onLine: true },
+    window: { AbortController, crypto: crypto.webcrypto }, requests: [], writes: [], states: [],
+    setDownloadBusy() {}, updatePackageSummary() {}, byId() { return null; },
+    setDownloadState(message, kind) { frame.states.push({ message, kind }); },
+    async writeActive(record) {
+      if (scenario.writeFailure) throw new Error('Disposable transaction aborted.');
+      frame.writes.push(record); return record;
+    },
+    async fetch(url, options) {
+      frame.requests.push({ url, options });
+      assert.strictEqual(options.cache, 'no-store');
+      if (url === '/api/offline-guide') {
+        if (scenario.guideFailure) throw new Error('Disposable guide read failed.');
+        return { ok: true, status: 200, json: async () => payload };
+      }
+      assert.strictEqual(url, guide.basemap.asset);
+      // A protected same-origin asset requires the existing browser sign-in.
+      assert.strictEqual(options.credentials, 'same-origin');
+      assert.strictEqual(options.redirect, 'error');
+      if (scenario.mapFailure) throw new Error('Disposable asset read aborted.');
+      if (scenario.logoutDuringMap) frame.logoutVersion++;
+      let mapBytes = Buffer.from(bytes);
+      if (scenario.badSize) mapBytes = mapBytes.subarray(1);
+      if (scenario.badHash) mapBytes[mapBytes.length - 1] ^= 1;
+      return { ok: true, status: 200, redirected: !!scenario.redirected,
+        arrayBuffer: async () => Uint8Array.from(mapBytes).buffer };
+    }
+  };
+  for (const name of ['bytesToHex', 'sha256Buffer', 'sha256Text', 'isHexHash', 'validateGuideEnvelope', 'downloadGuide']) {
+    vm.runInNewContext(clientFunction(source, name), frame);
+  }
+  return { frame, previous, payload };
+}
+
+async function verifyClientDownloads() {
+  const source = fs.readFileSync(path.join(ROOT, 'public', 'js', 'offline-guide-manager.js'), 'utf8');
+  await checkAsync('protected same-origin download verifies content before one atomic guide replacement', async () => {
+    const { frame, payload } = downloadFixture(source);
+    assert.strictEqual(await frame.downloadGuide(), true);
+    assert.strictEqual(frame.writes.length, 1);
+    assert.strictEqual(frame.activeRecord.fingerprint, payload.fingerprint);
+    assert.strictEqual(frame.requests.length, 2);
+    assert.ok(frame.requests.every(request => request.options.signal instanceof AbortSignal));
+    assert.strictEqual(frame.requests[1].url, payload.guide.basemap.asset);
+  });
+  for (const [name, before, after] of [
+    ['anonymous protected-map request', "credentials: 'same-origin', redirect: 'error'", "credentials: 'omit', redirect: 'error'"],
+    ['redirect-following map request', "redirect: 'error'", "redirect: 'follow'"]
+  ]) await checkAsync('rejects regression to ' + name, async () => {
+    const broken = source.replace(before, after); assert.notStrictEqual(broken, source);
+    const { frame } = downloadFixture(broken);
+    assert.strictEqual(await frame.downloadGuide(), false);
+    assert.strictEqual(frame.writes.length, 0);
+  });
+  for (const [name, scenario] of [
+    ['cross-origin asset', { asset: 'https://other.invalid/map.pmtiles' }],
+    ['invalid asset path', { asset: '/maps/../private.pmtiles' }],
+    ['guide fingerprint mismatch', { badFingerprint: true }],
+    ['redirected asset', { redirected: true }], ['incorrect byte count', { badSize: true }],
+    ['corrupted map hash', { badHash: true }], ['failed update request', { guideFailure: true }],
+    ['interrupted map download', { mapFailure: true }], ['aborted storage transaction', { writeFailure: true }],
+    ['logout during download', { logoutDuringMap: true }]
+  ]) await checkAsync(name + ' cannot replace the previous downloaded guide', async () => {
+    const { frame, previous } = downloadFixture(source, scenario);
+    assert.strictEqual(await frame.downloadGuide(), false);
+    assert.strictEqual(frame.activeRecord, previous); assert.strictEqual(frame.writes.length, 0);
+    if (scenario.asset || scenario.badFingerprint) assert.strictEqual(frame.requests.length, 1);
+  });
+  await checkAsync('public basemap controller ignores incoming cookies and sets no session cookie', async () => {
+    const calls = [], headers = {}, response = { code: null, set(values) { Object.assign(headers, values); return this; },
+      status(code) { this.code = code; return this; }, send(bytes) { this.bytes = bytes; return this; } };
+    const digest = 'a'.repeat(64), fixture = { exports: {}, require(name) {
+      if (name === '../services/offlineMapReleaseService') return {
+        guideAssetPath: service.guideAssetPath, OfflineMapReleaseError: service.OfflineMapReleaseError,
+        async downloadCurrentAsset(...args) { calls.push(args); return { release: { asset: { name: 'cspc-campus-' + digest + '.pmtiles', sha256: digest } }, bytes: Buffer.from('fixture') }; }
+      };
+      if (name === '../utils/serverLog') return { logServerError() { throw new Error('Unexpected public map error'); } };
+      throw new Error('Unexpected controller dependency');
+    } };
+    vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'controllers', 'offlineMapController.js'), 'utf8'), fixture);
+    await fixture.exports.download({ params: { sha256: digest }, headers: { cookie: 'disposable-cookie-only' } }, response);
+    assert.strictEqual(response.code, 200); assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].length, 1); assert.strictEqual(calls[0][0], digest);
+    assert.ok(!Object.keys(headers).some(name => name.toLowerCase() === 'set-cookie'));
+    assert.strictEqual(headers['Cache-Control'], 'public, max-age=31536000, immutable');
+  });
 }
 
 async function main() {
@@ -274,6 +388,7 @@ async function main() {
     assert.ok(source.includes('scripts/publishOfflineMapRelease.js'));
   });
 
+  await verifyClientDownloads();
   if (failures.length) {
     console.error(`OFFLINE-MAP-RELEASE-PROBE FAILED: ${failures.length}/${checks} checks failed.`);
     process.exitCode = 1;
