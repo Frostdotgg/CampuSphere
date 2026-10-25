@@ -1,5 +1,44 @@
 # Responsive campus-map sidebar — October 24 staged release
 
+## Authorized mobile route-search correction and conditional Production release — October 25
+
+The owner authorized a focused correction based on
+`7b462628c18ca0ece8cdac1a56a4e67369a16003`, followed by Docker validation,
+one scoped commit and normal main push, acceptance of the exact Ready / Staged
+build, and only then promotion of that same build and normal-domain verification.
+Any failed or incomplete required staged check blocks promotion. Recheck GitHub
+rules, Vercel settings, disabled automatic Production domain assignment and the
+current live deployment before publication and promotion. Do not use Undo Rollback
+or change deployment settings.
+
+The prior Production attempt failed at 390×844: selecting a predefined route
+left the full-height mobile list open behind directions and over the map controls
+after dismissal. Saved instructions displayed correctly. The owner-authorized
+rollback restored source `74509f0`, deployment
+`dpl_EPQZWPKLHJShiCGaVSigqaRGKHRJ`; fresh checks must reverify that assignment.
+Keep the failed `production-sidebar-20261025` receipt and earlier staged evidence
+as dated history. The selected predefined lookup did not establish a drawn line.
+
+The shared online dialog opener closes the mobile sheet only after a current
+response opens directions. Closed/inert results cannot receive restored focus;
+visible Clear Route and Building List remain fallbacks. Manual View Map and desktop
+focus behavior stay. Errors, aborted requests and superseded responses cannot
+close a reopened list or resurrect stale directions. The regression probe models
+the sheet and real focus-return predicates, with independent rejection fixtures.
+
+Only online inline behavior changes at runtime. Cache v60, the exact 21 shell
+assets, downloaded-guide format, routing APIs, geometry, metrics, VR links and
+shared content remain unchanged. No API, schema, dependency or data edit is included.
+Use only the labelled disposable Docker fixture and matching locked dependencies.
+Confirm a verified previous deployment is available for immediate rollback on a
+confirmed critical release regression; after rollback, verify recovery and stop.
+
+Fresh counts, canonical runtime fingerprint, exact source/deployment identities,
+screenshots, guide and browser-state preservation, staged/live watch times and
+limitations belong in the external `mobile-route-sheet-20261025` receipt. These
+instructions establish authorization, not completion. New sessions ground, report
+and wait for a focused owner task.
+
 ## Authorized offline popup-layer corrective staged release
 
 The owner authorized a focused correction based on

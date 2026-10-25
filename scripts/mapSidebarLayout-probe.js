@@ -83,12 +83,13 @@ function clientFunction(text, name) {
   assert.ok(start >= 0 && end > start, 'Missing client function: ' + name);
   return text.slice(text.slice(start - 6, start) === 'async ' ? start - 6 : start, end + 10);
 }
-function predefinedFixture(text = source, fetchImpl) {
+function predefinedFixture(text = source, fetchImpl, mobile = false) {
   let frame;
   function node() {
     const attributes = {}, classes = new Set();
     return {
-      children: [], hidden: true, textContent: '',
+      children: [], hidden: false, textContent: '', isConnected: true,
+      get ownerDocument() { return frame.document; },
       append(...items) { this.children.push(...items); },
       appendChild(item) { this.children.push(item); },
       replaceChildren(...items) { this.children = items; },
@@ -96,19 +97,35 @@ function predefinedFixture(text = source, fetchImpl) {
       setAttribute(key, value) { attributes[key] = value; },
       removeAttribute(key) { delete attributes[key]; },
       getAttribute(key) { return attributes[key] ?? null; },
-      classList: { add(key) { classes.add(key); }, remove(key) { classes.delete(key); } },
+      toggleAttribute(key, enabled) { if (enabled) attributes[key] = ''; else delete attributes[key]; },
+      classList: {
+        add(key) { classes.add(key); }, remove(key) { classes.delete(key); },
+        contains(key) { return classes.has(key); },
+        toggle(key, enabled) { if (enabled) classes.add(key); else classes.delete(key); }
+      },
+      contains(other) { for (let n = other; n; n = n.parentElement) if (n === this) return true; return false; },
+      closest(selector) {
+        for (let n = this; n; n = n.parentElement) {
+          if (selector.includes('[hidden]') && n.hidden) return n;
+          if (selector.includes('[aria-hidden="true"]') && n.getAttribute('aria-hidden') === 'true') return n;
+          if (selector.includes('[inert]') && n.getAttribute('inert') !== null) return n;
+          if (selector.includes('.map-panel:not(.visible)') && n.classList.contains('map-panel') && !n.classList.contains('visible')) return n;
+        }
+        return null;
+      },
+      getClientRects() { return this.hidden ? [] : [this.getBoundingClientRect()]; },
+      getBoundingClientRect() { return { left: 10, top: 10, right: 110, bottom: 54, width: 100, height: 44 }; },
       focus() { frame.document.activeElement = this; }
     };
   }
   frame = {
+    mobile, isMobile() { return frame.mobile; },
     AbortController, routeMode: 'vehicle', routeRequestToken: 0, routeAbortController: null,
     destinationBuilding: null, currentBuildingId: null, routePanelInvoker: null,
     hints: [], requests: [], cleared: 0, navigator: { onLine: true },
     console: { error() {} },
     document: { activeElement: null, createElement: node, querySelectorAll() { return []; } },
     clearComputedPath() { frame.cleared++; },
-    rememberRoutePanelInvoker() { frame.routePanelInvoker = frame.invoker; },
-    selectRoutePanelReturnTarget(invoker) { return invoker; },
     setHint(message) { frame.hints.push(message); },
     selectedUnavailableLabel() { return 'Vehicle route unavailable'; },
     escapeHtml(value) { return String(value).replaceAll('<', '&lt;'); },
@@ -123,11 +140,27 @@ function predefinedFixture(text = source, fetchImpl) {
   for (const key of ['mapClearRoute', 'routePanelOverlay', 'routePanelClose', 'routePanelSteps',
     'routePanelStepsWrap', 'routePanelLandmarks', 'routePanelLandmarkWrap', 'routePanelTime',
     'routePanelEmpty', 'routePanelTitle', 'routePanelSubtitle', 'routePanelVrBtn', 'searchInput',
-    'mobileListToggle', 'invoker']) frame[key] = node();
+    'mobileListToggle', 'mapSidebar', 'invoker']) frame[key] = node();
+  frame.document.body = node();
+  frame.document.documentElement = node();
+  frame.document.defaultView = {
+    innerWidth: mobile ? 390 : 1366, innerHeight: mobile ? 844 : 768,
+    getComputedStyle(el) { return { display: el.hidden ? 'none' : 'block', visibility: 'visible' }; }
+  };
+  frame.invoker.parentElement = frame.mapSidebar;
+  frame.searchInput.parentElement = frame.mapSidebar;
+  frame.document.activeElement = frame.invoker;
+  frame.routePanelOverlay.hidden = true;
+  frame.mapClearRoute.hidden = true;
+  frame.mobileListToggle.hidden = !mobile;
+  frame.mapSidebar.classList.add('open');
   for (const name of ['isRouteAvailable', 'isSelectedRouteAvailable', 'routeDestinationId', 'setDestination',
+    'rememberRoutePanelInvoker', 'isUsableRoutePanelReturnTarget', 'selectRoutePanelReturnTarget',
+    'syncSheetState', 'closeMapSheet',
     'beginRouteLookup', 'isCurrentRouteLookup', 'cancelRouteLookup', 'resetRoutePanelTransient',
     'renderSavedRouteInstructions', 'showRoutePanelDialog', 'openRoutePanel', 'closeRoutePanel',
     'setRouteMode', 'openRouteById']) vm.runInNewContext(clientFunction(text, name), frame);
+  frame.syncSheetState();
   frame.stepTexts = () => frame.routePanelSteps.children.map(row => row.children[1].textContent);
   return frame;
 }
@@ -138,6 +171,64 @@ function fixtureRoute(name = 'Fixture Building I', steps = ['First fixture step'
 }
 async function checkAsync(name, run) { await run(); checks++; console.log('[PASS] ' + name); }
 async function predefinedRegressions() {
+  function assertMobileRoute(f) {
+    assert.equal(f.mapSidebar.classList.contains('open'), false, 'Directions must close the mobile list');
+    assert.equal(f.document.body.classList.contains('map-sheet-open'), false);
+    assert.equal(f.mapSidebar.getAttribute('aria-hidden'), 'true');
+    assert.notEqual(f.mapSidebar.getAttribute('inert'), null);
+    assert.equal(f.document.activeElement, f.routePanelClose);
+    const generation = f.routeRequestToken, cleared = f.cleared;
+    f.closeRoutePanel();
+    assert.equal(f.mapSidebar.classList.contains('open'), false);
+    assert.equal(f.document.activeElement, f.mapClearRoute, 'Return focus must skip the hidden search result');
+    assert.equal(f.routeRequestToken, generation);
+    assert.equal(f.cleared, cleared, 'Closing directions must not clear routing');
+  }
+  await checkAsync('mobile complete search-to-popup-to-close hides the list and restores visible map focus', async () => {
+    const f = predefinedFixture(source, undefined, true); await f.openRouteById(7);
+    assertMobileRoute(f);
+    assert.equal(f.stepTexts().join('|'), 'First fixture step|Second fixture step');
+    assert.equal(f.requests.length, 1); assert.equal(f.requests[0].url, '/api/routes/7');
+    f.mapClearRoute.hidden = true; f.closeRoutePanel();
+    assert.equal(f.document.activeElement, f.mobileListToggle);
+  });
+  await checkAsync('rejects removing mobile sheet closure from the shared dialog opener', async () => {
+    const broken = source.replace('if (isMobile()) closeMapSheet({ restoreFocus: false });', '');
+    assert.notEqual(broken, source);
+    await assert.rejects(async () => { const f = predefinedFixture(broken, undefined, true); await f.openRouteById(7); assertMobileRoute(f); });
+  });
+  await checkAsync('rejects returning focus into the hidden mobile result', async () => {
+    const broken = source.replace('if (isUsableRoutePanelReturnTarget(candidate)) return candidate;', 'if (candidate) return candidate;');
+    assert.notEqual(broken, source);
+    await assert.rejects(async () => { const f = predefinedFixture(broken, undefined, true); await f.openRouteById(7); assertMobileRoute(f); });
+  });
+  await checkAsync('manual View Map still returns focus and desktop directions retain the result invoker', async () => {
+    const phone = predefinedFixture(source, undefined, true); phone.closeMapSheet();
+    assert.equal(phone.document.activeElement, phone.mobileListToggle);
+    assert.equal(phone.mapSidebar.classList.contains('open'), false);
+    const desktop = predefinedFixture(); await desktop.openRouteById(7);
+    assert.equal(desktop.mapSidebar.classList.contains('open'), true);
+    desktop.closeRoutePanel(); assert.equal(desktop.document.activeElement, desktop.invoker);
+  });
+  await checkAsync('empty mobile directions close the list but failed responses leave it usable', async () => {
+    const empty = predefinedFixture(source, async () => ({ ok: true, json: async () => ({ route: fixtureRoute('Empty', []) }) }), true);
+    await empty.openRouteById(7); assertMobileRoute(empty);
+    assert.equal(empty.routePanelEmpty.textContent, 'No instructions have been added for this route yet.');
+    const failed = predefinedFixture(source, async () => ({ ok: false, status: 503 }), true);
+    await failed.openRouteById(7); assert.equal(failed.mapSidebar.classList.contains('open'), true);
+    assert.equal(failed.mapSidebar.getAttribute('inert'), null); assert.equal(failed.routePanelOverlay.hidden, true);
+    assert.ok(failed.hints.includes('Connect to refresh route data.'));
+  });
+  await checkAsync('superseded mobile response cannot close a reopened list or replace newer directions', async () => {
+    const pending = [], f = predefinedFixture(source, () => new Promise(resolve => pending.push(resolve)), true);
+    const old = f.openRouteById(7), latest = f.openRouteById(8);
+    assert.equal(f.requests.length, 2); assert.equal(f.requests[0].options.signal.aborted, true);
+    pending[1]({ ok: true, json: async () => ({ route: fixtureRoute('Fixture Building II', ['Only II']) }) }); await latest;
+    assertMobileRoute(f); f.mapSidebar.classList.add('open'); f.syncSheetState();
+    pending[0]({ ok: true, json: async () => ({ route: fixtureRoute() }) }); await old;
+    assert.equal(f.mapSidebar.classList.contains('open'), true); assert.equal(f.stepTexts().join('|'), 'Only II');
+    assert.equal(f.routePanelOverlay.hidden, true);
+  });
   await checkAsync('complete predefined lookup retains steps for a basic destination without availability metadata', async () => {
     const f = predefinedFixture(); await f.openRouteById(7);
     assert.equal(f.stepTexts().join('|'), 'First fixture step|Second fixture step');
@@ -178,13 +269,14 @@ async function predefinedRegressions() {
     assert.equal(f.stepTexts().join('|'), 'Only II'); assert.ok(f.routePanelTitle.textContent.endsWith('Fixture Building II'));
   });
   for (const action of ['clear', 'mode']) await checkAsync(action + ' during a pending predefined request prevents stale popup content', async () => {
-    let resolve; const f = predefinedFixture(source, () => new Promise(done => { resolve = done; }));
+    let resolve; const f = predefinedFixture(source, () => new Promise(done => { resolve = done; }), true);
     const request = f.openRouteById(7);
     if (action === 'mode') f.setRouteMode('walking'); else f.cancelRouteLookup();
     assert.equal(f.requests[0].options.signal.aborted, true);
     resolve({ ok: true, json: async () => ({ route: fixtureRoute() }) }); await request;
     assert.equal(f.stepTexts().length, 0); assert.equal(f.routePanelOverlay.hidden, true);
     assert.equal(f.mapClearRoute.hidden, true);
+    assert.equal(f.mapSidebar.classList.contains('open'), true);
   });
 }
 predefinedRegressions().then(() => {

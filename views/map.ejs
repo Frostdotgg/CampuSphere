@@ -1413,6 +1413,7 @@
         }
 
         function showRoutePanelDialog() {
+            if (isMobile()) closeMapSheet({ restoreFocus: false });
             routePanelOverlay.hidden = false;
             routePanelOverlay.setAttribute('aria-hidden', 'false');
             routePanelOverlay.classList.add('open');
@@ -1997,9 +1998,11 @@
             if (mapSidebar.classList.contains('open')) mapSidebarClose.focus({ preventScroll: true });
         });
 
-        function closeMapSheet() {
+        function closeMapSheet(options) {
             mapSidebar.classList.remove('open');
-            if (mapSidebar.contains(document.activeElement)) mobileListToggle.focus({ preventScroll: true });
+            if ((!options || options.restoreFocus !== false) && mapSidebar.contains(document.activeElement)) {
+                mobileListToggle.focus({ preventScroll: true });
+            }
             syncSheetState();
         }
         mapSidebarClose.addEventListener('click', closeMapSheet);
