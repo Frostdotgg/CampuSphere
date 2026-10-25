@@ -15975,8 +15975,8 @@ function runSwPrecacheGate() {
   ok('sw.js precache drops stale /css/styles.css?v=7', !/\/css\/styles\.css\?v=7/.test(precache));
   ok('sw.js precache has exactly one /css/styles.css entry', stylesheetEntries.length === 1);
   const canonicalStylesheet = stylesheetEntries[0] || '';
-  ok('sw.js precache stylesheet is canonical /css/styles.css?v=13',
-    canonicalStylesheet === '/css/styles.css?v=13');
+  ok('sw.js precache stylesheet is canonical /css/styles.css?v=14',
+    canonicalStylesheet === '/css/styles.css?v=14');
 
   // No EJS view may reference the stale ?v=2 stylesheet, and every view that
   // references the versioned shared stylesheet must match the precache key.
@@ -17365,5 +17365,6 @@ module.exports = {
   reusablePromptIsCurrent,
   runPublicEventsDateOrderingGate,
   runDocsCurrentGate,
+  runSwPrecacheGate,
   runSchedulingRetirementDocsGate,
 };

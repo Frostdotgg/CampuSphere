@@ -81,13 +81,13 @@ async function run(){
  // The legacy main-admin table must not throw or hide another panel's rows.
  let changeHandler;
  require('vm').runInNewContext(fs.readFileSync(path.join(ROOT,'public/js/news-department-filter.js'),'utf8'),{
-  document:{addEventListener:(event,handler)=>{assert.equal(event,'change');changeHandler=handler;}}
+  document:{addEventListener:(event,handler)=>{assert.ok(['change','toggle'].includes(event));if(event==='change')changeHandler=handler;}}
  });
  for(const kind of ['.news-item','tr']){
-  const rows=[{hidden:false},{hidden:false}],empty={hidden:true};
+  const rows=[{hidden:false,querySelectorAll:()=>[]},{hidden:false,querySelectorAll:()=>[]}],empty={hidden:true};
   const labels=['ccs','cea'].map((department,i)=>({dataset:{department},closest:selector=>selector.split(',').includes(kind)?rows[i]:null}));
   labels.push({dataset:{department:'ccs'},closest:()=>null});
-  const panel={querySelectorAll:()=>labels,querySelector:()=>empty};
+  const panel={querySelectorAll:()=>labels,querySelector:selector=>selector==='[data-news-department-empty]'?empty:null};
   const select={value:'ccs',matches:()=>true,closest:()=>panel};
   changeHandler({target:select});
   check('browser department filter '+kind+' selects only matching rows',()=>assert.deepEqual(rows.map(r=>r.hidden),[false,true]));

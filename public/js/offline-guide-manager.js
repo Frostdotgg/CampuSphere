@@ -11,6 +11,7 @@
   var LOGOUT_STORAGE_KEY = 'campusphere-offline-guide-logout';
   var THEME_STORAGE_KEY = 'campussphere-theme';
   var MOBILE_MAP_MEDIA = '(max-width: 768px)';
+  var COMPACT_NAV_MEDIA = '(max-width: 1400px)';
   var PLACEHOLDER_IMAGE = '/img/Camarines-sur-polytechnic-colleges.png';
   var OFFLINE_ORIGIN_MARKER_LABEL = 'Guard House';
   // Direction-specific route colors are semantic UI state. The written route
@@ -1323,6 +1324,59 @@
     });
   }
 
+  function bindOfflineNavigation() {
+    var toggle = byId('offlineNavToggle');
+    var tabs = byId('offlineDashTabs');
+    if (!toggle || !tabs || toggle.getAttribute('data-cs-nav-owned') === '1') return;
+    toggle.setAttribute('data-cs-nav-owned', '1');
+    var open = false;
+    function setOpen(value) {
+      open = value === true;
+      tabs.classList.toggle('is-open', open);
+      toggle.classList.toggle('active', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    }
+    function visible(element) {
+      return !!element && (!element.getClientRects || element.getClientRects().length > 0);
+    }
+    function reset() {
+      var active = document.activeElement;
+      var ownedFocus = active && (active === toggle || tabs.contains(active));
+      setOpen(false);
+      if (!ownedFocus || visible(active)) return;
+      var current = tabs.querySelector('[aria-current="page"]');
+      var brand = document.querySelector('#offlineNav .dash-nav__brand');
+      var target = [toggle, current, brand].filter(visible)[0];
+      if (target) target.focus();
+    }
+    setOpen(false);
+    toggle.addEventListener('click', function () { setOpen(!open); });
+    tabs.addEventListener('click', function (event) {
+      var target = event.target;
+      while (target && target !== tabs) {
+        if (target.classList && target.classList.contains('dash-nav__tab')) {
+          setOpen(false);
+          return;
+        }
+        target = target.parentNode;
+      }
+    }, true);
+    document.addEventListener('pointerdown', function (event) {
+      if (open && !toggle.contains(event.target) && !tabs.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (!open || event.key !== 'Escape') return;
+      event.preventDefault();
+      setOpen(false);
+      if (visible(toggle)) toggle.focus();
+    });
+    var media = typeof window.matchMedia === 'function' ? window.matchMedia(COMPACT_NAV_MEDIA) : null;
+    if (media && typeof media.addEventListener === 'function') media.addEventListener('change', reset);
+    else if (media && typeof media.addListener === 'function') media.addListener(reset);
+    window.addEventListener('resize', reset);
+  }
+
   function bindUi() {
     document.querySelectorAll('[data-offline-guide-download]').forEach(function (download) {
       download.addEventListener('click', downloadGuide);
@@ -1407,13 +1461,7 @@
       if (control) control.addEventListener('click', function () { setMobileSidebar(false, { restoreFocus: true }); });
     });
 
-    var navToggle = byId('offlineNavToggle');
-    var navTabs = byId('offlineDashTabs');
-    if (navToggle && navTabs) navToggle.addEventListener('click', function () {
-      var open = navTabs.classList.toggle('is-open');
-      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      navToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-    });
+    bindOfflineNavigation();
 
     var theme = byId('offlineThemeToggle');
     if (theme) {
@@ -1427,6 +1475,7 @@
     }
 
     document.addEventListener('keydown', function (event) {
+      if (event.defaultPrevented) return;
       if (event.key === 'Escape') {
         var routePanel = byId('offlineRouteSummary');
         if (routePanel && !routePanel.hidden) {

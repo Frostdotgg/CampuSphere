@@ -3,6 +3,7 @@
 
 <head>
   <%- include('partials/head') %>
+    <link rel="stylesheet" href="/css/dashboard-news.css?v=1" />
     <!-- Leaflet 1.9.4 CSS & JS — both self-hosted (M12.P1-R6). leaflet.css
          resolves its control/marker images from /vendor/leaflet/images/. -->
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
@@ -520,58 +521,7 @@
 
 
     <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-shared-news">
-
-
-    <div class="panel-card">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">News & Announcements</h3></div>
-
-
-      <div class="panel-card__body">
-
-
-        <%% if (news.length === 0) { %%>
-
-
-          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
-
-
-        <%% } %%>
-
-
-        <div style="max-width:100%;margin-bottom:1rem;"><%- include('partials/department-select',{selectId:'news-department-1',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:'data-news-department-filter'}) %><p data-news-department-empty role="status" hidden>No announcements match this department.</p></div>
-        <%% for(var i=0; i<news.length; i++) { %%>
-
-
-          <div class="news-item">
-
-
-            <span class="news-item__category"><%%= news[i].category %%></span>
-            <span data-news-department-label data-department="<%%= news[i].department_code %%>" style="display:block;overflow-wrap:anywhere;"><%%= news[i].department_label %%></span>
-
-
-            <div class="news-item__title"><%%= news[i].title %%></div>
-
-
-            <div class="news-item__date"><%%= news[i].date %%></div>
-
-
-            <p class="news-item__excerpt"><%%= news[i].excerpt %%></p>
-
-
-          </div>
-
-
-        <%% } %%>
-
-
-      </div>
-
-
-    </div>
-
-
+    <%- include('partials/dashboard-announcements', { filterId: 'news-department-1' }) %>
   </script>
 
 
@@ -1002,58 +952,7 @@
 
 
     <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-instructor-announcements">
-
-
-    <div class="panel-card" style="margin-bottom:var(--space-xl);">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">News &amp; Announcements</h3></div>
-
-
-      <div class="panel-card__body">
-
-
-        <%% if (news.length === 0) { %%>
-
-
-          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
-
-
-        <%% } %%>
-
-
-        <div style="max-width:100%;margin-bottom:1rem;"><%- include('partials/department-select',{selectId:'news-department-2',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:'data-news-department-filter'}) %><p data-news-department-empty role="status" hidden>No announcements match this department.</p></div>
-        <%% for(var i=0; i<news.length; i++) { %%>
-
-
-          <div class="news-item">
-
-
-            <span class="news-item__category"><%%= news[i].category %%></span>
-            <span data-news-department-label data-department="<%%= news[i].department_code %%>" style="display:block;overflow-wrap:anywhere;"><%%= news[i].department_label %%></span>
-
-
-            <div class="news-item__title"><%%= news[i].title %%></div>
-
-
-            <div class="news-item__date"><%%= news[i].date %%></div>
-
-
-            <p class="news-item__excerpt"><%%= news[i].excerpt %%></p>
-
-
-          </div>
-
-
-        <%% } %%>
-
-
-      </div>
-
-
-    </div>
-
-
+    <%- include('partials/dashboard-announcements', { filterId: 'news-department-2' }) %>
   </script>
 
 
@@ -1433,58 +1332,7 @@
 
 
     <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-news-events">
-
-
-    <div class="panel-card">
-
-
-      <div class="panel-card__header"><h3 class="panel-card__title">News & Announcements</h3></div>
-
-
-      <div class="panel-card__body">
-
-
-        <%% if (news.length === 0) { %%>
-
-
-          <p style="color:var(--gray-500);font-size:0.88rem;margin:0;">No announcements at this time.</p>
-
-
-        <%% } %%>
-
-
-        <div style="max-width:100%;margin-bottom:1rem;"><%- include('partials/department-select',{selectId:'news-department-4',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:'data-news-department-filter'}) %><p data-news-department-empty role="status" hidden>No announcements match this department.</p></div>
-        <%% for(var i=0; i<news.length; i++) { %%>
-
-
-          <div class="news-item">
-
-
-            <span class="news-item__category"><%%= news[i].category %%></span>
-            <span data-news-department-label data-department="<%%= news[i].department_code %%>" style="display:block;overflow-wrap:anywhere;"><%%= news[i].department_label %%></span>
-
-
-            <div class="news-item__title"><%%= news[i].title %%></div>
-
-
-            <div class="news-item__date"><%%= news[i].date %%></div>
-
-
-            <p class="news-item__excerpt"><%%= news[i].excerpt %%></p>
-
-
-          </div>
-
-
-        <%% } %%>
-
-
-      </div>
-
-
-    </div>
-
-
+    <%- include('partials/dashboard-announcements', { filterId: 'news-department-4' }) %>
   </script>
 
 
@@ -1605,15 +1453,24 @@
       // Server-filtered announcements are authoritative; an empty result must
       // NOT fall back to static mock news (Milestone 4, Phase 2 Section 5).
       if (Array.isArray(dbNews)) {
-        CampuSphereData.news = dbNews.map(n => ({
+        CampuSphereData.news = dbNews.map(n => {
+          const content = typeof n.content === 'string' ? n.content : '';
+          const excerpt = typeof n.excerpt === 'string' ? n.excerpt : '';
+          const bodyText = content.trim() ? content : excerpt;
+          return {
           id: n.id,
           title: n.title,
           category: n.category,
           department_code: n.department_code || '',
           department_label: <%- safeJson((typeof departmentOptions !== 'undefined'?departmentOptions:[])) %>.find(d=>d.code===n.department_code)?.label || '',
           date: new Date(n.published_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-          excerpt: n.excerpt
-        }));
+          excerpt: n.excerpt,
+          content: content,
+          bodyText: bodyText,
+          preview: excerpt.trim() ? excerpt : bodyText,
+          canExpand: Boolean(content.trim() && content.trim() !== excerpt.trim())
+          };
+        });
       }
 
       // Sanitize any DB-derived profile image URL so a hostile stored value

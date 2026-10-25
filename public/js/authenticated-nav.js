@@ -22,7 +22,7 @@
      - Selecting any .dash-nav__tab (including mobile Edit Profile / Logout)
        closes the menu; the listener runs in the CAPTURE phase so a target
        handler's stopPropagation cannot skip the shared cleanup.
-     - A change of matchMedia('(max-width: 768px)') resets to closed, so
+     - A change of matchMedia('(max-width: 1400px)') resets to closed, so
        desktop<->mobile transitions never keep stale open state.
      - Never calls preventDefault or stopPropagation; guards missing DOM
        nodes without throwing; creates NO browser global. The CommonJS-only
@@ -96,16 +96,30 @@
             }
         }, true);
 
-        // Responsive transitions across the 768px boundary reset to closed.
+        function visible(control) {
+            return !!control && (!control.getClientRects || control.getClientRects().length > 0);
+        }
+
+        // A resize/zoom must not leave focus inside a newly hidden menu.
         var win = doc.defaultView;
         if (win && typeof win.matchMedia === 'function') {
-            var mq = win.matchMedia('(max-width: 768px)');
-            var onChange = function () { setOpen(false); };
+            var mq = win.matchMedia('(max-width: 1400px)');
+            var onChange = function () {
+                var active = doc.activeElement;
+                var ownedFocus = active && (active === hamburger || tabs.contains(active));
+                setOpen(false);
+                if (!ownedFocus || visible(active)) return;
+                var current = tabs.querySelector && tabs.querySelector('.dash-nav__tab--active');
+                var brand = doc.querySelector && doc.querySelector('.dash-nav__brand');
+                var target = [hamburger, current, brand].filter(visible)[0];
+                if (target && typeof target.focus === 'function') target.focus();
+            };
             if (mq && typeof mq.addEventListener === 'function') {
                 mq.addEventListener('change', onChange);
             } else if (mq && typeof mq.addListener === 'function') {
                 mq.addListener(onChange);
             }
+            if (typeof win.addEventListener === 'function') win.addEventListener('resize', onChange);
         }
         return true;
     }

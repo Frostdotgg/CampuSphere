@@ -99,6 +99,7 @@ function check(scope, label, ok) {
     'views/map.ejs',
     'views/partials/head.ejs',
     'views/vr.ejs',
+    'views/vr-mode-choice.ejs',
     'views/vr-route.ejs'
   ].map(read);
   check('offline', 'service worker keeps the entire same-origin /api surface network-only',
@@ -107,10 +108,10 @@ function check(scope, label, ok) {
     sw.includes('if (isNetworkOnlyPath(url.pathname))') &&
     !/NOTIFICATION_CACHE|notification.*cache/i.test(sw));
   check('offline', 'notification CSS is addressed consistently by the precache and all shared pages',
-    sw.includes("'/css/styles.css?v=13'") &&
+    sw.includes("'/css/styles.css?v=14'") &&
     stylesheetConsumers.every((source) =>
       (source.match(/\/css\/styles\.css\?v=\d+/g) || []).length === 1 &&
-      source.includes('/css/styles.css?v=13')));
+      source.includes('/css/styles.css?v=14')));
   check('css', 'panel, mobile layout, dark mode, reduced motion, and 44px controls are defined',
     css.includes('.dash-nav__notifications-panel') &&
     css.includes('.dash-nav__notification-mobile') &&

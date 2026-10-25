@@ -294,6 +294,94 @@ function dispatchClickThrough(container, target) {
   check('brand', 'package identifier is untouched', pkg.name === 'campusphere');
 }
 
+/* ---------------- compact navbar regression ---------------- */
+function navbarResponsiveProblems(css, client, offlineCss, offlineClient) {
+  const problems = [];
+  const block = name => (css.match(new RegExp('\\.' + name + '\\s*\\{([^}]+)\\}')) || [])[1] || '';
+  if (!/flex:\s*0 0 auto/.test(block('dash-nav__brand')) || !/white-space:\s*nowrap/.test(block('dash-nav__brand'))) problems.push('brand can shrink or wrap');
+  if (!/flex-shrink:\s*0/.test(block('dash-nav__logo'))) problems.push('logo can shrink');
+  if (!/@media \(max-width: 1400px\)\s*\{\s*\.dash-nav__tabs/.test(css) || !/var mq = win\.matchMedia\('\(max-width: 1400px\)'\)/.test(client)) problems.push('online breakpoint mismatch');
+  if (!/@media \(max-width: 1400px\)/.test(offlineCss) || !offlineClient.includes("COMPACT_NAV_MEDIA = '(max-width: 1400px)'")) problems.push('offline breakpoint mismatch');
+  if (!/max-width:\s*6rem/.test(css) || !/text-overflow:\s*ellipsis/.test(css)) problems.push('unbounded account name');
+  if (!/max-height:\s*calc\(100dvh - 64px/.test(css) || !/overflow-y:\s*auto/.test(css)) problems.push('menu cannot scroll on short screens');
+  if (!offlineClient.includes("MOBILE_MAP_MEDIA = '(max-width: 768px)'")) problems.push('map breakpoint was changed');
+  return problems;
+}
+
+// Shared with the external browser acceptance runner. Text bounds, rather than
+// just anchor boxes, expose the original 42px logo overflow into Home.
+function navbarGeometryProblems(m) {
+  const problems = [];
+  if (m.pageOverflow) problems.push('horizontal overflow');
+  if (m.brandScroll > m.brandWidth + 1) problems.push('brand text overflows its box');
+  if (m.compact !== (m.width <= 1400)) problems.push('wrong navbar mode');
+  if (m.compact && !m.hamburgerVisible) problems.push('compact menu trigger unavailable');
+  if (!m.compact && m.brandTextRight + 8 > m.firstLinkLeft) problems.push('logo crowds Home');
+  if (!m.hitTargets) problems.push('visible control is obscured');
+  if (m.minTarget < 44) problems.push('small interactive target');
+  if (m.menuOpen && m.menuBottom > m.height + 1) problems.push('menu extends below viewport');
+  return problems;
+}
+
+{
+  const css=read('public/css/styles.css'),client=read('public/js/authenticated-nav.js'),offlineCss=read('public/css/offline.css'),offlineClient=read('public/js/offline-guide-manager.js');
+  check('responsive', 'brand protection, independent map boundary and all navbar boundaries agree', navbarResponsiveProblems(css,client,offlineCss,offlineClient).length===0);
+  check('rejection', 'restoring brand shrinking fails independently', navbarResponsiveProblems(css.replace(/(\.dash-nav__brand\s*\{[^}]*?)flex: 0 0 auto/,'$1flex: 1 1 auto'),client,offlineCss,offlineClient).length>0);
+  check('rejection', 'restoring old CSS breakpoint fails independently', navbarResponsiveProblems(css.replace('@media (max-width: 1400px) {','@media (max-width: 768px) {'),client,offlineCss,offlineClient).length>0);
+  check('rejection', 'restoring old JavaScript breakpoint fails independently', navbarResponsiveProblems(css,client.replace("win.matchMedia('(max-width: 1400px)')","win.matchMedia('(max-width: 768px)')"),offlineCss,offlineClient).length>0);
+  check('rejection', 'original measured 960px overflow fails rendered geometry acceptance', navbarGeometryProblems({width:960,height:444,brandWidth:151,brandScroll:193,brandTextRight:224.59375,firstLinkLeft:182.59375,compact:false,hamburgerVisible:false,hitTargets:true,minTarget:44,pageOverflow:false}).length>0);
+  const shell=read('public/offline.html');
+  check('offline', 'compact menu preserves the existing explicit update action', /offline-nav-compact-only[^>]*data-offline-guide-download/.test(shell));
+
+  for (const kind of ['online','offline']) {
+    const doc=makeDocument(),win=doc.defaultView;
+    let compact=true;
+    win.resizeHandlers=[];win.queries=[];
+    win.addEventListener=(type,handler)=>{if(type==='resize')win.resizeHandlers.push(handler);};
+    win.matchMedia=query=>{win.queries.push(query);return{addEventListener:(type,handler)=>{if(type==='change')win.mediaHandlers.push(handler);}};};
+    const toggle=doc.register(makeElement(kind==='online'?'dashHamburger':'offlineNavToggle'));
+    const tabs=doc.register(makeElement(kind==='online'?'dashTabs':'offlineDashTabs'));
+    const current=makeElement('current','dash-nav__tab dash-nav__tab--active');tabs.appendChild(current);
+    const mobile=makeElement('account','dash-nav__tab');tabs.appendChild(mobile);
+    const brand=makeElement('brand');
+    const opened=()=>tabs.classList.contains(kind==='online'?'open':'is-open');
+    toggle.getClientRects=()=>compact?[{}]:[];
+    current.getClientRects=()=>!compact||opened()?[{}]:[];
+    mobile.getClientRects=()=>compact&&opened()?[{}]:[];
+    brand.getClientRects=()=>[{}];
+    for(const element of [toggle,current,mobile,brand])element.focus=()=>{doc.activeElement=element;};
+    tabs.querySelector=()=>current;doc.querySelector=()=>brand;
+    // Model the native two-argument classList.toggle used by the offline owner.
+    for(const element of [toggle,tabs])element.classList.toggle=(name,force)=>{if(force===true)element.classList.add(name);else if(force===false)element.classList.remove(name);else if(element.classList.contains(name))element.classList.remove(name);else element.classList.add(name);};
+    if(kind==='online')require('../public/js/authenticated-nav.js').initAuthenticatedNav(doc);
+    else {
+      const start=offlineClient.indexOf('  function bindOfflineNavigation()'),end=offlineClient.indexOf('\n  function bindUi()',start);
+      require('vm').runInNewContext(offlineClient.slice(start,end)+'\nbindOfflineNavigation();',{document:doc,window:win,byId:id=>doc.getElementById(id),COMPACT_NAV_MEDIA:'(max-width: 1400px)'});
+    }
+    const click=()=>toggle.listeners.bubble.click.forEach(fn=>fn({}));
+    check(kind,'menu controller uses only the agreed navbar query',win.queries.length===1&&win.queries[0]==='(max-width: 1400px)');
+    click();mobile.focus();win.resizeHandlers.forEach(fn=>fn());
+    check(kind,'resize closes and restores focus out of the hidden menu',!opened()&&doc.activeElement===toggle);
+    compact=false;toggle.focus();win.mediaHandlers.forEach(fn=>fn({matches:false}));
+    check(kind,'desktop transition restores focus to a visible active link',doc.activeElement===current&&!opened());
+    compact=true;current.focus();win.mediaHandlers.forEach(fn=>fn({matches:true}));
+    check(kind,'compact transition moves hidden-link focus to the hamburger',doc.activeElement===toggle&&!opened());
+    click();const event={key:'Escape',preventDefault(){this.defaultPrevented=true;}};doc.dispatch('keydown',event);
+    check(kind,'Escape closes once and returns visible trigger focus',!opened()&&doc.activeElement===toggle);
+    click();doc.dispatch('pointerdown',{target:brand});
+    check(kind,'outside interaction dismisses the compact menu',!opened());
+    click();dispatchClickThrough(tabs,current);
+    check(kind,'selected navigation closes through capture',!opened()&&toggle.getAttribute('aria-expanded')==='false');
+  }
+}
+
+const measurementsArg=process.argv.find(arg=>arg.startsWith('--layout-results='));
+if(measurementsArg){
+  const measurements=JSON.parse(fs.readFileSync(measurementsArg.slice('--layout-results='.length),'utf8'));
+  for(const m of measurements)check('browser geometry',m.label,navbarGeometryProblems(m).length===0);
+}
+module.exports={navbarGeometryProblems,navbarResponsiveProblems};
+
 /* ---------------- summary ---------------- */
 if (failures.length === 0) {
   console.log('SHARED-MOBILE-NAVIGATION-PROBE OK: all checks passed.');

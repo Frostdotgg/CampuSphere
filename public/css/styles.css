@@ -2021,6 +2021,7 @@ select.edit-form-input {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     height: 64px;
     max-width: 1400px;
     margin: 0 auto;
@@ -2029,12 +2030,16 @@ select.edit-form-input {
 
 .dash-nav__brand {
     display: flex;
+    flex: 0 0 auto;
+    min-height: 44px;
     align-items: center;
     gap: var(--space-sm);
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .dash-nav__logo {
+    flex-shrink: 0;
     width: 42px;
     height: 42px;
     object-fit: contain;
@@ -2051,12 +2056,16 @@ select.edit-form-input {
 /* Navigation Tabs */
 .dash-nav__tabs {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 4px;
 }
 
 .dash-nav__tab {
     display: inline-flex;
+    flex-shrink: 0;
+    min-height: 44px;
+    white-space: nowrap;
     align-items: center;
     gap: 6px;
     padding: 0.5rem 1.1rem;
@@ -2088,6 +2097,7 @@ select.edit-form-input {
 /* Right section */
 .dash-nav__right {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: var(--space-md);
 }
@@ -2343,6 +2353,7 @@ iconify-icon {
 
 .dash-nav__user {
     display: flex;
+    min-height: 44px;
     align-items: center;
     gap: 10px;
     padding: 2px 12px 2px 2px;
@@ -2362,6 +2373,7 @@ iconify-icon {
 
 .dash-nav__login-btn {
     display: inline-flex;
+    min-height: 44px;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
@@ -2380,6 +2392,7 @@ iconify-icon {
 }
 
 .dash-nav__avatar {
+    flex-shrink: 0;
     width: 34px;
     height: 34px;
     border-radius: var(--radius-full);
@@ -2397,7 +2410,17 @@ iconify-icon {
     color: #ffffff;
 }
 
+/* Bound only the account name; offline action labels remain complete. */
+.dash-nav__user:not(.offline-nav-state) .dash-nav__username {
+    display: block;
+    max-width: 6rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .dash-nav__chevron {
+    flex-shrink: 0;
     color: rgba(255, 255, 255, 0.7);
     /* Increased visibility */
     display: flex;
@@ -2886,7 +2909,7 @@ iconify-icon {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1400px) {
     .dash-nav__tabs {
         display: none;
         position: absolute;
@@ -2894,6 +2917,11 @@ iconify-icon {
         left: 0;
         right: 0;
         flex-direction: column;
+        align-items: stretch;
+        max-height: calc(100vh - 64px);
+        max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
         background: #0a1628;
         padding: var(--space-md) var(--space-lg);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -2964,7 +2992,9 @@ iconify-icon {
     .dash-nav__inner {
         padding: 0 var(--space-md);
     }
+}
 
+@media (max-width: 768px) {
     .dash-hero {
         height: 200px;
     }
@@ -9222,8 +9252,8 @@ details[open] .accordion-icon {
 }
 /* Mobile-only menu items */
 .mobile-only { display: none !important; }
-@media screen and (max-width: 768px) {
-      .mobile-only { display: flex !important; }
+@media screen and (max-width: 1400px) {
+    .dash-nav .mobile-only { display: flex !important; }
     .dash-nav__tabs-divider.mobile-only {
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 20%, rgba(255, 255, 255, 0.1) 80%, transparent);

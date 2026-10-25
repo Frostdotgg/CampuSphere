@@ -1,0 +1,39 @@
+<section class="panel-card dashboard-news" aria-label="News and announcements">
+  <div class="panel-card__header">
+    <h3 class="panel-card__title">News &amp; Announcements</h3>
+  </div>
+  <div class="panel-card__body">
+    <div class="dashboard-news__toolbar">
+      <div class="dashboard-news__filter"><%- include('department-select', { selectId: filterId, selectRequired: false, accountOnly: false, includeAll: true, selectAttributes: 'data-news-department-filter' }) %></div>
+      <p class="dashboard-news__count" data-news-result-count role="status" aria-live="polite" aria-atomic="true"><%%= news.length %%> <%% if (news.length === 1) { %%>announcement<%% } else { %%>announcements<%% } %%></p>
+    </div>
+    <%% if (news.length === 0) { %%>
+      <p class="dashboard-news__empty">No announcements at this time.</p>
+    <%% } %%>
+    <p class="dashboard-news__empty" data-news-department-empty role="status" hidden>No announcements match this department.</p>
+    <div class="dashboard-news__list">
+      <%% for(var i=0; i<news.length; i++) { %%>
+        <article class="news-item dashboard-news__item" aria-labelledby="<%= filterId %>-article-<%%= news[i].id %%>">
+          <div class="dashboard-news__meta">
+            <span class="dashboard-news__category"><%%= news[i].category %%></span>
+            <span class="dashboard-news__department" data-news-department-label data-department="<%%= news[i].department_code %%>"><%%= news[i].department_label %%></span>
+            <time class="dashboard-news__date"><%%= news[i].date %%></time>
+          </div>
+          <h4 class="dashboard-news__title" id="<%= filterId %>-article-<%%= news[i].id %%>"><%%= news[i].title %%></h4>
+          <%% if (news[i].canExpand) { %%>
+            <p class="dashboard-news__preview" data-news-preview><%%= news[i].preview %%></p>
+            <details class="dashboard-news__reader" data-news-disclosure>
+              <summary aria-describedby="<%= filterId %>-article-<%%= news[i].id %%>">
+                <span class="dashboard-news__read-label">Read announcement</span><span class="dashboard-news__close-label">Show less</span>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 5 7 7-7 7"/></svg>
+              </summary>
+              <div class="dashboard-news__body"><%%= news[i].bodyText %%></div>
+            </details>
+          <%% } else { %%>
+            <div class="dashboard-news__body dashboard-news__body--brief"><%%= news[i].bodyText %%></div>
+          <%% } %%>
+        </article>
+      <%% } %%>
+    </div>
+  </div>
+</section>

@@ -456,22 +456,9 @@ html[data-theme="dark"] .offline-page .theme-toggle .icon-moon { display: block;
 [data-theme="dark"] .offline-empty { background: #111827; }
 [data-theme="dark"] .offline-empty h1 { color: #f3f4f6; }
 [data-theme="dark"] .offline-empty > p:not(.offline-eyebrow) { color: #9ca3af; }
-@media (max-width: 1100px) {
-  .offline-page .dash-nav__tab { padding-inline: .65rem; }
-  .offline-page .dash-nav__tab span { display: none; }
-  .offline-page .dash-nav__tab[aria-current="page"] span { display: inline; }
-}
+.offline-page .offline-nav-compact-only { display: none; }
 
-@media (max-width: 768px) {
-  body.offline-page { overflow: hidden; }
-
-  /* OFFLINE_MOBILE_LABEL_SIZE_START: retain the compact generic route cue
-     without shrinking the 44px marker hit target. */
-  .offline-page .map-start-label {
-    font-size: 8px;
-  }
-  /* OFFLINE_MOBILE_LABEL_SIZE_END */
-
+@media (max-width: 1400px) {
   .offline-page .dash-nav__right { display: none; }
 
   .offline-page .dash-nav__tabs {
@@ -493,6 +480,18 @@ html[data-theme="dark"] .offline-page .theme-toggle .icon-moon { display: block;
   .offline-page .dash-nav__tab { justify-content: flex-start; min-height: 44px; }
   .offline-page .dash-nav__tab span { display: inline; }
   .offline-page .dash-nav__hamburger { display: flex; }
+  .offline-page .offline-nav-compact-only { display: flex; }
+}
+
+@media (max-width: 768px) {
+  body.offline-page { overflow: hidden; }
+
+  /* OFFLINE_MOBILE_LABEL_SIZE_START: retain the compact generic route cue
+     without shrinking the 44px marker hit target. */
+  .offline-page .map-start-label {
+    font-size: 8px;
+  }
+  /* OFFLINE_MOBILE_LABEL_SIZE_END */
 
   .offline-workspace { display: block; position: relative; }
 

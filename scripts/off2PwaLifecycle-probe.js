@@ -946,14 +946,14 @@ function checkServiceWorkerStructure(swSource) {
     SW.skipWaitingOnlyInMessageHandler(swSource));
   ok('activate prunes only prefixed, non-current CampuSphere caches',
     SW.cleanupIsPrefixScopedAndVersioned(swSource));
-  ok('cache version advances to v60 for the body-level offline route popup', SW.cacheVersion(swSource) === 60);
+  ok('cache version advances to v61 for the responsive navbar and stylesheet refresh', SW.cacheVersion(swSource) === 61);
   ok('non-GET requests return before any respondWith', SW.nonGetReturnsEarly(swSource));
   ok('precache carries no route, VR, panorama, schedule, tile or media data',
     SW.precacheCarriesNoOfflineData(swSource));
 
   const urls = SW.precacheUrls(swSource);
   const INTEGRATED_SHELL = [
-    '/offline.html', '/css/map-sidebar.css', '/js/map-sidebar-layout.js', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=13',
+    '/offline.html', '/css/map-sidebar.css', '/js/map-sidebar-layout.js', '/css/offline.css', '/manifest.webmanifest', '/css/styles.css?v=14',
     '/js/pwa.js', '/js/offline-guide-manager.js', '/js/nav-role.js', '/js/profile-script.js',
     '/vendor/maplibre/maplibre-gl.css', '/vendor/maplibre/maplibre-gl.js',
     '/vendor/pmtiles/pmtiles.js', '/img/CampuSphere-logo.png', '/img/Camarines-sur-polytechnic-colleges.png',
@@ -1035,7 +1035,7 @@ function checkServiceWorkerFixtures(swSource) {
     blanketCleanup !== swSource && SW.cleanupIsPrefixScopedAndVersioned(blanketCleanup) === false);
 
   // The preceding v56 shell must not mask the instruction update.
-  const staleVersion = swSource.replace("CACHE_VERSION = 'v60'", "CACHE_VERSION = 'v56'");
+  const staleVersion = swSource.replace("CACHE_VERSION = 'v61'", "CACHE_VERSION = 'v56'");
   ok('REJECTS an un-advanced (stale v56) cache version',
     staleVersion !== swSource && SW.cacheVersion(staleVersion) !== 60);
 
@@ -1180,7 +1180,7 @@ async function checkInstallRecoveryAndWaiting(swSource) {
     sw.calls.skipWaiting === 0);
 
   const shellName = (await sw.caches.keys()).find((k) => k.indexOf('campusphere-pwa-shell-') === 0);
-  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v60');
+  ok('the shell cache is created at the current version', shellName === 'campusphere-pwa-shell-v61');
   const shell = await sw.caches.open(shellName);
   const cachedKeys = await shell.keys();
   const expected = SW.precacheUrls(swSource).map((u) => absolute(u)).sort();
@@ -1312,14 +1312,15 @@ async function checkVersionedCleanup(swSource) {
      // immediately preceding v36 caches - all are stale and must be pruned.
      'campusphere-pwa-shell-v36', 'campusphere-pwa-static-v36',
      'campusphere-pwa-api-v36', 'campusphere-pwa-external-v36',
-       // Current v60 caches - shell and static ONLY. Any v60 API/external cache
+       // Current v61 caches - shell and static ONLY. Any v61 API/external cache
        // name is adversarial and must still be pruned.
-       'campusphere-pwa-shell-v60', 'campusphere-pwa-static-v60',
-       'campusphere-pwa-api-v60', 'campusphere-pwa-external-v60',
+       'campusphere-pwa-shell-v61', 'campusphere-pwa-static-v61',
+       'campusphere-pwa-api-v61', 'campusphere-pwa-external-v61',
        // The released v56 Campus-wide event shell is now stale.
        'campusphere-pwa-shell-v57', 'campusphere-pwa-static-v57', 'campusphere-pwa-shell-v56', 'campusphere-pwa-static-v56',
        'campusphere-pwa-shell-v58', 'campusphere-pwa-static-v58',
        'campusphere-pwa-shell-v59', 'campusphere-pwa-static-v59', 'campusphere-pwa-api-v59', 'campusphere-pwa-external-v59',
+       'campusphere-pwa-shell-v60', 'campusphere-pwa-static-v60',
        'campusphere-pwa-api-v56', 'campusphere-pwa-external-v56',
        // The preceding v55 department editor caches are stale too.
        'campusphere-pwa-shell-v55', 'campusphere-pwa-static-v55',
@@ -1372,15 +1373,17 @@ async function checkVersionedCleanup(swSource) {
 
   const remaining = await sw.caches.keys();
   // Combined: activation resolves and retains exactly the two current caches.
-  ok('activate resolves and retains exactly the two current v60 caches (shell + static only)',
+  ok('activate resolves and retains exactly the two current v61 caches (shell + static only)',
      settled.length === 1 && settled[0].status === 'fulfilled' &&
-     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v60`)));
+     ['shell', 'static'].every((k) => remaining.includes(`campusphere-pwa-${k}-v61`)));
+  ok('the immediately previous v60 shell and static caches are removed',
+     !remaining.includes('campusphere-pwa-shell-v60') && !remaining.includes('campusphere-pwa-static-v60'));
   // Combined: every stale prefixed cache goes — the whole preceding v22 set,
   // the v14 API cache, the v13/v12 generations, the removed page cache,
   // and any API/external cache even at the current version suffix.
-  ok('every stale campusphere-pwa-* cache was deleted, including v56, earlier generations and any v60-suffixed API or external cache',
+  ok('every stale campusphere-pwa-* cache was deleted, including v56, earlier generations and any v61-suffixed API or external cache',
      !remaining.some((k) => k.indexOf('campusphere-pwa-') === 0 &&
-       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v60`)) &&
+       !['shell', 'static'].some((n) => k === `campusphere-pwa-${n}-v61`)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v27$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v28$/.test(k)) &&
     !remaining.some((k) => /^campusphere-pwa-.*-v26$/.test(k)) &&
