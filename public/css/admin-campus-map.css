@@ -38,6 +38,13 @@
 .campus-map-admin .walking-route-row > span:first-child { flex: 1 1 15rem; min-width: 0; overflow-wrap: anywhere; }
 .campus-map-admin #walking-route-list { display: grid; gap: .65rem; }
 .campus-map-admin .campus-map-status { min-height: 1.25rem; font-size: .8125rem; color: var(--muted-foreground); }
+/* Keep the Vehicle editor heading reachable when field focus scrolls its long form. */
+.campus-map-admin #edge-modal .modal-box { display: flex; flex-direction: column; max-height: 90vh; max-height: 90dvh; overflow: hidden; }
+.campus-map-admin #edge-modal .modal-header { flex: 0 0 auto; gap: .75rem; }
+.campus-map-admin #edge-modal .modal-header h3 { min-width: 0; overflow-wrap: anywhere; }
+.campus-map-admin #edge-form { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 1rem; }
+.campus-map-admin #edge-modal .modal-footer { flex-wrap: wrap; }
+.campus-map-admin #edge-modal .modal-footer .ui-button { max-width: 100%; white-space: normal; }
 @media (max-width: 640px) {
   .campus-map-admin .admin-workspace { padding: 1rem; }
   .campus-map-admin #graph-card > .p-6 { padding: 1rem; }
