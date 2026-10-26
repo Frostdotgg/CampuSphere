@@ -5,6 +5,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ---- State ----
+  const workspace = window.CampuSphereAdminWorkspace;
+  let refreshGeneration = 0;
   let allBuildings = [];
   try { allBuildings = JSON.parse(document.getElementById('buildings-data-json').textContent); } catch(e){}
 
@@ -217,19 +219,28 @@ document.addEventListener('DOMContentLoaded', () => {
   /* BE.3 — re-pull the decorated admin rows so cards never go stale after a
      building/node/edge/geometry mutation changes route readiness. */
   async function refreshBuildings(){
+    const generation=++refreshGeneration;
     try{
       const res=await fetch('/admin/api/buildings',{headers:{Accept:'application/json'},credentials:'same-origin'});
-      if(!res.ok) return false;
-      const data=await res.json();
-      if(!data || data.success!==true || !Array.isArray(data.buildings)) return false;
+      if(generation!==refreshGeneration)return;
+      if(!res.ok)throw new Error();
+      const data=await res.json();if(generation!==refreshGeneration)return;
+      if(!data||data.success!==true||!Array.isArray(data.buildings))throw new Error();
       allBuildings=data.buildings;
-      renderAll();
-      return true;
-    }catch(e){ return false; } // fixed label only; never surface a raw error
+      const error=document.getElementById('building-refresh-error');if(error)error.hidden=true;
+      renderAll();return true;
+    }catch(_){
+      if(generation!==refreshGeneration)return;
+      const error=document.getElementById('building-refresh-error');if(error)error.hidden=false;
+      if(workspace)workspace.markDirty('buildings');return false;
+    }
   }
+  const refreshRetry=document.getElementById('building-refresh-retry');
+  if(refreshRetry)refreshRetry.addEventListener('click',refreshBuildings);
+
   // admin-map-graph.js broadcasts this after node/edge/geometry mutations, which
   // can flip a building between routable and not.
-  document.addEventListener('campusphere:route-graph-changed', function(){ refreshBuildings(); });
+  document.addEventListener('campusphere:route-graph-changed', function(){ if(workspace) workspace.invalidate('buildings'); else refreshBuildings(); });
 
   // Tell admin-map-graph.js to re-pull its building list (route-destination select).
   function emitBuildingsChanged(){
@@ -237,16 +248,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Render Buildings Grid ----
-  function renderBuildings(){
+  function renderBuildings(){ return workspace ? workspace.preserve('buildings', drawBuildings) : drawBuildings(); }
+  function filteredBuildings(){
+    return allBuildings.filter(b=> (filter.category==='all' || b.category===filter.category) && (!filter.search || [b.name,b.description].some(v=>String(v||'').toLowerCase().includes(filter.search.trim().toLowerCase()))))
+      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')) || Number(a.id)-Number(b.id));
+  }
+  function drawBuildings(){
     if(!buildingsGrid) return;
-    let items=allBuildings.filter(b=>{
-      if(filter.category!=='all' && b.category!==filter.category) return false;
-      if(filter.search){
-        const q=filter.search.toLowerCase();
-        if(!(b.name||'').toLowerCase().includes(q) && !(b.description||'').toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
+    const matches=filteredBuildings();
+    const items=workspace ? workspace.paginate('buildings',matches,allBuildings.length,'buildings') : matches;
 
     if(items.length===0){
       buildingsGrid.innerHTML=`<div class="ui-card border-border" style="grid-column:1/-1;text-align:center;padding:3rem;">
@@ -257,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     buildingsGrid.innerHTML=items.map(b=>{
       const descShort=(b.description||'No description').substring(0,80);
-      return `<div class="ui-card border-border" data-id="${b.id}">
+      return `<div class="ui-card border-border" data-id="${b.id}" data-workspace-item="${b.id}">
         <div class="p-6" style="display:flex;flex-direction:column;gap:0.75rem;">
           <div class="flex items-start justify-between">
             <div class="flex items-center gap-3">
@@ -320,12 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if(m === buildingModal && buildingLocationPicker) buildingLocationPicker.close();
       m.classList.remove('modal--open');
       document.body.style.overflow='';
-      if(lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+      if(workspace) workspace.restoreFocus(lastFocused, 'buildings');
+      else if(lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
       lastFocused = null;
     }
   }
-  document.querySelectorAll('.modal-backdrop').forEach(b=>{b.addEventListener('click',e=>{if(e.target===b)closeModal(b);});});
-  document.querySelectorAll('.modal-close-btn').forEach(b=>{b.addEventListener('click',()=>closeModal(b.closest('.modal-backdrop')));});
+  [buildingModal,deleteModal].filter(Boolean).forEach(b=>{b.addEventListener('click',e=>{if(e.target===b)closeModal(b);});});
+  [buildingModal,deleteModal].filter(Boolean).flatMap(m=>Array.from(m.querySelectorAll('.modal-close-btn'))).forEach(b=>{b.addEventListener('click',()=>closeModal(b.closest('.modal-backdrop')));});
   document.addEventListener('keydown', e=>{
     if(e.key !== 'Escape') return;
     const open = [buildingModal, deleteModal].find(m=>m && m.classList.contains('modal--open'));
@@ -530,6 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allBuildings.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         renderAll(); closeModal(buildingModal);
         showToast(editId?'Building updated!':'Building added!','success');
+        if(workspace) workspace.notifySaved('buildings',json.building.id,editId?'Building updated.':'Building added.');
         emitBuildingsChanged(); // refresh the route-destination dropdown
       } else showFormError(buildingModal,json.message);
     }catch(err){showFormError(buildingModal,'Network error.');}
@@ -573,10 +585,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ---- Search & Filter ----
-  if(searchInput) searchInput.addEventListener('input',()=>{filter.search=searchInput.value;renderAll();});
+  if(searchInput) searchInput.addEventListener('input',()=>{filter.search=searchInput.value;if(workspace) workspace.resetPage('buildings');renderAll();});
   if(catFilterMenu) catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(item=>{
     item.addEventListener('click',()=>{
       filter.category=item.dataset.value||'all';
+      if(workspace) workspace.resetPage('buildings');
       if(catFilterBtn) catFilterBtn.querySelector('span').textContent=item.textContent;
       catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(i=>{
         i.classList.remove('bg-accent','text-accent-foreground');
@@ -589,5 +602,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ---- Init ----
+  if(workspace) workspace.register('buildings', { render: renderAll, refresh: refreshBuildings, reveal(id){
+    if(!allBuildings.some(b=>String(b.id)===String(id))) return false;
+    if(!filteredBuildings().some(b=>String(b.id)===String(id))){
+      filter={search:'',category:'all'}; if(searchInput) searchInput.value='';
+      if(catFilterBtn) catFilterBtn.querySelector('span').textContent='All Categories';
+      if(catFilterMenu) catFilterMenu.querySelectorAll('.dropdown-menu-item').forEach(item=>{const on=item.dataset.value==='all';item.classList.toggle('bg-accent',on);item.classList.toggle('text-accent-foreground',on);item.setAttribute('aria-checked',String(on));});
+    }
+    workspace.revealPage('buildings',filteredBuildings(),id);renderAll();return true;
+  }});
   renderAll();
 });

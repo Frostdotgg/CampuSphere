@@ -12,6 +12,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const $ = (id) => document.getElementById(id);
   const toast = $('admin-toast');
+  const workspace = window.CampuSphereAdminWorkspace;
   if (!$('graph-card')) return; // not on a page with the graph section
   const adminCampusMap = window.CampuSphereAdminCampusMap;
   const nodeLocationPicker = adminCampusMap && typeof adminCampusMap.createCoordinatePicker === 'function'
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tab: 'routes',
     routes: [], nodes: [], edges: [], buildings: [],
     loaded: { routes: false, nodes: false, edges: false },
+    request: { routes: 0, nodes: 0, edges: 0 },
     filter: { routes: '', nodes: '', edges: '' },
     busy: false, pendingDelete: null, lastFocused: null,
     routeMode: 'create', routeEditId: null,
@@ -37,10 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- helpers ---------- */
   function showToast(msg, type) {
     if (!toast) return;
-    toast.textContent = msg;
+    toast.textContent = displayMessage(msg);
     toast.className = 'admin-toast admin-toast--' + (type || 'success') + ' admin-toast--show';
     setTimeout(() => { toast.classList.remove('admin-toast--show'); }, 4000);
   }
+  function displayMessage(value) { return String(value || '').replace(/\bedges\b/gi, 'vehicle 2D routes').replace(/\bedge\b/gi, 'vehicle 2D route'); }
   function toId(v) { const n = Number(v); return (Number.isInteger(n) && n >= 1) ? n : null; }
   function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
   function str(v) { return v == null ? '' : String(v); }
@@ -89,10 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // geometry draft and invalidates any in-flight load/save (geoTeardownDraft
     // is a hoisted function declaration).
     if (m === $('edge-modal')) geoTeardownDraft();
-    if (state.lastFocused && typeof state.lastFocused.focus === 'function') state.lastFocused.focus();
+    if (workspace) workspace.restoreFocus(state.lastFocused, state.tab);
+    else if (state.lastFocused && typeof state.lastFocused.focus === 'function') state.lastFocused.focus();
     state.lastFocused = null;
   }
-  function showErr(m, msg) { const e = m ? m.querySelector('.form-error') : null; if (e) { e.textContent = msg; e.style.display = 'block'; } }
+  function showErr(m, msg) { const e = m ? m.querySelector('.form-error') : null; if (e) { e.textContent = displayMessage(msg); e.style.display = 'block'; } }
   function clearErr(m) { const e = m ? m.querySelector('.form-error') : null; if (e) { e.textContent = ''; e.style.display = 'none'; } }
 
   const MODALS = ['route-modal', 'node-modal', 'edge-modal', 'graph-delete-modal'].map($);
@@ -110,7 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function badge(text, cls) { const b = document.createElement('span'); b.className = 'ui-badge ui-badge-outline vr-badge ' + (cls || 'vr-badge-muted'); b.textContent = text; return b; }
   function setState(entity, st) {
     ['loading', 'error', 'empty', 'filtered-empty'].forEach((s) => { const el = $(entity + '-' + s); if (el) el.hidden = st !== s; });
-    const list = $(entity + '-list'); if (list) list.hidden = st !== 'list';
+    const key = {route:'routes',node:'nodes',edge:'edges'}[entity];
+    const list = $(entity + '-list'); if (list) list.hidden = st !== 'list' && !(state.loaded[key] && (st === 'loading' || st === 'error'));
+    if (!state.loaded[key] && st !== 'list') { const pager = document.querySelector('[data-workspace-pager="'+key+'"]'); if(pager) pager.hidden=true; }
   }
 
   /* ---------- M12.P1-D4 local search helpers ----------
@@ -141,39 +147,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return match ? str(match.name) : '';
   }
 
-  /* ---------- tabs ---------- */
-  document.querySelectorAll('.graph-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const name = tab.getAttribute('data-graph-tab');
-      state.tab = name;
-      document.querySelectorAll('.graph-tab').forEach((t) => {
-        const on = t === tab;
-        t.classList.toggle('graph-tab--active', on);
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      document.querySelectorAll('.graph-panel').forEach((p) => { p.hidden = p.getAttribute('data-graph-panel') !== name; });
-      if (!state.loaded[name]) loadEntity(name);
-      refreshIcons();
-    });
-  });
-
-  function loadEntity(name) {
-    if (name === 'routes') loadRoutes();
-    else if (name === 'nodes') loadNodes();
-    else if (name === 'edges') loadEdges();
+  /* Page navigation is owned by the shared workspace; loaders never activate tabs. */
+  async function loadGraph(key, entity, render) {
+    const generation = ++state.request[key];
+    setState(entity, 'loading'); refreshIcons();
+    try {
+      const url = key === 'routes' ? '/admin/api/routes' : key === 'nodes' ? '/admin/api/route-nodes' : '/admin/api/route-edges';
+      const r = await apiRequest(url);
+      if (generation !== state.request[key] || r.redirected) return;
+      if (r.status !== 200 || !r.json || !r.json.success || !Array.isArray(r.json[key])) throw new Error('List unavailable');
+      state[key] = r.json[key]; state.loaded[key] = true; render();
+    } catch (_) { if(generation === state.request[key]) { setState(entity, 'error'); if(workspace) workspace.markDirty(key); refreshIcons(); } }
   }
 
   /* ============================================================ ROUTES */
-  async function loadRoutes() {
-    setState('route', 'loading'); refreshIcons();
-    try {
-      const r = await apiRequest('/admin/api/routes');
-      if (r.redirected) return;
-      if (r.status === 200 && r.json && r.json.success && Array.isArray(r.json.routes)) {
-        state.routes = r.json.routes; state.loaded.routes = true; renderRoutes();
-      } else { setState('route', 'error'); refreshIcons(); }
-    } catch (e) { setState('route', 'error'); refreshIcons(); }
-  }
+  async function loadRoutes() { return loadGraph('routes', 'route', renderRoutes); }
   // Exact route fields returned by /admin/api/routes, plus the id.
   function fieldsForRoute(r) {
     return [r.title, r.start_label, r.destination_name, r.estimated_walk_time, r.id];
@@ -184,11 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!q) return rows;
     return rows.filter((r) => matchesQuery(fieldsForRoute(r), q));
   }
-  function renderRoutes() {
+  function renderRoutes() { return workspace ? workspace.preserve('routes', drawRoutes) : drawRoutes(); }
+  function drawRoutes() {
     const list = $('route-list');
-    if (!state.routes.length) { setState('route', 'empty'); setResultStatus('route', 0, 0, 'route'); refreshIcons(); return; }
-    const rows = filteredRoutes();
-    setResultStatus('route', rows.length, state.routes.length, 'route');
+
+    const matches = filteredRoutes();
+    const rows = workspace ? workspace.paginate('routes', matches, state.routes.length, 'routes') : matches;
+    if (!state.routes.length) { list.textContent=''; setState('route', 'empty'); refreshIcons(); return; }
+    if (!workspace) setResultStatus('route', rows.length, state.routes.length, 'route');
     if (!rows.length) { setState('route', 'filtered-empty'); refreshIcons(); return; }
     list.textContent = '';
     rows.forEach((route) => list.appendChild(buildRouteCard(route)));
@@ -196,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function buildRouteCard(route) {
     const id = toId(route.id);
-    const card = document.createElement('div'); card.className = 'vr-scene-card'; if (id !== null) card.dataset.routeId = String(id);
+    const card = document.createElement('div'); card.className = 'vr-scene-card'; if (id !== null) { card.dataset.routeId = String(id); card.dataset.workspaceItem = String(id); }
     const head = document.createElement('div'); head.className = 'vr-scene-head';
     const tw = document.createElement('div'); tw.className = 'vr-scene-titlewrap';
     const title = document.createElement('span'); title.className = 'vr-scene-title'; title.textContent = str(route.title); tw.appendChild(title);
@@ -321,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!payload.destination_building_id) return showErr(m, 'A destination building is required.');
     const url = state.routeMode === 'edit' ? '/admin/api/routes/' + state.routeEditId : '/admin/api/routes';
     const method = state.routeMode === 'edit' ? 'PUT' : 'POST';
-    await submitForm(m, url, method, payload, 'route', () => { closeModal(m); showToast(state.routeMode === 'edit' ? 'Route updated.' : 'Route created.'); loadRoutes(); });
+    await submitForm(m, url, method, payload, 'route', async (data) => { closeModal(m); showToast(state.routeMode === 'edit' ? 'Route updated.' : 'Route created.'); await loadRoutes(); if(workspace) workspace.notifySaved('routes',data.route.id,'Route saved.'); });
   });
 
   /* Vehicle entry steps keep the existing route id and legacy API. */
@@ -330,15 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================ NODES */
-  async function loadNodes() {
-    setState('node', 'loading'); refreshIcons();
-    try {
-      const r = await apiRequest('/admin/api/route-nodes');
-      if (r.redirected) return;
-      if (r.status === 200 && r.json && r.json.success && Array.isArray(r.json.nodes)) { state.nodes = r.json.nodes; state.loaded.nodes = true; renderNodes(); }
-      else { setState('node', 'error'); refreshIcons(); }
-    } catch (e) { setState('node', 'error'); refreshIcons(); }
-  }
+  async function loadNodes() { return loadGraph('nodes', 'node', renderNodes); }
   // Exact node fields returned by /admin/api/route-nodes, the id, and the
   // linked building NAME resolved from the buildings payload on the page.
   function fieldsForNode(n) {
@@ -350,11 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!q) return rows;
     return rows.filter((n) => matchesQuery(fieldsForNode(n), q));
   }
-  function renderNodes() {
+  function renderNodes() { return workspace ? workspace.preserve('nodes', drawNodes) : drawNodes(); }
+  function drawNodes() {
     const list = $('node-list');
-    if (!state.nodes.length) { setState('node', 'empty'); setResultStatus('node', 0, 0, 'node'); refreshIcons(); return; }
-    const rows = filteredNodes();
-    setResultStatus('node', rows.length, state.nodes.length, 'node');
+
+    const matches = filteredNodes();
+    const rows = workspace ? workspace.paginate('nodes', matches, state.nodes.length, 'nodes') : matches;
+    if (!state.nodes.length) { list.textContent=''; setState('node', 'empty'); refreshIcons(); return; }
+    if (!workspace) setResultStatus('node', rows.length, state.nodes.length, 'node');
     if (!rows.length) { setState('node', 'filtered-empty'); refreshIcons(); return; }
     list.textContent = '';
     rows.forEach((node) => list.appendChild(buildNodeCard(node)));
@@ -362,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function buildNodeCard(node) {
     const id = toId(node.id);
-    const card = document.createElement('div'); card.className = 'vr-scene-card';
+    const card = document.createElement('div'); card.className = 'vr-scene-card'; card.dataset.workspaceItem = String(node.id);
     const head = document.createElement('div'); head.className = 'vr-scene-head';
     const tw = document.createElement('div'); tw.className = 'vr-scene-titlewrap';
     const key = document.createElement('span'); key.className = 'vr-scene-key'; key.textContent = str(node.node_key); tw.appendChild(key);
@@ -403,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (payload.lat === '' || payload.lng === '') return showErr(m, 'Latitude and longitude are required.');
     const url = state.nodeMode === 'edit' ? '/admin/api/route-nodes/' + state.nodeEditId : '/admin/api/route-nodes';
     const method = state.nodeMode === 'edit' ? 'PUT' : 'POST';
-    await submitForm(m, url, method, payload, 'node', () => { closeModal(m); showToast(state.nodeMode === 'edit' ? 'Node updated.' : 'Node created.'); state.loaded.edges = false; loadNodes(); });
+    await submitForm(m, url, method, payload, 'node', async (data) => { closeModal(m); showToast(state.nodeMode === 'edit' ? 'Node updated.' : 'Node created.'); if(workspace) workspace.invalidate('edges'); else state.loaded.edges=false; await loadNodes(); if(workspace) workspace.notifySaved('nodes',data.node.id,'Node saved.'); });
   });
 
   /* ============================================================ EDGES */
@@ -412,16 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const r = await apiRequest('/admin/api/route-nodes');
     if (r.json && Array.isArray(r.json.nodes)) { state.nodes = r.json.nodes; }
   }
-  async function loadEdges() {
-    setState('edge', 'loading'); refreshIcons();
-    try {
-      await ensureNodes();
-      const r = await apiRequest('/admin/api/route-edges');
-      if (r.redirected) return;
-      if (r.status === 200 && r.json && r.json.success && Array.isArray(r.json.edges)) { state.edges = r.json.edges; state.loaded.edges = true; renderEdges(); }
-      else { setState('edge', 'error'); refreshIcons(); }
-    } catch (e) { setState('edge', 'error'); refreshIcons(); }
-  }
+  async function loadEdges() { return loadGraph('edges', 'edge', renderEdges); }
   // Exact edge fields returned by /admin/api/route-edges, the id, and the
   // accessibility text an admin actually sees on the card ("accessible").
   function fieldsForEdge(e) {
@@ -438,11 +415,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!q) return rows;
     return rows.filter((e) => matchesQuery(fieldsForEdge(e), q));
   }
-  function renderEdges() {
+  function renderEdges() { return workspace ? workspace.preserve('edges', drawEdges) : drawEdges(); }
+  function drawEdges() {
     const list = $('edge-list');
-    if (!state.edges.length) { setState('edge', 'empty'); setResultStatus('edge', 0, 0, 'edge'); refreshIcons(); return; }
-    const rows = filteredEdges();
-    setResultStatus('edge', rows.length, state.edges.length, 'edge');
+
+    const matches = filteredEdges();
+    const rows = workspace ? workspace.paginate('edges', matches, state.edges.length, 'vehicle 2D routes') : matches;
+    if (!state.edges.length) { list.textContent=''; setState('edge', 'empty'); refreshIcons(); return; }
+    if (!workspace) setResultStatus('edge', rows.length, state.edges.length, 'edge');
     if (!rows.length) { setState('edge', 'filtered-empty'); refreshIcons(); return; }
     list.textContent = '';
     rows.forEach((edge) => list.appendChild(buildEdgeCard(edge)));
@@ -450,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function buildEdgeCard(edge) {
     const id = toId(edge.id);
-    const row = document.createElement('div'); row.className = 'vr-hotspot-row';
+    const row = document.createElement('div'); row.className = 'vr-hotspot-row'; row.dataset.workspaceItem = String(edge.id);
     const info = document.createElement('div'); info.className = 'vr-hotspot-info';
     const top = document.createElement('div'); top.className = 'vr-hotspot-top';
     const label = document.createElement('span'); label.className = 'vr-hotspot-label'; label.textContent = str(edge.from_node_key) + ' → ' + str(edge.to_node_key); top.appendChild(label);
@@ -597,8 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toSearch) toSearch.disabled = !!editing;
     const endpointNote = $('edge-endpoint-note');
     if (endpointNote) endpointNote.hidden = !editing;
-    $('edge-modal-title').textContent = mode === 'edit' ? 'Edit Edge' : 'Add Edge';
-    $('edge-submit-label').textContent = mode === 'edit' ? 'Save Changes' : 'Create Edge';
+    $('edge-modal-title').textContent = mode === 'edit' ? 'Edit Vehicle 2D Route' : 'Add Vehicle 2D Route';
+    $('edge-submit-label').textContent = mode === 'edit' ? 'Save Changes' : 'Create Vehicle 2D Route';
     // The same geometry editor is used for Add (after both endpoints are
     // selected) and Edit (for the existing directed edge).
     const geoSection = $('edge-geometry-section');
@@ -630,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const url = state.edgeMode === 'edit' ? '/admin/api/route-edges/' + state.edgeEditId : '/admin/api/route-edges';
     const method = state.edgeMode === 'edit' ? 'PUT' : 'POST';
-    await submitForm(m, url, method, payload, 'edge', () => { closeModal(m); showToast(state.edgeMode === 'edit' ? 'Edge updated.' : 'Edge created.'); loadEdges(); });
+    await submitForm(m, url, method, payload, 'edge', async (data) => { closeModal(m); showToast(state.edgeMode === 'edit' ? 'Edge updated.' : 'Edge created.'); await loadEdges(); if(workspace) workspace.notifySaved('edges',data.edge.id,'Vehicle 2D route saved.'); });
   });
 
   /* ============================================================
@@ -710,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // A pending async result is still valid only if its captured token, the
   // current editId, and the still-open edge modal all match.
   function geoStillCurrent(token, id) { return geo.loadToken === token && geo.editId === id && edgeModalOpen(); }
-  function geoStatus(msg) { const el = $('edge-geo-status'); if (el) el.textContent = msg || ''; }
+  function geoStatus(msg) { const el = $('edge-geo-status'); if (el) el.textContent = displayMessage(msg); }
   function cloneWps(list) { return (list || []).map((w) => ({ lat: Number(w.lat), lng: Number(w.lng) })); }
   function inRange(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
@@ -1029,7 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast(wasCleared ? 'Geometry cleared and metrics saved.' : 'Geometry and metrics saved.');
       geoStatus(wasCleared ? 'Geometry cleared; endpoint fallback metrics saved for this direction.' : 'Geometry and metrics saved for this direction.');
       if (wasCleared) { geo.cleared = false; geo.waypoints = []; geoRender(); }
-      if (state.loaded.edges) loadEdges();
+      if (workspace) { workspace.invalidate('edges'); workspace.notifySaved('edges',id,'Vehicle route geometry saved.'); }
+      else if (state.loaded.edges) loadEdges();
       // Clearing geometry can make a destination unroutable (and re-adding it can
       // restore routability), so the building cards must re-evaluate.
       emitGraphChanged();
@@ -1066,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const r = await apiRequest(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (r.redirected) return;
-      if (r.json && r.json.success) { onOk(); emitGraphChanged(); }
+      if (r.json && r.json.success) { await onOk(r.json); emitGraphChanged(); }
       else if (r.status === 403) showErr(m, 'You do not have permission to perform this action.');
       else if (r.json && typeof r.json.message === 'string') showErr(m, r.json.message);
       else showErr(m, 'Something went wrong. Please try again.');
@@ -1075,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function openDelete(kind, id, text) {
     state.pendingDelete = { kind, id };
-    $('graph-delete-text').textContent = text;
+    $('graph-delete-text').textContent = displayMessage(text);
     openModal($('graph-delete-modal'), $('graph-confirm-delete'));
   }
   $('graph-cancel-delete') && $('graph-cancel-delete').addEventListener('click', () => { if (state.busy) return; state.pendingDelete = null; closeModal($('graph-delete-modal')); });
@@ -1090,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal($('graph-delete-modal'));
         showToast(job.kind === 'route' ? 'Route deleted.' : job.kind === 'route_node' ? 'Node deleted.' : 'Edge deleted.');
         if (job.kind === 'route') loadRoutes();
-        else if (job.kind === 'route_node') { state.loaded.edges = false; loadNodes(); }
+        else if (job.kind === 'route_node') { if(workspace) workspace.invalidate('edges'); else state.loaded.edges=false; loadNodes(); }
         else loadEdges();
         // Deleting a node or edge can strand a building with no usable route.
         emitGraphChanged();
@@ -1102,14 +1083,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ---------- search wires ---------- */
-  $('route-search') && $('route-search').addEventListener('input', (e) => { state.filter.routes = e.target.value; renderRoutes(); });
-  $('node-search') && $('node-search').addEventListener('input', (e) => { state.filter.nodes = e.target.value; renderNodes(); });
-  $('edge-search') && $('edge-search').addEventListener('input', (e) => { state.filter.edges = e.target.value; renderEdges(); });
+  $('route-search') && $('route-search').addEventListener('input', (e) => { state.filter.routes = e.target.value; if(workspace) workspace.resetPage('routes'); renderRoutes(); });
+  $('node-search') && $('node-search').addEventListener('input', (e) => { state.filter.nodes = e.target.value; if(workspace) workspace.resetPage('nodes'); renderNodes(); });
+  $('edge-search') && $('edge-search').addEventListener('input', (e) => { state.filter.edges = e.target.value; if(workspace) workspace.resetPage('edges'); renderEdges(); });
   $('route-retry') && $('route-retry').addEventListener('click', loadRoutes);
   $('node-retry') && $('node-retry').addEventListener('click', loadNodes);
   $('edge-retry') && $('edge-retry').addEventListener('click', loadEdges);
 
   /* ---------- init ---------- */
   loadBuildings();
-  loadRoutes(); // default tab
+  if(workspace){
+    for(const [key,entity,render,refresh,filtered] of [['routes','route',renderRoutes,loadRoutes,filteredRoutes],['nodes','node',renderNodes,loadNodes,filteredNodes],['edges','edge',renderEdges,loadEdges,filteredEdges]]){
+      workspace.register(key,{render,refresh,reveal(id){
+        if(!state[key].some(r=>String(r.id)===String(id))) return false;
+        if(!filtered().some(r=>String(r.id)===String(id))){state.filter[key]='';$(entity+'-search').value='';}
+        workspace.revealPage(key,filtered(),id);render();return true;
+      }});
+    }
+  } else loadRoutes(); // default tab
 });

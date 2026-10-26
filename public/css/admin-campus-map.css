@@ -1,0 +1,53 @@
+/* Only the campus-map management workspace; the cached public shell is unchanged. */
+.campus-map-admin [hidden] { display: none !important; }
+.campus-map-admin .admin-workspace { min-width: 0; scroll-padding-block: 1rem 5rem; padding-bottom: 6rem !important; }
+.campus-map-admin .campus-map-content { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.campus-map-admin .campus-map-tabs { display: flex; flex-wrap: wrap; gap: .5rem; border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+.campus-map-admin .campus-map-tabs button { min-height: 44px; white-space: normal; text-align: left; padding: .6rem 1rem; }
+.campus-map-admin .campus-map-tabs [aria-selected="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.campus-map-admin .campus-map-section { min-width: 0; overflow-wrap: anywhere; }
+.campus-map-admin #buildings-workspace { display: flex; flex-direction: column; gap: 1rem; }
+.campus-map-admin .campus-map-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; padding-block: 1rem; }
+.campus-map-admin .campus-map-pagination button { min-height: 44px; min-width: 44px; padding: .5rem .75rem; }
+.campus-map-admin .campus-map-pagination [aria-current="page"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.campus-map-admin .campus-map-page-label { color: var(--muted-foreground); font-size: .8125rem; padding-inline: .35rem; }
+.campus-map-admin .campus-map-feedback { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--card); }
+.campus-map-admin .campus-map-feedback > span { flex: 1 1 12rem; overflow-wrap: anywhere; }
+.campus-map-admin .campus-map-feedback > button { padding: .5rem .75rem; }
+.campus-map-admin .graph-tabs { gap: .25rem .5rem; margin-top: .75rem; }
+.campus-map-admin .graph-tab { min-height: 44px; white-space: normal; padding: .5rem .65rem; }
+.campus-map-admin button:focus-visible, .campus-map-admin input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.campus-map-admin #buildings-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: .75rem; }
+.campus-map-admin #buildings-grid .p-6 { padding: 1rem; gap: .5rem !important; }
+.campus-map-admin #buildings-grid h4, .campus-map-admin .vr-scene-title, .campus-map-admin .vr-scene-key, .campus-map-admin .vr-hotspot-label, .campus-map-admin .vr-hotspot-sub { overflow-wrap: anywhere; }
+.campus-map-admin #buildings-grid .flex.items-start > .flex { min-width: 0; }
+.campus-map-admin #buildings-grid .flex.items-start > .flex > div:last-child { min-width: 0; }
+.campus-map-admin #buildings-grid .flex.items-center.gap-4 { flex-wrap: wrap; gap: .5rem; font-size: .8rem; }
+.campus-map-admin #buildings-grid [data-dropdown-target] { min-width: 44px; min-height: 44px; flex-shrink: 0; }
+.campus-map-admin .vr-scene-card { padding: 1rem; margin-bottom: .65rem; }
+.campus-map-admin .vr-scene-head, .campus-map-admin .vr-hotspot-row { flex-wrap: wrap; }
+.campus-map-admin .vr-scene-titlewrap, .campus-map-admin .vr-hotspot-info { flex: 1 1 15rem; min-width: 0; }
+.campus-map-admin .vr-scene-actions, .campus-map-admin .vr-hotspot-actions, .campus-map-admin .walking-route-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+.campus-map-admin .graph-panel .ui-button, .campus-map-admin .campus-map-feedback .ui-button { min-height: 44px; white-space: normal; }
+.campus-map-admin .campus-map-building-toolbar .ui-button,
+.campus-map-admin .campus-map-section input:not([type="checkbox"]),
+.campus-map-admin .modal-box .ui-button { min-height: 44px; }
+.campus-map-admin .modal-close-btn { min-width: 44px; flex-shrink: 0; }
+.campus-map-admin .dropdown-menu-item { min-height: 44px; display: flex; align-items: center; }
+.campus-map-admin .walking-route-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; border: 1px solid var(--border); border-radius: .5rem; padding: .9rem; }
+.campus-map-admin .walking-route-row > span:first-child { flex: 1 1 15rem; min-width: 0; overflow-wrap: anywhere; }
+.campus-map-admin #walking-route-list { display: grid; gap: .65rem; }
+.campus-map-admin .campus-map-status { min-height: 1.25rem; font-size: .8125rem; color: var(--muted-foreground); }
+@media (max-width: 640px) {
+  .campus-map-admin .admin-workspace { padding: 1rem; }
+  .campus-map-admin #graph-card > .p-6 { padding: 1rem; }
+  .campus-map-admin .campus-map-tabs { gap: .35rem; }
+  .campus-map-admin .campus-map-tabs > button { flex: 1 1 9rem; }
+  .campus-map-admin .graph-tabs > button { flex: 1 1 calc(50% - .5rem); }
+  .campus-map-admin .graph-search-wrap { flex-basis: auto; }
+  .campus-map-admin .campus-map-building-toolbar > div { max-width: none; width: 100%; }
+  .campus-map-admin .campus-map-building-toolbar > .flex { flex-wrap: wrap; }
+  .campus-map-admin .campus-map-building-toolbar .ui-button { min-height: 44px; }
+  .campus-map-admin .vr-scene-actions, .campus-map-admin .vr-hotspot-actions, .campus-map-admin .walking-route-actions { width: 100%; }
+  .campus-map-admin .graph-panel-bar { margin-bottom: .5rem; }
+}

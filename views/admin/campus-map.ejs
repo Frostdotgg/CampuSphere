@@ -16,6 +16,7 @@
     <meta name="description" content="<%= description %>">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/admin-styles.css">
+    <link rel="stylesheet" href="/css/admin-campus-map.css">
     <%# M12.P1-R6: Lucide is self-hosted at the exact reviewed 1.25.0 (see
         public/vendor/manifest.json). The former unpkg "lucide@latest" reference
         executed whatever build the CDN served at request time. %>
@@ -34,6 +35,7 @@
     <script src="/js/admin/building-details-editor.js" defer></script>
     <script src="/js/media-url.js" defer></script>
     <script src="/js/admin/admin-campus-map.js" defer></script>
+    <script src="/js/admin/campus-map-workspace.js" defer></script>
     <script src="/js/admin/admin-buildings.js" defer></script>
     <script src="/js/admin/route-instructions-editor.js" defer></script>
     <script src="/js/admin/admin-map-graph.js" defer></script>
@@ -65,7 +67,7 @@
     </style>
 </head>
 
-<body class="admin-surface font-sans antialiased">
+<body class="campus-map-admin admin-surface font-sans antialiased">
     <div class="admin-shell flex h-screen bg-background text-foreground overflow-hidden">
 
         <!-- Sidebar -->
@@ -118,9 +120,15 @@
                 </div>
             </header>
 
-            <main class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
-                <div class="mx-auto max-w-7xl" style="display:flex;flex-direction:column;gap:1.5rem;">
+            <main id="campus-map-scroll" class="admin-workspace flex-1 overflow-y-auto p-6" style="padding-bottom:2rem;">
+                <div class="campus-map-content mx-auto max-w-7xl">
 
+                    <div id="campus-map-main-tabs" class="campus-map-tabs" role="tablist" aria-label="Campus map workspaces">
+                        <button id="workspace-tab-buildings" type="button" class="ui-button ui-button-outline" data-workspace-tab="buildings" role="tab" aria-selected="true" aria-controls="buildings-workspace">Buildings</button>
+                        <button id="workspace-tab-graph" type="button" class="ui-button ui-button-outline" data-workspace-tab="graph" role="tab" aria-selected="false" aria-controls="graph-workspace" tabindex="-1">Routes &amp; Campus Graph</button>
+                    </div>
+                    <div id="campus-map-feedback" class="campus-map-feedback" role="status" aria-live="polite" hidden></div>
+                    <section id="buildings-workspace" class="campus-map-section" role="tabpanel" aria-labelledby="workspace-tab-buildings" tabindex="0">
                     <!-- Stats -->
                     <div class="grid gap-4 md:grid-cols-2" style="max-width:500px;">
                         <div class="ui-card border-border"><div class="p-4"><div class="flex items-center gap-3">
@@ -134,7 +142,7 @@
                     </div>
 
                     <!-- Toolbar -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                    <div class="campus-map-building-toolbar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
                         <div class="relative flex-1 max-w-xs">
                             <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
                             <input id="building-search-input" type="text" placeholder="Search buildings..." class="ui-input pl-9" style="width:100%;">
@@ -159,78 +167,93 @@
                         </div>
                     </div>
 
+                    <p class="campus-map-status" data-workspace-status="buildings" role="status" aria-live="polite"></p>
+                    <div id="building-refresh-error" role="status" hidden>Could not refresh building route status. Existing records are retained. <button id="building-refresh-retry" class="ui-button ui-button-outline" type="button">Retry buildings</button></div>
                     <!-- Buildings Grid -->
                     <div id="buildings-grid" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <!-- Rendered by admin-buildings.js -->
                     </div>
 
+                    <nav class="campus-map-pagination" data-workspace-pager="buildings" aria-label="Building pages" hidden></nav>
+                    </section>
+                    <section id="graph-workspace" class="campus-map-section" role="tabpanel" aria-labelledby="workspace-tab-graph" tabindex="0" hidden>
                     <!-- ======== Routes & Campus Graph (Section 7.9) ======== -->
                     <div class="ui-card border-border" id="graph-card">
                         <div class="p-6 pb-0">
                             <h3 class="text-lg font-semibold tracking-tight text-foreground">Routes &amp; Campus Graph</h3>
-                            <p class="text-sm text-muted-foreground">Manage guided routes, ordered steps, graph nodes, and directed edges.</p>
-                            <div class="graph-tabs" role="tablist" aria-label="Route and graph sections">
-                                <button type="button" class="graph-tab graph-tab--active" data-graph-tab="routes" role="tab" aria-selected="true">Routes</button>
-                                <button type="button" class="graph-tab" data-graph-tab="nodes" role="tab" aria-selected="false">Nodes</button>
-                                <button type="button" class="graph-tab" data-graph-tab="edges" role="tab" aria-selected="false">Edges</button>
+                            <p class="text-sm text-muted-foreground">Manage saved instructions, vehicle paths, walking paths and graph nodes.</p>
+                            <div id="campus-map-graph-tabs" class="graph-tabs" role="tablist" aria-label="Route and graph sections">
+                                <button id="graph-tab-routes" type="button" class="graph-tab graph-tab--active" data-graph-tab="routes" role="tab" aria-controls="graph-panel-routes" aria-selected="true" tabindex="0">Routes</button>
+                                <button id="graph-tab-edges" type="button" class="graph-tab" data-graph-tab="edges" role="tab" aria-controls="graph-panel-edges" aria-selected="false" tabindex="-1">Vehicle 2D Routes</button>
+                                <button id="graph-tab-walking" type="button" class="graph-tab" data-graph-tab="walking" role="tab" aria-controls="walking-routes-card" aria-selected="false" tabindex="-1">Walking 2D Routes</button>
+                                <button id="graph-tab-nodes" type="button" class="graph-tab" data-graph-tab="nodes" role="tab" aria-controls="graph-panel-nodes" aria-selected="false" tabindex="-1">Nodes</button>
                             </div>
                         </div>
                         <div class="p-6 pt-4">
 
                             <!-- Routes panel -->
-                            <div class="graph-panel" data-graph-panel="routes">
+                            <div class="graph-panel" data-graph-panel="routes" id="graph-panel-routes" role="tabpanel" aria-labelledby="graph-tab-routes" tabindex="0">
                                 <div class="graph-panel-bar">
                                     <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="route-search" placeholder="Search routes…" aria-label="Search routes" class="ui-input pl-9" style="width:100%;"></div>
                                     <button id="add-route-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Route</button>
                                 </div>
-                                <p id="route-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <p data-workspace-status="routes" id="route-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
                                 <div id="route-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading routes…</p></div>
                                 <div id="route-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load routes.</p><button id="route-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
                                 <div id="route-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No routes yet. Use “Add Route” to create one.</p></div>
                                 <div id="route-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No routes match your search.</p></div>
                                 <div id="route-list" hidden></div>
+                                <nav class="campus-map-pagination" data-workspace-pager="routes" aria-label="Route pages" hidden></nav>
                             </div>
 
                             <!-- Nodes panel -->
-                            <div class="graph-panel" data-graph-panel="nodes" hidden>
+                            <div class="graph-panel" data-graph-panel="nodes" id="graph-panel-nodes" role="tabpanel" aria-labelledby="graph-tab-nodes" tabindex="0" hidden>
                                 <div class="graph-panel-bar">
                                     <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="node-search" placeholder="Search nodes…" aria-label="Search nodes" class="ui-input pl-9" style="width:100%;"></div>
                                     <button id="add-node-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Node</button>
                                 </div>
-                                <p id="node-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <p data-workspace-status="nodes" id="node-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
                                 <div id="node-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading nodes…</p></div>
                                 <div id="node-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load nodes.</p><button id="node-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
                                 <div id="node-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No nodes yet. Use “Add Node” to create one.</p></div>
                                 <div id="node-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No nodes match your search.</p></div>
                                 <div id="node-list" hidden></div>
+                                <nav class="campus-map-pagination" data-workspace-pager="nodes" aria-label="Node pages" hidden></nav>
                             </div>
 
                             <!-- Edges panel -->
-                            <div class="graph-panel" data-graph-panel="edges" hidden>
+                            <div class="graph-panel" data-graph-panel="edges" id="graph-panel-edges" role="tabpanel" aria-labelledby="graph-tab-edges" tabindex="0" hidden>
                                 <div class="graph-panel-bar">
-                                    <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="edge-search" placeholder="Search edges…" aria-label="Search edges" class="ui-input pl-9" style="width:100%;"></div>
-                                    <button id="add-edge-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Edge</button>
+                                    <div class="relative graph-search-wrap"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i><input type="text" id="edge-search" placeholder="Search vehicle 2D routes…" aria-label="Search vehicle 2D routes" class="ui-input pl-9" style="width:100%;"></div>
+                                    <button id="add-edge-btn" class="ui-button ui-button-default ui-button-size-default"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Vehicle 2D Route</button>
                                 </div>
-                                <p id="edge-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
-                                <div id="edge-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading edges…</p></div>
-                                <div id="edge-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load edges.</p><button id="edge-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
-                                <div id="edge-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No edges yet. Use “Add Edge” to create one.</p></div>
-                                <div id="edge-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No edges match your search.</p></div>
+                                <p data-workspace-status="edges" id="edge-result-status" class="admin-result-status" role="status" aria-live="polite"></p>
+                                <div id="edge-loading" class="graph-state" role="status"><i data-lucide="loader-2" class="h-6 w-6 animate-spin text-muted-foreground"></i><p class="text-sm text-muted-foreground">Loading vehicle 2D routes…</p></div>
+                                <div id="edge-error" class="graph-state" hidden><i data-lucide="alert-triangle" class="h-6 w-6 text-destructive"></i><p class="text-sm text-muted-foreground">Could not load vehicle 2D routes.</p><button id="edge-retry" class="ui-button ui-button-outline ui-button-size-sm" type="button"><i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>Retry</button></div>
+                                <div id="edge-empty" class="graph-state" hidden><i data-lucide="inbox" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No vehicle 2D routes yet. Use “Add Vehicle 2D Route” to create one.</p></div>
+                                <div id="edge-filtered-empty" class="graph-state" hidden><i data-lucide="search-x" class="h-6 w-6 text-muted-foreground"></i><p class="text-sm text-muted-foreground">No vehicle 2D routes match your search.</p></div>
                                 <div id="edge-list" hidden></div>
+                                <nav class="campus-map-pagination" data-workspace-pager="edges" aria-label="Vehicle route pages" hidden></nav>
                             </div>
 
-                        </div>
-                    </div>
-
                     <!-- Dedicated walking 2D paths, separate from the vehicle route graph. -->
-                    <div class="ui-card border-border" id="walking-routes-card">
-                        <div class="p-6">
+                    <div class="graph-panel" data-graph-panel="walking" id="walking-routes-card" role="tabpanel" aria-labelledby="graph-tab-walking" tabindex="0" hidden>
+                        <div>
                             <h3 class="text-lg font-semibold tracking-tight text-foreground">Walking 2D Routes</h3>
                             <p class="text-sm text-muted-foreground">Draw pedestrian paths from the Walking Guard House to each building pin. The return uses the same path in reverse.</p>
+                            <div class="graph-panel-bar"><div class="relative graph-search-wrap"><label class="sr-only" for="walking-route-search">Search walking routes</label><input id="walking-route-search" type="search" class="ui-input" placeholder="Search walking routes…"></div></div>
                             <p id="walking-route-count" class="admin-result-status" role="status" aria-live="polite">Loading walking routes…</p>
-                            <div id="walking-route-list" style="display:grid;gap:0.5rem;margin-top:1rem;"></div>
+                            <p class="campus-map-status" data-workspace-status="walking" role="status" aria-live="polite"></p>
+                            <div id="walking-route-load-status" role="status"></div><button id="walking-route-retry" type="button" class="ui-button ui-button-outline" hidden>Retry walking routes</button>
+                            <div id="walking-route-list"></div>
+                            <nav class="campus-map-pagination" data-workspace-pager="walking" aria-label="Walking route pages" hidden></nav>
                         </div>
                     </div>
+                        </div>
+                    </div>
+                    </section>
+
+
 
 
                 </div>
@@ -439,7 +462,7 @@
     <!-- ======== EDGE MODAL (Create/Edit) ======== -->
     <div id="edge-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edge-modal-title">
         <div class="modal-box">
-            <div class="modal-header"><h3 id="edge-modal-title">Add Edge</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <div class="modal-header"><h3 id="edge-modal-title">Add Vehicle 2D Route</h3><button class="modal-close-btn ui-button ui-button-ghost ui-button-size-icon h-8 w-8" type="button" aria-label="Close"><i data-lucide="x" class="h-4 w-4"></i></button></div>
             <form id="edge-form">
                 <div class="modal-body">
                     <div class="form-error"></div>
@@ -447,7 +470,7 @@
                         own native select, always preserves that select's current selection, and
                         both are disabled while editing because RF.4 makes endpoints immutable. %>
                     <p id="edge-endpoint-note" class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;" hidden>Endpoints cannot be changed after an edge is created. Delete the edge and add a new one to reconnect different nodes.</p>
-                    <p class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;">Edges are directional. Save the reverse direction separately when its walking path or metrics differ.</p>
+                    <p class="form-hint" style="font-size:0.75rem;color:var(--muted-foreground);margin:0 0 0.75rem;">Vehicle 2D routes are directional. Save the reverse direction separately when its path or metrics differ.</p>
                     <div class="form-group">
                         <label for="edge-from-search">Search from-nodes</label>
                         <input type="search" id="edge-from-search" class="ui-input" autocomplete="off" aria-describedby="edge-from-count" placeholder="Filter by node key or label…">
@@ -477,7 +500,7 @@
                         <p class="text-muted-foreground" style="font-size:0.76rem;margin:0.25rem 0 0.5rem;line-height:1.4;">
                             Click the map to add a waypoint, or use “Add waypoint”. Drag intermediate markers to adjust; edit
                             coordinates in the list for keyboard control. Endpoints are locked to the node coordinates. Saving
-                            saves this direction only; “Clear” removes geometry from this direction. Edit the reverse edge separately for a dedicated exit path.
+                            saves this direction only; “Clear” removes geometry from this direction. Edit the reverse vehicle 2D route separately for a dedicated exit path.
                         </p>
                         <div id="edge-geo-map" style="height:260px;width:100%;max-width:100%;border:1px solid var(--border);border-radius:0.5rem;overflow:hidden;background:#11151c;" aria-label="Campus road geometry editor map"></div>
                         <p id="edge-geo-map-status" class="text-muted-foreground" style="display:none;font-size:0.78rem;margin:0.35rem 0 0;" role="status" aria-live="polite"></p>
@@ -500,7 +523,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="edge-submit" class="ui-button ui-button-default ui-button-size-default"><span id="edge-submit-label">Create Edge</span></button></div>
+                <div class="modal-footer"><button type="button" class="modal-close-btn ui-button ui-button-outline ui-button-size-default">Cancel</button><button type="submit" id="edge-submit" class="ui-button ui-button-default ui-button-size-default"><span id="edge-submit-label">Create Vehicle 2D Route</span></button></div>
             </form>
         </div>
     </div>

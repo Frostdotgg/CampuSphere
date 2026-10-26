@@ -74,7 +74,8 @@
     function close() {
       if (state.busy || !mayDiscard()) return;
       state.token++; state.loaded = false; modal.classList.remove('modal--open'); modal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = '';
-      if (state.invoker && state.invoker.isConnected) state.invoker.focus();
+      if(window.CampuSphereAdminWorkspace) window.CampuSphereAdminWorkspace.restoreFocus(state.invoker,state.mode==='walking'?'walking':'routes');
+      else if (state.invoker && state.invoker.isConnected) state.invoker.focus();
     }
     modal.querySelectorAll('.modal-close-btn').forEach(control => control.addEventListener('click', close));
     modal.addEventListener('click', event => { if (event.target === modal) close(); });
@@ -103,6 +104,7 @@
         const data = await response.json(); if (token !== state.token) return;
         if (!response.ok || !data || !data.success) throw new Error(data && data.message || 'Instructions could not be saved.');
         state.baseline = JSON.stringify(rows()); byId('steps-list-status').textContent = 'Instructions saved. Other modes and directions were preserved.';
+        if(window.CampuSphereAdminWorkspace) window.CampuSphereAdminWorkspace.notifySaved(state.mode==='walking'?'walking':'routes',state.mode==='walking'?state.destinationId:state.routeId,'Instructions saved.');
       } catch (failure) { if (token === state.token) error(failure.message || 'Save outcome is uncertain. Reopen this list to verify before retrying.'); }
       finally {
         state.busy = false;

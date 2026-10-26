@@ -3,6 +3,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     const $ = (id) => document.getElementById(id);
     if (!$('walking-routes-card')) return;
+    const workspace = window.CampuSphereAdminWorkspace;
+    let destinations = [], query = '', listGeneration = 0, listLoaded = false;
     const origin = { lat: 13.405710, lng: 123.374181, label: 'Walking Guard House' };
     const state = { id: null, destination: null, points: [], history: [], map: null, markers: [], ready: false, busy: false, token: 0, lastFocus: null };
     const csrf = document.querySelector('meta[name="csrf-token"]');
@@ -96,7 +98,8 @@
       state.markers.forEach((m) => { try { m.remove(); } catch (_) {} }); state.markers = [];
       if (state.map) { try { state.map.remove(); } catch (_) {} state.map = null; }
       state.ready = false; state.destination = null; state.id = null;
-      if (state.lastFocus && state.lastFocus.isConnected) state.lastFocus.focus();
+      if (workspace) workspace.restoreFocus(state.lastFocus, 'walking');
+      else if (state.lastFocus && state.lastFocus.isConnected) state.lastFocus.focus();
     }
     function initMap() {
       const api = window.CampuSphereAdminCampusMap;
@@ -135,33 +138,50 @@
         render(); initMap();
       } catch (_) { message('Could not load this destination.'); }
     }
-    async function load() {
-      const list = $('walking-route-list'); list.replaceChildren(); $('walking-route-count').textContent = 'Loading walking routes…';
-      try {
-        const { response, data } = await request('/admin/api/walking-routes');
-        if (!response.ok || !data || !data.success) throw new Error();
-        const ready = data.destinations.filter((b) => b.routeReady);
-        const complete = ready.filter((b) => b.walkingReady).length;
-        $('walking-route-count').textContent = complete + ' of ' + ready.length + ' route-ready buildings have a walking 2D path. ' + (ready.length - complete) + ' still need drawing.';
-        ready.forEach((building) => {
-          const row = document.createElement('div'); row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-radius:0.5rem;padding:0.7rem;';
-          const label = document.createElement('span'); label.textContent = building.name + ' · ' + (building.walkingReady ? 'Walking route ready' : building.pinMismatch ? 'Check building map coordinates' : 'Walking route needed'); row.appendChild(label);
-          const actions = document.createElement('span'); actions.style.cssText = 'display:flex;gap:0.35rem;';
-          actions.appendChild(button('Walking Steps', () => {
-            if (window.CampuSphereRouteInstructionsEditor) window.CampuSphereRouteInstructionsEditor.openWalking(building);
-          }));
-          actions.appendChild(button(building.walkingReady ? 'Edit path' : 'Draw path', () => open(building.id)));
-          if (building.walkingReady) actions.appendChild(button('Remove', async () => {
-            if (!window.confirm('Remove the walking route to ' + building.name + '?')) return;
-            try {
-              const result = await request('/admin/api/walking-routes/' + building.id, { method: 'DELETE', headers: { Accept: 'application/json', 'X-CSRF-Token': csrf ? csrf.content : '' } });
-              if (!result.response.ok) throw new Error(); load();
-            } catch (_) { $('walking-route-count').textContent = 'Could not remove the route. Try again.'; }
-          }));
-          row.appendChild(actions); list.appendChild(row);
-        });
-      } catch (_) { $('walking-route-count').textContent = 'Walking routes could not be loaded. Check that migration 0028 is applied, then reload.'; }
+    function readiness(building) { return building.walkingReady ? 'Walking route ready' : building.pinMismatch ? 'Check building map coordinates' : 'Walking route needed'; }
+    function filteredDestinations() {
+      const needle = query.trim().toLowerCase();
+      return destinations.filter(b => !needle || (b.name + ' ' + readiness(b)).toLowerCase().includes(needle))
+        .sort((a,b) => String(a.name).localeCompare(String(b.name)) || Number(a.id)-Number(b.id));
     }
+    function renderDestinations() {
+      const draw = () => {
+        const list = $('walking-route-list'); list.replaceChildren();
+        const matches = filteredDestinations(), rows = workspace ? workspace.paginate('walking',matches,destinations.length,'walking destinations') : matches;
+        if(!rows.length) { const empty=document.createElement('p'); empty.textContent=destinations.length?'No walking routes match your search.':'No route-ready buildings are available yet.'; list.appendChild(empty); }
+        rows.forEach(building => {
+          const row=document.createElement('div'); row.className='walking-route-row';row.dataset.workspaceItem=String(building.id);
+          const label=document.createElement('span');label.textContent=building.name+' · '+readiness(building);row.appendChild(label);
+          const actions=document.createElement('span');actions.className='walking-route-actions';
+          actions.appendChild(button('Walking Steps',()=>{if(window.CampuSphereRouteInstructionsEditor) window.CampuSphereRouteInstructionsEditor.openWalking(building);}));
+          actions.appendChild(button(building.walkingReady?'Edit path':'Draw path',()=>open(building.id)));
+          if(building.walkingReady) actions.appendChild(button('Remove',async()=>{
+            if(!window.confirm('Remove the walking route to '+building.name+'?')) return;
+            try { const result=await request('/admin/api/walking-routes/'+building.id,{method:'DELETE',headers:{Accept:'application/json','X-CSRF-Token':csrf?csrf.content:''}});
+              if(!result.response.ok) throw new Error();await load();
+            }catch(_){$('walking-route-load-status').textContent='Could not remove the route. Try again.';}
+          }));
+          row.appendChild(actions);list.appendChild(row);
+        });
+      };
+      if(workspace) workspace.preserve('walking',draw); else draw();
+    }
+    async function load() {
+      const generation=++listGeneration;
+      $('walking-route-load-status').textContent='Loading walking routes…';$('walking-route-retry').hidden=true;
+      try {
+        const {response,data}=await request('/admin/api/walking-routes');
+        if(generation!==listGeneration) return;
+        if(!response.ok||!data||!data.success||!Array.isArray(data.destinations)) throw new Error();
+        destinations=data.destinations.filter(b=>b.routeReady);listLoaded=true;
+        const complete=destinations.filter(b=>b.walkingReady).length;
+        $('walking-route-count').textContent=complete+' of '+destinations.length+' route-ready buildings have a walking 2D path. '+(destinations.length-complete)+' still need drawing.';
+        $('walking-route-load-status').textContent='';renderDestinations();
+      }catch(_){if(generation!==listGeneration)return;$('walking-route-load-status').textContent='Walking routes could not be loaded. Try again.';$('walking-route-retry').hidden=false;if(workspace)workspace.markDirty('walking');if(!listLoaded)$('walking-route-count').textContent='';}
+    }
+    if($('walking-route-search')) $('walking-route-search').addEventListener('input',e=>{query=e.target.value;if(workspace)workspace.resetPage('walking');renderDestinations();});
+    if($('walking-route-retry')) $('walking-route-retry').addEventListener('click',load);
+    for(const event of ['campusphere:buildings-changed','campusphere:route-graph-changed']) document.addEventListener(event,()=>{if(workspace)workspace.invalidate('walking');else load();});
     $('walking-add-point').addEventListener('click', () => addPoint());
     $('walking-undo').addEventListener('click', () => { if (!state.history.length) return; state.points = state.history.pop(); render(); });
     $('walking-fit').addEventListener('click', fit);
@@ -188,10 +208,14 @@
         });
         if (saveToken !== state.token || saveId !== state.id) return;
         if (!result.response.ok || !result.data || !result.data.success) throw new Error(result.data && result.data.message);
-        close(); load();
+        const savedId=state.id; close(); await load(); if(workspace)workspace.notifySaved('walking',savedId,'Walking path saved.');
       } catch (error) { message(error.message || 'Could not save the walking route.'); }
       finally { state.busy = false; $('walking-save').disabled = false; }
     });
-    load();
+    if(workspace)workspace.register('walking',{render:renderDestinations,refresh:load,reveal(id){
+      if(!destinations.some(b=>String(b.id)===String(id)))return false;
+      if(!filteredDestinations().some(b=>String(b.id)===String(id))){query='';$('walking-route-search').value='';}
+      workspace.revealPage('walking',filteredDestinations(),id);renderDestinations();return true;
+    }});else load();
   });
 }());
