@@ -20,6 +20,59 @@ function renderReader(page,templateId,mutate=x=>x){
  return {html:context.result,rows:JSON.parse(JSON.stringify(context.CampuSphereData.news))};
 }
 function assertBody(result,expected){assert.ok(result.html.includes(expected),'Full saved content must reach the rendered reader');}
+
+// Run the complete, served dashboard bootstrap rather than rendering a chosen
+// template directly. The old bug selected the right section but displayed a
+// different template, so assertions must inspect the actual content and sidebar.
+function renderDashboardStartup(page, href, options = {}) {
+ const scripts = [...page.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
+ const byId = new Map(scripts.map(([, attrs, text]) => [attrs.match(/\bid="([^"]+)"/)?.[1], text]));
+ const source = scripts.map(m => m[2]).find(s => s.includes('function escapeHtml(value)'));
+ assert.ok(source, 'The served dashboard initialization script must exist');
+ const nodes = new Map();
+ function node(id) {
+  const classes = new Set(), attrs = {}, listeners = {};
+  return { id, style: {}, dataset: {}, textContent: '', innerHTML: '',
+   classList: { add: x => classes.add(x), remove: x => classes.delete(x),
+    toggle(x, force) { const value = force === undefined ? !classes.has(x) : force; value ? classes.add(x) : classes.delete(x); }, contains: x => classes.has(x) },
+   setAttribute: (k,v) => { attrs[k] = String(v); }, getAttribute: k => attrs[k] ?? null,
+   removeAttribute: k => { delete attrs[k]; }, contains: () => false,
+   addEventListener: (name,fn) => { listeners[name] = fn; },
+   querySelectorAll(selector) {
+    if (selector !== '.sidebar__nav-item') return [];
+    return [...this.innerHTML.matchAll(/<button[^>]*data-section="([^"]+)"/g)].map(m => ({ dataset: { section: m[1] }, addEventListener() {} }));
+   }
+  };
+ }
+ for (const id of ['roleTitle','roleBadge','sidebarNav','contentContainer','panelGreeting','panelRoleLabel','sidebarName','sidebarEmail','navUsername','sidebar','sidebarToggle','dashNav','themeToggle']) nodes.set(id,node(id));
+ const document = { documentElement: node('html'), addEventListener() {},
+  getElementById(id) { if (byId.has(id)) return { textContent: byId.get(id) }; return nodes.get(id) || null; }
+ };
+ const storage = new Map([['campusphere-role', options.storedRole || 'guest']]);
+ const context = { document, location: new URL(href,'http://127.0.0.1'), URLSearchParams, Date, console,
+  innerWidth: 1366, scrollY: 0, addEventListener() {},
+  localStorage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => storage.set(k,v) },
+  fetch() { throw Error('Unexpected dashboard network operation in startup fixture'); },
+  setTimeout() { throw Error('Unexpected dashboard timer in startup fixture'); },
+  __SESSION_USER: JSON.parse(byId.get('sessionData'))
+ };
+ context.window = context;
+ vm.createContext(context);
+ vm.runInContext(fs.readFileSync(path.join(ROOT,'public/js/data.js'),'utf8'),context,{timeout:1000});
+ vm.runInContext((options.mutate || (s=>s))(source),context,{timeout:1000});
+ return {
+  state() { return { role: context.currentRole, section: context.currentSection,
+   html: nodes.get('contentContainer').innerHTML, sidebar: nodes.get('sidebarNav').innerHTML }; },
+  switchSection(section) { context.switchSection(section); return this.state(); },
+  switchRole(role) { context.switchRole(role); return this.state(); }
+ };
+}
+function assertStartup(result, role, section, text) {
+ const actual = result.state ? result.state() : result;
+ assert.equal(actual.role,role); assert.equal(actual.section,section);
+ assert.ok(actual.html.includes(text),'Requested section must actually render its expected content');
+ assert.match(actual.sidebar,new RegExp('sidebar__nav-item--active[^>]*data-section="'+section+'"'));
+}
 async function run(){
  const listeners={};vm.runInNewContext(fs.readFileSync(path.join(ROOT,'public/js/news-department-filter.js'),'utf8'),{document:{addEventListener:(name,fn,capture)=>{listeners[name]={fn,capture};}}});
  const disclosures=[{open:true},{open:true}],previews=[{hidden:false},{hidden:false}],count={textContent:''},empty={hidden:true};
@@ -47,10 +100,33 @@ async function run(){
    const id=created.body.article.id;
    for(const [role,readerId,template]of [['student-cspc',2,'tmpl-shared-news'],['instructor',3,'tmpl-instructor-announcements']]){
     const reader=await login(readerId),page=await request('/dashboard',reader),rendered=renderReader(page.text,template);
+    const feed=await request('/api/notifications',reader),href=feed.body.links.announcements;
+    const linked=await request(href,reader),section=role==='instructor'?'announcements':'news';
+    check(mode+' '+role+' bell link renders the reader on initial navigation',()=>{
+     assert.equal(linked.status,200);assertStartup(renderDashboardStartup(linked.text,href,{storedRole:'guest'}),role,section,'FULL-BODY-END');
+    });
+    const reload=await request(href,reader);
+    check(mode+' '+role+' ordinary reload retains the requested reader',()=>assertStartup(renderDashboardStartup(reload.text,href),role,section,'FULL-BODY-END'));
+    check(mode+' '+role+' hardcoded Overview rejection catches the original failure',()=>assert.throws(()=>assertStartup(renderDashboardStartup(linked.text,href,{mutate:s=>s.replace('renderContent(role, currentSection);',"renderContent(role, 'overview');")}),role,section,'FULL-BODY-END')));
+    for(const query of ['', '?section=', '?section=unknown', '?section=__proto__', '?section=%E0%A4%A', '?section=https%3A%2F%2Fexample.invalid', '?section='+ (role==='instructor'?'news':'announcements')]) {
+     check(mode+' '+role+' unavailable initial section safely renders Overview '+query,()=>assertStartup(renderDashboardStartup(page.text,'/dashboard'+query),role,'overview','Quick Links'));
+    }
+    check(mode+' '+role+' profile deep link and subsequent section changes remain consistent',()=>{
+     const boot=renderDashboardStartup(page.text,'/dashboard?section=profile');
+     assertStartup(boot,role,'profile',role==='instructor'?'Instructor Profile':'Personal Information');
+     assertStartup(boot.switchSection(section),role,section,'FULL-BODY-END');
+     assertStartup(boot.switchSection('overview'),role,'overview','Quick Links');
+     assertStartup(boot.switchRole(role),role,'overview','Quick Links');
+    });
     check(mode+' '+role+' renders full content and paragraph text',()=>{assertBody(rendered,'FULL-BODY-END');assert.ok(rendered.html.includes('First paragraph.\n\nSecond paragraph'));assert.equal(rendered.rows[0].content,original.content);});
     check(mode+' '+role+' independent content-loss rejection fixture',()=>assert.throws(()=>assertBody(renderReader(page.text,template,s=>s.replace('bodyText: bodyText','bodyText: excerpt')),'FULL-BODY-END')));
    }
    if(viewArg)throw Error('Baseline unexpectedly passed missing-content regression');
+   const guest=await login(4),guestPage=await request('/dashboard',guest);
+   for(const query of ['news','announcements','news-events','unknown','__proto__']) {
+    check(mode+' Guest unavailable announcement links render only Overview '+query,()=>assertStartup(renderDashboardStartup(guestPage.text,'/dashboard?section='+query,{storedRole:'instructor'}),'guest','overview','Welcome,'));
+   }
+   check(mode+' initial role allowlist rejection fixture is detected',()=>assert.throws(()=>assertStartup(renderDashboardStartup(guestPage.text,'/dashboard?section=announcements',{mutate:s=>s.replace('&& Object.prototype.hasOwnProperty.call(templateMap[role], requestedDashboardSection)','')}),'guest','overview','Welcome,')));
    const updated=await request('/admin/api/news/'+id,admin,'PUT',{...original,content:'EDITED-FULL-BODY-END'});check(mode+' update retains complete content',()=>assert.equal(updated.body.article.content,'EDITED-FULL-BODY-END'));
    const student=await login(2),editedPage=await request('/dashboard',student);
    check(mode+' reloaded dashboard reflects edited content',()=>assertBody(renderReader(editedPage.text,'tmpl-shared-news'),'EDITED-FULL-BODY-END'));
@@ -88,5 +164,5 @@ async function run(){
  }
  console.log('DASHBOARD-ANNOUNCEMENTS OK: '+checks+'/'+checks);
 }
-module.exports={renderReader,assertBody};
+module.exports={renderReader,assertBody,renderDashboardStartup,assertStartup};
 if(require.main===module)run().catch(e=>{console.error('DASHBOARD-ANNOUNCEMENTS FAIL: '+e.stack);process.exitCode=1;});

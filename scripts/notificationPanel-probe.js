@@ -263,6 +263,15 @@ async function exerciseClient() {
       panelElements[10].childNodes.length === 1 && panelElements[11].childNodes.length === 1 &&
       storageValues['campussphere-notification-revision'] === payload.revision);
 
+    check('link', 'student announcement footer keeps its role-specific dashboard target',
+      panelElements[12].getAttribute('href') === '/dashboard?section=news');
+    payload.links.announcements = '/dashboard?section=announcements';
+    await instance.refresh();
+    check('link', 'instructor announcement footer keeps its role-specific dashboard target',
+      panelElements[12].getAttribute('href') === '/dashboard?section=announcements');
+    payload.links.announcements = '/dashboard?section=news';
+    await instance.refresh();
+
     const focusBefore = desktop.focused;
     doc.dispatch('keydown', { key: 'Escape', preventDefault() {} });
     check('client', 'Escape closes and restores focus to the activating trigger',
