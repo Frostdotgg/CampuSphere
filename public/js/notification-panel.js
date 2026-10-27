@@ -15,8 +15,7 @@ const ALLOWED_HREFS = new Set([
   '/admin/news',
   '/events',
   '/dashboard?section=news',
-  '/dashboard?section=announcements',
-  '/dashboard?section=news-events'
+  '/dashboard?section=announcements'
 ]);
 
 function safeClientText(value, max = 240) {
@@ -94,10 +93,11 @@ function normalizeClientFeed(value) {
   const links = value.links && typeof value.links === 'object' ? value.links : {};
   return {
     revision,
-    announcements,
+    announcements: links.announcements === null ? [] : announcements,
     events,
     links: {
-      announcements: safeInternalHref(links.announcements, DEFAULT_ANNOUNCEMENTS_HREF),
+      announcements: links.announcements === null ? null
+        : safeInternalHref(links.announcements, DEFAULT_ANNOUNCEMENTS_HREF),
       events: safeInternalHref(links.events, DEFAULT_EVENTS_HREF)
     }
   };
@@ -215,15 +215,20 @@ function initNotificationPanel(doc, win) {
     setHidden(eventsSection, eventItems.length === 0);
     setHidden(content, !hasFeedItems(feed));
     setHidden(empty, hasFeedItems(feed));
-    if (announcementsLink) announcementsLink.setAttribute('href', safeInternalHref(
-      feed.links.announcements, DEFAULT_ANNOUNCEMENTS_HREF
-    ));
+    const eventsOnly = feed.links.announcements === null;
+    setHidden(announcementsLink, eventsOnly);
+    if (announcementsLink) {
+      if (eventsOnly) announcementsLink.removeAttribute('href');
+      else announcementsLink.setAttribute('href', safeInternalHref(feed.links.announcements, DEFAULT_ANNOUNCEMENTS_HREF));
+    }
     if (eventsLink) eventsLink.setAttribute('href', safeInternalHref(feed.links.events, DEFAULT_EVENTS_HREF));
+    const emptyMessage = eventsOnly ? 'No upcoming Campus-wide events.' : 'No announcements or upcoming events.';
+    if (empty) empty.textContent = emptyMessage;
     if (status) {
       const parts = [];
       if (announcementItems.length) parts.push(`${announcementItems.length} announcement${announcementItems.length === 1 ? '' : 's'}`);
       if (eventItems.length) parts.push(`${eventItems.length} upcoming event${eventItems.length === 1 ? '' : 's'}`);
-      status.textContent = parts.length ? `${parts.join(' and ')}.` : 'No announcements or upcoming events.';
+      status.textContent = parts.length ? `${parts.join(' and ')}.` : emptyMessage;
     }
     setHidden(errorBox, true);
   }

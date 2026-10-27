@@ -10,6 +10,7 @@ const siteContentRepository = require('../repositories/siteContentRepository');
 const auditService = require('../services/auditService');
 const V = require('../utils/adminValidation');
 const { isContentDepartment, isEventDepartment } = require('../utils/departments');
+const { NEWS_AUDIENCES } = require('../utils/contentVisibility');
 const {
   SCHOOL_DESCRIPTION_MAX_LENGTH,
   canonicalizeSchoolDescription,
@@ -58,8 +59,9 @@ function validateNewsPayload(body) {
   const content = contentCheck.value === '' ? excerpt.value : contentCheck.value;
 
   let audience = 'all';
+  if (body.audience === '') return { ok: false, message: 'Select an announcement audience.' };
   if (body.audience !== undefined && body.audience !== null && String(body.audience).trim() !== '') {
-    const a = V.allowedValue(body.audience, 'audience', ALLOWED_AUDIENCES);
+    const a = V.allowedValue(body.audience, 'audience', NEWS_AUDIENCES);
     if (!a.ok) return a;
     audience = a.value;
   }
@@ -212,6 +214,9 @@ exports.updateNews = async (req, res) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Article not found.' });
       }
+      if (existing.audience === 'guest' && !NEWS_AUDIENCES.includes(req.body.audience)) {
+        return res.status(400).json({ success: false, message: 'Select an announcement audience.' });
+      }
 
       const publishedDate = (value.status === 'draft')
         ? null
@@ -237,9 +242,12 @@ exports.updateNews = async (req, res) => {
       });
     }
 
-    const [existing] = await db.query('SELECT id FROM news_announcements WHERE id = ?', [id]);
+    const [existing] = await db.query('SELECT id, audience FROM news_announcements WHERE id = ?', [id]);
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'Article not found.' });
+    }
+    if (existing[0].audience === 'guest' && !NEWS_AUDIENCES.includes(req.body.audience)) {
+      return res.status(400).json({ success: false, message: 'Select an announcement audience.' });
     }
 
     // If publishing a draft, set published_date now; if saving as draft, null it

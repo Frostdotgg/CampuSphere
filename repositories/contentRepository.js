@@ -9,13 +9,13 @@
    Section 4.6; no controller consumes this module until 4.5/4.7.
 
    Boundary rules (see database/supabase/REPOSITORY_BOUNDARIES.md s7):
-   - Imports `config/supabase.js` and the pure department validator. It does NOT import
+   - Imports `config/supabase.js` and pure department/visibility helpers. It does NOT import
      `config/db.js`, any controller, route, view, middleware, or
      public file.
    - Never reads req / res / sessions / res.locals / app.locals /
      browser globals. Role input is supplied only through the explicit
      `listAnnouncementsForRole` / `listEventsForRole` arguments; this module
-     makes no other role decision (audience filtering is data, not policy).
+     applies the shared participant visibility policy to those explicit reads.
    - Returns plain row-like objects in the MySQL-era shapes the
      controllers/views already consume; the controllers keep owning
      response/EJS shaping:
@@ -24,7 +24,7 @@
      events:        id, title, category, audience, department_code, event_date, description,
                     location, event_time, created_at, updated_at
    - Ordering / draft-visibility / audience rules (s7 + plan.md 4.4):
-       listAnnouncementsForRole     : published only (published_date
+       listAnnouncementsForRole     : no guest reads; published only (published_date
                                       NOT NULL), audience IN
                                       ('all', role), published_date
                                       DESC. role null/empty -> only
@@ -37,7 +37,8 @@
        listEvents                   : event_date ASC by default; callers may
                                       request DESC for the public events page.
                                       When role is supplied, only Everyone and
-                                      the matching role are returned.
+                                      the matching role are returned; guest reads
+                                      additionally require Campus-wide scope.
        listEventsForAdmin           : event_date DESC.
    - Supabase failures are rethrown as plain Error objects prefixed
      with `contentRepository.<method>:`, carrying only a redacted
@@ -47,6 +48,7 @@
 
 const { getSupabaseClient } = require('../config/supabase');
 const { isContentDepartment, isEventDepartment } = require('../utils/departments');
+const { canReadAnnouncements, eventReadScope } = require('../utils/contentVisibility');
 
 // Explicit column lists pin the MySQL-era row shape and avoid leaking
 // any column the controllers/views do not already expect.
@@ -128,6 +130,7 @@ function normalizeEventDate(value) {
  * can never alter the filter structure.
  */
 async function listAnnouncementsForRole(role, options = {}) {
+  if (!canReadAnnouncements(role)) return [];
   const trimmed = typeof role === 'string' ? role.trim() : '';
   const audiences = trimmed === '' ? ['all'] : ['all', trimmed];
   const rawLimit = options && options.limit;
@@ -212,8 +215,8 @@ async function listAllAnnouncements() {
  * window matches the boundary contract (s7); both bounds are inclusive and
  * compared against event_date. Callers may pass sortDirection: 'desc' for
  * newest-to-oldest presentation. The id tie-breaker keeps equal-date rows
- * deterministic in either direction. When `role` is supplied, only the
- * Everyone and matching-role audiences are returned. Omitting `role` keeps
+ * deterministic in either direction. Role reads retain audience rules and
+ * restrict guests to Campus-wide events before ordering/limits. Omitting `role` keeps
  * the unrestricted internal read used by administrative callers. The
  * eventsController still reshapes rows into its EJS view shape.
  */
@@ -223,8 +226,9 @@ async function listEvents({ from, to, limit, sortDirection = 'asc', role } = {})
   if (from != null) query = query.gte('event_date', from);
   if (to != null) query = query.lte('event_date', to);
   if (role !== undefined) {
-    const trimmedRole = typeof role === 'string' ? role.trim() : '';
-    query = query.in('audience', trimmedRole ? ['all', trimmedRole] : ['all']);
+    const scope = eventReadScope(role);
+    query = query.in('audience', scope.audiences);
+    if (scope.departmentCode !== null) query = query.eq('department_code', scope.departmentCode);
   }
   const descending = sortDirection === 'desc';
   query = query

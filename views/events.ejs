@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 
 <html lang="en">
+<% const campusWideOnly = typeof guestEventsOnly !== 'undefined' && guestEventsOnly; %>
 
 
 
@@ -50,7 +51,7 @@
 
                 <div class="events-hero__content">
 
-                    <h1 class="events-hero__title">Upcoming Events</h1>
+                    <h1 class="events-hero__title"><%= campusWideOnly ? 'Campus-wide events' : 'Upcoming Events' %></h1>
 
                     <p class="events-hero__sub">Discover academic seminars, cultural fests, and sports tournaments on
 
@@ -70,14 +71,16 @@
 
                 <!-- Toolbar (Filters & Count) -->
 
+                <% if (!campusWideOnly) { %>
                 <div style="max-width:28rem;margin:1rem 0;"><%- include('partials/department-select',{selectId:'events-department',selectRequired:false,accountOnly:false,includeAll:true,selectAttributes:'',selectOptions:eventDepartmentOptions}) %></div>
+                <% } %>
                 <div class="events-toolbar">
 
                     <div class="events-filters" id="filterBar">
 
-                        <button class="events-filter-btn active" data-filter="all">All Events</button>
+                        <button class="events-filter-btn active" data-filter="all" style="min-height:44px;">All Events</button>
 
-                        <button class="events-filter-btn" data-filter="Academic">
+                        <button class="events-filter-btn" data-filter="Academic" style="min-height:44px;">
 
                             <span
                                 style="width:8px;height:8px;border-radius:50%;background:var(--navy-500);display:inline-block;"></span>
@@ -86,7 +89,7 @@
 
                         </button>
 
-                        <button class="events-filter-btn" data-filter="Cultural">
+                        <button class="events-filter-btn" data-filter="Cultural" style="min-height:44px;">
 
                             <span
                                 style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>
@@ -95,7 +98,7 @@
 
                         </button>
 
-                        <button class="events-filter-btn" data-filter="Sports">
+                        <button class="events-filter-btn" data-filter="Sports" style="min-height:44px;">
 
                             <span
                                 style="width:8px;height:8px;border-radius:50%;background:#f97316;display:inline-block;"></span>
@@ -239,7 +242,8 @@
 
 
 
-                const department = document.getElementById('events-department').value;
+                const departmentSelect = document.getElementById('events-department');
+                const department = departmentSelect ? departmentSelect.value : 'all';
                 const filtered = EVENTS.filter(e => (filter === 'all' || e.category === filter) &&
                   (department === 'all' || e.department_code === department));
 
@@ -338,7 +342,7 @@
 
             /* ===== FILTER BUTTONS ===== */
 
-            document.getElementById('events-department').addEventListener('change', () => {
+            document.getElementById('events-department')?.addEventListener('change', () => {
               const active=document.querySelector('.events-filter-btn.active');
               renderEvents(active ? active.dataset.filter : 'all');
             });

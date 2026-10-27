@@ -15,15 +15,15 @@ const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const { normalizeBuildingRows } = require('../utils/buildingData');
 const { logServerError } = require('../utils/serverLog');
+const { normalizeContentRole, eventReadSql } = require('../utils/contentVisibility');
 const mapController = require('./mapController');
 
 const HOME_FEATURED_BUILDING_LIMIT = 3;
 const HOME_LATEST_EVENT_LIMIT = 2;
-const EVENT_AUDIENCE_ROLES = new Set(['student-cspc', 'instructor', 'admin', 'guest']);
 
 function sessionAudienceRole(req) {
   const role = req && req.session && req.session.user && req.session.user.role;
-  return EVENT_AUDIENCE_ROLES.has(role) ? role : '';
+  return normalizeContentRole(role);
 }
 
 function dateOnly(value) {
@@ -101,15 +101,14 @@ async function readHomeLatestEvents(role = '') {
       sortDirection: 'desc'
     });
   } else {
-    const audienceSql = role ? '(audience = ? OR audience = ?)' : 'audience = ?';
-    const audienceParams = role ? ['all', role] : ['all'];
+    const visibility = eventReadSql(role);
     [rows] = await db.query(
       `SELECT title, event_date, event_time
          FROM events
-        WHERE ${audienceSql}
+        WHERE ${visibility.sql}
         ORDER BY event_date DESC, id DESC
         LIMIT ${HOME_LATEST_EVENT_LIMIT}`,
-      audienceParams
+      visibility.params
     );
   }
 

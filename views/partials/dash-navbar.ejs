@@ -233,22 +233,24 @@
             <button id="notificationPanelRetry" class="dash-nav__notification-retry" type="button">Try again</button>
         </div>
         <div id="notificationPanelContent" class="dash-nav__notification-content" hidden>
+            <% if (user.role !== 'guest') { %>
             <section id="notificationAnnouncementsSection" class="dash-nav__notification-section"
                 aria-labelledby="notificationAnnouncementsHeading">
                 <h3 id="notificationAnnouncementsHeading">Announcements</h3>
                 <div id="notificationAnnouncementsList" class="dash-nav__notification-list"></div>
             </section>
+            <% } %>
             <section id="notificationEventsSection" class="dash-nav__notification-section"
                 aria-labelledby="notificationEventsHeading">
-                <h3 id="notificationEventsHeading">Upcoming events</h3>
+                <h3 id="notificationEventsHeading"><%= user.role === 'guest' ? 'Upcoming Campus-wide events' : 'Upcoming events' %></h3>
                 <div id="notificationEventsList" class="dash-nav__notification-list"></div>
             </section>
         </div>
         <p id="notificationPanelEmpty" class="dash-nav__notification-empty" hidden>
-            No announcements or upcoming events.
+            <%= user.role === 'guest' ? 'No upcoming Campus-wide events.' : 'No announcements or upcoming events.' %>
         </p>
         <div class="dash-nav__notifications-footer">
-            <a id="notificationAnnouncementsLink" href="/dashboard?section=news">View announcements</a>
+            <% if (user.role !== 'guest') { %><a id="notificationAnnouncementsLink" href="/dashboard?section=news">View announcements</a><% } %>
             <a id="notificationEventsLink" href="/events">View events</a>
         </div>
     </section>

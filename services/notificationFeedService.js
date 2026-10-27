@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
+const { canReadAnnouncements, canReadEvent, eventReadSql } = require('../utils/contentVisibility');
 
 const ANNOUNCEMENT_LIMIT = 5;
 const EVENT_LIMIT = 5;
@@ -104,14 +105,13 @@ function normalizeEvent(row) {
 }
 
 function linksForRole(role) {
+  if (role === 'guest') return { announcements: null, events: '/events' };
   if (role === 'admin') {
     return { announcements: '/admin/news', events: '/events' };
   }
   const section = role === 'instructor'
     ? 'announcements'
-    : role === 'guest'
-      ? 'news-events'
-      : 'news';
+    : 'news';
   return {
     announcements: `/dashboard?section=${section}`,
     events: '/events'
@@ -120,8 +120,10 @@ function linksForRole(role) {
 
 function buildNotificationFeed({ announcements = [], events = [], role = '' } = {}) {
   const normalizedRole = normalizeRole(role);
-  const announcementRows = Array.isArray(announcements) ? announcements : [];
-  const eventRows = Array.isArray(events) ? events : [];
+  const announcementRows = canReadAnnouncements(normalizedRole) && Array.isArray(announcements) ? announcements : [];
+  const eventRows = Array.isArray(events)
+    ? events.filter(row => normalizedRole !== 'guest' || canReadEvent(row, normalizedRole))
+    : [];
   const announcementItems = [];
   const eventItems = [];
   const revisions = [];
@@ -153,7 +155,9 @@ async function loadNotificationFeed(role, now = new Date()) {
 
   if (contentDataSource.isSupabase()) {
     const [announcements, events] = await Promise.all([
-      contentRepository.listAnnouncementsForRole(normalizedRole, { limit: ANNOUNCEMENT_LIMIT }),
+      canReadAnnouncements(normalizedRole)
+        ? contentRepository.listAnnouncementsForRole(normalizedRole, { limit: ANNOUNCEMENT_LIMIT })
+        : Promise.resolve([]),
       contentRepository.listEventsForRole(normalizedRole, { from: today, limit: EVENT_LIMIT })
     ]);
     return buildNotificationFeed({ announcements, events, role: normalizedRole });
@@ -163,8 +167,9 @@ async function loadNotificationFeed(role, now = new Date()) {
     ? '(audience = ? OR audience = ?)'
     : 'audience = ?';
   const audienceParams = normalizedRole ? ['all', normalizedRole] : ['all'];
+  const visibility = eventReadSql(normalizedRole);
   const [[announcements], [events]] = await Promise.all([
-    db.query(
+    canReadAnnouncements(normalizedRole) ? db.query(
       `SELECT id, title, category, excerpt, content, published_date,
               created_at, updated_at
          FROM news_announcements
@@ -173,16 +178,16 @@ async function loadNotificationFeed(role, now = new Date()) {
         ORDER BY published_date DESC
         LIMIT ${ANNOUNCEMENT_LIMIT}`,
       audienceParams
-    ),
+    ) : Promise.resolve([[]]),
     db.query(
-      `SELECT id, title, category, event_date, event_time, location,
+      `SELECT id, title, category, audience, department_code, event_date, event_time, location,
               description, created_at, updated_at
          FROM events
         WHERE event_date >= ?
-          AND ${audienceSql}
+          AND ${visibility.sql}
         ORDER BY event_date ASC, id ASC
         LIMIT ${EVENT_LIMIT}`,
-      [today, ...audienceParams]
+      [today, ...visibility.params]
     )
   ]);
 

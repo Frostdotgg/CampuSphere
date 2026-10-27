@@ -92,7 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Audience label ----
-  function audienceLabel(a){
+  function audienceLabel(a,kind){
+    if(kind==='news'&&a==='all')return 'Students, instructors and admins';
+    if(kind==='news'&&a==='guest')return 'Guests (retired)';
     const map={'all':'Everyone','student-cspc':'Students (CSPC)','instructor':'Instructors','guest':'Guests','admin':'Admins'};
     return map[a]||'Everyone';
   }
@@ -212,9 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="text-sm" style="overflow-wrap:anywhere;">${esc(departmentLabel(a.department_code))}</p>
           <h4 class="text-base font-semibold text-foreground line-clamp-2">${esc(a.title)}</h4>
           <p class="text-sm text-muted-foreground line-clamp-2">${esc(a.excerpt)}</p>
-          <div class="flex items-center justify-between mt-2">
+          <div class="flex items-center justify-between mt-2" style="gap:0.5rem;flex-wrap:wrap;">
             <span class="text-xs text-muted-foreground">${timeAgo(a.created_at)}</span>
-            <span class="ui-badge ui-badge-outline" style="font-size:0.7rem;">${esc(audienceLabel(a.audience))}</span>
+            <span class="ui-badge ui-badge-outline" style="font-size:0.7rem;white-space:normal;overflow-wrap:anywhere;">${esc(audienceLabel(a.audience,'news'))}</span>
           </div>
           ${statusBadge}
         </div></div>`;
@@ -343,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.excerpt.value=a.excerpt||'';
     form.content.value=a.content||a.excerpt||'';
     form.status.value=a.published_date?'published':'draft';
-    if(form.audience) form.audience.value=a.audience||'all';
+    if(form.audience) form.audience.value=['all','student-cspc','instructor','admin'].includes(a.audience||'all')?(a.audience||'all'):'';
     document.getElementById('news-modal-title').textContent='Edit Article';
     document.getElementById('news-submit-btn').innerHTML='<i data-lucide="check" class="h-4 w-4 mr-2"></i>Save Changes';
     clearFormErrors(newsModal); openModal(newsModal); refreshIcons();
@@ -355,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editId=newsForm.dataset.editId;
     const data={title:newsForm.title_field.value.trim(),department_code:newsForm.department_code.value,category:newsForm.category.value,audience:newsForm.audience.value,excerpt:newsForm.excerpt.value.trim(),content:newsForm.content.value.trim(),status:newsForm.status.value};
     if(!data.department_code||!data.title||!data.category||!data.excerpt){showFormError(newsModal,'Department, title, category, and excerpt are required.');return;}
+    if(!data.audience){showFormError(newsModal,'Select an announcement audience.');return;}
 
     const btn=document.getElementById('news-submit-btn');
     btn.disabled=true; btn.innerHTML='<i data-lucide="loader-2" class="h-4 w-4 mr-2 animate-spin"></i>Saving...'; refreshIcons();

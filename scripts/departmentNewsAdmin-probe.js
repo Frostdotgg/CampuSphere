@@ -16,10 +16,11 @@ net.Socket.prototype.connect=function(...args){const o=args[0];const host=typeof
 const express=require('express'),session=require('express-session'),bcrypt=require('bcrypt');
 const departments=require('../utils/departments');
 let checks=0;function check(label,fn){fn();checks++;console.log('[PASS] '+label);}
-function load(rel,mocks={}){const filename=path.join(ROOT,rel),m=new Module(filename,module);m.filename=filename;m.paths=Module._nodeModulePaths(path.dirname(filename));const actual=m.require.bind(m);m.require=key=>Object.hasOwn(mocks,key)?mocks[key]:actual(key);m._compile(fs.readFileSync(filename,'utf8'),filename);return m.exports;}
+function load(rel,mocks={},sourceRoot=ROOT){const filename=path.join(sourceRoot,rel),m=new Module(filename,module);m.filename=filename;m.paths=Module._nodeModulePaths(path.dirname(filename));const actual=m.require.bind(m);m.require=key=>Object.hasOwn(mocks,key)?mocks[key]:actual(key);m._compile(fs.readFileSync(filename,'utf8'),filename);return m.exports;}
 const clone=x=>JSON.parse(JSON.stringify(x));
-function fixture(mode='mysql'){
- const state={tables:{users:[],news_announcements:[],events:[],student_profiles:[],instructor_profiles:[],guest_profiles:[]},audits:[],queries:[],revocations:[],writes:0,fail:false,rateChecks:0};let nextId=100;
+function fixture(mode='mysql',options={}){
+ const sourceRoot=options.sourceRoot||ROOT,load=(rel,mocks)=>module.exports.load(rel,mocks,sourceRoot);
+ const state={tables:{users:[],news_announcements:[],events:[],student_profiles:[],instructor_profiles:[],guest_profiles:[]},audits:[],queries:[],reads:[],revocations:[],writes:0,fail:false,rateChecks:0};let nextId=100;
  const password=bcrypt.hashSync('Fixture-pass-7!',4);
  for(const [i,role] of ['admin','student-cspc','instructor','guest',...departments.DEPARTMENTS.map(()=>departments.DEPARTMENT_ADMIN)].entries())state.tables.users.push({id:i+1,username:'fixture'+i,email:'fixture'+i+'@example.invalid',password,role,department_code:i>=4?departments.DEPARTMENTS[i-4].code:null,first_name:'Fixture',last_name:String(i),created_at:'2026-10-21T00:00:00Z'});
  const audit={async record(value){state.audits.push(value);}};
@@ -37,13 +38,21 @@ function fixture(mode='mysql'){
   else if(/WHERE email = \?/i.test(sql))rows=rows.filter(r=>r.email===args[0]);
   else if(/WHERE id = \?/i.test(sql))rows=rows.filter(r=>r.id===Number(args[0]));
   if(/published_date IS NOT NULL/i.test(sql))rows=rows.filter(r=>r.published_date!=null);
-  if(/audience = \?/i.test(sql))rows=rows.filter(r=>r.audience==='all'||args.includes(r.audience));
+  const bindAt=index=>(sql.slice(0,index).match(/\?/g)||[]).length;
+  const audiences=[...sql.matchAll(/\baudience\s*=\s*(\?|'([^']+)')/gi)].map(m=>m[1]==='?'?args[bindAt(m.index)]:m[2]);
+  if(audiences.length)rows=rows.filter(r=>audiences.includes(r.audience));
+  for(const m of sql.matchAll(/\b(department_code|event_date)\s*(=|>=|<=)\s*\?/gi)){
+   const value=args[bindAt(m.index)],key=m[1],op=m[2];rows=rows.filter(r=>op==='='?r[key]===value:op==='>='?String(r[key]).slice(0,10)>=value:String(r[key]).slice(0,10)<=value);
+  }
+  const order=sql.match(/ORDER BY\s+(\w+)\s+(ASC|DESC)(?:,\s*(\w+)\s+(ASC|DESC))?/i);
+  if(order)rows=rows.slice().sort((a,b)=>{for(const [key,direction]of [[order[1],order[2]],[order[3],order[4]]]){if(!key)continue;const c=a[key]<b[key]?-1:a[key]>b[key]?1:0;if(c)return direction.toUpperCase()==='DESC'?-c:c;}return 0;});
+  const limit=sql.match(/\bLIMIT\s+(\?|\d+)/i);if(limit)rows=rows.slice(0,limit[1]==='?'?Number(args[bindAt(limit.index)]):Number(limit[1]));
   const selected=(sql.match(/^SELECT\s+(.+?)\s+FROM/is)||[])[1];
   if(selected&&selected!=='*'&&!selected.includes('COUNT('))rows=rows.map(row=>Object.fromEntries(selected.split(',').map(c=>c.trim().replace(/^u\./,'')).map(c=>[c,row[c]])));
   return [clone(rows)];
  };
  const db={query,getConnection:async()=>({query,beginTransaction:async()=>{},commit:async()=>{},rollback:async()=>{},release(){}})};
- const client={from(table){let filters=[],action='select',value,columns='*',single=false,limit=Infinity;const q={select(c){columns=c;return q;},insert(v){action='insert';value=v;return q;},update(v){action='update';value=v;return q;},delete(){action='delete';return q;},eq(k,v){filters.push(r=>String(r[k])===String(v));return q;},ilike(k,v){filters.push(r=>String(r[k]).toLowerCase()===String(v).toLowerCase());return q;},in(k,v){filters.push(r=>v.includes(r[k]));return q;},not(k,op,v){filters.push(r=>r[k]!=null);return q;},order(){return q;},limit(n){limit=n;return q;},gte(){return q;},lte(){return q;},lt(){return q;},single(){single=true;return q;},maybeSingle(){single=true;return q;},then(resolve,reject){try{if(state.fail)return resolve({error:{message:'PRIVATE PROVIDER CANARY'}});let rows=state.tables[table].filter(r=>filters.every(f=>f(r)));if(action==='insert'){const row={id:nextId++,created_at:new Date().toISOString(),...clone(value)};state.tables[table].push(row);rows=[row];state.writes++;}if(action==='update'){rows.forEach(r=>Object.assign(r,clone(value)));state.writes++;}if(action==='delete'){state.tables[table]=state.tables[table].filter(r=>!rows.includes(r));state.writes++;}const out=rows.slice(0,limit).map(r=>columns==='*'?clone(r):Object.fromEntries(columns.split(',').map(k=>[k.trim(),r[k.trim()]])));return resolve({data:single?out[0]||null:out,count:out.length,error:null});}catch(e){return reject(e);}}};return q;},async rpc(name,p){if(state.fail)return {error:{message:'PRIVATE PROVIDER CANARY'}};assert.match(name,/_admin_managed_user_v2$/);const fields={username:p.p_username,email:p.p_email,role:p.p_role,first_name:p.p_first_name,last_name:p.p_last_name,department_code:p.p_department_code};if(name.includes('create')){const row={id:nextId++,password:p.p_password_hash,...fields};state.tables.users.push(row);return {data:row.id};}const row=state.tables.users.find(r=>r.id===Number(p.p_user_id));Object.assign(row,fields,p.p_password_hash?{password:p.p_password_hash}:{});return {data:null};}};
+ const client={from(table){let filters=[],orders=[],action='select',value,columns='*',single=false,limit=Infinity;const q={select(c){columns=c;return q;},insert(v){action='insert';value=v;return q;},update(v){action='update';value=v;return q;},delete(){action='delete';return q;},eq(k,v){filters.push(r=>String(r[k])===String(v));return q;},ilike(k,v){filters.push(r=>String(r[k]).toLowerCase()===String(v).toLowerCase());return q;},in(k,v){filters.push(r=>v.includes(r[k]));return q;},not(k,op,v){filters.push(r=>r[k]!=null);return q;},order(k,o={}){orders.push([k,o.ascending!==false]);return q;},limit(n){limit=n;return q;},gte(k,v){filters.push(r=>String(r[k]).slice(0,10)>=v);return q;},lte(k,v){filters.push(r=>String(r[k]).slice(0,10)<=v);return q;},lt(k,v){filters.push(r=>r[k]<v);return q;},single(){single=true;return q;},maybeSingle(){single=true;return q;},then(resolve,reject){try{if(action==='select')state.reads.push(table);if(state.fail)return resolve({error:{message:'PRIVATE PROVIDER CANARY'}});let rows=state.tables[table].filter(r=>filters.every(f=>f(r)));if(action==='insert'){const row={id:nextId++,created_at:new Date().toISOString(),...clone(value)};state.tables[table].push(row);rows=[row];state.writes++;}if(action==='update'){rows.forEach(r=>Object.assign(r,clone(value)));state.writes++;}if(action==='delete'){state.tables[table]=state.tables[table].filter(r=>!rows.includes(r));state.writes++;}rows.sort((a,b)=>{for(const [k,asc]of orders){const c=a[k]<b[k]?-1:a[k]>b[k]?1:0;if(c)return asc?c:-c;}return 0;});const out=rows.slice(0,limit).map(r=>columns==='*'?clone(r):Object.fromEntries(columns.split(',').map(k=>[k.trim(),r[k.trim()]])));return resolve({data:single?out[0]||null:out,count:out.length,error:null});}catch(e){return reject(e);}}};return q;},async rpc(name,p){if(state.fail)return {error:{message:'PRIVATE PROVIDER CANARY'}};assert.match(name,/_admin_managed_user_v2$/);const fields={username:p.p_username,email:p.p_email,role:p.p_role,first_name:p.p_first_name,last_name:p.p_last_name,department_code:p.p_department_code};if(name.includes('create')){const row={id:nextId++,password:p.p_password_hash,...fields};state.tables.users.push(row);return {data:row.id};}const row=state.tables.users.find(r=>r.id===Number(p.p_user_id));Object.assign(row,fields,p.p_password_hash?{password:p.p_password_hash}:{});return {data:null};}};
  const config={'../config/db':db,'../config/authDataSource':{isSupabase:()=>mode==='supabase'},'../config/contentDataSource':{isSupabase:()=>mode==='supabase'},'../services/auditService':audit};
  const userRepo=load('repositories/userRepository.js',{'../config/supabase':{getSupabaseClient:()=>client,hasSupabaseConfig:()=>true}});
  const contentRepo=load('repositories/contentRepository.js',{'../config/supabase':{getSupabaseClient:()=>client}});
@@ -58,10 +67,13 @@ function fixture(mode='mysql'){
  const auth=load('controllers/authController.js',{...common,'../middleware/roleAuth':role,'../middleware/csrfProtection':csrf,'../config/sessionConfig':{clearSessionCookie:r=>r.clearCookie('fixture.sid')},'../services/userPresenceService':{touchUserPresenceBestEffort:async()=>{}}});
  const events=load('controllers/eventsController.js',common);
  const dashboard=load('controllers/dashboardController.js',{...common,'../config/mapRuntime':{isBuildingSupabase:()=>true},'../repositories/buildingRepository':{countAll:async()=>1}});
+ const notificationService=load('services/notificationFeedService.js',common);
+ const notifications=load('controllers/notificationController.js',{'../services/notificationFeedService':notificationService});
+ const home=load('controllers/pageController.js',{...common,'../config/mapRuntime':{isBuildingSupabase:()=>true},'../repositories/buildingRepository':{listFirstById:async()=>[]},'./mapController':{getPublicStartNode:async()=>null,getPublicBasemapConfig:()=>({renderer:'maplibre'})}});
  const stub=new Proxy({},{get:()=>((_req,res)=>res.json({success:true}))});
  const routeMocks={'../middleware/roleAuth':role,'../middleware/departmentAccess':access,'../middleware/csrfProtection':csrf,'../middleware/rateLimit':{adminMutationLimiter:(_q,_r,n)=>{state.rateChecks++;n();}},'../controllers/adminUsersController':users,'../controllers/adminContentController':content,'../controllers/adminController':new Proxy(admin,{get:(target,key)=>['news','users'].includes(key)?target[key]:stub[key]})};
  for(const name of ['adminBuildingsController','adminVrController','adminRouteController','presenceController','walkingRouteController'])routeMocks['../controllers/'+name]=stub;
- const app=express();app.set('view engine','ejs');app.set('views',path.join(ROOT,'views'));app.use(express.json());app.use(express.urlencoded({extended:false}));app.use(express.static(path.join(ROOT,'public')));app.use(session({name:'fixture.sid',secret:'synthetic-department-probe-only-secret',store,resave:false,saveUninitialized:false}));
+ const app=express();app.set('view engine','ejs');app.set('views',path.join(sourceRoot,'views'));app.use(express.json());app.use(express.urlencoded({extended:false}));app.use(express.static(path.join(sourceRoot,'public')));app.use(session({name:'fixture.sid',secret:'synthetic-department-probe-only-secret',store,resave:false,saveUninitialized:false}));
  app.use(csrf.attachCsrfToken);app.use((req,res,next)=>{Object.assign(res.locals,{user:req.session.user||null,csrfToken:req.session.csrfToken,cspNonce:'fixture',activeTab:'',departmentOptions:departments.CONTENT_DEPARTMENTS,departmentLabel:departments.departmentLabel,eventDepartmentOptions:departments.EVENT_DEPARTMENTS,eventDepartmentLabel:departments.eventDepartmentLabel,safeJson:v=>JSON.stringify(v).replace(/</g,'\\u003c')});next();});
  // These fixture-only helpers precede the real access guard and bind loopback.
  app.get('/fixture/csrf',(req,res)=>res.json({token:csrf.ensureCsrfToken(req.session)}));
@@ -70,8 +82,9 @@ function fixture(mode='mysql'){
  app.get('/auth',auth.auth);app.post('/login',csrf.verifyCsrf,auth.loginPost);app.post('/register',csrf.verifyCsrf,auth.registerPost);app.get('/auth/csrf-token',role.requireLogin,auth.csrfToken);app.post('/logout',role.requireLogin,csrf.verifyCsrf,auth.logout);app.post('/api/presence/heartbeat',role.requireLogin,csrf.verifyCsrf,(_q,r)=>r.sendStatus(204));
  app.use('/admin',load('routes/admin.js',routeMocks));app.get('/events',role.requireLogin,events.index);
  app.get('/dashboard',role.requireLogin,dashboard.index);
+ app.get('/api/notifications',role.requireLogin,notifications.index);app.get('/home',role.requireLogin,home.home);
  app.use((_q,r)=>r.status(404).json({success:false,message:'Not found.'}));app.use((_e,_q,r,_n)=>r.status(500).json({success:false,message:'Server error.'}));
- return {app,state,store,auth,userRepo,contentRepo};
+ return {app,state,store,auth,userRepo,contentRepo,notificationService,db};
 }
 async function run(){
  check('event choices retain one compatible Campus-wide code first',()=>{assert.deepEqual(departments.EVENT_DEPARTMENTS.map(d=>d.code),['university-wide',...departments.DEPARTMENTS.map(d=>d.code)]);assert.equal(departments.eventDepartmentLabel('university-wide'),'Campus-wide');assert.equal(departments.isEventDepartment('campus-wide'),false);assert.equal(departments.isDepartment('university-wide'),false);});
@@ -132,9 +145,9 @@ async function run(){
    for(const [id,role] of [[2,'student-cspc'],[3,'instructor'],[4,'guest']]){
     const {jar:reader}=await login(id);const page=await request('/dashboard',reader),eventsPage=await request('/events',reader);
     const match=page.text.match(/id="dbNewsData"[^>]*>([\s\S]*?)<\/script>/);const rows=match?JSON.parse(match[1]):[];
-    check(mode+' participant audience and draft privacy '+role,()=>{assert.equal(page.status,200);assert.equal(rows.length,2);assert(rows.every(r=>['all',role].includes(r.audience)));assert(!page.text.includes('DRAFT-PRIVATE-CANARY'));assert(page.text.includes('data-news-department-filter'));});
+    check(mode+' participant audience and draft privacy '+role,()=>{assert.equal(page.status,200);assert.equal(rows.length,role==='guest'?0:2);assert(rows.every(r=>['all',role].includes(r.audience)));assert(!page.text.includes('DRAFT-PRIVATE-CANARY'));if(role==='guest')assert(!page.text.includes('tmpl-guest-news-events'));else assert(page.text.includes('data-news-department-filter'));});
     const eventMatch=eventsPage.text.match(/id="eventsData"[^>]*>([\s\S]*?)<\/script>/);const eventRows=eventMatch?JSON.parse(eventMatch[1]):[];
-    check(mode+' participant events keep audience filtering '+role,()=>{assert.equal(eventRows.length,2);assert(eventRows.some(r=>r.department_code==='cas'));assert(eventsPage.text.includes('events-department'));});
+    check(mode+' participant events keep audience filtering '+role,()=>{assert.equal(eventRows.length,role==='guest'?0:2);if(role==='guest')assert(!eventsPage.text.includes('id="events-department"'));else{assert(eventRows.some(r=>r.department_code==='cas'));assert(eventsPage.text.includes('events-department'));}});
    }
    for(const roleId of [null,2,3,4]){
     const actor=roleId?(await login(roleId)).jar:{};const before=f.state.writes;
@@ -143,7 +156,7 @@ async function run(){
    }
    for(const code of departments.CONTENT_DEPARTMENTS.map(d=>d.code)){
     for(const type of ['news','events']){
-     const payload=type==='news'?{title:'Fixture '+code,category:'General',excerpt:'Fixture text',content:'Content',status:'draft',audience:'guest',department_code:code}:{title:'Fixture '+code,category:'Academic',event_date:'2026-11-01',description:'Event text',audience:'student-cspc',department_code:code};
+     const payload=type==='news'?{title:'Fixture '+code,category:'General',excerpt:'Fixture text',content:'Content',status:'draft',audience:'student-cspc',department_code:code}:{title:'Fixture '+code,category:'Academic',event_date:'2026-11-01',description:'Event text',audience:'student-cspc',department_code:code};
      const created=await request('/admin/api/'+type,{...jar,method:'POST',body:payload});const key=type==='news'?'article':'event',id=created.body?.[key]?.id;
      check(mode+' create '+type+' '+code,()=>{assert.equal(created.status,201,created.text);assert.equal(created.body[key].department_code,code);});
      const updated=await request('/admin/api/'+type+'/'+id,{...jar,method:'PUT',body:{...payload,title:'Updated',department_code:'cas'}});check(mode+' cross-department update '+type+' '+code,()=>{assert.equal(updated.status,200);assert.equal(updated.body[key].department_code,'cas');if(type==='news')assert.equal(updated.body.article.published_date,null);});
@@ -198,7 +211,7 @@ async function run(){
    const oldBytes=JSON.stringify(oldEvent),beforeReads=f.state.writes;
    for(const readerId of [1,2,3,4]){
     const reader=readerId===1?admin:(await login(readerId)).jar,page=await request('/events',reader);
-    check(mode+' existing event Campus-wide label/filter '+readerId,()=>{const data=JSON.parse(page.text.match(/id="eventsData"[^>]*>([\s\S]*?)<\/script>/)[1]);assert.equal(data.find(e=>e.id===8888).department_label,'Campus-wide');assert(selectHtml(page.text,'events-department').includes('value="university-wide">Campus-wide'));assert(selectHtml(page.text,'events-department').includes('All departments'));});
+    check(mode+' existing event Campus-wide label/filter '+readerId,()=>{const data=JSON.parse(page.text.match(/id="eventsData"[^>]*>([\s\S]*?)<\/script>/)[1]);assert.equal(data.find(e=>e.id===8888).department_label,'Campus-wide');if(readerId===4)assert(!page.text.includes('id="events-department"'));else{assert(selectHtml(page.text,'events-department').includes('value="university-wide">Campus-wide'));assert(selectHtml(page.text,'events-department').includes('All departments'));}});
    }
    check(mode+' old event read-only preservation',()=>{assert.equal(JSON.stringify(oldEvent),oldBytes);assert.equal(f.state.writes,beforeReads);});
    const missingCsrf=await request('/admin/api/events',{...jar,method:'POST',token:'wrong',body:{title:'CSRF',category:'Academic',event_date:'2026-11-01',department_code:'university-wide'}});

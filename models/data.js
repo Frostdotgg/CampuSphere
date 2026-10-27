@@ -35,7 +35,6 @@ const CampuSphereData = {
     ],
     'guest': [
       { id: 'overview', icon: 'home', label: 'Overview' },
-      { id: 'news-events', icon: 'bell', label: 'News & Announcements' },
     ]
   },
 

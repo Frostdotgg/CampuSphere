@@ -31,6 +31,7 @@ const repository = read('repositories/contentRepository.js');
 const eventsController = read('controllers/eventsController.js');
 const pageController = read('controllers/pageController.js');
 const notificationService = read('services/notificationFeedService.js');
+const visibility = read('utils/contentVisibility.js');
 const schema = read('database/schema.sql');
 const seed = read('database/seed.js');
 const migration = read('database/supabase/0025_event_audience.sql');
@@ -60,7 +61,8 @@ check('admin API', 'MySQL and Supabase event writes persist audience',
 check('repository', 'event rows include audience and role reads are explicit',
   /const EVENT_COLUMNS =\s*\n\s*'[^']*audience[^']*'/.test(repository) &&
   /async function listEventsForRole\(role, options = \{\}\)/.test(repository) &&
-  /query = query\.in\('audience', trimmedRole \? \['all', trimmedRole\] : \['all'\]\)/.test(repository) &&
+  /query = query\.in\('audience', scope\.audiences\)/.test(repository) &&
+  /query = query\.eq\('department_code', scope\.departmentCode\)/.test(repository) &&
   /listEventsForRole,/.test(repository));
 check('repository', 'event writes default missing audience to Everyone and update it',
   /audience: payload\.audience != null && payload\.audience !== '' \? payload\.audience : 'all'/.test(repository) &&
@@ -68,14 +70,15 @@ check('repository', 'event writes default missing audience to Everyone and updat
 
 check('participant reads', 'public events are filtered by the authenticated session role',
   /listEventsForRole\(role, \{ sortDirection: 'desc' \}\)/.test(eventsController) &&
-  /WHERE \$\{audienceSql\}/.test(eventsController) &&
-  /\(audience = \? OR audience = \?\)/.test(eventsController));
+  /WHERE \$\{visibility.sql\}/.test(eventsController) &&
+  /eventReadSql\(role\)/.test(eventsController) &&
+  /\(audience = \? OR audience = \?\)/.test(visibility));
 check('participant reads', 'Home latest events are filtered before the limit',
   /listEventsForRole\(role, \{/.test(pageController) &&
-  /FROM events[\s\S]*WHERE \$\{audienceSql\}[\s\S]*LIMIT \$\{HOME_LATEST_EVENT_LIMIT\}/.test(pageController));
+  /FROM events[\s\S]*WHERE \$\{visibility.sql\}[\s\S]*LIMIT \$\{HOME_LATEST_EVENT_LIMIT\}/.test(pageController));
 check('participant reads', 'notification events are role-filtered in both data sources',
   /listEventsForRole\(normalizedRole, \{ from: today, limit: EVENT_LIMIT \}\)/.test(notificationService) &&
-  /FROM events[\s\S]*event_date >= \?[\s\S]*AND \$\{audienceSql\}/.test(notificationService));
+  /FROM events[\s\S]*event_date >= \?[\s\S]*AND \$\{visibility.sql\}/.test(notificationService));
 
 check('schema', 'MySQL events include the default, check, and audience/date index',
   /audience VARCHAR\(30\) NOT NULL DEFAULT 'all'/.test(schema) &&

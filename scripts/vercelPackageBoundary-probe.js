@@ -73,15 +73,15 @@ const ROOT = path.join(__dirname, '..');
 const IGNORE_FILE = '.vercelignore';
 const VERCEL_JSON_FILE = 'vercel.json';
 
-/* Independent exact-byte authority for the local Vehicle editor header candidate.
+/* Independent exact-byte authority for the local guest content visibility candidate.
    The October 20 published fingerprints remain dated release evidence in
    docs/session-retry-log-pairing-release-2026-10-20.md and the room release note.
    Keep this pin local to the standalone probe so a coordinated documentation
    or quality-gate edit cannot silently bless changed deployable bytes. */
 const EXPECTED_PACKAGE_INVENTORY = Object.freeze({
-  files: 216,
-  bytes: 8666339,
-  sha256: '9b17fb80d7e20587a61a0cd71400e9aea3a544d22b8d7a25cbdb06302c513577',
+  files: 217,
+  bytes: 8670030,
+  sha256: '7bedad9b1875b47338e9dc123f4dcdaed489f3d2e95bf75ae386d92b3d6a949a',
 });
 
 /* M12.P1-R8 label correction.

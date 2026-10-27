@@ -45,7 +45,7 @@ async function run(){
    const admin=await login(1),original={title:'Complete published announcement',category:'General',department_code:'ccs',audience:'all',status:'published',excerpt:'SHORT-EXCERPT-ONLY',content:'First paragraph.\n\nSecond paragraph — café ✓.\nFULL-BODY-END'};
    const created=await request('/admin/api/news',admin,'POST',original);check(mode+' real admin create persists distinct content',()=>{assert.equal(created.status,201);assert.equal(created.body.article.content,original.content);});
    const id=created.body.article.id;
-   for(const [role,readerId,template]of [['student-cspc',2,'tmpl-shared-news'],['instructor',3,'tmpl-instructor-announcements'],['guest',4,'tmpl-guest-news-events']]){
+   for(const [role,readerId,template]of [['student-cspc',2,'tmpl-shared-news'],['instructor',3,'tmpl-instructor-announcements']]){
     const reader=await login(readerId),page=await request('/dashboard',reader),rendered=renderReader(page.text,template);
     check(mode+' '+role+' renders full content and paragraph text',()=>{assertBody(rendered,'FULL-BODY-END');assert.ok(rendered.html.includes('First paragraph.\n\nSecond paragraph'));assert.equal(rendered.rows[0].content,original.content);});
     check(mode+' '+role+' independent content-loss rejection fixture',()=>assert.throws(()=>assertBody(renderReader(page.text,template,s=>s.replace('bodyText: bodyText','bodyText: excerpt')),'FULL-BODY-END')));
@@ -77,7 +77,7 @@ async function run(){
    const tooLong=await request('/admin/api/news',admin,'POST',{...original,content:maxBody+'X'});check(mode+' over-limit validation remains enforced',()=>assert.equal(tooLong.status,400));
    for(const role of ['all','student-cspc','instructor','guest','admin'])f.state.tables.news_announcements.push({...original,id:700+f.state.tables.news_announcements.length,title:'AUDIENCE-CANARY-'+role,audience:role,content:'PRIVATE-BODY-'+role,published_date:'2026-10-25T00:00:00Z'});
    f.state.tables.news_announcements.push({...original,id:999,title:'DRAFT-TITLE-CANARY',content:'DRAFT-BODY-CANARY',published_date:null});
-   for(const [role,readerId,template]of [['student-cspc',2,'tmpl-shared-news'],['instructor',3,'tmpl-instructor-announcements'],['guest',4,'tmpl-guest-news-events']]){
+   for(const [role,readerId,template]of [['student-cspc',2,'tmpl-shared-news'],['instructor',3,'tmpl-instructor-announcements']]){
     const reader=await login(readerId),page=await request('/dashboard',reader),result=renderReader(page.text,template);
     check(mode+' '+role+' published audience filtering is server authoritative',()=>{assert.equal(page.status,200);assert.ok(result.rows.every(r=>{const source=f.state.tables.news_announcements.find(s=>s.id===r.id);return source.published_date&&['all',role].includes(source.audience);}));assert.ok(!page.text.includes('DRAFT-TITLE-CANARY')&&!page.text.includes('DRAFT-BODY-CANARY'));for(const denied of ['student-cspc','instructor','guest','admin'].filter(x=>x!==role))assert.ok(!page.text.includes('PRIVATE-BODY-'+denied));});
     const denied=await request('/admin/api/news',reader,'POST',original);check(mode+' '+role+' cannot write articles',()=>assert.equal(denied.status,403));

@@ -2809,9 +2809,8 @@ function runDashboardNavigateBuildingsRemovalGate() {
 
 /* ---------------- guest dashboard navigation gate ---------------- */
 /**
- * PURE: guest navigation exposes only Overview and the shared news destination.
- * The requested scope is sidebar-only, so the existing guest section templates
- * and their direct section mappings must remain available.
+ * PURE: guest navigation exposes Overview without department news. Other
+ * existing guest sections and campus-map capabilities remain available.
  */
 function guestOverviewSummaryCardContract(dashboardView) {
   const view = typeof dashboardView === 'string' ? dashboardView : '';
@@ -2825,7 +2824,7 @@ function guestOverviewSummaryCardContract(dashboardView) {
     body.matchAll(/<div class="stat-card__label">\s*([^<]+?)\s*<\/div>/gi),
     (match) => match[1].trim()
   );
-  const expected = ['Buildings', 'News', 'Campus Map'];
+  const expected = ['Buildings', 'Campus Map'];
   return labels.length === expected.length &&
     labels.every((label, index) => label === expected[index]) &&
     /id="guest-overview-building-count"[^>]*>\s*<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i.test(body) &&
@@ -2834,7 +2833,7 @@ function guestOverviewSummaryCardContract(dashboardView) {
     /use the 2D campus map and explore available 360 views\./i.test(body) &&
     !/>2D View<\/div>/i.test(body) &&
     !/use the 2D campus map\.(?:\s|<)/i.test(body) &&
-    !/achievements\.length/i.test(body);
+    !/achievements\.length|news\.length|read news/i.test(body);
 }
 
 /**
@@ -2872,10 +2871,9 @@ function guestDashboardNavigationContract(publicData, modelData, dashboardView) 
   };
   const expectedNav = (nav) => {
     const ids = Array.from(nav.matchAll(/\bid:\s*['"]([^'"]+)['"]/g), (match) => match[1]);
-    return ids.length === 2 &&
-      ids[0] === 'overview' && ids[1] === 'news-events' &&
+    return ids.length === 1 &&
+      ids[0] === 'overview' &&
       /id:\s*['"]overview['"][\s\S]*?label:\s*['"]Overview['"]/i.test(nav) &&
-      /id:\s*['"]news-events['"][\s\S]*?label:\s*['"]News & Announcements['"]/i.test(nav) &&
       !/(?:Campus Offices|Admission Info|Building Corridors|Achievements|Campus Map|News & Events)/i.test(nav);
   };
 
@@ -2889,7 +2887,6 @@ function guestDashboardNavigationContract(publicData, modelData, dashboardView) 
     /['"]offices['"]\s*:\s*['"]tmpl-student-non-cspc-offices['"]/i,
     /['"]admission['"]\s*:\s*['"]tmpl-student-non-cspc-admission['"]/i,
     /['"]corridors['"]\s*:\s*['"]tmpl-guest-corridors['"]/i,
-    /['"]news-events['"]\s*:\s*['"]tmpl-guest-news-events['"]/i,
     /['"]achievements['"]\s*:\s*['"]tmpl-guest-achievements['"]/i,
     /['"]map['"]\s*:\s*['"]tmpl-shared-map['"]/i,
   ];
@@ -2899,9 +2896,9 @@ function guestDashboardNavigationContract(publicData, modelData, dashboardView) 
   return expectedNav(guestClientNav) &&
     expectedNav(guestModelNav) &&
     guestOverviewSummaryCardContract(view) &&
-    /News & Announcements/i.test(guestOverviewBody) &&
-    /News & Events/i.test(guestNewsBody) === false &&
-    /News & Announcements/i.test(guestNewsBody) &&
+    /view Campus-wide events/i.test(guestOverviewBody) &&
+    !guestNews && !guestNewsBody &&
+    !/['"]news-events['"]\s*:/.test(guestTemplateMapBody) &&
     preservedGuestSections.every((pattern) => pattern.test(guestTemplateMapBody)) &&
     /['"]student-cspc['"]\s*:\s*\[[\s\S]*?id:\s*['"]profile['"]/i.test(client) &&
     /['"]instructor['"]\s*:\s*\[[\s\S]*?id:\s*['"]announcements['"]/i.test(client) &&
@@ -2912,87 +2909,30 @@ function runGuestDashboardNavigationGate() {
   const rec = makeRecorder('guest-dashboard-navigation');
   const { ok } = rec;
   const root = path.join(__dirname, '..');
-  const dashboardView = fs.readFileSync(path.join(root, 'views', 'dashboard.ejs'), 'utf8');
-  const dashboardController = fs.readFileSync(path.join(root, 'controllers', 'dashboardController.js'), 'utf8');
-  const publicData = fs.readFileSync(path.join(root, 'public', 'js', 'data.js'), 'utf8');
-  const modelData = fs.readFileSync(path.join(root, 'models', 'data.js'), 'utf8');
-  const passes = (client, model, view) =>
-    guestDashboardNavigationContract(client, model, view);
-  const guestNavPattern = /(['"]guest['"]\s*:\s*\[)([\s\S]*?)(\]\s*(?=\}))/i;
-  const mutateGuestNav = (source, transform) => source.replace(
-    guestNavPattern,
-    (_match, opening, body, closing) => opening + transform(body) + closing);
-  const guestNewsWithStaleHeading = dashboardView.replace(
-    /(["']tmpl-guest-news-events["'][\s\S]*?<h3 class="panel-card__title">)News & Announcements(<\/h3>)/i,
-    '$1News & Events$2');
-  const guestViewWithoutMap = dashboardView.replace(
-    /(["']guest["']\s*:\s*\{[\s\S]*?)(["']map["']\s*:\s*["']tmpl-shared-map["'],?)/i,
-    '$1');
-  const guestViewWithoutCorridors = dashboardView.replace(
-    /(["']guest["']\s*:\s*\{[\s\S]*?)(["']corridors["']\s*:\s*["']tmpl-guest-corridors["'],?)/i,
-    '$1');
-  const guestViewWithAchievementCard = dashboardView.replace(
-    /(<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-overview">)([\s\S]*?)(<\/script>)/i,
-    (_match, opening, body, closing) => opening + body.replace(
-      /<div class="stat-card"><div class="stat-card__icon stat-card__icon--red">[\s\S]*?<div class="stat-card__label">Campus Map<\/div><div class="stat-card__value stat-card__value--sm">2D and 360 View<\/div><\/div>/i,
-      (campusMapCard) => '<div class="stat-card"><div class="stat-card__icon stat-card__icon--gold"></div><div class="stat-card__label">Achievements</div><div class="stat-card__value stat-card__value--sm"><%%= achievements.length %%></div></div>\n\n      ' + campusMapCard
-    ) + closing
-  );
-  const guestViewWithStaleMapCopy = dashboardView
-    .replace('2D and 360 View', '2D View')
-    .replace('use the 2D campus map and explore available 360 views.', 'use the 2D campus map.');
-
-  ok('guest sidebar exposes only Overview and News & Announcements',
-    passes(publicData, modelData, dashboardView));
-  ok('guest Overview building count uses the selected live catalog',
-    guestDashboardBuildingCountContract(dashboardController, dashboardView));
-  ok('guest news rename updates the overview and opened panel while preserving guest sections',
-    /News & Announcements/i.test(dashboardView) &&
-    !/News & Events/i.test((dashboardView.match(
-      /<script type="text\/ejs-template"[\s\S]*?id="tmpl-guest-news-events">([\s\S]*?)<\/script>/i) || [])[1] || '') &&
-    /'map': 'tmpl-shared-map'/i.test(dashboardView) &&
-    /'corridors': 'tmpl-guest-corridors'/i.test(dashboardView));
-  ok('fixture: restored guest links or stale News & Events labels are rejected',
-    !passes(
-      mutateGuestNav(publicData, (body) => body +
-        "\n      { id: 'map', icon: 'map', label: 'Campus Map' },"),
-      modelData,
-      dashboardView) &&
-    !passes(
-      mutateGuestNav(publicData, (body) => body.replace(
-        "label: 'News & Announcements'",
-        "label: 'News & Events'")),
-      modelData,
-      dashboardView) &&
-    !passes(
-      publicData,
-      mutateGuestNav(modelData, (body) => body.replace(
-        "label: 'News & Announcements'",
-        "label: 'News & Events'")),
-      dashboardView) &&
-    !passes(
-      publicData,
-      modelData,
-      guestNewsWithStaleHeading));
-  ok('fixture: removing a preserved guest section mapping or restoring Achievements is rejected',
-    !passes(publicData, modelData, guestViewWithoutMap) &&
-    !passes(publicData, modelData, guestViewWithoutCorridors) &&
-    guestViewWithAchievementCard !== dashboardView &&
-    !passes(publicData, modelData, guestViewWithAchievementCard) &&
-    guestViewWithStaleMapCopy !== dashboardView &&
-    !passes(publicData, modelData, guestViewWithStaleMapCopy));
-  ok('fixture: restoring the static guest building count is rejected',
-    !passes(
-      publicData,
-      modelData,
-      dashboardView.replace(
-        /<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i,
-        '<%%= guestBuildings.length %%>'
-      )));
-  ok('fixture: empty or malformed guest sources fail closed',
-    !guestDashboardNavigationContract('', modelData, dashboardView) &&
-    !guestDashboardNavigationContract(publicData, '', dashboardView) &&
-    !guestDashboardNavigationContract(publicData, modelData, ''));
+  const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
+  const view = read('views/dashboard.ejs'), controller = read('controllers/dashboardController.js');
+  const client = read('public/js/data.js'), model = read('models/data.js');
+  const passes = (c, m, v) => guestDashboardNavigationContract(c, m, v);
+  const addNews = source => source.replace(/('guest':\s*\[)/, "$1{ id: 'news-events', icon: 'bell', label: 'News & Announcements' },");
+  const removeMapping = key => view.replace(new RegExp("('guest':\\s*\\{[\\s\\S]*?)'" + key + "':[^,]+,?"), '$1');
+  ok('guest sidebar exposes Overview without department news', passes(client, model, view));
+  ok('guest Overview building count uses the selected live catalog', guestDashboardBuildingCountContract(controller, view));
+  ok('guest news section is removed while map and corridor mappings remain',
+    !view.includes('tmpl-guest-news-events') && /'map': 'tmpl-shared-map'/.test(view) && /'corridors': 'tmpl-guest-corridors'/.test(view));
+  ok('fixture: restoring either guest news navigation entry is rejected',
+    !passes(addNews(client), model, view) && !passes(client, addNews(model), view));
+  const restoredTemplate = view + '<script type="text/ejs-template" id="tmpl-guest-news-events">News & Announcements</script>';
+  const restoredMap = view.replace(/('guest':\s*\{)/, "$1'news-events':'tmpl-guest-news-events',");
+  ok('fixture: restoring the guest news template or mapping is rejected',
+    !passes(client, model, restoredTemplate) && !passes(client, model, restoredMap));
+  ok('fixture: removing preserved guest sections is rejected',
+    !passes(client, model, removeMapping('map')) && !passes(client, model, removeMapping('corridors')));
+  const staleCount = view.replace(/<%=\s*guestBuildingCount\s*===\s*null\s*\?\s*'Unavailable'\s*:\s*guestBuildingCount\s*%>/i, '<%%= guestBuildings.length %%>');
+  const staleMap = view.replace('2D and 360 View', '2D View');
+  const restoredNewsCard = view.replace(/(id="tmpl-guest-overview">)/, '$1<div class="stat-card__label">News</div>');
+  ok('fixture: stale building counts, map copy or restored News card are rejected',
+    !passes(client, model, staleCount) && !passes(client, model, staleMap) && !passes(client, model, restoredNewsCard));
+  ok('fixture: malformed guest sources fail closed', !passes('', model, view) && !passes(client, '', view) && !passes(client, model, ''));
   return rec.failures;
 }
 
@@ -3091,7 +3031,7 @@ function homeCurrentDataContract(pageController, homeView, styles) {
     /(?:contentRepository\.listEventsForRole\(role,\s*\{|contentRepository\.listEvents\(\{[\s\S]{0,220}role:)/.test(controller) &&
     /sortDirection:\s*'desc'/.test(controller) &&
     /ORDER BY event_date DESC, id DESC/.test(controller) &&
-    /audienceSql/.test(controller) &&
+    /eventReadSql\(role\)/.test(controller) &&
     /HOME_LATEST_EVENT_LIMIT = 2/.test(controller) &&
     /toHomeEvent/.test(controller);
   const failureStates =
@@ -16110,6 +16050,7 @@ const ADMIN_MAP_BASEMAP_PROBES = [
 // In-memory providers and synthetic sessions only; SQL rehearsals stay opt-in.
 const DEPARTMENT_NEWS_PROBES = [
   ['department news role, CRUD, privacy and session fixtures', 'departmentNewsAdmin-probe.js'],
+  ['guest content visibility and notification isolation fixtures', 'guestContentVisibility-probe.js'],
   ['Campus-wide event tab, filters and form fixtures', 'campusWideEventsUi-probe.js'],
 ];
 

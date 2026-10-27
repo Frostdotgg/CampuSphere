@@ -1244,7 +1244,6 @@
       <div class="stat-card"><div class="stat-card__icon stat-card__icon--blue">🏢</div><div class="stat-card__label">Buildings</div><div id="guest-overview-building-count" class="stat-card__value stat-card__value--sm"><%= guestBuildingCount === null ? 'Unavailable' : guestBuildingCount %></div></div>
 
 
-      <div class="stat-card"><div class="stat-card__icon stat-card__icon--green">📰</div><div class="stat-card__label">News</div><div class="stat-card__value stat-card__value--sm"><%%= news.length %%></div></div>
 
 
       <div class="stat-card"><div class="stat-card__icon stat-card__icon--red">🗺️</div><div class="stat-card__label">Campus Map</div><div class="stat-card__value stat-card__value--sm">2D and 360 View</div></div>
@@ -1259,7 +1258,7 @@
       <div class="panel-card__header"><h3 class="panel-card__title">Welcome, <%= user ? user.first_name : 'Guest' %>!</h3></div>
 
 
-      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampuSphere! As a guest, you can browse campus buildings, read news & announcements, and use the 2D campus map and explore available 360 views. Sign in with a <strong>@cspc.edu.ph</strong> email for full student or instructor access.</p></div>
+      <div class="panel-card__body"><p style="color:var(--gray-600);font-size:0.9rem;line-height:1.7;">Welcome to CampuSphere! As a guest, you can browse campus buildings, view Campus-wide events, and use the 2D campus map and explore available 360 views. Sign in with a <strong>@cspc.edu.ph</strong> email for full student or instructor access.</p></div>
 
 
     </div>
@@ -1328,12 +1327,6 @@
 
 
 
-    <!-- NEWS & ANNOUNCEMENTS: Guest -->
-
-
-    <script type="text/ejs-template" nonce="<%= cspNonce %>" id="tmpl-guest-news-events">
-    <%- include('partials/dashboard-announcements', { filterId: 'news-department-4' }) %>
-  </script>
 
 
 
@@ -1752,7 +1745,6 @@
           'corridors': 'tmpl-guest-corridors',
 
 
-          'news-events': 'tmpl-guest-news-events',
 
 
           'achievements': 'tmpl-guest-achievements',

@@ -8,20 +8,19 @@ const { eventDepartmentLabel } = require('../utils/departments');
 const contentDataSource = require('../config/contentDataSource');
 const contentRepository = require('../repositories/contentRepository');
 const { logServerError } = require('../utils/serverLog');
-
-const EVENT_AUDIENCE_ROLES = new Set(['student-cspc', 'instructor', 'admin', 'guest']);
+const { normalizeContentRole, eventReadSql } = require('../utils/contentVisibility');
 
 function sessionAudienceRole(req) {
     const role = req && req.session && req.session.user && req.session.user.role;
-    return EVENT_AUDIENCE_ROLES.has(role) ? role : '';
+    return normalizeContentRole(role);
 }
 
 /**
  * GET /events — Events & News
  */
 exports.index = async (req, res) => {
+    const role = sessionAudienceRole(req);
     try {
-        const role = sessionAudienceRole(req);
         // The public events page presents the newest calendar date first.
         // Keep this direction explicit so the notification feed can continue
         // using listEvents' default nearest-upcoming ASC order.
@@ -29,13 +28,12 @@ exports.index = async (req, res) => {
         if (contentDataSource.isSupabase()) {
             rows = await contentRepository.listEventsForRole(role, { sortDirection: 'desc' });
         } else {
-            const audienceSql = role ? '(audience = ? OR audience = ?)' : 'audience = ?';
-            const audienceParams = role ? ['all', role] : ['all'];
+            const visibility = eventReadSql(role);
             [rows] = await db.query(
                 `SELECT * FROM events
-                  WHERE ${audienceSql}
+                  WHERE ${visibility.sql}
                   ORDER BY event_date DESC, id DESC`,
-                audienceParams
+                visibility.params
             );
         }
 
@@ -56,7 +54,8 @@ exports.index = async (req, res) => {
             title: 'CampuSphere | Events',
             description: 'Stay updated with campus events and news at CSPC.',
             activeTab: 'tabEvents',
-            events: eventsData
+            events: eventsData,
+            guestEventsOnly: role === 'guest'
         });
     } catch (error) {
         logServerError('events.index', req);
@@ -65,7 +64,8 @@ exports.index = async (req, res) => {
             title: 'CampuSphere | Events',
             description: 'Stay updated with campus events and news at CSPC.',
             activeTab: 'tabEvents',
-            events: []
+            events: [],
+            guestEventsOnly: role === 'guest'
         });
     }
 };

@@ -11,6 +11,7 @@ const contentRepository = require('../repositories/contentRepository');
 const mapRuntime = require('../config/mapRuntime');
 const buildingRepository = require('../repositories/buildingRepository');
 const { logServerError } = require('../utils/serverLog');
+const { canReadAnnouncements } = require('../utils/contentVisibility');
 
 function parseGuestBuildingCount(value) {
   if (typeof value === 'number') {
@@ -54,7 +55,9 @@ exports.index = async (req, res) => {
     // targeted at the logged-in user's role are shown. Drafts (no
     // published_date) never appear. Filtering is done in SQL, not the client.
     let newsRows;
-    if (contentDataSource.isSupabase()) {
+    if (!canReadAnnouncements(role)) {
+      newsRows = [];
+    } else if (contentDataSource.isSupabase()) {
       // Same rules, applied in the repository: published only
       // (published_date IS NOT NULL), audience 'all' OR the user's role,
       // ordered by published_date DESC. A null role yields the 'all' subset.

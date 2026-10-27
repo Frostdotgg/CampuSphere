@@ -129,7 +129,7 @@ function check(scope, label, ok) {
     client.includes('Notifications are temporarily unavailable.') &&
     client.includes('loadFeed(true)') && client.includes('Escape'));
   check('client', 'links use a strict same-origin allowlist and item text uses textContent',
-    client.includes("'/admin/news'") && client.includes("'/dashboard?section=news-events'") &&
+    client.includes("'/admin/news'") && !client.includes("'/dashboard?section=news-events'") &&
     client.includes('safeInternalHref') && client.includes('node.textContent = text'));
 }
 
@@ -146,6 +146,7 @@ function makeElement(id, className = '') {
     focused: 0,
     textContent: '',
     setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
     getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
     addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     removeEventListener(type, fn) {
@@ -285,6 +286,29 @@ async function exerciseClient() {
     if (retryRequest) await retryRequest;
     check('client', 'retry reloads the feed through the same read-only request',
       panelElements[4].hidden === true && panelElements[10].childNodes.length === 1);
+    payload.announcements = [{ title: 'Restricted announcement canary' }];
+    payload.events = [{ title: 'Campus-wide guest event', category: 'Academic', date: '2099-01-01' }];
+    payload.links.announcements = null;
+    payload.revision = 'b'.repeat(64);
+    await instance.refresh();
+    check('guest', 'events-only feed hides announcement content and removes its link without fallback',
+      panelElements[8].hidden && panelElements[10].childNodes.length === 0 &&
+      panelElements[12].hidden && panelElements[12].getAttribute('href') === null &&
+      panelElements[11].childNodes.length === 1 && panelElements[3].textContent === '1 upcoming event.');
+    desktop.dispatchEvent({ type: 'click' });
+    if (instance.state.inFlight) await instance.state.inFlight;
+    doc.dispatch('keydown', { key: 'Escape', preventDefault() {} });
+    await instance.refresh();
+    check('guest', 'unchanged visible revision does not restore an unread dot', desktopDot.hidden && mobileDot.hidden);
+    payload.revision = 'c'.repeat(64);
+    await instance.refresh();
+    check('guest', 'eligible new event revision displays the unread dot', !desktopDot.hidden && !mobileDot.hidden);
+    payload.events = [];
+    payload.revision = 'd'.repeat(64);
+    await instance.refresh();
+    check('guest', 'empty guest bell stays events-only with no unread dot',
+      panelElements[7].hidden === false && panelElements[7].textContent === 'No upcoming Campus-wide events.' &&
+      panelElements[3].textContent === 'No upcoming Campus-wide events.' && desktopDot.hidden && mobileDot.hidden);
     instance.destroy();
   } finally {
     global.fetch = previousFetch;

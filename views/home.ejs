@@ -58,7 +58,7 @@
         <main class="dash-main">
             <div class="dash-main__inner">
                 <!-- LEFT COLUMN -->
-                <div class="dash-main__left">
+                <div class="dash-main__left" style="min-width:0;">
                     <!-- Quick Access Cards -->
                     <div class="dash-quick" id="quickAccess">
                         <a href="/map" class="dash-quick__card">
@@ -133,7 +133,7 @@
                     const homeLatestEventsState = typeof latestEventsState !== 'undefined'
                         ? latestEventsState : (homeLatestEvents.length ? 'ready' : 'empty');
                 %>
-                <div class="dash-main__right">
+                <div class="dash-main__right" style="min-width:0;">
                     <!-- Featured Locations -->
                     <div class="dash-sidebar-card" id="featuredLocations">
                         <div class="dash-sidebar-card__header">
